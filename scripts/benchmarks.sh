@@ -14,7 +14,7 @@ pallets=(
 
 for p in ${pallets[@]}
 do
-	./target/release/khala-collator benchmark \
+	./target/release/khala-node benchmark \
 		--chain $khalaChain \
 		--execution wasm \
 		--wasm-execution compiled \
