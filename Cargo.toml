@@ -4,7 +4,7 @@ panic = "unwind"
 [workspace]
 resolver = "2"
 members = [
-	"collator",
+	"node",
 	"primitives",
 	"pallets/collator-selection",
 	"runtime/common",

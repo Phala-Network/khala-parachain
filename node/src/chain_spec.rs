@@ -210,8 +210,8 @@ fn khala_testnet_genesis(
                 .cloned()
                 .map(|(acc, aura)| {
                     (
-                        acc.clone(),                    // account id
-                        acc.clone(),                    // validator id
+                        acc.clone(),              // account id
+                        acc.clone(),              // validator id
                         khala_session_keys(aura), // session keys
                     )
                 })
