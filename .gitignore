@@ -1,0 +1,59 @@
+**/target/
+**/*.rs.bk
+*.swp
+**/._*
+**/.criterion/
+.vscode
+polkadot.*
+.DS_Store
+nohup.out
+rls*.log
+*.orig
+*.rej
+**/wip/*.stderr
+*.pyc
+*.swo
+*.bk
+*~
+
+# Keep
+!.keep
+
+# Visual Studio Junk
+.vs/
+*.opensdf
+*.psess
+*.sdf
+*.sln.docstates
+*.suo
+*.user
+*.userosscache
+*.VC.db
+*.VC.opendb
+*.vsp
+*.vspx
+*.rsproj
+*.sln
+*.vcxproj
+*.filters
+
+# JetBrains Junk
+.idea
+*.iml
+CMakeLists.txt
+
+# Substrate
+.wasm-binaries
+
+# Object files
+*.o
+
+# Libraries
+*.a
+
+# Shared objects
+*.so
+*.so.*
+
+# NodeJS
+**/node_modules

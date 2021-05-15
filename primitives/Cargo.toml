@@ -1,0 +1,17 @@
+[package]
+name = "phala-parachain-primitives"
+version = "0.0.1"
+authors = ["Phala Network"]
+edition = "2018"
+
+[dependencies]
+# Substrate dependencies
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+	"sp-runtime/std",
+	"sp-core/std"
+]

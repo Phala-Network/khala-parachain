@@ -1,0 +1,12 @@
+Cargo.lock linguist-generated=true
+
+* text=auto !eol
+*.sln eol=crlf
+*.vcxproj eol=crlf
+*.vcxproj.filters eol=crlf
+*.props eol=crlf
+*.bat eol=crlf
+*.rc eol=crlf
+*.pl linguist-language=Assembly
+*.bin binary
+*.der binary

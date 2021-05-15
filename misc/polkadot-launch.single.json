@@ -1,0 +1,77 @@
+{
+	"relaychain": {
+		"bin": "./bin/polkadot",
+		"chain": "rococo-local",
+		"nodes": [
+			{
+				"name": "alice",
+				"wsPort": 9944,
+				"port": 30333,
+				"flags": ["--rpc-cors=all"]
+			},
+			{
+				"name": "bob",
+				"wsPort": 9244,
+				"port": 32333
+			},
+			{
+				"name": "charlie",
+				"wsPort": 9344,
+				"port": 33333
+			},
+			{
+				"name": "dave",
+				"wsPort": 9444,
+				"port": 34222
+			}
+		],
+		"runtime_genesis_config": {
+			"parachainsConfiguration": {
+				"config": {
+					"validation_upgrade_frequency": 1,
+					"validation_upgrade_delay": 1
+				}
+			}
+		}
+	},
+	"parachains": [
+		{
+			"bin": "./bin/khala-collator",
+			"chain": "khala-dev",
+			"id": "2004",
+			"balance": "1000000000000000000000",
+			"nodes": [
+				{
+					"wsPort": 9544,
+					"port": 35333,
+					"flags": [
+						"--rpc-cors=all",
+						"--pruning=archive",
+						"--alice",
+						"--",
+						"--pruning=archive",
+						"--execution=wasm", "-lruntime=debug", "RUST_BACKTRACE=verbose"
+					]
+				},
+				{
+					"wsPort": 9644,
+					"port": 36333,
+					"flags": [
+						"--rpc-cors=all",
+						"--pruning=archive",
+						"--bob",
+						"--",
+						"--pruning=archive",
+						"--execution=wasm", "-lruntime=debug", "RUST_BACKTRACE=verbose"
+					]
+				}
+			]
+		}
+	],
+	"simpleParachains": [],
+	"hrmpChannels": [],
+	"types": {
+		"BridgedBlockHash": "H256"
+	},
+	"finalization": false
+}
