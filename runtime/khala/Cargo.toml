@@ -56,19 +56,9 @@ pallet-democracy = { git = "https://github.com/paritytech/substrate.git", branch
 # Cumulus dependencies
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus.git", branch = "master", default-features = false }
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus.git", branch = "master", default-features = false }
-cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech/cumulus.git", branch = "master", default-features = false }
-cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/cumulus.git", branch = "master", default-features = false }
-cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus.git", branch = "master", default-features = false }
 cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/cumulus.git", branch = "master", default-features = false }
 cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus.git", branch = "master", default-features = false }
 cumulus-pallet-parachain-info = { git = "https://github.com/paritytech/cumulus.git", branch = "master", package = "parachain-info", default-features = false }
-
-# Polkadot dependencies
-polkadot-parachain = { git = "https://github.com/paritytech/polkadot.git", branch = "master", default-features = false }
-xcm = { git = "https://github.com/paritytech/polkadot.git", branch = "master", default-features = false}
-xcm-builder = { git = "https://github.com/paritytech/polkadot.git", branch = "master", default-features = false }
-xcm-executor = { git = "https://github.com/paritytech/polkadot.git", branch = "master", default-features = false }
-polkadot-pallet-xcm = { git = "https://github.com/paritytech/polkadot.git", branch = "master", package = "pallet-xcm", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0"}
@@ -79,12 +69,10 @@ include-wasm = []
 runtime-benchmarks = [
 	"hex-literal",
 	"sp-runtime/runtime-benchmarks",
-	"xcm-builder/runtime-benchmarks",
 	"frame-benchmarking",
 	"frame-system-benchmarking",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"polkadot-pallet-xcm/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
@@ -111,19 +99,11 @@ std = [
 	"frame-system/std",
 	"frame-system-rpc-runtime-api/std",
 	"cumulus-pallet-parachain-system/std",
-	"cumulus-pallet-dmp-queue/std",
-	"cumulus-pallet-xcmp-queue/std",
-	"cumulus-pallet-xcm/std",
 	"cumulus-pallet-parachain-info/std",
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",
-	"polkadot-parachain/std",
-	"polkadot-pallet-xcm/std",
 	"runtime-common/std",
-	"xcm/std",
-	"xcm-builder/std",
-	"xcm-executor/std",
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-randomness-collective-flip/std",

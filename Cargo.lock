@@ -1560,25 +1560,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cumulus-pallet-dmp-queue"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/cumulus.git?branch=master#5245525bb29293083995569702a285d9a109ac16"
-dependencies = [
- "cumulus-primitives-core",
- "frame-support",
- "frame-system",
- "log",
- "parity-scale-codec",
- "rand 0.8.3",
- "rand_chacha 0.3.0",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "xcm",
- "xcm-executor",
-]
-
-[[package]]
 name = "cumulus-pallet-parachain-system"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus.git?branch=master#5245525bb29293083995569702a285d9a109ac16"
@@ -1606,40 +1587,6 @@ dependencies = [
  "sp-version",
  "trie-db",
  "xcm",
-]
-
-[[package]]
-name = "cumulus-pallet-xcm"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/cumulus.git?branch=master#5245525bb29293083995569702a285d9a109ac16"
-dependencies = [
- "cumulus-primitives-core",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "serde",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "xcm",
-]
-
-[[package]]
-name = "cumulus-pallet-xcmp-queue"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/cumulus.git?branch=master#5245525bb29293083995569702a285d9a109ac16"
-dependencies = [
- "cumulus-primitives-core",
- "frame-support",
- "frame-system",
- "log",
- "parity-scale-codec",
- "rand 0.8.3",
- "rand_chacha 0.3.0",
- "sp-runtime",
- "sp-std",
- "xcm",
- "xcm-executor",
 ]
 
 [[package]]
@@ -3515,10 +3462,7 @@ name = "khala-parachain-runtime"
 version = "0.0.1"
 dependencies = [
  "cumulus-pallet-aura-ext",
- "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
- "cumulus-pallet-xcm",
- "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
  "frame-benchmarking",
@@ -3549,10 +3493,8 @@ dependencies = [
  "pallet-treasury",
  "pallet-utility",
  "pallet-vesting",
- "pallet-xcm",
  "parachain-info",
  "parity-scale-codec",
- "polkadot-parachain",
  "runtime-common",
  "sp-api",
  "sp-block-builder",
@@ -3567,9 +3509,6 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "substrate-wasm-builder 4.0.0",
- "xcm",
- "xcm-builder",
- "xcm-executor",
 ]
 
 [[package]]
