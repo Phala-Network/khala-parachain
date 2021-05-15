@@ -35,7 +35,7 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 
 // Constant values used within the runtime.
 pub mod constants;
-use constants::currency::*;
+pub use constants::currency::*;
 
 use codec::{Decode, Encode};
 use sp_api::impl_runtime_apis;
@@ -172,9 +172,12 @@ construct_runtime! {
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 11,
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 12,
 
-        // Collator support.
-        Aura: pallet_aura::{Pallet, Config<T>} = 21,
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config} = 22,
+        // Collator support. the order of these 5 are important and shall not change.
+        Authorship: pallet_authorship::{Pallet, Call, Storage} = 21,
+        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 22,
+        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 23,
+        Aura: pallet_aura::{Pallet, Config<T>} = 24,
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config} = 25,
 
         // The main stage.
         Utility: pallet_utility::{Pallet, Call, Event} = 31,
@@ -262,10 +265,6 @@ impl frame_system::Config for Runtime {
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 }
 
-impl pallet_aura::Config for Runtime {
-    type AuthorityId = AuraId;
-}
-
 impl pallet_utility::Config for Runtime {
     type Event = Event;
     type Call = Call;
@@ -313,6 +312,8 @@ pub enum ProxyType {
     CancelProxy,
     /// Governance
     Governance,
+    /// Collator selection proxy. Can execute calls related to collator selection mechanism.
+    Collator,
 }
 
 impl Default for ProxyType {
@@ -342,6 +343,10 @@ impl InstanceFilter<Call> for ProxyType {
                     | Call::Treasury(..)
                     | Call::Lottery(..)
                     | Call::Bounties(..)
+            ),
+            ProxyType::Collator => matches!(
+                c,
+                Call::CollatorSelection(..) | Call::Utility(..) | Call::Multisig(..)
             ),
         }
     }
@@ -401,7 +406,7 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: Balance = 1 * DOLLARS;
+    pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT;
     // For weight estimation, we assume that the most locks on an individual account will be 50.
     // This number may need to be adjusted in the future if this assumption no longer holds true.
     pub const MaxLocks: u32 = 50;
@@ -729,6 +734,62 @@ impl pallet_democracy::Config for Runtime {
     type MaxProposals = MaxProposals;
 }
 
+impl pallet_aura::Config for Runtime {
+    type AuthorityId = AuraId;
+}
+
+parameter_types! {
+    pub const UncleGenerations: u32 = 0;
+}
+
+impl pallet_authorship::Config for Runtime {
+    type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
+    type UncleGenerations = UncleGenerations;
+    type FilterUncle = ();
+    type EventHandler = (CollatorSelection,);
+}
+
+parameter_types! {
+    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(33);
+    pub const Period: u32 = 6 * HOURS;
+    pub const Offset: u32 = 0;
+}
+
+impl pallet_session::Config for Runtime {
+    type Event = Event;
+    type ValidatorId = <Self as frame_system::Config>::AccountId;
+    // we don't have stash and controller, thus we don't need the convert as well.
+    type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
+    type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
+    type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+    type SessionManager = CollatorSelection;
+    // Essentially just Aura, but lets be pedantic.
+    type SessionHandler =
+        <opaque::SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
+    type Keys = opaque::SessionKeys;
+    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const PotId: PalletId = PalletId(*b"PotStake");
+    pub const MaxCandidates: u32 = 1000;
+    pub const SessionLength: BlockNumber = 6 * HOURS;
+    pub const MaxInvulnerables: u32 = 100;
+}
+
+impl pallet_collator_selection::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type UpdateOrigin = EnsureRootOrHalfCouncil;
+    type PotId = PotId;
+    type MaxCandidates = MaxCandidates;
+    type MaxInvulnerables = MaxInvulnerables;
+    // should be a multiple of session or things will get inconsistent
+    type KickThreshold = Period;
+    type WeightInfo = pallet_collator_selection::weights::SubstrateWeight<Runtime>;
+}
+
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
         fn slot_duration() -> sp_consensus_aura::SlotDuration {
@@ -857,6 +918,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_proxy, Proxy);
             add_benchmark!(params, batches, pallet_utility, Utility);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
+            add_benchmark!(params, batches, pallet_collator_selection, CollatorSelection);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

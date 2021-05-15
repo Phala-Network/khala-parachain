@@ -32,6 +32,13 @@ where
     AccountPublic::from(get_pair_from_seed::<TPublic>(seed)).into_account()
 }
 
+/// Generate the session keys from individual elements.
+///
+/// The input must be a tuple of individual keys (a single arg for now since we have just one key).
+pub fn khala_session_keys(keys: AuraId) -> khala_runtime::opaque::SessionKeys {
+    khala_runtime::opaque::SessionKeys { aura: keys }
+}
+
 /// The extensions for the [`ChainSpec`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
 #[serde(deny_unknown_fields)]
@@ -188,13 +195,31 @@ fn khala_testnet_genesis(
         },
         pallet_sudo: khala_runtime::SudoConfig { key: root_key },
         cumulus_pallet_parachain_info: khala_runtime::ParachainInfoConfig { parachain_id: id },
-        pallet_aura: khala_runtime::AuraConfig {
-            authorities: initial_authorities
+        pallet_collator_selection: khala_runtime::CollatorSelectionConfig {
+            invulnerables: initial_authorities
                 .iter()
                 .cloned()
-                .map(|(_, aura)| aura)
+                .map(|(acc, _)| acc)
+                .collect(),
+            candidacy_bond: khala_runtime::EXISTENTIAL_DEPOSIT * 16,
+            ..Default::default()
+        },
+        pallet_session: khala_runtime::SessionConfig {
+            keys: initial_authorities
+                .iter()
+                .cloned()
+                .map(|(acc, aura)| {
+                    (
+                        acc.clone(),                    // account id
+                        acc.clone(),                    // validator id
+                        khala_session_keys(aura), // session keys
+                    )
+                })
                 .collect(),
         },
+        // no need to pass anything to aura, in fact it will panic if we do. Session will take care
+        // of this.
+        pallet_aura: Default::default(),
         cumulus_pallet_aura_ext: Default::default(),
         pallet_collective_Instance1: khala_runtime::CouncilConfig::default(),
         pallet_collective_Instance2: khala_runtime::TechnicalCommitteeConfig {

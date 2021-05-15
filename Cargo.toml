@@ -6,6 +6,7 @@ resolver = "2"
 members = [
 	"collator",
 	"primitives",
+	"pallets/collator-selection",
 	"runtime/common",
 	"runtime/khala",
 ]
