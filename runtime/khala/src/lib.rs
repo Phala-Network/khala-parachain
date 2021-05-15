@@ -821,20 +821,6 @@ impl pallet_treasury::Config for Runtime {
 }
 
 parameter_types! {
-    pub const MaxHeartbeatPerWorkerPerHour: u32 = 2;
-    pub const RoundInterval: BlockNumber = 1 * HOURS;
-    pub const DecayInterval: BlockNumber = 180 * DAYS;
-    pub const DecayFactor: Permill = Permill::from_percent(75);
-    pub const InitialReward: Balance = 129600000 * DOLLARS;
-    pub const TreasuryRation: u32 = 20_000;
-    pub const RewardRation: u32 = 80_000;
-    pub const OnlineRewardPercentage: Permill = Permill::from_parts(375_000);
-    pub const ComputeRewardPercentage: Permill = Permill::from_parts(625_000);
-    pub const OfflineOffenseSlash: Balance = 100 * DOLLARS;
-    pub const OfflineReportReward: Balance = 50 * DOLLARS;
-}
-
-parameter_types! {
     pub const LaunchPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
     pub const VotingPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
     pub const FastTrackVotingPeriod: BlockNumber = 3 * 24 * 60 * MINUTES;
