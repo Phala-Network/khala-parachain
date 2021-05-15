@@ -51,7 +51,7 @@ fn load_spec(
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Khala Collator".into()
+        "Khala Node".into()
     }
 
     fn impl_version() -> String {
@@ -60,7 +60,7 @@ impl SubstrateCli for Cli {
 
     fn description() -> String {
         format!(
-            "Khala Collator\n\nThe command-line arguments provided first will be \
+            "Khala Node\n\nThe command-line arguments provided first will be \
 			passed to the parachain node, while the arguments provided after -- will be passed \
 			to the relaychain node.\n\n\
 			{} [parachain-args] -- [relaychain-args]",
@@ -91,7 +91,7 @@ impl SubstrateCli for Cli {
 
 impl SubstrateCli for RelayChainCli {
     fn impl_name() -> String {
-        "Khala Collator".into()
+        "Khala Node".into()
     }
 
     fn impl_version() -> String {
@@ -99,10 +99,10 @@ impl SubstrateCli for RelayChainCli {
     }
 
     fn description() -> String {
-        "Khala Collator\n\nThe command-line arguments provided first will be \
+        "Khala Node\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relaychain node.\n\n\
-		rococo-collator [parachain-args] -- [relaychain-args]"
+		khala [parachain-args] -- [relaychain-args]"
             .into()
     }
 

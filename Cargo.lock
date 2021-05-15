@@ -3398,7 +3398,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "khala-collator"
+name = "khala-node"
 version = "0.0.1"
 dependencies = [
  "cumulus-client-cli",

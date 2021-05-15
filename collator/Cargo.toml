@@ -1,5 +1,5 @@
 [package]
-name = "khala-collator"
+name = "khala-node"
 version = "0.0.1"
 license = "Apache-2.0"
 homepage = "https://phala.network/"
@@ -10,7 +10,7 @@ build = "build.rs"
 edition = "2018"
 
 [[bin]]
-name = "khala-collator"
+name = "khala-node"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
