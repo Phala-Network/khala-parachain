@@ -10,6 +10,9 @@ use sp_runtime::{
 
 pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
+pub type Hasher = sp_runtime::traits::BlakeTwo256;
+/// Aura consensus authority.
+pub type AuraId = sp_consensus_aura::sr25519::AuthorityId;
 /// Opaque block header type.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 /// Opaque block type.

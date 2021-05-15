@@ -3476,7 +3476,6 @@ dependencies = [
  "polkadot-parachain",
  "polkadot-primitives",
  "polkadot-service",
- "runtime-common",
  "sc-basic-authorship",
  "sc-chain-spec",
  "sc-cli",
@@ -3522,11 +3521,13 @@ dependencies = [
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
+ "frame-benchmarking",
  "frame-executive",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
+ "hex-literal 0.3.1",
  "log",
  "pallet-aura",
  "pallet-balances",
@@ -5917,6 +5918,7 @@ dependencies = [
 name = "phala-parachain-primitives"
 version = "0.0.1"
 dependencies = [
+ "sp-consensus-aura",
  "sp-core",
  "sp-runtime",
 ]

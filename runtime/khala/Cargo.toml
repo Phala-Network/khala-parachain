@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.1.0", default-features = false, features = ["derive"] }
 log = { version = "0.4.14", default-features = false }
+hex-literal = { version = "0.3.1", optional = true }
 
 runtime-common = { path = "../common", default-features = false }
 
@@ -29,6 +30,7 @@ frame-executive = { git = "https://github.com/paritytech/substrate.git", branch 
 frame-system = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", default-features = false }
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", default-features = false }
 frame-system-benchmarking = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", optional = true, default-features = false }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", optional = true, default-features = false }
 
 pallet-aura = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", default-features = false }
@@ -74,7 +76,21 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate.git", 
 [features]
 default = ["std", "include-wasm"]
 include-wasm = []
-runtime-benchmarks = []
+runtime-benchmarks = [
+	"hex-literal",
+	"sp-runtime/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+	"frame-benchmarking",
+	"frame-system-benchmarking",
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"polkadot-pallet-xcm/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-multisig/runtime-benchmarks",
+	"pallet-proxy/runtime-benchmarks",
+	"pallet-utility/runtime-benchmarks",
+	"pallet-timestamp/runtime-benchmarks",
+]
 std = [
 	"codec/std",
 	"log/std",

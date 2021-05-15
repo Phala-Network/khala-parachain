@@ -8,10 +8,12 @@ edition = "2018"
 # Substrate dependencies
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", default-features = false }
+sp-consensus-aura = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "0.9.0", default-features = false }
 
 [features]
 default = ["std"]
 std = [
 	"sp-runtime/std",
-	"sp-core/std"
+	"sp-core/std",
+	"sp-consensus-aura/std"
 ]

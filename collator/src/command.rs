@@ -212,7 +212,7 @@ pub fn run() -> Result<()> {
 
 			let block: khala_runtime::Block = generate_genesis_block(&load_spec(
 				&params.chain.clone().unwrap_or_default(),
-				params.parachain_id.unwrap_or(1001).into(),
+				params.parachain_id.unwrap_or(2004).into(),
 			)?)?;
 			let raw_header = block.header().encode();
 			let output_buf = if params.raw {
@@ -275,7 +275,7 @@ pub fn run() -> Result<()> {
 						.chain(cli.relaychain_args.iter()),
 				);
 
-				let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(1001));
+				let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2004));
 
 				let parachain_account =
 					AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);

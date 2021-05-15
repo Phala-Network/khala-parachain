@@ -21,9 +21,6 @@ pub use constants::*;
 /// Common types of statemint and statemine.
 mod types {
 	pub use parachain_primitives::*;
-
-	// Aura consensus authority.
-	pub type AuraId = sp_consensus_aura::sr25519::AuthorityId;
 }
 
 /// Common constants of statemint and statemine

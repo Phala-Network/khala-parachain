@@ -72,10 +72,7 @@ use frame_system::{
 	EnsureRoot, EnsureOneOf,
 	limits::{BlockLength, BlockWeights},
 };
-pub use runtime_common::{
-	BlockNumber, Signature, AccountId, Balance, Index, Hash, AuraId, NORMAL_DISPATCH_RATIO,
-	AVERAGE_ON_INITIALIZE_RATIO, MAXIMUM_BLOCK_WEIGHT, SLOT_DURATION, MINUTES, HOURS, DAYS,
-};
+pub use runtime_common::*;
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -104,8 +101,8 @@ pub mod opaque {
 
 	pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
-	/// Opaque block type.
-	pub type Block = runtime_common::Block;
+	// Opaque block type.
+	pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 
 	pub type SessionHandlers = ();
 
@@ -137,7 +134,6 @@ pub fn native_version() -> NativeVersion {
 	}
 }
 
-pub type Hasher = sp_runtime::traits::BlakeTwo256;
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
 /// Block header type as expected by this runtime.
@@ -174,7 +170,7 @@ pub type Executive = frame_executive::Executive<
 construct_runtime! {
 	pub enum Runtime where
 		Block = Block,
-		NodeBlock = runtime_common::Block,
+		NodeBlock = opaque::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		// System support stuff;
@@ -354,7 +350,9 @@ impl InstanceFilter<Call> for ProxyType {
 				Call::Democracy(..) |
 				Call::Council(..) |
 				Call::TechnicalCommittee(..) |
-				Call::Treasury(..)
+				Call::Treasury(..) |
+				Call::Lottery(..) |
+				Call::Bounties(..)
 			),
 		}
 	}
