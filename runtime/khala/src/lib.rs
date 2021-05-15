@@ -161,40 +161,42 @@ construct_runtime! {
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
-        // System support stuff;
+        // System support stuff
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 1,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
         RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage} = 3,
-        ParachainInfo: cumulus_pallet_parachain_info::{Pallet, Storage, Config} = 4,
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>} = 5,
+        Utility: pallet_utility::{Pallet, Call, Event} = 4,
+        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 5,
+        Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 6,
+        Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>} = 7,
+        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 8,
 
-        // Monetary stuff;
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 11,
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 12,
+        // Parachain staff
+        ParachainInfo: cumulus_pallet_parachain_info::{Pallet, Storage, Config} = 21,
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>} = 22,
+
+        // Monetary stuff
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 31,
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 32,
 
         // Collator support. the order of these 5 are important and shall not change.
-        Authorship: pallet_authorship::{Pallet, Call, Storage} = 21,
-        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 22,
-        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 23,
-        Aura: pallet_aura::{Pallet, Config<T>} = 24,
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config} = 25,
+        Authorship: pallet_authorship::{Pallet, Call, Storage} = 41,
+        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 42,
+        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 43,
+        Aura: pallet_aura::{Pallet, Config<T>} = 44,
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config} = 45,
 
-        // The main stage.
-        Utility: pallet_utility::{Pallet, Call, Event} = 31,
-        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 32,
-        Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 33,
-        Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 34,
-        Recovery: pallet_recovery::{Pallet, Call, Storage, Event<T>} = 35,
-        Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>} = 36,
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 37,
+        // Governance
+        Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 51,
+        Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>} = 52,
+        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 53,
+        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 54,
+        Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 55,
+        Lottery: pallet_lottery::{Pallet, Call, Storage, Event<T>} = 56,
+        TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 57,
+        TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 58,
 
-        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 51,
-        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 52,
-        Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 53,
-        Lottery: pallet_lottery::{Pallet, Call, Storage, Event<T>} = 54,
-        Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>} = 55,
-        TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 56,
-        TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 57,
+        // Main, starts from 70
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
     }
@@ -496,23 +498,6 @@ impl pallet_identity::Config for Runtime {
     type ForceOrigin = EnsureRootOrHalfCouncil;
     type RegistrarOrigin = EnsureRootOrHalfCouncil;
     type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
-}
-
-parameter_types! {
-    pub const ConfigDepositBase: Balance = 5 * DOLLARS;
-    pub const FriendDepositFactor: Balance = 50 * CENTS;
-    pub const MaxFriends: u16 = 9;
-    pub const RecoveryDeposit: Balance = 5 * DOLLARS;
-}
-
-impl pallet_recovery::Config for Runtime {
-    type Event = Event;
-    type Call = Call;
-    type Currency = Balances;
-    type ConfigDepositBase = ConfigDepositBase;
-    type FriendDepositFactor = FriendDepositFactor;
-    type MaxFriends = MaxFriends;
-    type RecoveryDeposit = RecoveryDeposit;
 }
 
 parameter_types! {
@@ -896,6 +881,9 @@ impl_runtime_apis! {
             use frame_system_benchmarking::Pallet as SystemBench;
             impl frame_system_benchmarking::Config for Runtime {}
 
+            use pallet_session_benchmarking::Pallet as SessionBench;
+            impl pallet_session_benchmarking::Config for Runtime {}
+
             let whitelist: Vec<TrackedStorageKey> = vec![
                 // Block Number
                 hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec().into(),
@@ -913,11 +901,21 @@ impl_runtime_apis! {
             let params = (&config, &whitelist);
 
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
+            add_benchmark!(params, batches, pallet_session, SessionBench::<Runtime>);
             add_benchmark!(params, batches, pallet_balances, Balances);
+            add_benchmark!(params, batches, pallet_bounties, Bounties);
+            add_benchmark!(params, batches, pallet_collective, Council);
+            add_benchmark!(params, batches, pallet_democracy, Democracy);
+            add_benchmark!(params, batches, pallet_identity, Identity);
+            add_benchmark!(params, batches, pallet_lottery, Lottery);
+            add_benchmark!(params, batches, pallet_membership, TechnicalMembership);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_proxy, Proxy);
-            add_benchmark!(params, batches, pallet_utility, Utility);
+            add_benchmark!(params, batches, pallet_scheduler, Scheduler);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
+            add_benchmark!(params, batches, pallet_treasury, Treasury);
+            add_benchmark!(params, batches, pallet_utility, Utility);
+            add_benchmark!(params, batches, pallet_vesting, Vesting);
             add_benchmark!(params, batches, pallet_collator_selection, CollatorSelection);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
