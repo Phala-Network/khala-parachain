@@ -400,21 +400,21 @@ pub async fn start_node(
                 proposer_factory,
                 create_inherent_data_providers: move |_, (relay_parent, validation_data)| {
                     let parachain_inherent =
-					cumulus_primitives_parachain_inherent::ParachainInherentData::create_at_with_client(
-						relay_parent,
-						&relay_chain_client,
-						&*relay_chain_backend,
-						&validation_data,
-						id,
-					);
+                    cumulus_primitives_parachain_inherent::ParachainInherentData::create_at_with_client(
+                        relay_parent,
+                        &relay_chain_client,
+                        &*relay_chain_backend,
+                        &validation_data,
+                        id,
+                    );
                     async move {
                         let time = sp_timestamp::InherentDataProvider::from_system_time();
 
                         let slot =
-						sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
-							*time,
-							slot_duration.slot_duration(),
-						);
+                        sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+                            *time,
+                            slot_duration.slot_duration(),
+                        );
 
                         let parachain_inherent = parachain_inherent.ok_or_else(|| {
                             Box::<dyn std::error::Error + Send + Sync>::from(
