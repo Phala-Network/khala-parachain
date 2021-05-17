@@ -57,6 +57,7 @@ CMakeLists.txt
 
 # NodeJS
 **/node_modules
+**/.env
 
 # Tmp
 **/tmp
