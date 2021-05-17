@@ -61,7 +61,8 @@ where
             Block,
             StateBackend = sc_client_api::StateBackendFor<TFullBackend<Block>, Block>,
         > + sp_offchain::OffchainWorkerApi<Block>
-        + sp_block_builder::BlockBuilder<Block>,
+        + sp_block_builder::BlockBuilder<Block>
+        + cumulus_primitives_core::CollectCollationInfo<Block>,
     sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
     Executor: sc_executor::NativeExecutionDispatch + 'static,
     BIQ: FnOnce(
@@ -153,7 +154,8 @@ where
             Block,
             StateBackend = sc_client_api::StateBackendFor<TFullBackend<Block>, Block>,
         > + sp_offchain::OffchainWorkerApi<Block>
-        + sp_block_builder::BlockBuilder<Block>,
+        + sp_block_builder::BlockBuilder<Block>
+        + cumulus_primitives_core::CollectCollationInfo<Block>,
     sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
     Executor: sc_executor::NativeExecutionDispatch + 'static,
     RB: Fn(
@@ -275,7 +277,6 @@ where
             collator_key,
             relay_chain_full_node,
             spawner,
-            backend,
             parachain_consensus,
         };
 
