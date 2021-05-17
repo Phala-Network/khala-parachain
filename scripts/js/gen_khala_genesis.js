@@ -46,7 +46,7 @@ async function main() {
 
     if (process.env.OUT) {
         const jsonGenesisInfo = JSON.stringify(genesis, undefined, 2);
-        fs.writeFileSync(process.env.OUT, jsonGenesisInfo, {encoding: 'utf-8'});
+        fs.writeFileSync(process.env.OUT, jsonGenesisInfo + '\n', {encoding: 'utf-8'});
     }
 }
 
