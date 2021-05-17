@@ -1,0 +1,9 @@
+{
+  "name": "phala-scripts",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@polkadot/keyring": "^6.4.1"
+  }
+}
