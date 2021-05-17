@@ -86,7 +86,6 @@ pub use sp_runtime::BuildStorage;
 /// to even the core data structures.
 pub mod opaque {
     use super::*;
-
     pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
     // Opaque block type.
@@ -124,8 +123,6 @@ pub fn native_version() -> NativeVersion {
 
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
-/// Block header type as expected by this runtime.
-pub type Header = generic::Header<BlockNumber, Hasher>;
 /// Block type as expected by this runtime.
 pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 /// A Block signed with a Justification
@@ -176,27 +173,27 @@ construct_runtime! {
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>} = 22,
 
         // Monetary stuff
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 31,
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 32,
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 41,
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 42,
 
         // Collator support. the order of these 5 are important and shall not change.
-        Authorship: pallet_authorship::{Pallet, Call, Storage} = 41,
-        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 42,
-        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 43,
-        Aura: pallet_aura::{Pallet, Config<T>} = 44,
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config} = 45,
+        Authorship: pallet_authorship::{Pallet, Call, Storage} = 51,
+        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 52,
+        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 53,
+        Aura: pallet_aura::{Pallet, Config<T>} = 54,
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config} = 55,
 
         // Governance
-        Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 51,
-        Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>} = 52,
-        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 53,
-        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 54,
-        Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 55,
-        Lottery: pallet_lottery::{Pallet, Call, Storage, Event<T>} = 56,
-        TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 57,
-        TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 58,
+        Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 61,
+        Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>} = 62,
+        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 63,
+        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 64,
+        Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 65,
+        Lottery: pallet_lottery::{Pallet, Call, Storage, Event<T>} = 66,
+        TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 67,
+        TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 68,
 
-        // Main, starts from 70
+        // Main, starts from 80
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
     }
@@ -244,7 +241,7 @@ impl frame_system::Config for Runtime {
     /// The hashing algorithm used.
     type Hashing = Hasher;
     /// The header type.
-    type Header = generic::Header<BlockNumber, Hasher>;
+    type Header = Header;
     /// The ubiquitous event type.
     type Event = Event;
     /// The ubiquitous origin type.

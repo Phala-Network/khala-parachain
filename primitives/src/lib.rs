@@ -4,17 +4,18 @@
 
 use sp_runtime::{
     generic,
-    traits::{BlakeTwo256, IdentifyAccount, Verify},
+    traits::{IdentifyAccount, Verify},
     MultiSignature,
 };
 
 pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
 pub type Hasher = sp_runtime::traits::BlakeTwo256;
+
 /// Aura consensus authority.
 pub type AuraId = sp_consensus_aura::sr25519::AuthorityId;
 /// Opaque block header type.
-pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+pub type Header = generic::Header<BlockNumber, Hasher>;
 /// Opaque block type.
 pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 /// Opaque block identifier type.
@@ -28,10 +29,6 @@ pub type Signature = MultiSignature;
 /// Some way of identifying an account on the chain. We intentionally make it equivalent
 /// to the public key of our transaction signing scheme.
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
-
-/// The type for looking up accounts. We don't expect more than 4 billion of them, but you
-/// never know...
-pub type AccountIndex = u32;
 
 /// Balance of an account.
 pub type Balance = u128;
