@@ -1,16 +1,21 @@
+// USAGE
+// NUM_VALIDATORS=3 NUM_TECH_COMMITTEE=0 ENDOWMENT='' MNEMONIC='xxx' OUT=../../node/res/khala_local_genesis_info.json node gen_khala_genesis.js
+
+require('dotenv').config();
+
 const { Keyring } = require('@polkadot/keyring');
 const { cryptoWaitReady, mnemonicGenerate } = require('@polkadot/util-crypto');
 const fs = require('fs');
 
-const NUM_VALIDATORS = 3;
-const NUM_TECH_COMMITTEE = 1;
-const ENDOWMENT = '1000' + '000000000000';  // 1000 PHA
+const NUM_VALIDATORS = parseInt(process.env.NUM_VALIDATORS) || 3;
+const NUM_TECH_COMMITTEE = parseInt(process.env.NUM_TECH_COMMITTEE ?? 1);
+const ENDOWMENT = process.env.ENDOWMENT ?? '1000' + '000000000000';  // 1000 PHA
 
 async function main() {
     await cryptoWaitReady();
 
     const keyring = new Keyring({ type: 'sr25519', ss58Format: 30 });
-    const mnemonic = mnemonicGenerate();
+    const mnemonic = process.env.MNEMONIC || mnemonicGenerate();
     console.warn('mnemonic:', mnemonic);
 
     const rootKey = keyring.addFromUri(`${mnemonic}/khala`).address;
