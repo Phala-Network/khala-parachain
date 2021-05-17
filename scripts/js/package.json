@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "@polkadot/api": "^4.10.1",
     "@polkadot/keyring": "^6.4.1",
     "dotenv": "^9.0.2"
   }
