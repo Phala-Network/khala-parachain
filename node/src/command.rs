@@ -41,9 +41,9 @@ fn load_spec(
         "khala-dev" => Box::new(chain_spec::khala_development_config(para_id)),
         "khala-local" => Box::new(chain_spec::khala_local_config(para_id)),
         "khala-staging" => Box::new(chain_spec::khala_staging_config()),
-        // "khala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
-        // 	&include_bytes!("../res/khala.json")[..],
-        // )?),
+        "khala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
+            &include_bytes!("../res/khala.json")[..],
+        )?),
         path => Box::new(chain_spec::ChainSpec::from_json_file(
             std::path::PathBuf::from(path),
         )?),
