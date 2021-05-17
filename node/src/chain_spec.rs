@@ -145,7 +145,7 @@ pub fn khala_local_config(id: ParaId) -> ChainSpec {
     )
 }
 
-pub fn gen_khala_config() -> ChainSpec {
+pub fn khala_staging_config() -> ChainSpec {
     let genesis_info_bytes = include_bytes!("../res/khala_genesis_info.json");
     let genesis_info: KhalaGenesisInfo =
         serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
