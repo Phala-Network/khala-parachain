@@ -40,6 +40,7 @@ fn load_spec(
     Ok(match id {
         "khala-dev" => Box::new(chain_spec::khala_development_config(para_id)),
         "khala-local" => Box::new(chain_spec::khala_local_config(para_id)),
+        "gen-khala" => Box::new(chain_spec::gen_khala_config()),
         // "khala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
         // 	&include_bytes!("../res/khala.json")[..],
         // )?),

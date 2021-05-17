@@ -1,10 +1,9 @@
 use cumulus_primitives_core::ParaId;
-use hex_literal::hex;
 use khala_runtime::{AccountId, AuraId, Signature};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup, Properties};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::UncheckedInto, sr25519, Pair, Public};
+use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
@@ -56,6 +55,15 @@ impl Extensions {
     }
 }
 
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+struct KhalaGenesisInfo {
+    root_key: AccountId,
+    initial_authorities: Vec<(AccountId, AuraId)>,
+    endowed_accounts: Vec<(AccountId, String)>,
+    technical_committee: Vec<AccountId>,
+}
+
 type AccountPublic = <Signature as Verify>::Signer;
 
 pub fn khala_development_config(id: ParaId) -> ChainSpec {
@@ -96,7 +104,7 @@ pub fn khala_development_config(id: ParaId) -> ChainSpec {
         vec![],
         None,
         Some("khala"),
-        testnet_properties(),
+        chain_properties(),
         Extensions {
             relay_chain: "westend-dev".into(),
             para_id: id.into(),
@@ -105,67 +113,31 @@ pub fn khala_development_config(id: ParaId) -> ChainSpec {
 }
 
 pub fn khala_local_config(id: ParaId) -> ChainSpec {
-    // stash, controller, session-key
-    // generated with secret:
-    // for i in 1 2 3 4 ; do for j in stash controller; do subkey inspect "$secret"/fir/$j/$i; done; done
-    // and
-    // for i in 1 2 3 4 ; do for j in session; do subkey --ed25519 inspect "$secret"//fir//$j//$i; done; done
-    let initial_authorities: Vec<(AccountId, AuraId)> = vec![
-        (
-            // 5Fbsd6WXDGiLTxunqeK5BATNiocfCqu9bS1yArVjCgeBLkVy
-            hex!["9c7a2ee14e565db0c69f78c7b4cd839fbf52b607d867e9e9c5a79042898a0d12"].into(),
-            // 5EnCiV7wSHeNhjW3FSUwiJNkcc2SBkPLn5Nj93FmbLtBjQUq
-            hex!["781ead1e2fa9ccb74b44c19d29cb2a7a4b5be3972927ae98cd3877523976a276"]
-                .unchecked_into(),
-        ),
-        (
-            // 5ERawXCzCWkjVq3xz1W5KGNtVx2VdefvZ62Bw1FEuZW4Vny2
-            hex!["68655684472b743e456907b398d3a44c113f189e56d1bbfd55e889e295dfde78"].into(),
-            // 5Gc4vr42hH1uDZc93Nayk5G7i687bAQdHHc9unLuyeawHipF
-            hex!["c8dc79e36b29395413399edaec3e20fcca7205fb19776ed8ddb25d6f427ec40e"]
-                .unchecked_into(),
-        ),
-        (
-            // 5DyVtKWPidondEu8iHZgi6Ffv9yrJJ1NDNLom3X9cTDi98qp
-            hex!["547ff0ab649283a7ae01dbc2eb73932eba2fb09075e9485ff369082a2ff38d65"].into(),
-            // 5FeD54vGVNpFX3PndHPXJ2MDakc462vBCD5mgtWRnWYCpZU9
-            hex!["9e42241d7cd91d001773b0b616d523dd80e13c6c2cab860b1234ef1b9ffc1526"]
-                .unchecked_into(),
-        ),
-        (
-            // 5HYZnKWe5FVZQ33ZRJK1rG3WaLMztxWrrNDb1JRwaHHVWyP9
-            hex!["f26cdb14b5aec7b2789fd5ca80f979cef3761897ae1f37ffb3e154cbcc1c2663"].into(),
-            // 5EPQdAQ39WQNLCRjWsCk5jErsCitHiY5ZmjfWzzbXDoAoYbn
-            hex!["66bc1e5d275da50b72b15de072a2468a5ad414919ca9054d2695767cf650012f"]
-                .unchecked_into(),
-        ),
-    ];
-
-    // generated with secret: subkey inspect "$secret"/fir
-    let root_key: AccountId = hex![
-        // 5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo
-        "ce4f5981f1b33b5371454c753ac6f3a703e57e1fe20c7b26a1f9bda024008221"
-    ]
-    .into();
-
-    let endowed_accounts: Vec<AccountId> = vec![root_key.clone()];
+    let genesis_info_bytes = include_bytes!("../res/khala_local_genesis_info.json");
+    let genesis_info: KhalaGenesisInfo =
+        serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
 
     ChainSpec::from_genesis(
         "Khala Testnet",
         "khala_testnet",
         ChainType::Live,
         move || {
+            let genesis_info = genesis_info.clone();
             khala_testnet_genesis(
-                root_key.clone(),
-                initial_authorities.clone(), // TODO:
-                endowed_accounts.clone(),
+                genesis_info.root_key,
+                genesis_info.initial_authorities,
+                genesis_info
+                    .endowed_accounts
+                    .into_iter()
+                    .map(|(k, _)| k)
+                    .collect(),
                 id,
             )
         },
         Vec::new(),
         None,
         Some("khala"),
-        testnet_properties(),
+        chain_properties(),
         Extensions {
             relay_chain: "westend-dev".into(),
             para_id: id.into(),
@@ -173,12 +145,59 @@ pub fn khala_local_config(id: ParaId) -> ChainSpec {
     )
 }
 
-fn khala_testnet_genesis(
+pub fn gen_khala_config() -> ChainSpec {
+    let genesis_info_bytes = include_bytes!("../res/khala_genesis_info.json");
+    let genesis_info: KhalaGenesisInfo =
+        serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
+
+    ChainSpec::from_genesis(
+        "Khala",
+        "khala",
+        ChainType::Live,
+        move || {
+            use std::str::FromStr;
+            let genesis_info = genesis_info.clone();
+            khala_genesis(
+                genesis_info.root_key,
+                genesis_info.initial_authorities,
+                genesis_info.technical_committee,
+                genesis_info
+                    .endowed_accounts
+                    .into_iter()
+                    .map(|(k, amount)| (k, u128::from_str(&amount).expect("Bad amount; qed.")))
+                    .collect(),
+                2004.into(),
+            )
+        },
+        Vec::new(),
+        None,
+        Some("khala"),
+        chain_properties(),
+        Extensions {
+            relay_chain: "kusama".into(),
+            para_id: 2004,
+        },
+    )
+}
+
+fn khala_genesis(
     root_key: AccountId,
     initial_authorities: Vec<(AccountId, AuraId)>,
-    endowed_accounts: Vec<AccountId>,
+    technical_committee: Vec<AccountId>,
+    endowed_accounts: Vec<(AccountId, u128)>,
     id: ParaId,
 ) -> khala_runtime::GenesisConfig {
+    let all_accounts: Vec<_> = initial_authorities
+        .iter()
+        .map(|(k, _)| k)
+        .chain(&technical_committee)
+        .chain(&[root_key.clone()])
+        .cloned()
+        .collect();
+    if !check_accounts_endowed(&all_accounts, &endowed_accounts) {
+        panic!("All the genesis accounts must be endowed; qed.")
+    }
+
     khala_runtime::GenesisConfig {
         frame_system: khala_runtime::SystemConfig {
             code: khala_runtime::WASM_BINARY
@@ -187,11 +206,7 @@ fn khala_testnet_genesis(
             changes_trie_config: Default::default(),
         },
         pallet_balances: khala_runtime::BalancesConfig {
-            balances: endowed_accounts
-                .iter()
-                .cloned()
-                .map(|k| (k, 1 << 60))
-                .collect(),
+            balances: endowed_accounts,
         },
         pallet_sudo: khala_runtime::SudoConfig { key: root_key },
         cumulus_pallet_parachain_info: khala_runtime::ParachainInfoConfig { parachain_id: id },
@@ -201,7 +216,7 @@ fn khala_testnet_genesis(
                 .cloned()
                 .map(|(acc, _)| acc)
                 .collect(),
-            candidacy_bond: khala_runtime::EXISTENTIAL_DEPOSIT * 16,
+            candidacy_bond: khala_runtime::EXISTENTIAL_DEPOSIT * 160, // 16 PHA
             ..Default::default()
         },
         pallet_session: khala_runtime::SessionConfig {
@@ -223,11 +238,7 @@ fn khala_testnet_genesis(
         cumulus_pallet_aura_ext: Default::default(),
         pallet_collective_Instance1: khala_runtime::CouncilConfig::default(),
         pallet_collective_Instance2: khala_runtime::TechnicalCommitteeConfig {
-            members: endowed_accounts
-                .iter()
-                .take((endowed_accounts.len() + 1) / 2)
-                .cloned()
-                .collect(),
+            members: technical_committee,
             phantom: Default::default(),
         },
         pallet_membership_Instance1: Default::default(),
@@ -237,7 +248,35 @@ fn khala_testnet_genesis(
     }
 }
 
-fn testnet_properties() -> Option<Properties> {
+fn khala_testnet_genesis(
+    root_key: AccountId,
+    initial_authorities: Vec<(AccountId, AuraId)>,
+    endowed_accounts: Vec<AccountId>,
+    id: ParaId,
+) -> khala_runtime::GenesisConfig {
+    // Testnet setup:
+    // - 1,152,921 PHA per endowed account
+    // - 1/2 endowed accounts are listed in technical committee
+    let endowment: Vec<_> = endowed_accounts
+        .iter()
+        .cloned()
+        .map(|acc| (acc, 1 << 60))
+        .collect();
+    let technical_committee: Vec<_> = endowed_accounts
+        .iter()
+        .take((endowed_accounts.len() + 1) / 2)
+        .cloned()
+        .collect();
+    khala_genesis(
+        root_key,
+        initial_authorities,
+        technical_committee,
+        endowment,
+        id,
+    )
+}
+
+fn chain_properties() -> Option<Properties> {
     let mut p = Properties::new();
 
     p.insert("tokenSymbol".into(), "PHA".into());
@@ -245,4 +284,16 @@ fn testnet_properties() -> Option<Properties> {
     p.insert("ss58Format".into(), 30.into());
 
     Some(p)
+}
+
+/// Checks all the given accounts are endowed
+fn check_accounts_endowed(
+    accounts: &Vec<AccountId>,
+    endowed_accounts: &Vec<(AccountId, u128)>,
+) -> bool {
+    accounts.iter().all(|account| {
+        endowed_accounts
+            .iter()
+            .any(|(endowed, _)| account == endowed)
+    })
 }
