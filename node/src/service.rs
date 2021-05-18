@@ -29,6 +29,7 @@ native_executor_instance!(
     pub RuntimeExecutor,
     khala_runtime::api::dispatch,
     khala_runtime::native_version,
+    frame_benchmarking::benchmarking::HostFunctions,
 );
 
 /// Starts a `ServiceBuilder` for a full service.
