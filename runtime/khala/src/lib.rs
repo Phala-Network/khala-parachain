@@ -88,10 +88,12 @@ pub mod opaque {
     use super::*;
     pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
-    // Opaque block type.
+    /// Opaque block header type.
+    pub type Header = generic::Header<BlockNumber, Hasher>;
+    /// Opaque block type.
     pub type Block = generic::Block<Header, UncheckedExtrinsic>;
-
-    pub type SessionHandlers = ();
+    /// Opaque block identifier type.
+    pub type BlockId = generic::BlockId<Block>;
 
     impl_opaque_keys! {
         pub struct SessionKeys {
