@@ -113,6 +113,15 @@ pub fn khala_development_config(id: ParaId) -> ChainSpec {
 }
 
 pub fn khala_local_config(id: ParaId) -> ChainSpec {
+    // Master key:
+    // extend split brush maximum nominee oblige merit modify latin never shiver slide//validator
+    //
+    // - Root: <master>/khala
+    // - Collator account: <master>//validator//<idx>
+    // - Collator session key: <master>//validator//<idx>//aura
+    //
+    // Learn more: scripts/js/genKhalaGenesis.js
+
     let genesis_info_bytes = include_bytes!("../res/khala_local_genesis_info.json");
     let genesis_info: KhalaGenesisInfo =
         serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
