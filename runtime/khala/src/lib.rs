@@ -161,39 +161,39 @@ construct_runtime! {
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
         // System support stuff
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 1,
-        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage} = 3,
-        Utility: pallet_utility::{Pallet, Call, Event} = 4,
-        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 5,
-        Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 6,
-        Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>} = 7,
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 8,
+        System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 0,
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 1,
+        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage} = 2,
+        Utility: pallet_utility::{Pallet, Call, Event} = 3,
+        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 4,
+        Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 5,
+        Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>} = 6,
+        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 7,
 
         // Parachain staff
-        ParachainInfo: cumulus_pallet_parachain_info::{Pallet, Storage, Config} = 21,
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>} = 22,
+        ParachainInfo: cumulus_pallet_parachain_info::{Pallet, Storage, Config} = 20,
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>} = 21,
 
         // Monetary stuff
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 41,
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 42,
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 40,
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 41,
 
         // Collator support. the order of these 5 are important and shall not change.
-        Authorship: pallet_authorship::{Pallet, Call, Storage} = 51,
-        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 52,
-        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 53,
-        Aura: pallet_aura::{Pallet, Config<T>} = 54,
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config} = 55,
+        Authorship: pallet_authorship::{Pallet, Call, Storage} = 50,
+        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
+        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 52,
+        Aura: pallet_aura::{Pallet, Config<T>} = 53,
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config} = 54,
 
         // Governance
-        Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 61,
-        Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>} = 62,
-        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 63,
-        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 64,
-        Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 65,
-        Lottery: pallet_lottery::{Pallet, Call, Storage, Event<T>} = 66,
-        TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 67,
-        TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 68,
+        Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 60,
+        Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>} = 61,
+        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 62,
+        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 63,
+        Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 64,
+        Lottery: pallet_lottery::{Pallet, Call, Storage, Event<T>} = 65,
+        TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 66,
+        TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 67,
 
         // Main, starts from 80
 

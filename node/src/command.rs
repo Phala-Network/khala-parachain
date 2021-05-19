@@ -1,6 +1,4 @@
-// This file is part of Substrate.
-
-// Copyright (C) 2017-2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2021 HashForest Technology Pte. Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +31,8 @@ use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
 use std::{io::Write, net::SocketAddr};
 
+use crate::service::Block;
+
 fn load_spec(
     id: &str,
     para_id: ParaId,
@@ -62,9 +62,9 @@ impl SubstrateCli for Cli {
     fn description() -> String {
         format!(
             "Khala Node\n\nThe command-line arguments provided first will be \
-			passed to the parachain node, while the arguments provided after -- will be passed \
-			to the relaychain node.\n\n\
-			{} [parachain-args] -- [relaychain-args]",
+            passed to the parachain node, while the arguments provided after -- will be passed \
+            to the relaychain node.\n\n\
+            {} [parachain-args] -- [relaychain-args]",
             Self::executable_name()
         )
     }
@@ -101,9 +101,9 @@ impl SubstrateCli for RelayChainCli {
 
     fn description() -> String {
         "Khala Node\n\nThe command-line arguments provided first will be \
-		passed to the parachain node, while the arguments provided after -- will be passed \
-		to the relaychain node.\n\n\
-		khala [parachain-args] -- [relaychain-args]"
+        passed to the parachain node, while the arguments provided after -- will be passed \
+        to the relaychain node.\n\n\
+        khala [parachain-args] -- [relaychain-args]"
             .into()
     }
 
@@ -138,20 +138,19 @@ fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<V
         .ok_or_else(|| "Could not find wasm file in genesis state!".into())
 }
 
-use crate::service::{new_partial, RuntimeExecutor};
+use crate::service::{new_partial, KhalaRuntimeExecutor};
 
 macro_rules! construct_async_run {
-	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
-		let runner = $cli.create_runner($cmd)?;
-		runner.async_run(|$config| {
-			let $components = new_partial::<khala_runtime::RuntimeApi, RuntimeExecutor, _>(
-				&$config,
-				crate::service::build_import_queue,
-			)?;
-			let task_manager = $components.task_manager;
-			{ $( $code )* }.map(|v| (v, task_manager))
-		})
-	}}
+    (|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
+        let runner = $cli.create_runner($cmd)?;
+        runner.async_run(|$config| {
+                let $components = new_partial::<khala_runtime::RuntimeApi, KhalaRuntimeExecutor>(
+                    &$config,
+                )?;
+                let task_manager = $components.task_manager;
+                { $( $code )* }.map(|v| (v, task_manager))
+            })
+    }}
 }
 
 /// Parse command line arguments into service configuration.
@@ -212,9 +211,9 @@ pub fn run() -> Result<()> {
             builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
             let _ = builder.init();
 
-            let block: khala_runtime::Block = generate_genesis_block(&load_spec(
+            let block: Block = generate_genesis_block(&load_spec(
                 &params.chain.clone().unwrap_or_default(),
-                params.parachain_id.unwrap_or(2004).into(),
+                params.parachain_id.unwrap_or(1001).into(),
             )?)?;
             let raw_header = block.header().encode();
             let output_buf = if params.raw {
@@ -255,16 +254,16 @@ pub fn run() -> Result<()> {
         Some(Subcommand::Benchmark(cmd)) => {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
-
-                runner.sync_run(|config| cmd.run::<khala_runtime::Block, RuntimeExecutor>(config))
+                runner.sync_run(|config| cmd.run::<Block, KhalaRuntimeExecutor>(config))
             } else {
                 Err("Benchmarking wasn't enabled when building the node. \
-				You can enable it with `--features runtime-benchmarks`."
+                You can enable it with `--features runtime-benchmarks`."
                     .into())
             }
         }
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
+
             runner.run_node_until_exit(|config| async move {
                 let key = sp_core::Pair::generate().0;
 
@@ -278,12 +277,12 @@ pub fn run() -> Result<()> {
                         .chain(cli.relaychain_args.iter()),
                 );
 
-                let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2004));
+                let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(1001));
 
                 let parachain_account =
                     AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
 
-                let block: khala_runtime::Block =
+                let block: Block =
                     generate_genesis_block(&config.chain_spec).map_err(|e| format!("{:?}", e))?;
                 let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
@@ -304,10 +303,16 @@ pub fn run() -> Result<()> {
                     }
                 );
 
-                crate::service::start_node(config, key, polkadot_config, id)
-                    .await
-                    .map(|r| r.0)
-                    .map_err(Into::into)
+                crate::service::start_node::<khala_runtime::RuntimeApi, KhalaRuntimeExecutor, _>(
+                    config,
+                    key,
+                    polkadot_config,
+                    id,
+                    |_| Default::default(),
+                )
+                .await
+                .map(|r| r.0)
+                .map_err(Into::into)
             })
         }
     }
