@@ -115,13 +115,6 @@ where
 
     let slot_duration = cumulus_client_consensus_aura::slot_duration(&*client)?;
 
-    let block_import = cumulus_client_consensus_aura::AuraBlockImport::<
-        _,
-        _,
-        _,
-        sp_consensus_aura::sr25519::AuthorityPair,
-    >::new(client.clone(), client.clone());
-
     let import_queue = cumulus_client_consensus_aura::import_queue::<
         sp_consensus_aura::sr25519::AuthorityPair,
         _,
@@ -131,7 +124,7 @@ where
         _,
         _,
     >(cumulus_client_consensus_aura::ImportQueueParams {
-        block_import,
+        block_import: client.clone(),
         client: client.clone(),
         create_inherent_data_providers: move |_, _| async move {
             let time = sp_timestamp::InherentDataProvider::from_system_time();
