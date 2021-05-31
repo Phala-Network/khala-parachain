@@ -60,7 +60,7 @@ pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
         All, Currency, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem, LockIdentifier,
-        OnUnbalanced, Randomness, U128CurrencyToVote,
+        OnUnbalanced, Randomness, U128CurrencyToVote, MaxEncodedLen,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -182,8 +182,8 @@ construct_runtime! {
         Authorship: pallet_authorship::{Pallet, Call, Storage} = 50,
         CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 52,
-        Aura: pallet_aura::{Pallet, Config<T>} = 53,
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config} = 54,
+        Aura: pallet_aura::{Pallet, Storage, Config<T>} = 53,
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config} = 54,
 
         // Governance
         Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 60,
@@ -303,7 +303,7 @@ parameter_types! {
 }
 
 /// The type used to represent the kinds of proxying allowed.
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
 pub enum ProxyType {
     /// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
     Any,

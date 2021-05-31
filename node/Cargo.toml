@@ -23,6 +23,12 @@ structopt = "0.3.8"
 serde = { version = "1.0.119", features = ["derive"] }
 serde_json = "1.0"
 hex-literal = "0.2.1"
+async-trait = "0.1.42"
+futures = "0.3.14"
+
+# Temporary pin
+jsonrpsee-utils = { version = "=0.2.0-alpha.6", default-features = false }
+jsonrpsee-types = "=0.2.0-alpha.6"
 
 # RPC related dependencies
 jsonrpc-core = "15.1.0"
@@ -69,6 +75,7 @@ cumulus-client-network = { git = "https://github.com/paritytech/cumulus.git", br
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus.git", branch = "master" }
 cumulus-primitives-parachain-inherent = { git = "https://github.com/paritytech/cumulus.git", branch = "master" }
 cumulus-client-service = { git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+cumulus-client-consensus-common = { git = "https://github.com/paritytech/cumulus.git", branch = "master" }
 
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot.git", branch = "master" }
 polkadot-service = { git = "https://github.com/paritytech/polkadot.git", branch = "master" }
