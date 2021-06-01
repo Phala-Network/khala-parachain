@@ -47,7 +47,6 @@
           "flags": [
             "--rpc-cors=all",
             "--pruning=archive",
-            "--alice",
             "--",
             "--pruning=archive",
             "--execution=wasm", "-lruntime=debug", "RUST_BACKTRACE=verbose"
@@ -59,7 +58,6 @@
           "flags": [
             "--rpc-cors=all",
             "--pruning=archive",
-            "--bob",
             "--",
             "--pruning=archive",
             "--execution=wasm", "-lruntime=debug", "RUST_BACKTRACE=verbose"
