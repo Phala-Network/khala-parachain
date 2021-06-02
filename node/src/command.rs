@@ -33,14 +33,19 @@ use std::{io::Write, net::SocketAddr};
 
 use crate::service::Block;
 
-fn load_spec(
-    id: &str,
-) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
+fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     let (norm_id, para_id) = extract_parachain_id(id);
-    info!("Loading spec: {}, custom parachain-id = {:?})", norm_id, para_id);
+    info!(
+        "Loading spec: {}, custom parachain-id = {:?})",
+        norm_id, para_id
+    );
     Ok(match norm_id {
-        "khala-dev" => Box::new(chain_spec::khala_development_config(para_id.expect("Must specify parachain id"))),
-        "khala-local" => Box::new(chain_spec::khala_local_config(para_id.expect("Must specify parachain id"))),
+        "khala-dev" => Box::new(chain_spec::khala_development_config(
+            para_id.expect("Must specify parachain id"),
+        )),
+        "khala-local" => Box::new(chain_spec::khala_local_config(
+            para_id.expect("Must specify parachain id"),
+        )),
         "khala-staging" => Box::new(chain_spec::khala_staging_config()),
         "khala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
             &include_bytes!("../res/khala.json")[..],
@@ -235,9 +240,8 @@ pub fn run() -> Result<()> {
             builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
             let _ = builder.init();
 
-            let block: Block = generate_genesis_block(&load_spec(
-                &params.chain.clone().unwrap_or_default()
-            )?)?;
+            let block: Block =
+                generate_genesis_block(&load_spec(&params.chain.clone().unwrap_or_default())?)?;
             let raw_header = block.header().encode();
             let output_buf = if params.raw {
                 raw_header
@@ -300,8 +304,12 @@ pub fn run() -> Result<()> {
                         .chain(cli.relaychain_args.iter()),
                 );
 
-                let id = ParaId::from(cli.run.parachain_id.or(para_id)
-                    .expect("Unable to determine parachain id"));
+                let id = ParaId::from(
+                    cli.run
+                        .parachain_id
+                        .or(para_id)
+                        .expect("Unable to determine parachain id"),
+                );
 
                 let parachain_account =
                     AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
