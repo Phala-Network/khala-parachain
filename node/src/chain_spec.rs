@@ -129,7 +129,7 @@ pub fn khala_development_config(id: ParaId) -> ChainSpec {
 
 pub fn khala_local_config(id: ParaId) -> ChainSpec {
     // Master key:
-    // extend split brush maximum nominee oblige merit modify latin never shiver slide//validator
+    // extend split brush maximum nominee oblige merit modify latin never shiver slide
     //
     // - Root: <master>/khala
     // - Collator account: <master>//validator//<idx>
