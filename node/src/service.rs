@@ -12,7 +12,6 @@ use cumulus_client_consensus_common::{
     ParachainConsensus, ParachainCandidate, ParachainBlockImport,
 };
 use cumulus_client_consensus_relay_chain::Verifier as RelayChainVerifier;
-use polkadot_primitives::v0::CollatorPair;
 
 use sc_client_api::ExecutorProvider;
 use sc_executor::native_executor_instance;
@@ -26,7 +25,7 @@ use sp_api::{ConstructRuntimeApi, ApiExt};
 use sp_consensus::SlotData;
 use sp_consensus_aura::AuraApi;
 use sp_runtime::{
-    generic::{self, BlockId}, OpaqueExtrinsic,
+    generic::BlockId,
     traits::{BlakeTwo256, Header as HeaderT},
 };
 use std::sync::Arc;
@@ -34,8 +33,9 @@ use futures::lock::Mutex;
 
 pub use sc_executor::NativeExecutor;
 
-pub type Header = generic::Header<u32, sp_runtime::traits::BlakeTwo256>;
-pub type Block = generic::Block<Header, OpaqueExtrinsic>;
+type BlockNumber = u32;
+type Header = sp_runtime::generic::Header<BlockNumber, sp_runtime::traits::BlakeTwo256>;
+pub type Block = sp_runtime::generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
 
 // Native Khala executor instance.
 native_executor_instance!(
@@ -290,7 +290,6 @@ pub fn new_partial<RuntimeApi, Executor>(
 #[sc_tracing::logging::prefix_logs_with("Parachain")]
 pub async fn start_node<RuntimeApi, Executor, RB>(
     parachain_config: Configuration,
-    collator_key: CollatorPair,
     polkadot_config: Configuration,
     id: ParaId,
     rpc_ext_builder: RB,
@@ -329,7 +328,6 @@ pub async fn start_node<RuntimeApi, Executor, RB>(
 
     let relay_chain_full_node = cumulus_client_service::build_polkadot_full_node(
         polkadot_config,
-        collator_key.clone(),
         telemetry_worker_handle,
     )
         .map_err(|e| match e {
@@ -472,7 +470,6 @@ pub async fn start_node<RuntimeApi, Executor, RB>(
             announce_block,
             client: client.clone(),
             task_manager: &mut task_manager,
-            collator_key,
             relay_chain_full_node,
             spawner,
             parachain_consensus,

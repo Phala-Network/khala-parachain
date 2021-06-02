@@ -180,7 +180,7 @@ construct_runtime! {
 
         // Collator support. the order of these 5 are important and shall not change.
         Authorship: pallet_authorship::{Pallet, Call, Storage} = 50,
-        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
+        CollatorSelection: cumulus_pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 52,
         Aura: pallet_aura::{Pallet, Storage, Config<T>} = 53,
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config} = 54,
@@ -743,7 +743,7 @@ impl pallet_session::Config for Runtime {
     type Event = Event;
     type ValidatorId = <Self as frame_system::Config>::AccountId;
     // we don't have stash and controller, thus we don't need the convert as well.
-    type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
+    type ValidatorIdOf = cumulus_pallet_collator_selection::IdentityCollator;
     type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
     type SessionManager = CollatorSelection;
@@ -762,7 +762,7 @@ parameter_types! {
     pub const MaxInvulnerables: u32 = 100;
 }
 
-impl pallet_collator_selection::Config for Runtime {
+impl cumulus_pallet_collator_selection::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type UpdateOrigin = EnsureRootOrHalfCouncil;
@@ -771,7 +771,7 @@ impl pallet_collator_selection::Config for Runtime {
     type MaxInvulnerables = MaxInvulnerables;
     // should be a multiple of session or things will get inconsistent
     type KickThreshold = Period;
-    type WeightInfo = pallet_collator_selection::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = cumulus_pallet_collator_selection::weights::SubstrateWeight<Runtime>;
 }
 
 impl_runtime_apis! {
@@ -921,7 +921,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_treasury, Treasury);
             add_benchmark!(params, batches, pallet_utility, Utility);
             add_benchmark!(params, batches, pallet_vesting, Vesting);
-            add_benchmark!(params, batches, pallet_collator_selection, CollatorSelection);
+            add_benchmark!(params, batches, cumulus_pallet_collator_selection, CollatorSelection);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

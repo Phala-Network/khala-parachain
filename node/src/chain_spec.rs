@@ -234,7 +234,7 @@ fn khala_genesis(
         },
         pallet_sudo: khala_runtime::SudoConfig { key: root_key },
         cumulus_pallet_parachain_info: khala_runtime::ParachainInfoConfig { parachain_id: id },
-        pallet_collator_selection: khala_runtime::CollatorSelectionConfig {
+        cumulus_pallet_collator_selection: khala_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities
                 .iter()
                 .cloned()

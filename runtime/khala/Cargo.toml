@@ -57,14 +57,13 @@ pallet-vesting = { git = "https://github.com/paritytech/substrate.git", branch =
 pallet-identity = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", default-features = false }
 pallet-democracy = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0", default-features = false }
 
-pallet-collator-selection = { path = "../../pallets/collator-selection", default-features = false }
-
 # Cumulus dependencies
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus.git", branch = "master", default-features = false }
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus.git", branch = "master", default-features = false }
 cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/cumulus.git", branch = "master", default-features = false }
 cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus.git", branch = "master", default-features = false }
 cumulus-pallet-parachain-info = { git = "https://github.com/paritytech/cumulus.git", branch = "master", package = "parachain-info", default-features = false }
+cumulus-pallet-collator-selection = { git = "https://github.com/paritytech/cumulus.git", branch = "master", package = "pallet-collator-selection", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0"}
@@ -80,6 +79,7 @@ runtime-benchmarks = [
 	"frame-system-benchmarking",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"cumulus-pallet-collator-selection/frame-benchmarking",
 	"pallet-scheduler/frame-benchmarking",
 	"pallet-collective/frame-benchmarking",
 	"pallet-membership/frame-benchmarking",
@@ -94,7 +94,6 @@ runtime-benchmarks = [
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
-	"pallet-collator-selection/frame-benchmarking",
 ]
 std = [
 	"codec/std",
@@ -121,6 +120,7 @@ std = [
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",
+	"cumulus-pallet-collator-selection/std",
 	"runtime-common/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
@@ -143,5 +143,4 @@ std = [
 	"pallet-vesting/std",
 	"pallet-identity/std",
 	"pallet-democracy/std",
-	"pallet-collator-selection/std",
 ]
