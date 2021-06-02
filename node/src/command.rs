@@ -35,11 +35,12 @@ use crate::service::Block;
 
 fn load_spec(
     id: &str,
-    para_id: ParaId,
 ) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-    Ok(match id {
-        "khala-dev" => Box::new(chain_spec::khala_development_config(para_id)),
-        "khala-local" => Box::new(chain_spec::khala_local_config(para_id)),
+    let (norm_id, para_id) = extract_parachain_id(id);
+    info!("Loading spec: {}, custom parachain-id = {:?})", norm_id, para_id);
+    Ok(match norm_id {
+        "khala-dev" => Box::new(chain_spec::khala_development_config(para_id.expect("Must specify parachain id"))),
+        "khala-local" => Box::new(chain_spec::khala_local_config(para_id.expect("Must specify parachain id"))),
         "khala-staging" => Box::new(chain_spec::khala_staging_config()),
         "khala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
             &include_bytes!("../res/khala.json")[..],
@@ -48,6 +49,29 @@ fn load_spec(
             std::path::PathBuf::from(path),
         )?),
     })
+}
+
+/// Extracts the normalized chain id and parachain id from the input chain id
+///
+/// E.g. "khala-dev-2004" yields ("khala-dev", Some(2004))
+fn extract_parachain_id(id: &str) -> (&str, Option<ParaId>) {
+    const DEV_PARAM_PREFIX: &str = "khala-dev-";
+    const LOCAL_PARAM_PREFIX: &str = "khala-local-";
+
+    let (norm_id, para) = if id.starts_with(DEV_PARAM_PREFIX) {
+        let suffix = &id[DEV_PARAM_PREFIX.len()..];
+        let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
+        (&id[..DEV_PARAM_PREFIX.len() - 1], Some(para_id))
+    } else if id.starts_with(LOCAL_PARAM_PREFIX) {
+        let suffix = &id[LOCAL_PARAM_PREFIX.len()..];
+        let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
+        (&id[..LOCAL_PARAM_PREFIX.len() - 1], Some(para_id))
+    } else if id == "khala-dev" || id == "khala-local" {
+        (id, Some(2004u32))
+    } else {
+        (id, None)
+    };
+    (norm_id, para.map(Into::into))
 }
 
 impl SubstrateCli for Cli {
@@ -82,7 +106,7 @@ impl SubstrateCli for Cli {
     }
 
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-        load_spec(id, self.run.parachain_id.unwrap_or(2004).into())
+        load_spec(id)
     }
 
     fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
@@ -212,8 +236,7 @@ pub fn run() -> Result<()> {
             let _ = builder.init();
 
             let block: Block = generate_genesis_block(&load_spec(
-                &params.chain.clone().unwrap_or_default(),
-                params.parachain_id.unwrap_or(1001).into(),
+                &params.chain.clone().unwrap_or_default()
             )?)?;
             let raw_header = block.header().encode();
             let output_buf = if params.raw {
@@ -277,7 +300,8 @@ pub fn run() -> Result<()> {
                         .chain(cli.relaychain_args.iter()),
                 );
 
-                let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(1001));
+                let id = ParaId::from(cli.run.parachain_id.or(para_id)
+                    .expect("Unable to determine parachain id"));
 
                 let parachain_account =
                     AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
