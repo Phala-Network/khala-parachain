@@ -172,7 +172,7 @@ construct_runtime! {
 
         // Parachain staff
         ParachainInfo: cumulus_pallet_parachain_info::{Pallet, Storage, Config} = 20,
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>} = 21,
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>} = 21,
 
         // Monetary stuff
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 40,
@@ -187,7 +187,7 @@ construct_runtime! {
 
         // Governance
         Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 60,
-        Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>} = 61,
+        Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>} = 61,
         Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 62,
         Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 63,
         Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 64,
@@ -224,7 +224,7 @@ parameter_types! {
         })
         .avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
         .build_or_panic();
-    pub const SS58Prefix: u8 = 30;
+    pub const SS58Prefix: u16 = 30;
 }
 
 impl frame_system::Config for Runtime {
@@ -411,12 +411,13 @@ parameter_types! {
     // For weight estimation, we assume that the most locks on an individual account will be 50.
     // This number may need to be adjusted in the future if this assumption no longer holds true.
     pub const MaxLocks: u32 = 50;
-    // used for benchmark
-    pub const BenchmarkingExistentialDeposit: Balance = 10;
+    pub const MaxReserves: u32 = 50;
 }
 
 impl pallet_balances::Config for Runtime {
     type MaxLocks = MaxLocks;
+    type MaxReserves = MaxReserves;
+    type ReserveIdentifier = [u8; 8];
     type Balance = Balance;
     type DustRemoval = ();
     type Event = Event;
@@ -772,6 +773,14 @@ impl cumulus_pallet_collator_selection::Config for Runtime {
     // should be a multiple of session or things will get inconsistent
     type KickThreshold = Period;
     type WeightInfo = cumulus_pallet_collator_selection::weights::SubstrateWeight<Runtime>;
+}
+
+pub struct OnRuntimeUpgrade;
+impl frame_support::traits::OnRuntimeUpgrade for OnRuntimeUpgrade {
+    fn on_runtime_upgrade() -> u64 {
+        sp_io::storage::set(b":c", &[]);
+        RocksDbWeight::get().writes(1)
+    }
 }
 
 impl_runtime_apis! {

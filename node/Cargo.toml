@@ -26,10 +26,6 @@ hex-literal = "0.2.1"
 async-trait = "0.1.42"
 futures = "0.3.14"
 
-# Temporary pin
-jsonrpsee-utils = { version = "=0.2.0-alpha.6", default-features = false }
-jsonrpsee-types = "=0.2.0-alpha.6"
-
 # RPC related dependencies
 jsonrpc-core = "15.1.0"
 

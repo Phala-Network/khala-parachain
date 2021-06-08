@@ -260,6 +260,7 @@ fn khala_genesis(
         // of this.
         pallet_aura: Default::default(),
         cumulus_pallet_aura_ext: Default::default(),
+        cumulus_pallet_parachain_system: Default::default(),
         pallet_collective_Instance1: khala_runtime::CouncilConfig::default(),
         pallet_collective_Instance2: khala_runtime::TechnicalCommitteeConfig {
             members: technical_committee,
