@@ -775,14 +775,6 @@ impl cumulus_pallet_collator_selection::Config for Runtime {
     type WeightInfo = cumulus_pallet_collator_selection::weights::SubstrateWeight<Runtime>;
 }
 
-pub struct OnRuntimeUpgrade;
-impl frame_support::traits::OnRuntimeUpgrade for OnRuntimeUpgrade {
-    fn on_runtime_upgrade() -> u64 {
-        sp_io::storage::set(b":c", &[]);
-        RocksDbWeight::get().writes(1)
-    }
-}
-
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
         fn slot_duration() -> sp_consensus_aura::SlotDuration {
