@@ -25,11 +25,15 @@
         "port": 34222
       }
     ],
-    "runtime_genesis_config": {
-      "parachainsConfiguration": {
-        "config": {
-          "validation_upgrade_frequency": 1,
-          "validation_upgrade_delay": 1
+    "genesis": {
+      "runtime": {
+        "runtime_genesis_config": {
+          "parachainsConfiguration": {
+            "config": {
+              "validation_upgrade_frequency": 1,
+              "validation_upgrade_delay": 1
+            }
+          }
         }
       }
     }
@@ -37,8 +41,7 @@
   "parachains": [
     {
       "bin": "./bin/khala-node",
-      "chain": "khala-dev",
-      "id": "2004",
+      "chain": "khala-dev-2004",
       "balance": "1000000000000000000000",
       "nodes": [
         {
