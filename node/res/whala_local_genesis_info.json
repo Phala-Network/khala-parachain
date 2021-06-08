@@ -1,0 +1,36 @@
+{
+  "rootKey": "42VWY781t69ejE9cM3yA3aBuS27Vuu69gLChZ7p5CoCa2Bus",
+  "initialAuthorities": [
+    [
+      "42RqKsb71u5AEPt64459yQujmgCnpM43Q66zFq1ZBqgjCoTz",
+      "44Wq6u12jUkxLzk7C2KqQ7FirXvuzRWCynNqvnYwqifthqV2"
+    ],
+    [
+      "41uWSLG4twjhotYJUUgMXCHuVuFedy6B7ZwLXdgHxKy6FLDY",
+      "45hS2NoU47hwCvdBe1JGztZvG4eVajvEBUPoVM8uXswzV6Lf"
+    ],
+    [
+      "44f4GkXsR7Las4TvjRc1kxjAioaX7drucY51n1XqU8m2TF1k",
+      "4554sKzgSija97uFdCQrVRx8UsH4vgbdVAmeXKyv8vYka3rL"
+    ]
+  ],
+  "endowedAccounts": [
+    [
+      "42RqKsb71u5AEPt64459yQujmgCnpM43Q66zFq1ZBqgjCoTz",
+      ""
+    ],
+    [
+      "41uWSLG4twjhotYJUUgMXCHuVuFedy6B7ZwLXdgHxKy6FLDY",
+      ""
+    ],
+    [
+      "44f4GkXsR7Las4TvjRc1kxjAioaX7drucY51n1XqU8m2TF1k",
+      ""
+    ],
+    [
+      "42VWY781t69ejE9cM3yA3aBuS27Vuu69gLChZ7p5CoCa2Bus",
+      ""
+    ]
+  ],
+  "technicalCommittee": []
+}

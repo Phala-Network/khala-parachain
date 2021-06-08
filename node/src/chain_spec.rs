@@ -136,8 +136,16 @@ pub fn khala_local_config(id: ParaId) -> ChainSpec {
     // - Collator session key: <master>//validator//<idx>//aura
     //
     // Learn more: scripts/js/genKhalaGenesis.js
-
     let genesis_info_bytes = include_bytes!("../res/khala_local_genesis_info.json");
+    local_testnet_config(id, genesis_info_bytes, "westend-dev")
+}
+
+pub fn whala_local_config(id: ParaId) -> ChainSpec {
+    let genesis_info_bytes = include_bytes!("../res/whala_local_genesis_info.json");
+    local_testnet_config(id, genesis_info_bytes, "westend")
+}
+
+fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str) -> ChainSpec {
     let genesis_info: KhalaGenesisInfo =
         serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
 
@@ -163,7 +171,7 @@ pub fn khala_local_config(id: ParaId) -> ChainSpec {
         Some("khala"),
         chain_properties(),
         Extensions {
-            relay_chain: "westend-dev".into(),
+            relay_chain: relay_chain.into(),
             para_id: id.into(),
         },
     )

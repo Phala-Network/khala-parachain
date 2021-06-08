@@ -46,6 +46,12 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         "khala-local" => Box::new(chain_spec::khala_local_config(
             para_id.expect("Must specify parachain id"),
         )),
+        "whala-local" => Box::new(chain_spec::whala_local_config(
+            para_id.expect("Must specify parachain id"),
+        )),
+        "whala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
+            &include_bytes!("../res/whala.json")[..],
+        )?),
         "khala-staging" => Box::new(chain_spec::khala_staging_config()),
         "khala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
             &include_bytes!("../res/khala.json")[..],
@@ -62,6 +68,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 fn extract_parachain_id(id: &str) -> (&str, Option<ParaId>) {
     const DEV_PARAM_PREFIX: &str = "khala-dev-";
     const LOCAL_PARAM_PREFIX: &str = "khala-local-";
+    const WHALA_PARAM_PREFIX: &str = "whala-local-";
 
     let (norm_id, para) = if id.starts_with(DEV_PARAM_PREFIX) {
         let suffix = &id[DEV_PARAM_PREFIX.len()..];
@@ -71,6 +78,10 @@ fn extract_parachain_id(id: &str) -> (&str, Option<ParaId>) {
         let suffix = &id[LOCAL_PARAM_PREFIX.len()..];
         let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
         (&id[..LOCAL_PARAM_PREFIX.len() - 1], Some(para_id))
+    } else if id.starts_with(WHALA_PARAM_PREFIX) {
+        let suffix = &id[WHALA_PARAM_PREFIX.len()..];
+        let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
+        (&id[..WHALA_PARAM_PREFIX.len() - 1], Some(para_id))
     } else if id == "khala-dev" || id == "khala-local" {
         (id, Some(2004u32))
     } else {
