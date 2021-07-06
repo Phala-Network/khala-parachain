@@ -62,3 +62,15 @@ CMakeLists.txt
 
 # Tmp
 **/tmp
+
+# Polkadot launch
+/polkadot-launch/dist
+/polkadot-launch/bin/*
+/polkadot-launch/rococo-*.json
+/polkadot-launch/westend-*.json
+/polkadot-launch/kusama-*.json
+/polkadot-launch/khala-*.json
+!/polkadot-launch/bin/.keep
+
+# Trash
+**/*.log
