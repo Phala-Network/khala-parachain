@@ -231,18 +231,18 @@ fn khala_genesis(
     }
 
     khala_runtime::GenesisConfig {
-        frame_system: khala_runtime::SystemConfig {
+        system: khala_runtime::SystemConfig {
             code: khala_runtime::WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
             changes_trie_config: Default::default(),
         },
-        pallet_balances: khala_runtime::BalancesConfig {
+        balances: khala_runtime::BalancesConfig {
             balances: endowed_accounts,
         },
-        pallet_sudo: khala_runtime::SudoConfig { key: root_key },
-        cumulus_pallet_parachain_info: khala_runtime::ParachainInfoConfig { parachain_id: id },
-        cumulus_pallet_collator_selection: khala_runtime::CollatorSelectionConfig {
+        sudo: khala_runtime::SudoConfig { key: root_key },
+        parachain_info: khala_runtime::ParachainInfoConfig { parachain_id: id },
+        collator_selection: khala_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities
                 .iter()
                 .cloned()
@@ -251,7 +251,7 @@ fn khala_genesis(
             candidacy_bond: khala_runtime::EXISTENTIAL_DEPOSIT * 160, // 16 PHA
             ..Default::default()
         },
-        pallet_session: khala_runtime::SessionConfig {
+        session: khala_runtime::SessionConfig {
             keys: initial_authorities
                 .iter()
                 .cloned()
@@ -266,18 +266,18 @@ fn khala_genesis(
         },
         // no need to pass anything to aura, in fact it will panic if we do. Session will take care
         // of this.
-        pallet_aura: Default::default(),
-        cumulus_pallet_aura_ext: Default::default(),
-        cumulus_pallet_parachain_system: Default::default(),
-        pallet_collective_Instance1: khala_runtime::CouncilConfig::default(),
-        pallet_collective_Instance2: khala_runtime::TechnicalCommitteeConfig {
+        aura: Default::default(),
+        aura_ext: Default::default(),
+        parachain_system: Default::default(),
+        council: khala_runtime::CouncilConfig::default(),
+        technical_committee: khala_runtime::TechnicalCommitteeConfig {
             members: technical_committee,
             phantom: Default::default(),
         },
-        pallet_membership_Instance1: Default::default(),
-        pallet_treasury: Default::default(),
-        pallet_vesting: Default::default(),
-        pallet_democracy: khala_runtime::DemocracyConfig::default(),
+        technical_membership: Default::default(),
+        treasury: Default::default(),
+        vesting: Default::default(),
+        democracy: khala_runtime::DemocracyConfig::default(),
     }
 }
 

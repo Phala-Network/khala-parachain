@@ -184,8 +184,9 @@ macro_rules! construct_async_run {
     (|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
         let runner = $cli.create_runner($cmd)?;
         runner.async_run(|$config| {
-                let $components = new_partial::<khala_runtime::RuntimeApi, KhalaRuntimeExecutor>(
+                let $components = new_partial::<khala_runtime::RuntimeApi, KhalaRuntimeExecutor, _>(
                     &$config,
+                    crate::service::build_import_queue,
                 )?;
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
@@ -344,11 +345,10 @@ pub fn run() -> Result<()> {
                     }
                 );
 
-                crate::service::start_node::<khala_runtime::RuntimeApi, KhalaRuntimeExecutor, _>(
+                crate::service::start_khala_node(
                     config,
                     polkadot_config,
-                    id,
-                    |_| Default::default(),
+                    id
                 )
                 .await
                 .map(|r| r.0)

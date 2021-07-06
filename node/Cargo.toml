@@ -46,6 +46,7 @@ sc-rpc-api = { git = "https://github.com/paritytech/substrate.git", branch = "ma
 sc-service = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "0.9.0", features = ["wasmtime"] }
 sc-transaction-pool = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0" }
 sc-tracing = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0" }
+sc-network = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "0.9.0" }
 
 sp-api = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0" }
 sp-consensus-aura = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "0.9.0" }
@@ -62,6 +63,7 @@ sp-timestamp = { git = "https://github.com/paritytech/substrate.git", branch = "
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0" }
 
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "3.0.0" }
+substrate-prometheus-endpoint = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "0.9.0" }
 
 cumulus-client-cli = { git = "https://github.com/paritytech/cumulus.git", branch = "master" }
 cumulus-client-consensus-aura = { git = "https://github.com/paritytech/cumulus.git", branch = "master" }
@@ -78,6 +80,7 @@ polkadot-service = { git = "https://github.com/paritytech/polkadot.git", branch 
 polkadot-cli = { git = "https://github.com/paritytech/polkadot.git", branch = "master" }
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot.git", branch = "master" }
 
+parachain-primitives = { path = "../primitives", package = "phala-parachain-primitives" }
 khala-runtime = { path = "../runtime/khala", package = "khala-parachain-runtime" }
 
 [build-dependencies]
