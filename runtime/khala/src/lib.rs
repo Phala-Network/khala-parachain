@@ -59,7 +59,7 @@ use sp_version::RuntimeVersion;
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
-        All, Currency, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem, LockIdentifier,
+        All, Currency, Imbalance, Filter, InstanceFilter, IsInVec, KeyOwnerProofSystem, LockIdentifier,
         OnUnbalanced, Randomness, U128CurrencyToVote,
     },
     weights::{
@@ -197,9 +197,37 @@ construct_runtime! {
 
         // Main, starts from 80
 
+        // Remove in future
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
     }
 }
+
+// TODO: WIP
+pub struct BaseCallFilter;
+impl Filter<Call> for BaseCallFilter {
+    fn filter(call: &Call) -> bool {
+        matches!(
+            call,
+            // System
+            Call::System(_) | Call::Timestamp(_) | Call::Utility(_) |
+            Call::Multisig(_) | Call::Proxy(_) | Call::Vesting(_) |
+            Call::Scheduler(_) |
+            // Parachain
+            Call::ParachainSystem(_) |
+            // Monetary
+            Call::Balances(_) |
+            // Collator
+            Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
+            // Governance
+            Call::Identity(_) | Call::Democracy(_) | Call::Council(_) |
+            Call::Treasury(_) | Call::Bounties(_) | Call::Lottery(_) |
+            Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
+            // Sudo
+            Call::Sudo(_)
+        )
+    }
+}
+
 
 parameter_types! {
     pub const BlockHashCount: BlockNumber = 1200; // mortal tx can be valid up to 4 hour after signing
@@ -258,7 +286,7 @@ impl frame_system::Config for Runtime {
     type OnNewAccount = ();
     type OnKilledAccount = ();
     type DbWeight = RocksDbWeight;
-    type BaseCallFilter = ();
+    type BaseCallFilter = BaseCallFilter;
     type SystemWeightInfo = frame_system::weights::SubstrateWeight<Runtime>;
     type BlockWeights = RuntimeBlockWeights;
     type BlockLength = RuntimeBlockLength;
