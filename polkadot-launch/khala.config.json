@@ -6,22 +6,23 @@
 			{
 				"name": "alice",
 				"wsPort": 9944,
-				"port": 30444
+				"port": 31333,
+				"flags": ["--rpc-cors=all"]
 			},
 			{
 				"name": "bob",
-				"wsPort": 9955,
-				"port": 30555
+				"wsPort": 9244,
+				"port": 32333
 			},
 			{
 				"name": "charlie",
-				"wsPort": 9966,
-				"port": 30666
+				"wsPort": 9344,
+				"port": 33333
 			},
 			{
 				"name": "dave",
-				"wsPort": 9977,
-				"port": 30777
+				"wsPort": 9444,
+				"port": 34333
 			}
 		],
 		"genesis": {
@@ -39,41 +40,28 @@
 	},
 	"parachains": [
 		{
-			"bin": "./bin/polkadot-collator",
-			"id": "200",
+			"bin": "./bin/khala-node",
+			"chain": "khala-dev-2004",
 			"balance": "1000000000000000000000",
 			"nodes": [
 				{
-					"wsPort": 9988,
-					"port": 31200,
 					"name": "alice",
-					"flags": ["--", "--execution=wasm"]
-				}
-			]
-		},
-		{
-			"bin": "./bin/polkadot-collator",
-			"id": "300",
-			"balance": "1000000000000000000000",
-			"nodes": [
+					"wsPort": 19944,
+					"port": 30334,
+					"flags": [
+						"--rpc-cors=all"
+					]
+				},
 				{
-					"wsPort": 9999,
-					"port": 31300,
-					"name": "alice",
-					"flags": ["--", "--execution=wasm"]
+					"name": "bob",
+					"wsPort": 19244,
+					"port": 32334
 				}
 			]
 		}
 	],
 	"simpleParachains": [],
-	"hrmpChannels": [
-		{
-			"sender": 200,
-			"recipient": 300,
-			"maxCapacity": 8,
-			"maxMessageSize": 512
-		}
-	],
+	"hrmpChannels": [],
 	"types": {},
 	"finalization": false
 }
