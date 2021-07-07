@@ -121,7 +121,7 @@ pub fn khala_development_config(id: ParaId) -> ChainSpec {
         Some("khala"),
         chain_properties(),
         Extensions {
-            relay_chain: "westend-dev".into(),
+            relay_chain: "kusama-dev".into(),
             para_id: id.into(),
         },
     )
@@ -137,12 +137,12 @@ pub fn khala_local_config(id: ParaId) -> ChainSpec {
     //
     // Learn more: scripts/js/genKhalaGenesis.js
     let genesis_info_bytes = include_bytes!("../res/khala_local_genesis_info.json");
-    local_testnet_config(id, genesis_info_bytes, "westend-dev")
+    local_testnet_config(id, genesis_info_bytes, "kusama-local")
 }
 
 pub fn whala_local_config(id: ParaId) -> ChainSpec {
     let genesis_info_bytes = include_bytes!("../res/whala_local_genesis_info.json");
-    local_testnet_config(id, genesis_info_bytes, "westend")
+    local_testnet_config(id, genesis_info_bytes, "westend-local")
 }
 
 fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str) -> ChainSpec {
