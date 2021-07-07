@@ -431,8 +431,8 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
     Ok((task_manager, client))
 }
 
-/// Build the import queue.
-pub fn build_import_queue<RuntimeApi, Executor>(
+/// Build the import queue for the khala/whala runtime.
+pub fn khala_build_import_queue<RuntimeApi, Executor>(
     client: Arc<TFullClient<Block, RuntimeApi, Executor>>,
     config: &Configuration,
     telemetry_handle: Option<TelemetryHandle>,
@@ -553,7 +553,7 @@ pub async fn start_node<RuntimeApi, Executor, RB>(
         polkadot_config,
         id,
         rpc_ext_builder,
-        build_import_queue,
+        khala_build_import_queue,
         |client,
          prometheus_registry,
          telemetry,

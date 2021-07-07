@@ -37,7 +37,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     let (norm_id, para_id) = extract_parachain_id(id);
     info!(
         "Loading spec: {}, custom parachain-id = {:?})",
-        norm_id, para_id
+        norm_id, para_id.unwrap_or(ParaId::new(0)).to_string()
     );
     Ok(match norm_id {
         "khala-dev" => Box::new(chain_spec::khala_development_config(
@@ -184,13 +184,13 @@ macro_rules! construct_async_run {
     (|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
         let runner = $cli.create_runner($cmd)?;
         runner.async_run(|$config| {
-                let $components = new_partial::<khala_runtime::RuntimeApi, KhalaRuntimeExecutor, _>(
-                    &$config,
-                    crate::service::build_import_queue,
-                )?;
-                let task_manager = $components.task_manager;
-                { $( $code )* }.map(|v| (v, task_manager))
-            })
+            let $components = new_partial::<khala_runtime::RuntimeApi, KhalaRuntimeExecutor, _>(
+                &$config,
+                crate::service::khala_build_import_queue,
+            )?;
+            let task_manager = $components.task_manager;
+            { $( $code )* }.map(|v| (v, task_manager))
+        })
     }}
 }
 
