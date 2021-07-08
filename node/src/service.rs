@@ -16,7 +16,7 @@ use cumulus_client_consensus_relay_chain::Verifier as RelayChainVerifier;
 use sc_client_api::ExecutorProvider;
 use sc_executor::native_executor_instance;
 use sc_network::NetworkService;
-use sc_service::{Configuration, PartialComponents, Role, TFullBackend, TFullClient, TaskManager};
+use sc_service::{Configuration, PartialComponents, Role, TFullBackend, TFullClient, TaskManager, PruningMode};
 use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerHandle};
 use sp_consensus::{
     BlockImportParams, BlockOrigin,
@@ -293,7 +293,8 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
             DenyUnsafe,
             sc_rpc::SubscriptionTaskExecutor,
             Arc<TFullClient<Block, RuntimeApi, Executor>>,
-            Arc<sc_transaction_pool::FullPool<Block, TFullClient<Block, RuntimeApi, Executor>>>
+            Arc<sc_transaction_pool::FullPool<Block, TFullClient<Block, RuntimeApi, Executor>>>,
+            Arc<TFullBackend<Block>>
         ) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
         + Send
         + 'static,
@@ -364,7 +365,8 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
 
     let rpc_client = client.clone();
     let pool = transaction_pool.clone();
-    let rpc_extensions_builder = Box::new(move |deny_unsafe, subscription_executor| rpc_ext_builder(deny_unsafe, subscription_executor, rpc_client.clone(), pool.clone()));
+    let parachain_backend = backend.clone();
+    let rpc_extensions_builder = Box::new(move |deny_unsafe, subscription_executor| rpc_ext_builder(deny_unsafe, subscription_executor, rpc_client.clone(), pool.clone(), parachain_backend.clone()));
 
     sc_service::spawn_tasks(sc_service::SpawnTasksParams {
         on_demand: None,
@@ -543,7 +545,8 @@ pub async fn start_node<RuntimeApi, Executor, RB>(
             DenyUnsafe,
             sc_rpc::SubscriptionTaskExecutor,
             Arc<TFullClient<Block, RuntimeApi, Executor>>,
-            Arc<sc_transaction_pool::FullPool<Block, TFullClient<Block, RuntimeApi, Executor>>>
+            Arc<sc_transaction_pool::FullPool<Block, TFullClient<Block, RuntimeApi, Executor>>>,
+            Arc<TFullBackend<Block>>
         ) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
         + Send
         + 'static
@@ -710,11 +713,16 @@ pub async fn start_khala_node(
     TaskManager,
     Arc<TFullClient<Block, khala_runtime::RuntimeApi, KhalaRuntimeExecutor>>
 )> {
+    let is_archive_mode = match parachain_config.state_pruning {
+        PruningMode::Constrained(_) => false,
+        PruningMode::ArchiveAll | PruningMode::ArchiveCanonical => true,
+    };
+
     start_node::<khala_runtime::RuntimeApi, KhalaRuntimeExecutor, _>(
         parachain_config,
         polkadot_config,
         id,
-        |deny_unsafe, _subscription_executor, client, pool| {
+        move |deny_unsafe, _subscription_executor, client, pool, backend| {
             use substrate_frame_rpc_system::{FullSystem, SystemApi};
             use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
 
@@ -729,6 +737,8 @@ pub async fn start_khala_node(
             io.extend_with(
                 TransactionPaymentApi::to_delegate(TransactionPayment::new(client.clone()))
             );
+
+            rpc_ext::extend_rpc(&mut io, client.clone(), backend.clone(), is_archive_mode);
 
             io
         }

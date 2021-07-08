@@ -5,6 +5,7 @@ panic = "unwind"
 resolver = "2"
 members = [
 	"node",
+	"rpc-ext",
 	"primitives",
 	"pallets/bridge",
 	"pallets/bridge_transfer",

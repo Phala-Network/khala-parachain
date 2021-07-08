@@ -1,0 +1,26 @@
+[package]
+name = "rpc-ext"
+version = "0.1.0"
+edition = "2018"
+authors = ["Phala Network"]
+license = "Apache-2.0"
+homepage = "https://phala.network/"
+repository = "https://github.com/Phala-Network/khala-parachain"
+
+[dependencies]
+# third-party dependencies
+serde = { version = "1.0.102", features = ["derive"] }
+thiserror = "1.0"
+jsonrpc-derive = "15.1"
+jsonrpc-core = "15.1"
+jsonrpc-core-client = "15.1"
+impl-serde = "0.3"
+
+# primitives
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8" }
+
+# client dependencies
+sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8" }
+sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8" }
