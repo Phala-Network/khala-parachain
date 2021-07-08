@@ -1,0 +1,72 @@
+{
+	"relaychain": {
+		"bin": "./bin/polkadot",
+		"chain": "rococo-local",
+		"nodes": [
+			{
+				"name": "alice",
+				"wsPort": 9944,
+				"port": 31333,
+				"flags": ["--rpc-cors=all"]
+			},
+			{
+				"name": "bob",
+				"wsPort": 9244,
+				"port": 32333
+			},
+			{
+				"name": "charlie",
+				"wsPort": 9344,
+				"port": 33333
+			},
+			{
+				"name": "dave",
+				"wsPort": 9444,
+				"port": 34333
+			}
+		],
+		"genesis": {
+			"runtime": {
+				"runtime_genesis_config": {
+					"parachainsConfiguration": {
+						"config": {
+							"validation_upgrade_frequency": 1,
+							"validation_upgrade_delay": 1
+						}
+					}
+				}
+			}
+		}
+	},
+	"parachains": [
+		{
+			"bin": "./bin/khala-node",
+			"chain": "whala",
+			"balance": "1000000000000000000000",
+			"nodes": [
+				{
+					"name": "alice",
+					"wsPort": 59941,
+					"port": 31334,
+					"flags": [
+						"--rpc-cors=all"
+					]
+				},
+				{
+					"name": "bob",
+					"wsPort": 59942,
+					"port": 32334
+				},
+				{
+					"name": "charlie",
+					"wsPort": 59943,
+					"port": 33334
+				}
+			]
+		}
+	],
+	"simpleParachains": [],
+	"hrmpChannels": [],
+	"types": {},
+	"finalization": false
+}
