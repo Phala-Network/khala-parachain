@@ -53,14 +53,18 @@
           "port": 30333,
           "flags": [
             "--node-key=81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
+            "--ws-external",
+            "--rpc-external",
             "--rpc-cors=all",
             "--rpc-methods=Unsafe",
             "--",
             "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
-            "--port=30334",
-            "--ws-port=9945",
+            "--ws-external",
+            "--rpc-external",
+            "--rpc-cors=all",
             "--pruning=archive",
-            "--rpc-cors=all"
+            "--port=30334",
+            "--ws-port=9945"
           ]
         },
         {

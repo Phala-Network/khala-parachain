@@ -3593,6 +3593,7 @@ dependencies = [
  "polkadot-parachain",
  "polkadot-primitives",
  "polkadot-service",
+ "rpc-ext",
  "sc-basic-authorship",
  "sc-chain-spec",
  "sc-cli",
@@ -8048,6 +8049,23 @@ checksum = "ffc936cf8a7ea60c58f030fd36a612a48f440610214dc54bc36431f9ea0c3efb"
 dependencies = [
  "libc",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "rpc-ext"
+version = "0.1.0"
+dependencies = [
+ "impl-serde",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "sc-client-api",
+ "sc-rpc",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+ "thiserror",
 ]
 
 [[package]]
