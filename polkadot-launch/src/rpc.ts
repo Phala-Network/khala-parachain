@@ -88,6 +88,52 @@ export async function registerParachain(
 	});
 }
 
+// Submit an extrinsic to the relay chain to register a parachain.
+// Uses the Alice account which is known to be Sudo for the relay chain.
+export async function extendLeasePeriod(
+	api: ApiPromise,
+	id: string,
+	period_count = 365,
+	finalization: boolean = false
+) {
+	return new Promise<void>(async (resolvePromise, reject) => {
+		await cryptoWaitReady();
+
+		const keyring = new Keyring({ type: "sr25519" });
+		const alice = keyring.addFromUri("//Alice");
+
+		console.log(
+			`--- Submitting extrinsic to extend parachain ${id} lease period to ${period_count} days. (nonce: ${nonce}) ---`
+		);
+		const unsub = await api.tx.sudo
+			.sudo(api.tx.slots.forceLease(id, alice.address, 1, 1, period_count))
+			.signAndSend(alice, { nonce: nonce, era: 0 }, (result) => {
+				console.log(`Current status is ${result.status}`);
+				if (result.status.isInBlock) {
+					console.log(
+						`Transaction included at blockHash ${result.status.asInBlock}`
+					);
+					if (finalization) {
+						console.log("Waiting for finalization...");
+					} else {
+						unsub();
+						resolvePromise();
+					}
+				} else if (result.status.isFinalized) {
+					console.log(
+						`Transaction finalized at blockHash ${result.status.asFinalized}`
+					);
+					unsub();
+					resolvePromise();
+				} else if (result.isError) {
+					console.log(`Transaction Error`);
+					reject(`Transaction Error`);
+				}
+			});
+		nonce += 1;
+	});
+}
+
 // Set the balance of an account on the relay chain.
 export async function setBalance(
 	api: ApiPromise,

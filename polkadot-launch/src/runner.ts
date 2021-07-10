@@ -10,7 +10,7 @@ import {
 	startSimpleCollator,
 	getParachainIdFromSpec,
 } from "./spawn";
-import { connect, registerParachain, setBalance } from "./rpc";
+import { connect, registerParachain, extendLeasePeriod, setBalance } from "./rpc";
 import { checkConfig } from "./check";
 import {
 	clearAuthorities,
@@ -124,6 +124,14 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 			);
 		}
 
+		console.log(`Extending Parachain ${resolvedId} lease period`);
+		await extendLeasePeriod(
+			relayChainApi,
+			resolvedId,
+			365,
+			config.finalization
+		);
+
 		// Allow time for the TX to complete, avoiding nonce issues.
 		// TODO: Handle nonce directly instead of this.
 		if (balance) {
@@ -165,6 +173,14 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 				resolvedId,
 				genesisWasm,
 				genesisState,
+				config.finalization
+			);
+
+			console.log(`Extending Parachain ${resolvedId} lease period`);
+			await extendLeasePeriod(
+				relayChainApi,
+				resolvedId,
+				365,
 				config.finalization
 			);
 
