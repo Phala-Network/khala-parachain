@@ -23,8 +23,6 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub mod hashing;
-
 const DEFAULT_RELAYER_THRESHOLD: u32 = 1;
 const MODULE_ID: PalletId = PalletId(*b"phala/bg");
 

@@ -2,6 +2,7 @@
 
 use super::*;
 
+use hex_literal::hex;
 use frame_support::{ord_parameter_types, parameter_types, weights::Weight, PalletId};
 use frame_system::{self as system};
 use sp_core::H256;
@@ -11,7 +12,7 @@ use sp_runtime::{
 	Perbill,
 };
 
-use crate::{self as bride_transfer, Config};
+use crate::{self as bridge_transfer, Config};
 pub use pallet_balances as balances;
 use pallet_bridge as bridge;
 
@@ -27,7 +28,7 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Bridge: bridge::{Pallet, Call, Storage, Event<T>},
-		BridgeTransfer: bride_transfer::{Pallet, Call, Config, Storage, Event<T>},
+		BridgeTransfer: bridge_transfer::{Pallet, Call, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 	}
 );
@@ -42,7 +43,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Test {
-	type BaseCallFilter = frame_support::traits::AllowAll;
+	type BaseCallFilter = ();
 	type Origin = Origin;
 	type Call = Call;
 	type Index = u64;
@@ -100,10 +101,16 @@ impl bridge::Config for Test {
 	type ProposalLifetime = ProposalLifetime;
 }
 
+parameter_types! {
+	// bridge::derive_resource_id(1, &bridge::hashing::blake2_128(b"PHA"));
+	pub const BridgeTokenId: [u8; 32] = hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
+}
+
 impl Config for Test {
 	type Event = Event;
 	type BridgeOrigin = bridge::EnsureBridge<Test>;
 	type Currency = Balances;
+	type BridgeTokenId = BridgeTokenId;
 }
 
 impl pallet_timestamp::Config for Test {
@@ -163,7 +170,6 @@ pub fn event_exists<E: Into<Event>>(e: E) {
 
 // Checks events against the latest. A contiguous set of events must be provided. They must
 // include the most recent event, but do not have to include every past event.
-#[allow(dead_code)]
 pub fn assert_events(mut expected: Vec<Event>) {
 	let mut actual: Vec<Event> = system::Pallet::<Test>::events()
 		.iter()

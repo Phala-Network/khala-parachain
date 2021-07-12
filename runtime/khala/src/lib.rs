@@ -33,6 +33,9 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
     )
 }
 
+// Defaults helpers used in chain spec
+pub mod defaults;
+
 // Constant values used within the runtime.
 pub mod constants;
 pub use constants::currency::*;
@@ -198,12 +201,15 @@ construct_runtime! {
 
         // Main, starts from 80
 
+        // ChainBridge
+        ChainBridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 80,
+        BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
+
         // Remove in future
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
     }
 }
 
-// TODO: WIP
 pub struct BaseCallFilter;
 impl Filter<Call> for BaseCallFilter {
     fn filter(call: &Call) -> bool {
@@ -219,6 +225,7 @@ impl Filter<Call> for BaseCallFilter {
             // Monetary
             // TODO: We disable transfer at launch
             // Call::Balances(_) |
+            Call::ChainBridge(_) | Call::BridgeTransfer(_) |
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // Governance
@@ -813,6 +820,31 @@ impl cumulus_pallet_collator_selection::Config for Runtime {
     type ValidatorIdOf = cumulus_pallet_collator_selection::IdentityCollator;
     type ValidatorRegistration = Session;
     type WeightInfo = cumulus_pallet_collator_selection::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+	pub const BridgeChainId: u8 = 1;
+	pub const ProposalLifetime: BlockNumber = 50;
+}
+
+impl pallet_bridge::Config for Runtime {
+    type Event = Event;
+    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
+    type Proposal = Call;
+    type ChainId = BridgeChainId;
+    type ProposalLifetime = ProposalLifetime;
+}
+
+parameter_types! {
+	// bridge::derive_resource_id(1, &bridge::hashing::blake2_128(b"PHA"));
+	pub const BridgeTokenId: [u8; 32] = hex_literal::hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
+}
+
+impl pallet_bridge_transfer::Config for Runtime {
+    type Event = Event;
+    type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
+    type Currency = Balances;
+    type BridgeTokenId = BridgeTokenId;
 }
 
 impl_runtime_apis! {

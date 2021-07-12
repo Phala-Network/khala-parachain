@@ -1,7 +1,7 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::traits::{Currency, EnsureOrigin, ExistenceRequirement::AllowDeath};
+use frame_support::traits::{Currency, EnsureOrigin, ExistenceRequirement::AllowDeath, Get};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult, ensure,
 };
@@ -29,19 +29,13 @@ pub trait Config: system::Config + bridge::Config {
 
 	/// The currency mechanism.
 	type Currency: Currency<Self::AccountId>;
+
+	type BridgeTokenId: Get<ResourceId>;
 }
 
 decl_storage! {
 	trait Store for Module<T: Config> as BridgeTransfer {
-		BridgeTokenId get(fn bridge_tokenid): ResourceId;
 		BridgeFee get(fn bridge_fee): map hasher(opaque_blake2_256) bridge::ChainId => (BalanceOf<T>, u32);
-	}
-
-	add_extra_genesis {
-		config(bridge_tokenid): ResourceId;
-		build(|config: &GenesisConfig| {
-			BridgeTokenId::put(config.bridge_tokenid);
-		});
 	}
 }
 
@@ -100,9 +94,7 @@ decl_module! {
 			};
 			T::Currency::transfer(&source, &bridge_id, (amount + fee).into(), AllowDeath)?;
 
-			let resource_id = Self::bridge_tokenid();
-
-			<bridge::Module<T>>::transfer_fungible(dest_id, resource_id, recipient, U256::from(amount.saturated_into::<u128>()))
+			<bridge::Module<T>>::transfer_fungible(dest_id, T::BridgeTokenId::get(), recipient, U256::from(amount.saturated_into::<u128>()))
 		}
 
 		//

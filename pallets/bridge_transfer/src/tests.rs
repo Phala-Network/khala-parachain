@@ -1,25 +1,47 @@
 #![cfg(test)]
 
 use super::mock::{
-	assert_events, balances, expect_event, new_test_ext, Balances, Bridge,
+	assert_events, balances, event_exists, expect_event, new_test_ext, Balances, Bridge,
 	BridgeTransfer, Call, Event, Origin, ProposalLifetime, ENDOWED_BALANCE, RELAYER_A,
-	RELAYER_B, RELAYER_C,
+	RELAYER_B, RELAYER_C, BridgeTokenId
 };
+
 use super::*;
 use frame_support::assert_ok;
+
+use blake2_rfc;
+
+/// Do a Blake2 128-bit hash and place result in `dest`.
+fn blake2_128_into(data: &[u8], dest: &mut [u8; 16]) {
+	dest.copy_from_slice(blake2_rfc::blake2b::blake2b(16, &[], data).as_bytes());
+}
+
+/// Do a Blake2 128-bit hash and return result.
+fn blake2_128(data: &[u8]) -> [u8; 16] {
+	let mut r = [0; 16];
+	blake2_128_into(data, &mut r);
+	r
+}
 
 const TEST_THRESHOLD: u32 = 2;
 
 fn make_transfer_proposal(to: u64, amount: u64) -> Call {
-	let resource_id = BridgeTransfer::bridge_tokenid();
+	let resource_id = BridgeTokenId::get();
 	Call::BridgeTransfer(crate::Call::transfer(to, amount.into(), resource_id))
+}
+
+#[test]
+fn constant_equality() {
+	let r_id = bridge::derive_resource_id(1, &blake2_128(b"PHA"));
+	let encoded: [u8; 32] = hex_literal::hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
+	assert_eq!(r_id, encoded);
 }
 
 #[test]
 fn transfer_native() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 0;
-		let resource_id = BridgeTransfer::bridge_tokenid();
+		let resource_id = BridgeTokenId::get();
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
@@ -52,7 +74,7 @@ fn transfer() {
 	new_test_ext().execute_with(|| {
 		// Check inital state
 		let bridge_id: u64 = Bridge::account_id();
-		let resource_id = BridgeTransfer::bridge_tokenid();
+		let resource_id = BridgeTokenId::get();
 		assert_eq!(Balances::free_balance(&bridge_id), ENDOWED_BALANCE);
 		// Transfer and check result
 		assert_ok!(BridgeTransfer::transfer(
