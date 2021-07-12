@@ -108,7 +108,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 3,
+    spec_version: 4,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -215,7 +215,8 @@ impl Filter<Call> for BaseCallFilter {
             // Parachain
             Call::ParachainSystem(_) |
             // Monetary
-            Call::Balances(_) |
+            // TODO: We disable transfer at launch
+            // Call::Balances(_) |
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // Governance
