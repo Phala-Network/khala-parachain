@@ -3,12 +3,24 @@ panic = "unwind"
 
 [workspace]
 resolver = "2"
+
+exclude = [
+	"vendor/webpki",
+	"vendor/ring",
+]
+
 members = [
 	"node",
-	"rpc-ext",
 	"primitives",
+	"crates/crypto",
+	"crates/phala-mq",
+	"crates/phala-rpc-ext",
+	"crates/phala-types",
+	"crates/trie-storage",
 	"pallets/bridge",
 	"pallets/bridge_transfer",
+	"pallets/phala",
 	"runtime/common",
 	"runtime/khala",
 ]
+
