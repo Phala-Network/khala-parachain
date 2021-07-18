@@ -40,6 +40,14 @@ pub mod defaults;
 pub mod constants;
 pub use constants::currency::*;
 
+mod msg_routing;
+pub use phala_pallets::{
+    pallet_mq,
+    pallet_registry,
+    pallet_mining,
+    pallet_stakepool,
+};
+
 use codec::{Decode, Encode};
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -205,6 +213,12 @@ construct_runtime! {
         ChainBridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 80,
         BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
 
+        // Phala
+        PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
+        PhalaRegistry: pallet_registry::{Pallet, Call, Event, Storage, Config<T>} = 86,
+        PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
+        PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
+
         // Remove in future
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
     }
@@ -236,12 +250,14 @@ impl Filter<Call> for BaseCallFilter {
             // Call::Democracy(_) |
             // Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
             // Call::Bounties(_) | Call::Lottery(_) |
+            // Phala
+            Call::PhalaMq(_) | Call::PhalaRegistry(_) |
+            Call::PhalaMining(_) | Call::PhalaStakePool(_) |
             // Sudo
             Call::Sudo(_)
         )
     }
 }
-
 
 parameter_types! {
     pub const BlockHashCount: BlockNumber = 1200; // mortal tx can be valid up to 4 hour after signing
@@ -847,6 +863,39 @@ impl pallet_bridge_transfer::Config for Runtime {
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
     type BridgeTokenId = BridgeTokenId;
+}
+
+parameter_types! {
+    pub const ExpectedBlockTimeSec: u32 = (runtime_common::MILLISECS_PER_BLOCK / 1000) as u32;
+    pub const MinMiningStaking: Balance = 1 * DOLLARS;
+    pub const MinContribution: Balance = 1 * CENTS;
+    pub const MiningInsurancePeriod: BlockNumber = 3 * DAYS;
+}
+
+impl pallet_registry::Config for Runtime {
+    type Event = Event;
+    type UnixTime = Timestamp;
+}
+
+impl pallet_mq::Config for Runtime {
+    type QueueNotifyConfig = msg_routing::MessageRouteConfig;
+}
+
+impl pallet_mining::Config for Runtime {
+    type Event = Event;
+    type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
+    type Currency = Balances;
+    type Randomness = RandomnessCollectiveFlip;
+    type OnReward = PhalaStakePool;
+    type OnUnbound = PhalaStakePool;
+    type OnReclaim = PhalaStakePool;
+}
+
+impl pallet_stakepool::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type MinContribution = MinContribution;
+    type InsurancePeriod = MiningInsurancePeriod;
 }
 
 impl_runtime_apis! {

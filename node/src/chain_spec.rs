@@ -20,6 +20,7 @@ use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
+use hex_literal::hex;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<khala_runtime::GenesisConfig, Extensions>;
@@ -114,6 +115,11 @@ pub fn khala_development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
                 id,
+                Some(
+                    dev_registry_config(
+                        get_account_id_from_seed::<sr25519::Public>("Alice")
+                    )
+                )
             )
         },
         vec![],
@@ -164,6 +170,7 @@ fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str
                     .map(|(k, _)| k)
                     .collect(),
                 id,
+                None
             )
         },
         Vec::new(),
@@ -199,6 +206,7 @@ pub fn khala_staging_config() -> ChainSpec {
                     .map(|(k, amount)| (k, u128::from_str(&amount).expect("Bad amount; qed.")))
                     .collect(),
                 2004.into(),
+                None,
             )
         },
         Vec::new(),
@@ -218,6 +226,7 @@ fn khala_genesis(
     technical_committee: Vec<AccountId>,
     endowed_accounts: Vec<(AccountId, u128)>,
     id: ParaId,
+    dev_registry_override: Option<khala_runtime::PhalaRegistryConfig>
 ) -> khala_runtime::GenesisConfig {
     let all_accounts: Vec<_> = initial_authorities
         .iter()
@@ -278,6 +287,14 @@ fn khala_genesis(
         treasury: Default::default(),
         vesting: Default::default(),
         democracy: khala_runtime::DemocracyConfig::default(),
+        phala_registry: dev_registry_override.unwrap_or(
+            khala_runtime::PhalaRegistryConfig {
+                workers: Vec::new(),
+                gatekeepers: Vec::new(),
+                benchmark_duration: 50,
+            }
+        ),
+        phala_mining: Default::default(),
     }
 }
 
@@ -286,6 +303,7 @@ fn khala_testnet_genesis(
     initial_authorities: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
+    dev_registry_override: Option<khala_runtime::PhalaRegistryConfig>
 ) -> khala_runtime::GenesisConfig {
     // Testnet setup:
     // - 1,152,921 PHA per endowed account
@@ -306,6 +324,7 @@ fn khala_testnet_genesis(
         technical_committee,
         endowment,
         id,
+        dev_registry_override,
     )
 }
 
@@ -329,4 +348,19 @@ fn check_accounts_endowed(
             .iter()
             .any(|(endowed, _)| account == endowed)
     })
+}
+
+fn dev_registry_config(operator: AccountId) -> khala_runtime::PhalaRegistryConfig {
+    // The pubkey of "0x1"
+    let raw_dev_sr25519_pubkey: [u8; 32] = hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"];
+    let dev_sr25519_pubkey = sp_core::sr25519::Public::from_raw(raw_dev_sr25519_pubkey);
+    let dev_ecdh_pubkey = hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"].to_vec();
+
+    khala_runtime::PhalaRegistryConfig {
+        workers: vec![
+            (dev_sr25519_pubkey.clone(), dev_ecdh_pubkey, Some(operator.clone()))
+        ],
+        gatekeepers: vec![dev_sr25519_pubkey],
+        benchmark_duration: 1,
+    }
 }

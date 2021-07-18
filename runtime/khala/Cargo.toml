@@ -11,6 +11,7 @@ hex-literal = "0.3.1"
 
 max-encoded-len = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false, features = ["derive"] }
 
+phala-types = { path = "../../crates/phala-types", default-features = false }
 runtime-common = { path = "../common", default-features = false }
 
 # Substrate dependencies
@@ -59,6 +60,7 @@ pallet-democracy = { git = "https://github.com/paritytech/substrate", branch = "
 
 pallet-bridge = { path = "../../pallets/bridge", default-features = false }
 pallet-bridge-transfer = { path = "../../pallets/bridge_transfer", default-features = false }
+phala-pallets = { default-features = false, path = "../../pallets/phala", package = "phala-pallets" }
 
 # Cumulus dependencies
 cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.8", default-features = false }
@@ -149,4 +151,5 @@ std = [
 	"pallet-democracy/std",
 	"pallet-bridge/std",
 	"pallet-bridge-transfer/std",
+	"phala-pallets/std"
 ]
