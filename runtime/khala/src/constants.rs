@@ -24,7 +24,7 @@ pub mod currency {
     pub const CENTS: Balance = DOLLARS / 100;
     pub const MILLICENTS: Balance = CENTS / 1_000;
 
-    pub const EXISTENTIAL_DEPOSIT: Balance = 10 * CENTS; // 0.1 PHA
+    pub const EXISTENTIAL_DEPOSIT: Balance = 1 * CENTS; // 0.01 PHA
 
     pub const fn deposit(items: u32, bytes: u32) -> Balance {
         items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
