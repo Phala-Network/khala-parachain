@@ -5,24 +5,27 @@
 		"nodes": [
 			{
 				"name": "alice",
-				"wsPort": 9944,
-				"port": 31333,
-				"flags": ["--rpc-cors=all"]
+				"wsPort": 19944,
+				"port": 10333,
+				"flags": [
+					"--node-key=807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
+					"--rpc-cors=all"
+				]
 			},
 			{
 				"name": "bob",
-				"wsPort": 9244,
-				"port": 32333
+				"wsPort": 19244,
+				"port": 12333
 			},
 			{
 				"name": "charlie",
-				"wsPort": 9344,
-				"port": 33333
+				"wsPort": 19344,
+				"port": 13333
 			},
 			{
 				"name": "dave",
-				"wsPort": 9444,
-				"port": 34333
+				"wsPort": 19444,
+				"port": 14333
 			}
 		],
 		"genesis": {
@@ -46,16 +49,17 @@
 			"nodes": [
 				{
 					"name": "alice",
-					"wsPort": 19944,
-					"port": 30334,
+					"wsPort": 9944,
+					"port": 30333,
 					"flags": [
+						"--node-key=81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
 						"--rpc-cors=all"
 					]
 				},
 				{
 					"name": "bob",
-					"wsPort": 19244,
-					"port": 32334
+					"wsPort": 9244,
+					"port": 32333
 				}
 			]
 		}
