@@ -1,0 +1,40 @@
+[package]
+authors = ['Phala Network']
+edition = '2018'
+name = 'pallet-bridge'
+version = '0.0.1'
+license = "Apache 2.0"
+homepage = "https://phala.network/"
+repository = "https://github.com/Phala-Network/phala-blockchain"
+
+[dependencies]
+# third-party dependencies
+codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
+serde = { version = "1.0.101", optional = true }
+blake2-rfc = { version = "0.2.18", default-features = false }
+
+# primitives
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
+
+# frame dependencies
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
+
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"serde",
+	"sp-std/std",
+	"sp-runtime/std",
+    "sp-io/std",
+    "sp-core/std",
+	"frame-support/std",
+	"frame-system/std",
+	"pallet-balances/std",
+]

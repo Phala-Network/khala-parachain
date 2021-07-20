@@ -4972,6 +4972,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-bridge"
+version = "0.0.1"
+dependencies = [
+ "blake2-rfc",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-bridge-grandpa"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.8#3a10ee63c0b5703a1c802db3438ab7e01344a8ce"
@@ -4990,6 +5006,25 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "sp-trie",
+]
+
+[[package]]
+name = "pallet-bridge-transfer"
+version = "0.0.1"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "hex",
+ "pallet-balances",
+ "pallet-bridge",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

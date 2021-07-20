@@ -6,6 +6,8 @@ resolver = "2"
 members = [
 	"node",
 	"primitives",
+	"pallets/bridge",
+	"pallets/bridge_transfer",
 	"runtime/common",
 	"runtime/khala",
 ]
