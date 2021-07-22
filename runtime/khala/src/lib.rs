@@ -211,8 +211,9 @@ impl Filter<Call> for BaseCallFilter {
             call,
             // System
             Call::System(_) | Call::Timestamp(_) | Call::Utility(_) |
-            Call::Multisig(_) | Call::Proxy(_) | Call::Vesting(_) |
-            Call::Scheduler(_) |
+            Call::Multisig(_) | Call::Proxy(_) | Call::Scheduler(_) |
+            // TODO: We enable vesting after we enable transfer
+            // Call::Vesting(_) |
             // Parachain
             Call::ParachainSystem(_) |
             // Monetary
