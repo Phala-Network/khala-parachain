@@ -223,10 +223,10 @@ impl Filter<Call> for BaseCallFilter {
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // Governance
             Call::Identity(_) | Call::Treasury(_) |
-            // TODO: We enable democracy at launch for security reason
+            // TODO: We enable governance at launch for security reason
             // Call::Democracy(_) |
-            Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
-            Call::Bounties(_) | Call::Lottery(_) |
+            // Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
+            // Call::Bounties(_) | Call::Lottery(_) |
             // Sudo
             Call::Sudo(_)
         )
