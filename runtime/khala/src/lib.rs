@@ -37,7 +37,7 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 pub mod constants;
 pub use constants::currency::*;
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, Encode};
 use sp_api::impl_runtime_apis;
 use sp_core::{
     crypto::KeyTypeId,
@@ -61,6 +61,7 @@ pub use frame_support::{
     traits::{
         All, Currency, Imbalance, Filter, InstanceFilter, IsInVec, KeyOwnerProofSystem, LockIdentifier,
         OnUnbalanced, Randomness, U128CurrencyToVote,
+        MaxEncodedLen,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -172,7 +173,7 @@ construct_runtime! {
 
         // Parachain staff
         ParachainInfo: cumulus_pallet_parachain_info::{Pallet, Storage, Config} = 20,
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 21,
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>} = 21,
 
         // Monetary stuff
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 40,
@@ -918,12 +919,8 @@ impl_runtime_apis! {
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
-        ) -> Result<
-            (Vec<frame_benchmarking::BenchmarkBatch>, Vec<frame_support::traits::StorageInfo>),
-            sp_runtime::RuntimeString,
-        > {
+        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
             use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
-            use frame_support::traits::StorageInfoTrait;
 
             use frame_system_benchmarking::Pallet as SystemBench;
             impl frame_system_benchmarking::Config for Runtime {}
@@ -943,8 +940,6 @@ impl_runtime_apis! {
                 // System Events
                 hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec().into(),
             ];
-
-            let storage_info = AllPalletsWithSystem::storage_info();
 
             let mut batches = Vec::<BenchmarkBatch>::new();
             let params = (&config, &whitelist);
@@ -968,7 +963,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, cumulus_pallet_collator_selection, CollatorSelection);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
-            Ok((batches, storage_info))
+            Ok(batches)
         }
     }
 }
