@@ -48,7 +48,7 @@
             }
           }
         },
-        "session_length_in_blocks": 100
+        "session_length_in_blocks": 1000
       }
     }
   },
@@ -60,25 +60,35 @@
       "nodes": [
         {
           "name": "alice",
-          "wsPort": 9944,
-          "port": 30333,
+          "wsPort": 9144,
+          "port": 31333,
           "basePath": "data/para_alice",
           "flags": [
             "--node-key=81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
-            "--rpc-cors=all"
+            "--rpc-cors=all",
+            "--",
+            "--port=31334"
           ]
         },
         {
           "name": "bob",
           "wsPort": 9244,
           "port": 32333,
-          "basePath": "data/para_bob"
+          "basePath": "data/para_bob",
+          "flags": [
+            "--",
+            "--port=32334"
+          ]
         },
         {
           "name": "charlie",
           "wsPort": 9344,
           "port": 33333,
-          "basePath": "data/para_charlie"
+          "basePath": "data/para_charlie",
+          "flags": [
+            "--",
+            "--port=33334"
+          ]
         }
       ]
     }

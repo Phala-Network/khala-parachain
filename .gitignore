@@ -71,7 +71,7 @@ CMakeLists.txt
 /polkadot-launch/westend-*.json
 /polkadot-launch/kusama-*.json
 /polkadot-launch/khala-*.json
-/polkadot-launch/local.json
+/polkadot-launch/local.config.json
 !/polkadot-launch/bin/.keep
 
 # Trash
