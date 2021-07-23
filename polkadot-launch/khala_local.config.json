@@ -7,6 +7,7 @@
         "name": "alice",
         "wsPort": 19944,
         "port": 10333,
+        "basePath": "data/relay_alice",
         "flags": [
           "--node-key=807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
           "--rpc-cors=all"
@@ -15,22 +16,26 @@
       {
         "name": "bob",
         "wsPort": 19244,
-        "port": 12333
+        "port": 12333,
+        "basePath": "data/relay_bob"
       },
       {
         "name": "charlie",
         "wsPort": 19344,
-        "port": 13333
+        "port": 13333,
+        "basePath": "data/relay_charlie"
       },
       {
         "name": "dave",
         "wsPort": 19444,
-        "port": 14333
+        "port": 14333,
+        "basePath": "data/relay_dave"
       },
       {
         "name": "eve",
         "wsPort": 19544,
-        "port": 15333
+        "port": 15333,
+        "basePath": "data/relay_eve"
       }
     ],
     "genesis": {
@@ -42,7 +47,8 @@
               "validation_upgrade_delay": 1
             }
           }
-        }
+        },
+        "session_length_in_blocks": 100
       }
     }
   },
@@ -56,6 +62,7 @@
           "name": "alice",
           "wsPort": 9944,
           "port": 30333,
+          "basePath": "data/para_alice",
           "flags": [
             "--node-key=81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
             "--rpc-cors=all"
@@ -64,12 +71,14 @@
         {
           "name": "bob",
           "wsPort": 9244,
-          "port": 32333
+          "port": 32333,
+          "basePath": "data/para_bob"
         },
         {
           "name": "charlie",
           "wsPort": 9344,
-          "port": 33333
+          "port": 33333,
+          "basePath": "data/para_charlie"
         }
       ]
     }

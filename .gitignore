@@ -65,11 +65,13 @@ CMakeLists.txt
 
 # Polkadot launch
 /polkadot-launch/dist
+/polkadot-launch/data
 /polkadot-launch/bin/*
 /polkadot-launch/rococo-*.json
 /polkadot-launch/westend-*.json
 /polkadot-launch/kusama-*.json
 /polkadot-launch/khala-*.json
+/polkadot-launch/local.json
 !/polkadot-launch/bin/.keep
 
 # Trash
