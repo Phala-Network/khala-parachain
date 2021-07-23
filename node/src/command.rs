@@ -36,7 +36,7 @@ use crate::service::Block;
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     let (norm_id, para_id) = extract_parachain_id(id);
     info!(
-        "Loading spec: {}, custom parachain-id = {:?})",
+        "Loading spec: {}, custom parachain-id = {:?}",
         norm_id, para_id.unwrap_or(ParaId::new(0)).to_string()
     );
     Ok(match norm_id {
