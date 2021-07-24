@@ -1,6 +1,7 @@
 // This function checks that the `config.json` file has all the expected properties.
 // It displays a unique error message and returns `false` for any detected issues.
 import { LaunchConfig } from "./types";
+import fs, { PathLike } from "fs";
 export function checkConfig(config: LaunchConfig) {
 	if (!config) {
 		console.error("⚠ Missing config");
@@ -63,4 +64,8 @@ export function checkConfig(config: LaunchConfig) {
 	}
 
 	return true;
+}
+
+export function checkExists(path: PathLike) {
+	return fs.existsSync(path);
 }

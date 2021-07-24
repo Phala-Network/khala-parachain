@@ -11,7 +11,7 @@ import {
 	getParachainIdFromSpec,
 } from "./spawn";
 import { connect, registerParachain, extendLeasePeriod, setBalance } from "./rpc";
-import { checkConfig } from "./check";
+import {checkConfig, checkExists} from "./check";
 import {
 	clearAuthorities,
 	addAuthority,
@@ -56,28 +56,35 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 	}
 	const config = await resolveParachainId(config_dir, rawConfig);
 
-	const relay_chain_bin = resolve(config_dir, config.relaychain.bin);
-	if (!fs.existsSync(relay_chain_bin)) {
-		console.error("Relay chain binary does not exist: ", relay_chain_bin);
+	const relayChainBin = resolve(config_dir, config.relaychain.bin);
+	if (!checkExists(relayChainBin)) {
+		console.error("Relay chain binary does not exist: ", relayChainBin);
 		process.exit();
 	}
-	const chain = config.relaychain.chain;
-	await generateChainSpec(relay_chain_bin, chain);
-	// -- Start Chain Spec Modify --
-	clearAuthorities(`${chain}.json`);
-	for (const node of config.relaychain.nodes) {
-		await addAuthority(`${chain}.json`, node.name);
+
+	const relayChain = config.relaychain.chain;
+	const relayChainSpec = resolve(`${relayChain}-raw.chain_spec.json`);
+
+	const chainSpecExists = checkExists(relayChainSpec);
+	if ((!config.reuseChainSpec && chainSpecExists) || !chainSpecExists) {
+		await generateChainSpec(relayChainBin, relayChain, `${relayChain}.chain_spec.json`);
+		// -- Start Chain Spec Modify --
+		clearAuthorities(`${relayChain}.chain_spec.json`);
+		for (const node of config.relaychain.nodes) {
+			await addAuthority(`${relayChain}.chain_spec.json`, node.name);
+		}
+		if (config.relaychain.genesis) {
+			await changeGenesisConfig(`${relayChain}.chain_spec.json`, config.relaychain.genesis);
+		}
+		await addParachainsToGenesis(config_dir, `${relayChain}.chain_spec.json`, config.parachains);
+		if (config.hrmpChannels) {
+			await addHrmpChannelsToGenesis(`${relayChain}.chain_spec.json`, config.hrmpChannels);
+		}
+		// -- End Chain Spec Modify --
+		await generateChainSpecRaw(relayChainBin, resolve(`${relayChain}.chain_spec.json`), `${relayChain}-raw.chain_spec.json`);
+	} else {
+		console.log(`\`reuseChainSpec\` flag enabled, will use existing \`${relayChain}-raw.chain_spec.json\`, delete it if you don't want to reuse`);
 	}
-	if (config.relaychain.genesis) {
-		await changeGenesisConfig(`${chain}.json`, config.relaychain.genesis);
-	}
-	await addParachainsToGenesis(config_dir, `${chain}.json`, config.parachains);
-	if (config.hrmpChannels) {
-		await addHrmpChannelsToGenesis(`${chain}.json`, config.hrmpChannels);
-	}
-	// -- End Chain Spec Modify --
-	await generateChainSpecRaw(relay_chain_bin, chain);
-	const spec = resolve(`${chain}-raw.json`);
 
 	// First we launch each of the validators for the relay chain.
 	for (const node of config.relaychain.nodes) {
@@ -85,7 +92,7 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 		console.log(`Starting ${name}...`);
 		// We spawn a `child_process` starting a node, and then wait until we
 		// able to connect to it using PolkadotJS in order to know its running.
-		startNode(relay_chain_bin, name, wsPort, port, spec, flags, basePath);
+		startNode(relayChainBin, name, wsPort, port, relayChainSpec, flags, basePath);
 	}
 
 	// Connect to the first relay chain node to submit the extrinsic.
@@ -96,12 +103,32 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 
 	// Then launch each parachain
 	for (const parachain of config.parachains) {
-		const { id, resolvedId, balance, chain } = parachain;
+		const { id, resolvedId, balance } = parachain;
+
 		const bin = resolve(config_dir, parachain.bin);
-		if (!fs.existsSync(bin)) {
+		if (!checkExists(bin)) {
 			console.error("Parachain binary does not exist: ", bin);
 			process.exit();
 		}
+
+		let chain = parachain.chain;
+		if (chain) {
+			const fullChainName = id ? `${chain}-${id}` : `${chain}`;
+
+			const chainSpecExists = checkExists(`${fullChainName}-raw.chain_spec.json`);
+			if ((!config.reuseChainSpec && chainSpecExists) || !chainSpecExists) {
+				await generateChainSpec(bin, chain, `${fullChainName}.chain_spec.json`);
+				chain = resolve(`${fullChainName}.chain_spec.json`);
+
+				await generateChainSpecRaw(bin, chain, `${fullChainName}-raw.chain_spec.json`);
+				chain = resolve(`${fullChainName}-raw.chain_spec.json`);
+			} else {
+				console.log(`\`reuseChainSpec\` flag enabled, will use existing \`${fullChainName}-raw.chain_spec.json\`, delete it if you don't want to reuse`);
+			}
+		} else if (config.reuseChainSpec) {
+			console.warn("`\`reuseChainSpec\` flag enabled, you need to specify \`chain\` to take effect")
+		}
+
 		let account = parachainAccount(resolvedId);
 
 		for (const node of parachain.nodes) {
@@ -117,14 +144,13 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 				port,
 				name,
 				chain,
-				spec,
+				relayChainSpec,
 				flags,
 				basePath,
 				skipIdArg
 			);
 		}
 
-		console.log(`Extending Parachain ${resolvedId} lease period`);
 		await extendLeasePeriod(
 			relayChainApi,
 			resolvedId,
@@ -144,7 +170,7 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 		for (const simpleParachain of config.simpleParachains) {
 			const { id, resolvedId, port, balance } = simpleParachain;
 			const bin = resolve(config_dir, simpleParachain.bin);
-			if (!fs.existsSync(bin)) {
+			if (!checkExists(bin)) {
 				console.error("Simple parachain binary does not exist: ", bin);
 				process.exit();
 			}
@@ -152,7 +178,7 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 			let account = parachainAccount(resolvedId);
 			console.log(`Starting Parachain ${resolvedId}: ${account}`);
 			const skipIdArg = !id;
-			await startSimpleCollator(bin, resolvedId, spec, port, skipIdArg);
+			await startSimpleCollator(bin, resolvedId, relayChainSpec, port, skipIdArg);
 
 			// Get the information required to register the parachain on the relay chain.
 			let genesisState;
@@ -207,7 +233,7 @@ async function addParachainsToGenesis(
 	for (const parachain of parachains) {
 		const { id, resolvedId, chain } = parachain;
 		const bin = resolve(config_dir, parachain.bin);
-		if (!fs.existsSync(bin)) {
+		if (!checkExists(bin)) {
 			console.error("Parachain binary does not exist: ", bin);
 			process.exit();
 		}

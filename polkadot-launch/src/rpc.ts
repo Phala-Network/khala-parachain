@@ -93,6 +93,12 @@ export async function extendLeasePeriod(
 	period_count = 365,
 	finalization: boolean = false
 ) {
+	const currentLease = (await api.query.slots.leases(id)).toJSON();
+	if (currentLease instanceof Array && currentLease.length >= period_count ) {
+		return;
+	}
+
+	console.log(`Extending Parachain ${id} lease period`);
 	return new Promise<void>(async (resolvePromise, reject) => {
 		await cryptoWaitReady();
 

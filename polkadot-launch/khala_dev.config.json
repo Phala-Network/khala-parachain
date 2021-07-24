@@ -53,7 +53,10 @@
           "port": 30333,
           "flags": [
             "--node-key=81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
-            "--rpc-cors=all"
+            "--rpc-cors=all",
+            "--rpc-methods=Unsafe",
+            "--",
+            "--port=30334"
           ]
         },
         {

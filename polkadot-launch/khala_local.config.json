@@ -96,5 +96,6 @@
   "simpleParachains": [],
   "hrmpChannels": [],
   "types": {},
-  "finalization": false
+  "finalization": false,
+  "reuseChainSpec": true
 }

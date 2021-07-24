@@ -5,6 +5,7 @@ export interface LaunchConfig {
 	hrmpChannels: HrmpChannelsConfig[];
 	types: any;
 	finalization: boolean;
+	reuseChainSpec: boolean;
 }
 export interface ParachainNodeConfig {
 	rpcPort: number;

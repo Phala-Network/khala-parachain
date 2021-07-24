@@ -13,12 +13,12 @@ const p: { [key: string]: ChildProcessWithoutNullStreams } = {};
 const execFile = util.promisify(ex);
 
 // Output the chainspec of a node.
-export async function generateChainSpec(bin: string, chain: string) {
+export async function generateChainSpec(bin: string, chain: string, out: string) {
 	return new Promise<void>(function (resolve, reject) {
 		let args = ["build-spec", "--chain=" + chain, "--disable-default-bootnode"];
 
 		p["spec"] = spawn(bin, args);
-		let spec = fs.createWriteStream(`${chain}.json`);
+		let spec = fs.createWriteStream(out);
 
 		// `pipe` since it deals with flushing and  we need to guarantee that the data is flushed
 		// before we resolve the promise.
@@ -37,13 +37,13 @@ export async function generateChainSpec(bin: string, chain: string) {
 }
 
 // Output the chainspec of a node using `--raw` from a JSON file.
-export async function generateChainSpecRaw(bin: string, chain: string) {
+export async function generateChainSpecRaw(bin: string, chain: string, out: string) {
 	console.log(); // Add a newline in output
 	return new Promise<void>(function (resolve, reject) {
-		let args = ["build-spec", "--chain=" + chain + ".json", "--raw", "--disable-default-bootnode"];
+		let args = ["build-spec", "--chain=" + chain, "--raw", "--disable-default-bootnode"];
 
 		p["spec"] = spawn(bin, args);
-		let spec = fs.createWriteStream(`${chain}-raw.json`);
+		let spec = fs.createWriteStream(out);
 
 		// `pipe` since it deals with flushing and  we need to guarantee that the data is flushed
 		// before we resolve the promise.
