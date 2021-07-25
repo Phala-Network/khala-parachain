@@ -6,6 +6,8 @@
   "dependencies": {
     "@polkadot/api": "^4.17.1",
     "@polkadot/keyring": "^6.11.1",
+    "@polkadot/util": "^6.11.1",
+    "@polkadot/util-crypto": "^6.11.1",
     "dotenv": "^9.0.2"
   }
 }
