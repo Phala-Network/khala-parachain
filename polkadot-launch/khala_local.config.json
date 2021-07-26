@@ -30,12 +30,6 @@
         "wsPort": 19444,
         "port": 14333,
         "basePath": "data/relay_dave"
-      },
-      {
-        "name": "eve",
-        "wsPort": 19544,
-        "port": 15333,
-        "basePath": "data/relay_eve"
       }
     ],
     "genesis": {
@@ -48,7 +42,7 @@
             }
           }
         },
-        "session_length_in_blocks": 1000
+        "session_length_in_blocks": 500
       }
     }
   },
