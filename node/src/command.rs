@@ -56,6 +56,9 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         "khala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
             &include_bytes!("../res/khala.json")[..],
         )?),
+        "chala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
+            &include_bytes!("../res/chala.json")[..],
+        )?),
         path => Box::new(chain_spec::ChainSpec::from_json_file(
             std::path::PathBuf::from(path),
         )?),

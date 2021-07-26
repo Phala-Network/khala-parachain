@@ -13,3 +13,6 @@ mkdir -p tmp/kernels
 
 ./target/release/khala-node export-genesis-wasm -r --chain whala > ./tmp/kernels/whala-code.wasm
 ./target/release/khala-node export-genesis-state --chain whala > ./tmp/kernels/whala-state.hex
+
+./target/release/khala-node export-genesis-wasm -r --chain chala > ./tmp/kernels/chala-code.wasm
+./target/release/khala-node export-genesis-state --chain chala > ./tmp/kernels/chala-state.hex
