@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const fs = require('fs');
 const { ApiPromise, Keyring, WsProvider } = require('@polkadot/api');
+const typedefs = require('@phala/typedefs').khalaDev;
 
 const IN_FILE = process.env.IN_FILE || './tmp/locks1.json';
 const WS_ENDPOINT = process.env.ENDPOINT || 'wss://khala.phala.network/ws';
@@ -15,7 +16,7 @@ async function main () {
 
     // rpc
     const wsProvider = new WsProvider(WS_ENDPOINT);
-    const api = await ApiPromise.create({ provider: wsProvider, types: undefined });
+    const api = await ApiPromise.create({ provider: wsProvider, types: typedefs });
     const h = await api.rpc.chain.getBlockHash();
 
     // get all existing data

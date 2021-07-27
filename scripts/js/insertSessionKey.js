@@ -6,6 +6,7 @@ require('dotenv').config();
 const fs = require('fs');
 const { ApiPromise, Keyring, WsProvider } = require('@polkadot/api');
 const { u8aToHex } = require('@polkadot/util');
+const typedefs = require('@phala/typedefs').khalaDev;
 
 const KEY_FILE = process.env.KEY_FILE;
 const WS_ENDPOINT = process.env.ENDPOINT || 'ws://localhost:9944';
@@ -16,7 +17,7 @@ async function main () {
     // load ops
     let operations;
     if (KEY_FILE) {
-        const file = fs.readFileSync(KEY_FILE, {encoding: 'utf-8'});
+        const file = fs.readFileSync(KEY_FILE, { encoding: 'utf-8' });
         operations = JSON.parse(file);
     } else {
         operations = [{
@@ -29,7 +30,7 @@ async function main () {
 
     for (const {endpoint, key} of operations) {
         const wsProvider = new WsProvider(endpoint);
-        const api = await ApiPromise.create({ provider: wsProvider, types: undefined });
+        const api = await ApiPromise.create({ provider: wsProvider, types: typedefs });
         const aura = keyringSr.addFromUri(key);
     
         // Session Keys:
