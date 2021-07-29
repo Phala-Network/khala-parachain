@@ -68,8 +68,10 @@ CMakeLists.txt
 /polkadot-launch/local.config.json
 /polkadot-launch/dist
 /polkadot-launch/data
-/polkadot-launch/bin/*
-!/polkadot-launch/bin/.keep
+/polkadot-launch/bin
+
+# Other local files
+/scripts/js/session_key.json
 
 # Trash
 **/*.log
