@@ -2,8 +2,18 @@
   "name": "Khala",
   "id": "khala",
   "chainType": "Live",
-  "bootNodes": [],
-  "telemetryEndpoints": null,
+  "bootNodes": [
+    "/dns4/khala-node-us-1.phala.network/tcp/30333/ws/p2p/12D3KooWBpZP6As5WA7LdBYcoQxbkLKbK9WQ2qqYB91MqF3ZmmQE",
+    "/dns4/khala-node-eu-1.phala.network/tcp/30333/ws/p2p/12D3KooWGxVpuCw6gNb67ST2LnsqfYhBYPKm75AiVHoSZF7nxTor",
+    "/dns4/khala-node-asia-2.phala.network/tcp/30333/ws/p2p/12D3KooWLi5WqKWv3WwKRbW4s7owvKJoMuJ9sCntBpwDzi32vWHd",
+    "/dns4/khala-node-asia-1.phala.network/tcp/30333/ws/p2p/12D3KooWGxX1RBj2UWXuBBv46ZtDQPxV5steZvaBWgVvsrHg5Wwe"
+  ],
+  "telemetryEndpoints": [
+    [
+      "wss://telemetry.polkadot.io/submit/",
+      0
+    ]
+  ],
   "protocolId": "khala",
   "properties": {
     "ss58Format": 30,
