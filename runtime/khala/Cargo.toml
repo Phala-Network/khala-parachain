@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
 log = { version = "0.4.14", default-features = false }
-hex-literal = { version = "0.3.1", optional = true }
+hex-literal = "0.3.1"
 
 max-encoded-len = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false, features = ["derive"] }
 
@@ -57,6 +57,9 @@ pallet-vesting = { git = "https://github.com/paritytech/substrate", branch = "po
 pallet-identity = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
 pallet-democracy = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
 
+pallet-bridge = { path = "../../pallets/bridge", default-features = false }
+pallet-bridge-transfer = { path = "../../pallets/bridge_transfer", default-features = false }
+
 # Cumulus dependencies
 cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.8", default-features = false }
 cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.8", default-features = false }
@@ -73,7 +76,6 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 default = ["std", "include-wasm"]
 include-wasm = []
 runtime-benchmarks = [
-	"hex-literal",
 	"sp-runtime/runtime-benchmarks",
 	"pallet-session-benchmarking",
 	"frame-benchmarking",
@@ -145,4 +147,6 @@ std = [
 	"pallet-vesting/std",
 	"pallet-identity/std",
 	"pallet-democracy/std",
+	"pallet-bridge/std",
+	"pallet-bridge-transfer/std",
 ]
