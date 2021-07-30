@@ -24,3 +24,5 @@ members = [
 	"runtime/khala",
 ]
 
+[patch."https://github.com/paritytech/polkadot"]
+polkadot-service = { git = "https://github.com/Phala-Network/polkadot", branch = "v0.9.8-justification" }
