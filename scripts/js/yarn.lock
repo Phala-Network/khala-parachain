@@ -9,10 +9,10 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
-"@phala/typedefs@^0.2.4":
-  version "0.2.4"
-  resolved "https://registry.yarnpkg.com/@phala/typedefs/-/typedefs-0.2.4.tgz#22e835ce4d3eec108386a89c3e2f2a31e44b79fe"
-  integrity sha512-e95fEp8asiV5hhYysrcZtQs6M7Hz0QDvFv+DHWEQ7/0C3HGbN/zZSCKJnCtek+Qpxt2GfPbBb94V2gKr2rKgmA==
+"@phala/typedefs@^0.2.5":
+  version "0.2.5"
+  resolved "https://registry.yarnpkg.com/@phala/typedefs/-/typedefs-0.2.5.tgz#859ee61096319ee002454d7be386334866e9831a"
+  integrity sha512-WCjpuSaxmM9wpQ0bv7CL9KBlBX59M30oPFaQtrbESGWXaZI15ej3ltuD2ftKJ0olfnkjayWO41Y9lmBFt1cMCw==
 
 "@polkadot/api-derive@4.17.1":
   version "4.17.1"
