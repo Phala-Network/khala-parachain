@@ -225,7 +225,9 @@ impl Filter<Call> for BaseCallFilter {
             // Monetary
             // TODO: We disable transfer at launch
             // Call::Balances(_) |
-            Call::ChainBridge(_) | Call::BridgeTransfer(_) |
+            Call::ChainBridge(_) |
+            // TODO: We disable Khala -> ETH bridge at launch
+            Call::BridgeTransfer(pallet_bridge_transfer::Call::transfer(..)) |
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // Governance
