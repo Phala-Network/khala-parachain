@@ -825,8 +825,8 @@ impl cumulus_pallet_collator_selection::Config for Runtime {
 }
 
 parameter_types! {
-	pub const BridgeChainId: u8 = 1;
-	pub const ProposalLifetime: BlockNumber = 50;
+    pub const BridgeChainId: u8 = 1;
+    pub const ProposalLifetime: BlockNumber = 50400; // ~7 days
 }
 
 impl pallet_bridge::Config for Runtime {
@@ -838,8 +838,8 @@ impl pallet_bridge::Config for Runtime {
 }
 
 parameter_types! {
-	// bridge::derive_resource_id(1, &bridge::hashing::blake2_128(b"PHA"));
-	pub const BridgeTokenId: [u8; 32] = hex_literal::hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
+    // bridge::derive_resource_id(1, &bridge::hashing::blake2_128(b"PHA"));
+    pub const BridgeTokenId: [u8; 32] = hex_literal::hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
 }
 
 impl pallet_bridge_transfer::Config for Runtime {
