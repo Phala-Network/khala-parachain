@@ -19,8 +19,8 @@
 pub mod currency {
     use runtime_common::Balance;
 
-    pub const PHA: Balance = 1_000_000_000_000;
-    pub const DOLLARS: Balance = PHA;
+    pub const UNIT: Balance = 1_000_000_000_000;
+    pub const DOLLARS: Balance = UNIT;
     pub const CENTS: Balance = DOLLARS / 100;
     pub const MILLICENTS: Balance = CENTS / 1_000;
 

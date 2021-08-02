@@ -248,7 +248,7 @@ fn khala_genesis(
                 .cloned()
                 .map(|(acc, _)| acc)
                 .collect(),
-            candidacy_bond: khala_runtime::PHA * 16, // 16 PHA
+            candidacy_bond: khala_runtime::UNIT * 16, // 16 PHA
             ..Default::default()
         },
         session: khala_runtime::SessionConfig {
