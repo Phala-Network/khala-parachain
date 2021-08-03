@@ -58,7 +58,7 @@
             "--",
             "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
             "--port=30334",
-            "--pruning archive",
+            "--pruning=archive",
             "--rpc-cors=all"
           ]
         },
