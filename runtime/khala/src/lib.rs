@@ -472,12 +472,24 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
     pub const TransactionByteFee: Balance = 10 * MILLICENTS;
+    /// The portion of the `NORMAL_DISPATCH_RATIO` that we adjust the fees with. Blocks filled less
+    /// than this will decrease the weight and more will increase.
     pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
+    /// The adjustment variable of the runtime. Higher values will cause `TargetBlockFullness` to
+    /// change the fees more rapidly.
     pub AdjustmentVariable: pallet_transaction_payment::Multiplier =
         pallet_transaction_payment::Multiplier::saturating_from_rational(1, 100_000);
+    /// Minimum amount of the multiplier. This value cannot be too low. A test case should ensure
+    /// that combined with `AdjustmentVariable`, we can recover from the minimum.
+    /// See `multiplier_can_grow_from_zero`.
     pub MinimumMultiplier: pallet_transaction_payment::Multiplier =
-        pallet_transaction_payment::Multiplier::saturating_from_rational(1, 1_000_000_000u128);
+        pallet_transaction_payment::Multiplier::saturating_from_rational(1, 1_000_000u128);
 }
+
+/// Parameterized slow adjusting fee updated based on
+/// https://w3f-research.readthedocs.io/en/latest/polkadot/Token%20Economics.html#-2.-slow-adjusting-mechanism
+type SlowAdjustingFeeUpdate<R> =
+    pallet_transaction_payment::TargetedFeeAdjustment<R, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
 
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
 
@@ -500,12 +512,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
     type TransactionByteFee = TransactionByteFee;
     type WeightToFee = IdentityFee<Balance>;
-    type FeeMultiplierUpdate = pallet_transaction_payment::TargetedFeeAdjustment<
-        Self,
-        TargetBlockFullness,
-        AdjustmentVariable,
-        MinimumMultiplier,
-    >;
+    type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 }
 
 impl pallet_bounties::Config for Runtime {
