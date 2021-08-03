@@ -35,7 +35,7 @@ pub trait Config: system::Config + bridge::Config {
 
 decl_storage! {
 	trait Store for Module<T: Config> as BridgeTransfer {
-		BridgeFee get(fn bridge_fee): map hasher(opaque_blake2_256) bridge::ChainId => (BalanceOf<T>, u32);
+		BridgeFee get(fn bridge_fee): map hasher(opaque_blake2_256) bridge::BridgeChainId => (BalanceOf<T>, u32);
 	}
 }
 
@@ -45,7 +45,7 @@ decl_event! {
 		Balance = BalanceOf<T>,
 	{
 		/// [chainId, min_fee, fee_scale]
-		FeeUpdated(bridge::ChainId, Balance, u32),
+		FeeUpdated(bridge::BridgeChainId, Balance, u32),
 	}
 }
 
@@ -70,7 +70,7 @@ decl_module! {
 
 		/// Change extra bridge transfer fee that user should pay
 		#[weight = 195_000_000]
-		pub fn sudo_change_fee(origin, min_fee: BalanceOf<T>, fee_scale: u32, dest_id: bridge::ChainId) -> DispatchResult {
+		pub fn sudo_change_fee(origin, min_fee: BalanceOf<T>, fee_scale: u32, dest_id: bridge::BridgeChainId) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(fee_scale <= 1000u32, Error::<T>::InvalidFeeOption);
 			BridgeFee::<T>::insert(dest_id, (min_fee, fee_scale));
@@ -80,7 +80,7 @@ decl_module! {
 
 		/// Transfers some amount of the native token to some recipient on a (whitelisted) destination chain.
 		#[weight = 195_000_000]
-		pub fn transfer_native(origin, amount: BalanceOf<T>, recipient: Vec<u8>, dest_id: bridge::ChainId) -> DispatchResult {
+		pub fn transfer_native(origin, amount: BalanceOf<T>, recipient: Vec<u8>, dest_id: bridge::BridgeChainId) -> DispatchResult {
 			let source = ensure_signed(origin)?;
 			ensure!(<bridge::Module<T>>::chain_whitelisted(dest_id), Error::<T>::InvalidTransfer);
 			let bridge_id = <bridge::Module<T>>::account_id();

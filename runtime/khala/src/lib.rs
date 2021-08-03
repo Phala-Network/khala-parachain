@@ -833,7 +833,7 @@ impl pallet_bridge::Config for Runtime {
     type Event = Event;
     type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type Proposal = Call;
-    type ChainId = BridgeChainId;
+    type BridgeChainId = BridgeChainId;
     type ProposalLifetime = ProposalLifetime;
 }
 
