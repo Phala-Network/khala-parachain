@@ -3573,6 +3573,7 @@ dependencies = [
  "parachain-info",
  "parity-scale-codec",
  "runtime-common",
+ "smallvec 1.6.1",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-aura",

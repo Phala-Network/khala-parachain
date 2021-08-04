@@ -38,7 +38,7 @@ pub mod defaults;
 
 // Constant values used within the runtime.
 pub mod constants;
-pub use constants::currency::*;
+pub use constants::{currency::*, fee::WeightToFee};
 
 use codec::{Decode, Encode};
 use sp_api::impl_runtime_apis;
@@ -72,11 +72,13 @@ pub use frame_support::{
     },
     PalletId, RuntimeDebug, StorageValue,
 };
-pub use frame_system::Call as SystemCall;
+
 use frame_system::{
     limits::{BlockLength, BlockWeights},
     EnsureOneOf, EnsureRoot,
 };
+
+pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 pub use runtime_common::*;
@@ -471,7 +473,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-    pub const TransactionByteFee: Balance = 10 * MILLICENTS;
+    pub const TransactionByteFee: Balance = 1 * MILLICENTS;
     pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
     pub AdjustmentVariable: pallet_transaction_payment::Multiplier =
         pallet_transaction_payment::Multiplier::saturating_from_rational(1, 100_000);
@@ -499,7 +501,7 @@ impl OnUnbalanced<NegativeImbalance> for DealWithFees {
 impl pallet_transaction_payment::Config for Runtime {
     type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
     type TransactionByteFee = TransactionByteFee;
-    type WeightToFee = IdentityFee<Balance>;
+    type WeightToFee = WeightToFee;
     type FeeMultiplierUpdate = pallet_transaction_payment::TargetedFeeAdjustment<
         Self,
         TargetBlockFullness,
