@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "@phala/typedefs": "^0.2.8",
+    "@phala/typedefs": "^0.2.10",
     "@polkadot/api": "^4.17.1",
     "@polkadot/keyring": "^6.11.1",
     "@polkadot/util": "^6.11.1",
