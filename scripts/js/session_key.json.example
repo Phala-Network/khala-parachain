@@ -1,14 +1,14 @@
 [
     {
-        "endpoint": "ws://127.0.0.1:59941",
+        "endpoint": "ws://127.0.0.1:9144",
         "key": "extend split brush maximum nominee oblige merit modify latin never shiver slide//validator//0//aura"
     },
     {
-        "endpoint": "ws://127.0.0.1:59942",
+        "endpoint": "ws://127.0.0.1:9244",
         "key": "extend split brush maximum nominee oblige merit modify latin never shiver slide//validator//1//aura"
     },
     {
-        "endpoint": "ws://127.0.0.1:59943",
+        "endpoint": "ws://127.0.0.1:9344",
         "key": "extend split brush maximum nominee oblige merit modify latin never shiver slide//validator//2//aura"
     }
 ]
