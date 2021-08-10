@@ -237,12 +237,12 @@ impl Contains<Call> for BaseCallFilter {
             Call::System(_) | Call::Timestamp(_) | Call::Utility(_) |
             Call::Multisig(_) | Call::Proxy(_) | Call::Scheduler(_) |
             // TODO: We enable vesting after we enable transfer
-            // Call::Vesting(_) |
+            Call::Vesting(_) |
             // Parachain
             Call::ParachainSystem(_) |
             // Monetary
             // TODO: We disable transfer at launch
-            // Call::Balances(_) |
+            Call::Balances(_) |
             Call::ChainBridge(_) |
             // TODO: We disable Khala -> ETH bridge at launch
             Call::BridgeTransfer(pallet_bridge_transfer::Call::transfer(..)) |
@@ -251,9 +251,9 @@ impl Contains<Call> for BaseCallFilter {
             // Governance
             Call::Identity(_) | Call::Treasury(_) |
             // TODO: We enable governance at launch for security reason
-            // Call::Democracy(_) |
-            // Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
-            // Call::Bounties(_) | Call::Lottery(_) |
+            Call::Democracy(_) |
+            Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
+            Call::Bounties(_) | Call::Lottery(_) |
             // Phala
             Call::PhalaMq(_) | Call::PhalaRegistry(_) |
             Call::PhalaMining(_) | Call::PhalaStakePool(_) |
