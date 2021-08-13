@@ -10,7 +10,7 @@ pub mod pallet {
 		dispatch::DispatchResult,
 		pallet_prelude::*,
 		traits::{
-			Currency, ExistenceRequirement::KeepAlive, OnUnbalanced, Randomness, StorageVersion,
+			Currency, ExistenceRequirement::KeepAlive, OnUnbalanced, Randomness,
 			UnixTime,
 		},
 		PalletId,
@@ -191,11 +191,12 @@ pub mod pallet {
 		// Let the StakePool to take over the slash events.
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+	const STORAGE_VERSION: u16 = 1;
+	#[pallet::storage]
+    pub(crate) type StorageVersion<T: Config> = StorageValue<_, u16, ValueQuery>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
-	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T>(_);
 
 	/// Tokenomic parameters used by Gatekeepers to compute the V promote.
@@ -408,12 +409,12 @@ pub mod pallet {
 
 		fn on_runtime_upgrade() -> Weight {
 			let mut w = 0;
-			let old = Self::on_chain_storage_version();
+			let old = StorageVersion::<T>::get();
 			w += T::DbWeight::get().reads(1);
 
 			if old == 0 {
 				w += migrations::initialize::<T>();
-				STORAGE_VERSION.put::<super::Pallet<T>>();
+				StorageVersion::<T>::put(STORAGE_VERSION);
 				w += T::DbWeight::get().writes(1);
 			}
 			w

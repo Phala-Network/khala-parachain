@@ -7,7 +7,7 @@ pub mod pallet {
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
-		traits::{StorageVersion, UnixTime},
+		traits::UnixTime,
 	};
 	use frame_system::pallet_prelude::*;
 	use sp_core::H256;
@@ -46,11 +46,12 @@ pub mod pallet {
 		type AttestationValidator: AttestationValidator;
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+	const STORAGE_VERSION: u16 = 1;
+	#[pallet::storage]
+    pub(crate) type StorageVersion<T: Config> = StorageValue<_, u16, ValueQuery>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
-	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T>(_);
 
 	/// Gatekeeper pubkey list
@@ -478,12 +479,12 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_runtime_upgrade() -> Weight {
 			let mut w = 0;
-			let old = Self::on_chain_storage_version();
+			let old = StorageVersion::<T>::get();
 			w += T::DbWeight::get().reads(1);
 
 			if old == 0 {
 				w += migrations::initialize::<T>();
-				STORAGE_VERSION.put::<super::Pallet<T>>();
+				StorageVersion::<T>::put(STORAGE_VERSION);
 				w += T::DbWeight::get().writes(1);
 			}
 			w
