@@ -1,0 +1,26 @@
+[package]
+name = "phala-crypto"
+version = "0.1.0"
+edition = "2018"
+resolver = "2"
+
+[dependencies]
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-application-crypto = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+
+ring = { version = "0.16.20", default-features = false, features = ["alloc"] }
+curve25519-dalek = { version = "2.0", default-features = false }
+schnorrkel = { version = "0.9.1", default-features = false, features = ["preaudit_deprecated", "u64_backend"] }
+
+[dev-dependencies]
+rand = "0.7.3"
+hex = "0.4"
+schnorrkel = { version = "0.9.1", default-features = false, features = ["preaudit_deprecated", "u64_backend", "getrandom"] }
+
+[features]
+default = ["full_crypto"]
+getrandom = ["schnorrkel/getrandom"]
+full_crypto = [
+    "sp-core/full_crypto",
+    "sp-application-crypto/full_crypto",
+]
