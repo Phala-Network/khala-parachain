@@ -7458,7 +7458,6 @@ dependencies = [
 [[package]]
 name = "polkadot-service"
 version = "0.9.9-1"
-source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.9#7a9f624777ad2d2adb3a1e6797a31f9d653c9587"
 dependencies = [
  "async-trait",
  "beefy-gadget",
