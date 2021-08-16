@@ -7474,7 +7474,6 @@ dependencies = [
 [[package]]
 name = "polkadot-service"
 version = "0.9.9-1"
-source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.9#7a9f624777ad2d2adb3a1e6797a31f9d653c9587"
 dependencies = [
  "async-trait",
  "beefy-gadget",
@@ -11682,7 +11681,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f559b464de2e2bdabcac6a210d12e9b5a5973c251e102c44c585c71d51bd78e"
 dependencies = [
  "cfg-if 1.0.0",
- "rand 0.8.4",
+ "rand 0.3.23",
  "static_assertions",
 ]
 

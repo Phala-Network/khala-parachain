@@ -7,6 +7,7 @@ resolver = "2"
 exclude = [
 	"vendor/webpki",
 	"vendor/ring",
+	"polkadot/node/service"
 ]
 
 members = [
@@ -24,3 +25,6 @@ members = [
 	"pallets/parachain-info",
 	"runtime/khala",
 ]
+
+[patch."https://github.com/paritytech/polkadot"]
+polkadot-service = { path = "polkadot/node/service" }
