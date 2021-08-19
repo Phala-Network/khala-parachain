@@ -84,6 +84,8 @@ pub mod pallet {
 
 	impl Benchmark {
 		/// Records the latest benchmark status snapshot and updates `p_instant`
+		///
+		/// Note: `now` and `challenge_time` are in seconds.
 		fn update(&mut self, now: u64, iterations: u64, challenge_time: u64) -> Result<(), ()> {
 			// `now` must be larger than `challenge_time_last` because it's impossible to report
 			// the heartbeat at the same block with the challenge.
@@ -124,8 +126,8 @@ pub mod pallet {
 	impl MinerInfo {
 		/// Calculates the final final returned and slashed stake
 		fn calc_final_stake<Balance>(&self, orig_stake: Balance) -> (Balance, Balance)
-		where
-			Balance: sp_runtime::traits::AtLeast32BitUnsigned + Copy + FixedPointConvert,
+			where
+				Balance: sp_runtime::traits::AtLeast32BitUnsigned + Copy + FixedPointConvert,
 		{
 			// Calcualte remaining stake
 			let v = FixedPoint::from_bits(self.v);
@@ -297,7 +299,7 @@ pub mod pallet {
 	}
 
 	type BalanceOf<T> =
-		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
 		<T as frame_system::Config>::AccountId,
@@ -305,8 +307,8 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
-	where
-		BalanceOf<T>: FixedPointConvert,
+		where
+			BalanceOf<T>: FixedPointConvert,
 	{
 		#[pallet::weight(0)]
 		pub fn set_cool_down_expiration(origin: OriginFor<T>, period: u64) -> DispatchResult {
@@ -406,8 +408,8 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T>
-	where
-		BalanceOf<T>: FixedPointConvert,
+		where
+			BalanceOf<T>: FixedPointConvert,
 	{
 		fn on_finalize(_n: T::BlockNumber) {
 			Self::heartbeat_challenge();
@@ -428,8 +430,8 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T>
-	where
-		BalanceOf<T>: FixedPointConvert,
+		where
+			BalanceOf<T>: FixedPointConvert,
 	{
 		pub fn account_id() -> T::AccountId {
 			MINING_PALLETID.into_account()
@@ -473,9 +475,10 @@ pub mod pallet {
 						let worker =
 							registry::Workers::<T>::get(&worker).expect("Bound worker; qed.");
 						let now = Self::now_sec();
+						let challenge_time_sec = challenge_time / 1000;
 						miner_info
 							.benchmark
-							.update(now, iterations, challenge_time)
+							.update(now, iterations, challenge_time_sec)
 							.expect("Benchmark report must be valid; qed.");
 						Miners::<T>::insert(&miner, miner_info);
 					}
@@ -793,9 +796,9 @@ pub mod pallet {
 	}
 
 	impl<T> Tokenomic<T>
-	where
-		T: Config,
-		BalanceOf<T>: FixedPointConvert,
+		where
+			T: Config,
+			BalanceOf<T>: FixedPointConvert,
 	{
 		fn new(params: TokenomicParams) -> Self {
 			Tokenomic {
@@ -1032,7 +1035,7 @@ pub mod pallet {
 				U256::from_dec_str(
 					"771946525395830978497002573683960742805751636319313395421818009383503547160"
 				)
-				.unwrap()
+					.unwrap()
 			);
 			// Not capped target (py3: `int(((1 << 256) - 1) * 20 / 200_000)`)
 			assert_eq!(
@@ -1040,7 +1043,7 @@ pub mod pallet {
 				U256::from_dec_str(
 					"11574228623567775471528085581038571683760509746329738253007553123311417715"
 				)
-				.unwrap()
+					.unwrap()
 			);
 		}
 
@@ -1251,7 +1254,7 @@ pub mod pallet {
 					payload: MiningReportEvent::Heartbeat {
 						session_id: 0,
 						challenge_block: 2,
-						challenge_time: 100,
+						challenge_time: 100_000,
 						iterations: 11000,
 					},
 				}));
@@ -1277,7 +1280,7 @@ pub mod pallet {
 					payload: MiningReportEvent::Heartbeat {
 						session_id: 0,
 						challenge_block: 3,
-						challenge_time: 200,
+						challenge_time: 200_000,
 						iterations: 11000 + 15000,
 					},
 				}));
