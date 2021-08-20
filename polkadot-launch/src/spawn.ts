@@ -123,6 +123,8 @@ export function startNode(
 		console.log(`Added ${flags}`);
 	}
 
+	console.log(`Full args "${args}"`);
+
 	p[name] = spawn(bin, args);
 
 	let log = fs.createWriteStream(`${name}.log`);
@@ -195,7 +197,7 @@ export function startCollator(
 			"--ws-port=" + wsPort,
 			"--port=" + port,
 			"--collator",
-			"--force-authoring",
+			// "--force-authoring",
 		];
 
 		if (basePath) {
@@ -243,6 +245,8 @@ export function startCollator(
 			console.log(`Added ${flags_collator} to collator`);
 		}
 
+		console.log(`Full args ${args}`);
+
 		p[wsPort] = spawn(bin, args);
 
 		let log = fs.createWriteStream(`${wsPort}.log`);
@@ -277,6 +281,8 @@ export function startSimpleCollator(
 			args.push("--parachain-id=" + id);
 			console.log(`Added --parachain-id=${id}`);
 		}
+
+		console.log(`Full args ${args}`);
 
 		p[port] = spawn(bin, args);
 

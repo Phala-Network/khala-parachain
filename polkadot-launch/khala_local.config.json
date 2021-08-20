@@ -71,6 +71,7 @@
           "port": 32333,
           "basePath": "data/para_bob",
           "flags": [
+            "--rpc-cors=all",
             "--",
             "--port=32334"
           ]
@@ -81,6 +82,7 @@
           "port": 33333,
           "basePath": "data/para_charlie",
           "flags": [
+            "--rpc-cors=all",
             "--",
             "--port=33334"
           ]

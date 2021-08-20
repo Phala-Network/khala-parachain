@@ -124,6 +124,7 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 				chain = resolve(`${fullChainName}-raw.chain_spec.json`);
 			} else {
 				console.log(`\`reuseChainSpec\` flag enabled, will use existing \`${fullChainName}-raw.chain_spec.json\`, delete it if you don't want to reuse`);
+				chain = resolve(`${fullChainName}-raw.chain_spec.json`);
 			}
 		} else if (config.reuseChainSpec) {
 			console.warn("`\`reuseChainSpec\` flag enabled, you need to specify \`chain\` to take effect")
