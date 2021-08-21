@@ -126,8 +126,8 @@ pub mod pallet {
 	impl MinerInfo {
 		/// Calculates the final final returned and slashed stake
 		fn calc_final_stake<Balance>(&self, orig_stake: Balance) -> (Balance, Balance)
-			where
-				Balance: sp_runtime::traits::AtLeast32BitUnsigned + Copy + FixedPointConvert,
+		where
+			Balance: sp_runtime::traits::AtLeast32BitUnsigned + Copy + FixedPointConvert,
 		{
 			// Calcualte remaining stake
 			let v = FixedPoint::from_bits(self.v);
@@ -299,7 +299,7 @@ pub mod pallet {
 	}
 
 	type BalanceOf<T> =
-	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
 		<T as frame_system::Config>::AccountId,
@@ -307,8 +307,8 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
-		where
-			BalanceOf<T>: FixedPointConvert,
+	where
+		BalanceOf<T>: FixedPointConvert,
 	{
 		#[pallet::weight(0)]
 		pub fn set_cool_down_expiration(origin: OriginFor<T>, period: u64) -> DispatchResult {
@@ -408,8 +408,8 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T>
-		where
-			BalanceOf<T>: FixedPointConvert,
+	where
+		BalanceOf<T>: FixedPointConvert,
 	{
 		fn on_finalize(_n: T::BlockNumber) {
 			Self::heartbeat_challenge();
@@ -430,8 +430,8 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T>
-		where
-			BalanceOf<T>: FixedPointConvert,
+	where
+		BalanceOf<T>: FixedPointConvert,
 	{
 		pub fn account_id() -> T::AccountId {
 			MINING_PALLETID.into_account()
@@ -458,7 +458,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			if let MessageOrigin::Worker(worker) = message.sender {
 				match message.payload {
-					MiningReportEvent::Heartbeat { iterations, challenge_time, .. } => {
+					MiningReportEvent::Heartbeat {
+						iterations,
+						challenge_time,
+						..
+					} => {
 						// Handle with great care!
 						//
 						// In some cases, a message can be delayed, but the worker has been already
@@ -796,9 +800,9 @@ pub mod pallet {
 	}
 
 	impl<T> Tokenomic<T>
-		where
-			T: Config,
-			BalanceOf<T>: FixedPointConvert,
+	where
+		T: Config,
+		BalanceOf<T>: FixedPointConvert,
 	{
 		fn new(params: TokenomicParams) -> Self {
 			Tokenomic {
@@ -1035,7 +1039,7 @@ pub mod pallet {
 				U256::from_dec_str(
 					"771946525395830978497002573683960742805751636319313395421818009383503547160"
 				)
-					.unwrap()
+				.unwrap()
 			);
 			// Not capped target (py3: `int(((1 << 256) - 1) * 20 / 200_000)`)
 			assert_eq!(
@@ -1043,7 +1047,7 @@ pub mod pallet {
 				U256::from_dec_str(
 					"11574228623567775471528085581038571683760509746329738253007553123311417715"
 				)
-					.unwrap()
+				.unwrap()
 			);
 		}
 
@@ -1309,22 +1313,28 @@ pub mod pallet {
 			};
 			// Normal
 			assert!(b.update(100, 1000, 90).is_ok());
-			assert_eq!(b, Benchmark {
-				p_init: 100,
-				p_instant: 60,
-				iterations: 1000,
-				mining_start_time: 0,
-				challenge_time_last: 90,
-			});
+			assert_eq!(
+				b,
+				Benchmark {
+					p_init: 100,
+					p_instant: 60,
+					iterations: 1000,
+					mining_start_time: 0,
+					challenge_time_last: 90,
+				}
+			);
 			// Reset counter
 			assert!(b.update(200, 999, 190).is_ok());
-			assert_eq!(b, Benchmark {
-				p_init: 100,
-				p_instant: 0,
-				iterations: 999,
-				mining_start_time: 0,
-				challenge_time_last: 190,
-			});
+			assert_eq!(
+				b,
+				Benchmark {
+					p_init: 100,
+					p_instant: 0,
+					iterations: 999,
+					mining_start_time: 0,
+					challenge_time_last: 190,
+				}
+			);
 		}
 	}
 }

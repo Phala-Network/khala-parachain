@@ -5,6 +5,7 @@ authors = ["h4x3rotab <h4x3rotab@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+hex = { version = "0.4", default-features = false, features = ["alloc"] }
 serde = { version = "1.0.101", default-features = false, optional = true }
 codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["full"] }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
@@ -12,6 +13,7 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkad
 
 trie-storage = { path = "../trie-storage", default-features = false, optional = true  }
 phala-mq = { path = "../phala-mq", default-features = false }
+prpc = { path = "../prpc", default-features = false }
 
 [features]
 default = ["std", "pruntime", "enable_serde"]

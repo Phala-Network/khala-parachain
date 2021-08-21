@@ -6,11 +6,11 @@ use phala_types::messaging::{BindTopic, DecodedMessage, Message};
 pub struct MessageRouteConfig;
 
 fn try_dispatch<Msg, Func>(func: Func, message: &Message) -> DispatchResult
-    where
-        Msg: Decode + BindTopic,
-        Func: Fn(DecodedMessage<Msg>) -> DispatchResult,
+where
+    Msg: Decode + BindTopic,
+    Func: Fn(DecodedMessage<Msg>) -> DispatchResult,
 {
-    if message.destination.path() == Msg::TOPIC {
+    if message.destination.path() == &Msg::topic() {
         let msg: DecodedMessage<Msg> = message
             .decode()
             .ok_or(DispatchError::Other("MessageCodecError"))?;
