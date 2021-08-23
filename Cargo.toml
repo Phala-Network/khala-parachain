@@ -8,6 +8,7 @@ members = [
 	"primitives",
 	"pallets/bridge",
 	"pallets/bridge_transfer",
+	"pallets/parachain-info",
 	"runtime/common",
 	"runtime/khala",
 ]
