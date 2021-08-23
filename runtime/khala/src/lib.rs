@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// 	http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -80,6 +80,7 @@ use frame_system::{
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
+
 pub use parachains_common::*;
 
 #[cfg(any(feature = "std", test))]
@@ -243,7 +244,6 @@ impl Contains<Call> for BaseCallFilter {
     }
 }
 
-
 parameter_types! {
     pub const BlockHashCount: BlockNumber = 1200; // mortal tx can be valid up to 4 hour after signing
     pub const Version: RuntimeVersion = VERSION;
@@ -371,28 +371,47 @@ impl InstanceFilter<Call> for ProxyType {
     fn filter(&self, c: &Call) -> bool {
         match self {
             ProxyType::Any => true,
-            ProxyType::NonTransfer => !matches!(
+            ProxyType::NonTransfer => matches!(
                 c,
-                Call::Balances(..) | Call::Vesting(pallet_vesting::Call::vested_transfer(..))
+                Call::System(..) |
+                Call::Timestamp(..) |
+                Call::Session(..) |
+                Call::Democracy(..) |
+                Call::Council(..) |
+                Call::TechnicalCommittee(..) |
+                Call::TechnicalMembership(..) |
+                Call::Treasury(..) |
+                Call::Bounties(..) |
+                Call::Utility(..) |
+                Call::Identity(..) |
+                Call::Vesting(pallet_vesting::Call::vest(..)) |
+                Call::Vesting(pallet_vesting::Call::vest_other(..)) |
+                Call::Scheduler(..) |
+                Call::Proxy(..) |
+                Call::Multisig(..) |
             ),
             ProxyType::CancelProxy => matches!(
                 c,
-                Call::Proxy(pallet_proxy::Call::reject_announcement(..))
-                    | Call::Utility(..)
-                    | Call::Multisig(..)
+                Call::Proxy(pallet_proxy::Call::reject_announcement(..)) |
+                Call::Utility(..) |
+                Call::Multisig(..) |
             ),
             ProxyType::Governance => matches!(
                 c,
-                Call::Democracy(..)
-                    | Call::Council(..)
-                    | Call::TechnicalCommittee(..)
-                    | Call::Treasury(..)
-                    | Call::Lottery(..)
-                    | Call::Bounties(..)
+                Call::Democracy(..) |
+                Call::Council(..) |
+                Call::TechnicalCommittee(..) |
+                Call::Treasury(..) |
+                Call::Tips(..) |
+                Call::Utility(..) |
+                Call::Bounties(..) |
+                Call::Lottery(..) |
             ),
             ProxyType::Collator => matches!(
                 c,
-                Call::CollatorSelection(..) | Call::Utility(..) | Call::Multisig(..)
+                Call::CollatorSelection(..) |
+                Call::Utility(..) |
+                Call::Multisig(..)
             ),
         }
     }
