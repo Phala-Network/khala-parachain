@@ -269,15 +269,16 @@ fn khala_genesis(
         aura: Default::default(),
         aura_ext: Default::default(),
         parachain_system: Default::default(),
-        council: khala_parachain_runtime::CouncilConfig::default(),
+        council: khala_parachain_runtime::CouncilConfig { members: vec![], phantom: Default::default() },
         technical_committee: khala_parachain_runtime::TechnicalCommitteeConfig {
             members: technical_committee,
             phantom: Default::default(),
         },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        vesting: Default::default(),
-        democracy: khala_parachain_runtime::DemocracyConfig::default(),
+        vesting: khala_parachain_runtime::VestingConfig { vesting: vec![] },
+        democracy: Default::default(),
+        phragmen_election: Default::default(),
     }
 }
 

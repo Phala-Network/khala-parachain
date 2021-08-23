@@ -8,6 +8,7 @@ edition = "2018"
 codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
 log = { version = "0.4.14", default-features = false }
 hex-literal = "0.3.1"
+static_assertions = "1.1.0"
 smallvec = "1.6.1"
 
 parachains-common = { path = "../../parachains-common", default-features = false }
@@ -55,6 +56,7 @@ pallet-lottery = { git = "https://github.com/paritytech/substrate", branch = "po
 pallet-vesting = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 pallet-identity = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 pallet-democracy = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
 pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.9", default-features = false }
 
@@ -92,6 +94,7 @@ runtime-benchmarks = [
 	"pallet-vesting/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
 	"pallet-democracy/runtime-benchmarks",
+	"pallet-elections-phragmen/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
@@ -144,6 +147,7 @@ std = [
 	"pallet-vesting/std",
 	"pallet-identity/std",
 	"pallet-democracy/std",
+	"pallet-elections-phragmen/std",
 	"pallet-collator-selection/std",
 	"pallet-parachain-info/std",
 	"pallet-bridge/std",

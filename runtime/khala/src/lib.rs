@@ -57,6 +57,7 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use static_assertions::const_assert;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
@@ -200,6 +201,7 @@ construct_runtime! {
         Lottery: pallet_lottery::{Pallet, Call, Storage, Event<T>} = 65,
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 66,
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 67,
+        PhragmenElection: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 68,
 
         // Main, starts from 80
 
@@ -238,6 +240,7 @@ impl Contains<Call> for BaseCallFilter {
             // Call::Democracy(_) |
             // Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
             // Call::Bounties(_) | Call::Lottery(_) |
+            // Call::PhragmenElection(..) |
             // Sudo
             Call::Sudo(_)
         )
@@ -378,6 +381,7 @@ impl InstanceFilter<Call> for ProxyType {
                 Call::Session(..) |
                 Call::Democracy(..) |
                 Call::Council(..) |
+                Call::PhragmenElection(..) |
                 Call::TechnicalCommittee(..) |
                 Call::TechnicalMembership(..) |
                 Call::Treasury(..) |
@@ -388,24 +392,24 @@ impl InstanceFilter<Call> for ProxyType {
                 Call::Vesting(pallet_vesting::Call::vest_other(..)) |
                 Call::Scheduler(..) |
                 Call::Proxy(..) |
-                Call::Multisig(..) |
+                Call::Multisig(..)
             ),
             ProxyType::CancelProxy => matches!(
                 c,
                 Call::Proxy(pallet_proxy::Call::reject_announcement(..)) |
                 Call::Utility(..) |
-                Call::Multisig(..) |
+                Call::Multisig(..)
             ),
             ProxyType::Governance => matches!(
                 c,
                 Call::Democracy(..) |
+                Call::PhragmenElection(..) |
                 Call::Council(..) |
                 Call::TechnicalCommittee(..) |
                 Call::Treasury(..) |
-                Call::Tips(..) |
                 Call::Utility(..) |
                 Call::Bounties(..) |
-                Call::Lottery(..) |
+                Call::Lottery(..)
             ),
             ProxyType::Collator => matches!(
                 c,
@@ -633,6 +637,40 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
     type MaxMembers = CouncilMaxMembers;
     type DefaultVote = pallet_collective::PrimeDefaultVote;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+	pub const CandidacyBond: Balance = 100 * CENTS;
+	// 1 storage item created, key size is 32 bytes, value size is 16+16.
+	pub const VotingBondBase: Balance = deposit(1, 64);
+	// additional data per vote is 32 bytes (account id).
+	pub const VotingBondFactor: Balance = deposit(0, 32);
+	/// Daily council elections
+	pub const TermDuration: BlockNumber = 24 * HOURS;
+	pub const DesiredMembers: u32 = 19;
+	pub const DesiredRunnersUp: u32 = 19;
+	pub const PhragmenElectionPalletId: LockIdentifier = *b"phrelect";
+}
+
+// Make sure that there are no more than MaxMembers members elected via phragmen.
+const_assert!(DesiredMembers::get() <= CouncilMaxMembers::get());
+
+impl pallet_elections_phragmen::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type ChangeMembers = Council;
+    type InitializeMembers = Council;
+    type CurrencyToVote = frame_support::traits::U128CurrencyToVote;
+    type CandidacyBond = CandidacyBond;
+    type VotingBondBase = VotingBondBase;
+    type VotingBondFactor = VotingBondFactor;
+    type LoserCandidate = Treasury;
+    type KickedMember = Treasury;
+    type DesiredMembers = DesiredMembers;
+    type DesiredRunnersUp = DesiredRunnersUp;
+    type TermDuration = TermDuration;
+    type PalletId = PhragmenElectionPalletId;
+    type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1011,6 +1049,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_bounties, Bounties);
             add_benchmark!(params, batches, pallet_collective, Council);
             add_benchmark!(params, batches, pallet_democracy, Democracy);
+            add_benchmark!(params, batches, pallet_elections_phragmen, PhragmenElection);
             add_benchmark!(params, batches, pallet_identity, Identity);
             add_benchmark!(params, batches, pallet_lottery, Lottery);
             add_benchmark!(params, batches, pallet_membership, TechnicalMembership);
