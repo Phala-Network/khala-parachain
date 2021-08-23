@@ -58,7 +58,7 @@ pallet-democracy = { git = "https://github.com/paritytech/substrate", branch = "
 
 pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.9", default-features = false }
 
-pallet-parachain-info = { path = "../../pallets/parachain-info", package = "parachain-info", default-features = false }
+pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
 pallet-bridge = { path = "../../pallets/bridge", default-features = false }
 pallet-bridge-transfer = { path = "../../pallets/bridge_transfer", default-features = false }
 
