@@ -80,8 +80,8 @@ polkadot-service = { git = "https://github.com/paritytech/polkadot", branch = "r
 polkadot-cli = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.9" }
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.9" }
 
-parachain-primitives = { path = "../primitives", package = "phala-parachain-primitives" }
-khala-runtime = { path = "../runtime/khala", package = "khala-parachain-runtime" }
+parachains-common = { path = "../parachains-common" }
+khala-parachain-runtime = { path = "../runtime/khala" }
 
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
@@ -90,5 +90,5 @@ substrate-build-script-utils = { git = "https://github.com/paritytech/substrate"
 default = []
 runtime-benchmarks = [
 	"polkadot-service/runtime-benchmarks",
-	"khala-runtime/runtime-benchmarks",
+	"khala-parachain-runtime/runtime-benchmarks",
 ]

@@ -38,14 +38,14 @@ use substrate_prometheus_endpoint::Registry;
 pub use sc_executor::NativeExecutor;
 pub use sc_rpc_api::DenyUnsafe;
 
-use parachain_primitives::{Hash, Header};
+use parachains_common::{Hash, Header};
 pub type Block = sp_runtime::generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
 
 // Native Khala executor instance.
 native_executor_instance!(
 	pub KhalaRuntimeExecutor,
-	khala_runtime::api::dispatch,
-	khala_runtime::native_version,
+	khala_parachain_runtime::api::dispatch,
+	khala_parachain_runtime::native_version,
 	frame_benchmarking::benchmarking::HostFunctions,
 );
 
@@ -691,9 +691,9 @@ pub async fn start_khala_node(
     id: ParaId
 ) -> sc_service::error::Result<(
     TaskManager,
-    Arc<TFullClient<Block, khala_runtime::RuntimeApi, KhalaRuntimeExecutor>>
+    Arc<TFullClient<Block, khala_parachain_runtime::RuntimeApi, KhalaRuntimeExecutor>>
 )> {
-    start_node::<khala_runtime::RuntimeApi, KhalaRuntimeExecutor, _>(
+    start_node::<khala_parachain_runtime::RuntimeApi, KhalaRuntimeExecutor, _>(
         parachain_config,
         polkadot_config,
         id,

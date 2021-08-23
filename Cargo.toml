@@ -5,10 +5,9 @@ panic = "unwind"
 resolver = "2"
 members = [
 	"node",
-	"primitives",
+	"parachains-common",
 	"pallets/bridge",
 	"pallets/bridge_transfer",
 	"pallets/parachain-info",
-	"runtime/common",
 	"runtime/khala",
 ]

@@ -3587,8 +3587,8 @@ dependencies = [
  "khala-parachain-runtime",
  "log",
  "pallet-transaction-payment-rpc",
+ "parachains-common",
  "parity-scale-codec",
- "phala-parachain-primitives",
  "polkadot-cli",
  "polkadot-parachain",
  "polkadot-primitives",
@@ -3670,8 +3670,8 @@ dependencies = [
  "pallet-utility",
  "pallet-vesting",
  "parachain-info",
+ "parachains-common",
  "parity-scale-codec",
- "runtime-common",
  "smallvec 1.6.1",
  "sp-api",
  "sp-block-builder",
@@ -4822,6 +4822,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "node-primitives"
+version = "2.0.0"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9#91061a7d925b5bc597804293da283477512ba4ff"
+dependencies = [
+ "frame-system",
+ "parity-scale-codec",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
 name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5844,6 +5856,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "parachains-common"
+version = "1.0.0"
+dependencies = [
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "node-primitives",
+ "pallet-authorship",
+ "pallet-balances",
+ "pallet-collator-selection",
+ "parity-scale-codec",
+ "polkadot-primitives",
+ "polkadot-runtime-common",
+ "serde",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "substrate-wasm-builder",
+]
+
+[[package]]
 name = "parity-db"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6172,15 +6207,6 @@ checksum = "467d164a6de56270bd7c4d070df81d07beace25012d5103ced4e9ff08d6afdb7"
 dependencies = [
  "fixedbitset",
  "indexmap",
-]
-
-[[package]]
-name = "phala-parachain-primitives"
-version = "0.0.1"
-dependencies = [
- "sp-consensus-aura",
- "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
@@ -8047,25 +8073,6 @@ checksum = "ffc936cf8a7ea60c58f030fd36a612a48f440610214dc54bc36431f9ea0c3efb"
 dependencies = [
  "libc",
  "winapi 0.3.9",
-]
-
-[[package]]
-name = "runtime-common"
-version = "0.0.1"
-dependencies = [
- "frame-executive",
- "frame-support",
- "frame-system",
- "pallet-balances",
- "parity-scale-codec",
- "phala-parachain-primitives",
- "serde",
- "sp-consensus-aura",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "substrate-wasm-builder",
 ]
 
 [[package]]

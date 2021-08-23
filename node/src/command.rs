@@ -129,7 +129,7 @@ impl SubstrateCli for Cli {
     }
 
     fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &khala_runtime::VERSION
+        &khala_parachain_runtime::VERSION
     }
 }
 
@@ -187,7 +187,7 @@ macro_rules! construct_async_run {
     (|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
         let runner = $cli.create_runner($cmd)?;
         runner.async_run(|$config| {
-            let $components = new_partial::<khala_runtime::RuntimeApi, KhalaRuntimeExecutor, _>(
+            let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaRuntimeExecutor, _>(
                 &$config,
                 crate::service::khala_build_import_queue,
             )?;

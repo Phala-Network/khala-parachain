@@ -38,7 +38,7 @@ pub mod defaults;
 
 // Constant values used within the runtime.
 pub mod constants;
-pub use constants::{currency::*, fee::WeightToFee};
+use constants::{currency::*, fee::WeightToFee};
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use sp_api::impl_runtime_apis;
@@ -80,7 +80,7 @@ use frame_system::{
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
-pub use runtime_common::*;
+pub use parachains_common::*;
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
