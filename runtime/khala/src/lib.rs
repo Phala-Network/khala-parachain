@@ -42,6 +42,8 @@ pub mod defaults;
 pub mod constants;
 use constants::{currency::*, fee::WeightToFee};
 
+mod msg_routing;
+
 use codec::{Decode, Encode, MaxEncodedLen};
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -85,6 +87,13 @@ pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 
 pub use parachains_common::*;
+
+pub use phala_pallets::{
+    pallet_mq,
+    pallet_registry,
+    pallet_mining,
+    pallet_stakepool,
+};
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -148,6 +157,7 @@ pub type SignedExtra = (
     frame_system::CheckEra<Runtime>,
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
+    pallet_mq::CheckMqSequence<Runtime>,
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
@@ -211,6 +221,12 @@ construct_runtime! {
         ChainBridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 80,
         BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
 
+        // Phala
+        PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
+        PhalaRegistry: pallet_registry::{Pallet, Call, Event, Storage, Config<T>} = 86,
+        PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
+        PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
+
         // `sudo` has been removed on production
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
     }
@@ -242,8 +258,12 @@ impl Contains<Call> for BaseCallFilter {
             Call::Identity(_) | Call::Treasury(_) |
             Call::Democracy(_) |
             Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
-            Call::Bounties(_) | Call::Lottery(_) |
-            Call::PhragmenElection(..)
+            Call::Bounties(_) | Call::Lottery(_)
+            // Phala
+            // TODO: We will enable Phala through democracy
+            // Call::PhalaMq(_) | Call::PhalaRegistry(_) |
+            // Call::PhalaMining(_) | Call::PhalaStakePool(_) |
+            // Sudo
         )
     }
 }
@@ -932,6 +952,54 @@ impl pallet_bridge_transfer::Config for Runtime {
     type OnFeePay = Treasury;
 }
 
+parameter_types! {
+    pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
+    pub const MinMiningStaking: Balance = 1 * DOLLARS;
+    pub const MinContribution: Balance = 1 * CENTS;
+    pub const MiningGracePeriod: u64 = 7 * 24 * 3600;
+}
+
+impl pallet_registry::Config for Runtime {
+    type Event = Event;
+    type AttestationValidator = pallet_registry::IasValidator;
+    type UnixTime = Timestamp;
+}
+
+pub struct MqCallMatcher;
+impl pallet_mq::CallMatcher<Runtime> for MqCallMatcher {
+    fn match_call(call: &Call) -> Option<&pallet_mq::Call<Runtime>> {
+        match call {
+            Call::PhalaMq(mq_call) => Some(mq_call),
+            _ => None,
+        }
+    }
+}
+
+impl pallet_mq::Config for Runtime {
+    type QueueNotifyConfig = msg_routing::MessageRouteConfig;
+    type CallMatcher = MqCallMatcher;
+}
+
+impl pallet_mining::Config for Runtime {
+    type Event = Event;
+    type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
+    type Currency = Balances;
+    type Randomness = RandomnessCollectiveFlip;
+    type OnReward = PhalaStakePool;
+    type OnUnbound = PhalaStakePool;
+    type OnReclaim = PhalaStakePool;
+    type OnStopped = PhalaStakePool;
+    type OnTreasurySettled = Treasury;
+}
+
+impl pallet_stakepool::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type MinContribution = MinContribution;
+    type GracePeriod = MiningGracePeriod;
+    type OnSlashed = Treasury;
+}
+
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
         fn slot_duration() -> sp_consensus_aura::SlotDuration {
@@ -1026,6 +1094,12 @@ impl_runtime_apis! {
         }
         fn query_fee_details(uxt: <Block as BlockT>::Extrinsic, len: u32) -> pallet_transaction_payment_rpc_runtime_api::FeeDetails<Balance> {
             TransactionPayment::query_fee_details(uxt, len)
+        }
+    }
+
+    impl pallet_mq_runtime_api::MqApi<Block> for Runtime {
+        fn sender_sequence(sender: &phala_types::messaging::MessageOrigin) -> Option<u64> {
+            PhalaMq::offchain_ingress(sender)
         }
     }
 
