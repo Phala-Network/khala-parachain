@@ -1,0 +1,14 @@
+[package]
+name = "pallet-mq-runtime-api"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+phala-mq = { path = "../../../crates/phala-mq", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+	"sp-api/std",
+]
