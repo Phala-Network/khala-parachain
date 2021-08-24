@@ -30,7 +30,7 @@ use sc_client_api::ExecutorProvider;
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
 use sc_network::NetworkService;
-use sc_service::{Configuration, PartialComponents, Role, TFullBackend, TFullClient, TaskManager};
+use sc_service::{Configuration, PartialComponents, Role, TFullBackend, TFullClient, TaskManager, PruningMode};
 use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerHandle};
 use sp_api::ConstructRuntimeApi;
 use sp_consensus::SlotData;
@@ -170,6 +170,7 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
         + sp_block_builder::BlockBuilder<Block>
         + cumulus_primitives_core::CollectCollationInfo<Block>
         + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
+        + pallet_mq_runtime_api::MqApi<Block>
         + frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
         sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
         Executor: sc_executor::NativeExecutionDispatch + 'static,
@@ -245,11 +246,18 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
     let rpc_extensions_builder = {
         let client = client.clone();
         let transaction_pool = transaction_pool.clone();
+        let backend = backend.clone();
+        let enable_archive = match parachain_config.state_pruning {
+            PruningMode::Constrained(_) => false,
+            PruningMode::ArchiveAll | PruningMode::ArchiveCanonical => true,
+        };
 
         Box::new(move |deny_unsafe, _| {
             let deps = rpc::FullDeps {
                 client: client.clone(),
                 pool: transaction_pool.clone(),
+                backend: backend.clone(),
+                enable_archive,
                 deny_unsafe,
             };
 
