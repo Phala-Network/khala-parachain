@@ -17,7 +17,7 @@
 
 /// Money matters.
 pub mod currency {
-    use runtime_common::Balance;
+    use parachains_common::Balance;
 
     pub const UNIT: Balance = 1_000_000_000_000;
     pub const DOLLARS: Balance = UNIT;
@@ -31,13 +31,13 @@ pub mod currency {
 
 /// Fee-related.
 pub mod fee {
-    use runtime_common::Balance;
-    pub use sp_runtime::Perbill;
+    use parachains_common::Balance;
     use frame_support::weights::{
         constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
         WeightToFeePolynomial,
     };
     use smallvec::smallvec;
+    use sp_runtime::Perbill;
 
     /// The block saturation level. Fees will be updates based on this value.
     pub const TARGET_BLOCK_FULLNESS: Perbill = Perbill::from_percent(25);

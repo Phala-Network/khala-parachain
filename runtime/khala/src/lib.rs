@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// 	http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,9 +38,9 @@ pub mod defaults;
 
 // Constant values used within the runtime.
 pub mod constants;
-pub use constants::{currency::*, fee::WeightToFee};
+use constants::{currency::*, fee::WeightToFee};
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use sp_api::impl_runtime_apis;
 use sp_core::{
     crypto::KeyTypeId,
@@ -57,14 +57,14 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use static_assertions::const_assert;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
-        All, Currency, Imbalance, Filter, InstanceFilter, IsInVec, KeyOwnerProofSystem, LockIdentifier,
+        Currency, Imbalance, Contains, InstanceFilter, IsInVec, KeyOwnerProofSystem, LockIdentifier,
         OnUnbalanced, Randomness, U128CurrencyToVote,
-        MaxEncodedLen,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -81,7 +81,8 @@ use frame_system::{
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
-pub use runtime_common::*;
+
+pub use parachains_common::*;
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -177,7 +178,7 @@ construct_runtime! {
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 7,
 
         // Parachain staff
-        ParachainInfo: cumulus_pallet_parachain_info::{Pallet, Storage, Config} = 20,
+        ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config} = 20,
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>} = 21,
 
         // Monetary stuff
@@ -186,7 +187,7 @@ construct_runtime! {
 
         // Collator support. the order of these 5 are important and shall not change.
         Authorship: pallet_authorship::{Pallet, Call, Storage} = 50,
-        CollatorSelection: cumulus_pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
+        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 52,
         Aura: pallet_aura::{Pallet, Storage, Config<T>} = 53,
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config} = 54,
@@ -200,6 +201,7 @@ construct_runtime! {
         Lottery: pallet_lottery::{Pallet, Call, Storage, Event<T>} = 65,
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 66,
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 67,
+        PhragmenElection: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 68,
 
         // Main, starts from 80
 
@@ -213,8 +215,8 @@ construct_runtime! {
 }
 
 pub struct BaseCallFilter;
-impl Filter<Call> for BaseCallFilter {
-    fn filter(call: &Call) -> bool {
+impl Contains<Call> for BaseCallFilter {
+    fn contains(call: &Call) -> bool {
         matches!(
             call,
             // System
@@ -238,12 +240,12 @@ impl Filter<Call> for BaseCallFilter {
             // Call::Democracy(_) |
             // Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
             // Call::Bounties(_) | Call::Lottery(_) |
+            // Call::PhragmenElection(..) |
             // Sudo
             Call::Sudo(_)
         )
     }
 }
-
 
 parameter_types! {
     pub const BlockHashCount: BlockNumber = 1200; // mortal tx can be valid up to 4 hour after signing
@@ -372,28 +374,48 @@ impl InstanceFilter<Call> for ProxyType {
     fn filter(&self, c: &Call) -> bool {
         match self {
             ProxyType::Any => true,
-            ProxyType::NonTransfer => !matches!(
+            ProxyType::NonTransfer => matches!(
                 c,
-                Call::Balances(..) | Call::Vesting(pallet_vesting::Call::vested_transfer(..))
+                Call::System(..) |
+                Call::Timestamp(..) |
+                Call::Session(..) |
+                Call::Democracy(..) |
+                Call::Council(..) |
+                Call::PhragmenElection(..) |
+                Call::TechnicalCommittee(..) |
+                Call::TechnicalMembership(..) |
+                Call::Treasury(..) |
+                Call::Bounties(..) |
+                Call::Utility(..) |
+                Call::Identity(..) |
+                Call::Vesting(pallet_vesting::Call::vest(..)) |
+                Call::Vesting(pallet_vesting::Call::vest_other(..)) |
+                Call::Scheduler(..) |
+                Call::Proxy(..) |
+                Call::Multisig(..)
             ),
             ProxyType::CancelProxy => matches!(
                 c,
-                Call::Proxy(pallet_proxy::Call::reject_announcement(..))
-                    | Call::Utility(..)
-                    | Call::Multisig(..)
+                Call::Proxy(pallet_proxy::Call::reject_announcement(..)) |
+                Call::Utility(..) |
+                Call::Multisig(..)
             ),
             ProxyType::Governance => matches!(
                 c,
-                Call::Democracy(..)
-                    | Call::Council(..)
-                    | Call::TechnicalCommittee(..)
-                    | Call::Treasury(..)
-                    | Call::Lottery(..)
-                    | Call::Bounties(..)
+                Call::Democracy(..) |
+                Call::PhragmenElection(..) |
+                Call::Council(..) |
+                Call::TechnicalCommittee(..) |
+                Call::Treasury(..) |
+                Call::Utility(..) |
+                Call::Bounties(..) |
+                Call::Lottery(..)
             ),
             ProxyType::Collator => matches!(
                 c,
-                Call::CollatorSelection(..) | Call::Utility(..) | Call::Multisig(..)
+                Call::CollatorSelection(..) |
+                Call::Utility(..) |
+                Call::Multisig(..)
             ),
         }
     }
@@ -587,7 +609,7 @@ parameter_types! {
 impl cumulus_pallet_parachain_system::Config for Runtime {
     type Event = Event;
     type OnValidationData = ();
-    type SelfParaId = cumulus_pallet_parachain_info::Pallet<Runtime>;
+    type SelfParaId = pallet_parachain_info::Pallet<Runtime>;
     type DmpMessageHandler = ();
     type ReservedDmpWeight = ReservedDmpWeight;
     type OutboundXcmpMessageSource = ();
@@ -595,7 +617,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type ReservedXcmpWeight = ReservedXcmpWeight;
 }
 
-impl cumulus_pallet_parachain_info::Config for Runtime {}
+impl pallet_parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
@@ -615,6 +637,40 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
     type MaxMembers = CouncilMaxMembers;
     type DefaultVote = pallet_collective::PrimeDefaultVote;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+	pub const CandidacyBond: Balance = 100 * CENTS;
+	// 1 storage item created, key size is 32 bytes, value size is 16+16.
+	pub const VotingBondBase: Balance = deposit(1, 64);
+	// additional data per vote is 32 bytes (account id).
+	pub const VotingBondFactor: Balance = deposit(0, 32);
+	/// Daily council elections
+	pub const TermDuration: BlockNumber = 24 * HOURS;
+	pub const DesiredMembers: u32 = 19;
+	pub const DesiredRunnersUp: u32 = 19;
+	pub const PhragmenElectionPalletId: LockIdentifier = *b"phrelect";
+}
+
+// Make sure that there are no more than MaxMembers members elected via phragmen.
+const_assert!(DesiredMembers::get() <= CouncilMaxMembers::get());
+
+impl pallet_elections_phragmen::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type ChangeMembers = Council;
+    type InitializeMembers = Council;
+    type CurrencyToVote = frame_support::traits::U128CurrencyToVote;
+    type CandidacyBond = CandidacyBond;
+    type VotingBondBase = VotingBondBase;
+    type VotingBondFactor = VotingBondFactor;
+    type LoserCandidate = Treasury;
+    type KickedMember = Treasury;
+    type DesiredMembers = DesiredMembers;
+    type DesiredRunnersUp = DesiredRunnersUp;
+    type TermDuration = TermDuration;
+    type PalletId = PhragmenElectionPalletId;
+    type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -764,6 +820,7 @@ impl pallet_democracy::Config for Runtime {
 
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
+    type DisabledValidators = ();
 }
 
 parameter_types! {
@@ -787,7 +844,7 @@ impl pallet_session::Config for Runtime {
     type Event = Event;
     type ValidatorId = <Self as frame_system::Config>::AccountId;
     // we don't have stash and controller, thus we don't need the convert as well.
-    type ValidatorIdOf = cumulus_pallet_collator_selection::IdentityCollator;
+    type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
     type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
     type SessionManager = CollatorSelection;
@@ -796,7 +853,7 @@ impl pallet_session::Config for Runtime {
         <opaque::SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
     type Keys = opaque::SessionKeys;
     type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
-    type WeightInfo = ();
+    type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -807,7 +864,7 @@ parameter_types! {
     pub const MaxInvulnerables: u32 = 100;
 }
 
-impl cumulus_pallet_collator_selection::Config for Runtime {
+impl pallet_collator_selection::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type UpdateOrigin = EnsureRootOrHalfCouncil;
@@ -818,9 +875,9 @@ impl cumulus_pallet_collator_selection::Config for Runtime {
     // should be a multiple of session or things will get inconsistent
     type KickThreshold = Period;
     type ValidatorId = <Self as frame_system::Config>::AccountId;
-    type ValidatorIdOf = cumulus_pallet_collator_selection::IdentityCollator;
+    type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
     type ValidatorRegistration = Session;
-    type WeightInfo = cumulus_pallet_collator_selection::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = pallet_collator_selection::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -955,8 +1012,12 @@ impl_runtime_apis! {
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
-        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
+        ) -> Result<
+            (Vec<frame_benchmarking::BenchmarkBatch>, Vec<frame_support::traits::StorageInfo>),
+            sp_runtime::RuntimeString,
+        > {
             use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
+            use frame_support::traits::StorageInfoTrait;
 
             use frame_system_benchmarking::Pallet as SystemBench;
             impl frame_system_benchmarking::Config for Runtime {}
@@ -977,6 +1038,8 @@ impl_runtime_apis! {
                 hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec().into(),
             ];
 
+            let storage_info = AllPalletsWithSystem::storage_info();
+
             let mut batches = Vec::<BenchmarkBatch>::new();
             let params = (&config, &whitelist);
 
@@ -986,6 +1049,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_bounties, Bounties);
             add_benchmark!(params, batches, pallet_collective, Council);
             add_benchmark!(params, batches, pallet_democracy, Democracy);
+            add_benchmark!(params, batches, pallet_elections_phragmen, PhragmenElection);
             add_benchmark!(params, batches, pallet_identity, Identity);
             add_benchmark!(params, batches, pallet_lottery, Lottery);
             add_benchmark!(params, batches, pallet_membership, TechnicalMembership);
@@ -996,10 +1060,10 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_treasury, Treasury);
             add_benchmark!(params, batches, pallet_utility, Utility);
             add_benchmark!(params, batches, pallet_vesting, Vesting);
-            add_benchmark!(params, batches, cumulus_pallet_collator_selection, CollatorSelection);
+            add_benchmark!(params, batches, pallet_collator_selection, CollatorSelection);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
-            Ok(batches)
+            Ok((batches, storage_info))
         }
     }
 }

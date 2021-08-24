@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use cumulus_primitives_core::ParaId;
-use khala_runtime::{AccountId, AuraId, Signature};
+use khala_parachain_runtime::{AccountId, AuraId, Signature};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup, Properties};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,7 @@ use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
-pub type ChainSpec = sc_service::GenericChainSpec<khala_runtime::GenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<khala_parachain_runtime::GenesisConfig, Extensions>;
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_pair_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -49,8 +49,8 @@ where
 /// Generate the session keys from individual elements.
 ///
 /// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn khala_session_keys(keys: AuraId) -> khala_runtime::opaque::SessionKeys {
-    khala_runtime::opaque::SessionKeys { aura: keys }
+pub fn khala_session_keys(keys: AuraId) -> khala_parachain_runtime::opaque::SessionKeys {
+    khala_parachain_runtime::opaque::SessionKeys { aura: keys }
 }
 
 /// The extensions for the [`ChainSpec`].
@@ -218,7 +218,7 @@ fn khala_genesis(
     technical_committee: Vec<AccountId>,
     endowed_accounts: Vec<(AccountId, u128)>,
     id: ParaId,
-) -> khala_runtime::GenesisConfig {
+) -> khala_parachain_runtime::GenesisConfig {
     let all_accounts: Vec<_> = initial_authorities
         .iter()
         .map(|(k, _)| k)
@@ -230,28 +230,28 @@ fn khala_genesis(
         panic!("All the genesis accounts must be endowed; qed.")
     }
 
-    khala_runtime::GenesisConfig {
-        system: khala_runtime::SystemConfig {
-            code: khala_runtime::WASM_BINARY
+    khala_parachain_runtime::GenesisConfig {
+        system: khala_parachain_runtime::SystemConfig {
+            code: khala_parachain_runtime::WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
             changes_trie_config: Default::default(),
         },
-        balances: khala_runtime::BalancesConfig {
+        balances: khala_parachain_runtime::BalancesConfig {
             balances: endowed_accounts,
         },
-        sudo: khala_runtime::SudoConfig { key: root_key },
-        parachain_info: khala_runtime::ParachainInfoConfig { parachain_id: id },
-        collator_selection: khala_runtime::CollatorSelectionConfig {
+        sudo: khala_parachain_runtime::SudoConfig { key: root_key },
+        parachain_info: khala_parachain_runtime::ParachainInfoConfig { parachain_id: id },
+        collator_selection: khala_parachain_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities
                 .iter()
                 .cloned()
                 .map(|(acc, _)| acc)
                 .collect(),
-            candidacy_bond: khala_runtime::UNIT * 16, // 16 PHA
+            candidacy_bond: khala_parachain_runtime::constants::currency::UNIT * 16, // 16 PHA
             ..Default::default()
         },
-        session: khala_runtime::SessionConfig {
+        session: khala_parachain_runtime::SessionConfig {
             keys: initial_authorities
                 .iter()
                 .cloned()
@@ -269,15 +269,16 @@ fn khala_genesis(
         aura: Default::default(),
         aura_ext: Default::default(),
         parachain_system: Default::default(),
-        council: khala_runtime::CouncilConfig::default(),
-        technical_committee: khala_runtime::TechnicalCommitteeConfig {
+        council: khala_parachain_runtime::CouncilConfig { members: vec![], phantom: Default::default() },
+        technical_committee: khala_parachain_runtime::TechnicalCommitteeConfig {
             members: technical_committee,
             phantom: Default::default(),
         },
         technical_membership: Default::default(),
         treasury: Default::default(),
-        vesting: Default::default(),
-        democracy: khala_runtime::DemocracyConfig::default(),
+        vesting: khala_parachain_runtime::VestingConfig { vesting: vec![] },
+        democracy: Default::default(),
+        phragmen_election: Default::default(),
     }
 }
 
@@ -286,7 +287,7 @@ fn khala_testnet_genesis(
     initial_authorities: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
-) -> khala_runtime::GenesisConfig {
+) -> khala_parachain_runtime::GenesisConfig {
     // Testnet setup:
     // - 1,152,921 PHA per endowed account
     // - 1/2 endowed accounts are listed in technical committee
