@@ -295,7 +295,7 @@ decl_module! {
 		/// - weight of proposed call, regardless of whether execution is performed
 		/// # </weight>
 		#[weight =  {
-			let dispatch_info = prop.get_dispatch_info();
+			let dispatch_info = call.get_dispatch_info();
 			(dispatch_info.weight + 195_000_000, dispatch_info.class, Pays::Yes)
 		}]
 		pub fn acknowledge_proposal(origin, nonce: DepositNonce, src_id: BridgeChainId, r_id: ResourceId, call: Box<<T as Config>::Proposal>) -> DispatchResult {
