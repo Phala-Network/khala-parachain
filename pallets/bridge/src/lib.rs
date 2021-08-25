@@ -294,7 +294,10 @@ decl_module! {
 		/// # <weight>
 		/// - weight of proposed call, regardless of whether execution is performed
 		/// # </weight>
-		#[weight = (call.get_dispatch_info().weight + 195_000_000, call.get_dispatch_info().class, Pays::Yes)]
+		#[weight =  {
+			let dispatch_info = call.get_dispatch_info();
+			(dispatch_info.weight + 195_000_000, dispatch_info.class, Pays::Yes)
+		}]
 		pub fn acknowledge_proposal(origin, nonce: DepositNonce, src_id: BridgeChainId, r_id: ResourceId, call: Box<<T as Config>::Proposal>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			ensure!(Self::is_relayer(&who), Error::<T>::MustBeRelayer);
@@ -327,7 +330,10 @@ decl_module! {
 		/// # <weight>
 		/// - weight of proposed call, regardless of whether execution is performed
 		/// # </weight>
-		#[weight = (prop.get_dispatch_info().weight + 195_000_000, prop.get_dispatch_info().class, Pays::Yes)]
+		#[weight =  {
+			let dispatch_info = prop.get_dispatch_info();
+			(dispatch_info.weight + 195_000_000, dispatch_info.class, Pays::Yes)
+		}]
 		pub fn eval_vote_state(origin, nonce: DepositNonce, src_id: BridgeChainId, prop: Box<<T as Config>::Proposal>) -> DispatchResult {
 			ensure_signed(origin)?;
 
