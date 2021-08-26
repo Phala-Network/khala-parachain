@@ -621,7 +621,7 @@ impl pallet_parachain_info::Config for Runtime {}
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
-    pub const CouncilMotionDuration: BlockNumber = 3 * DAYS;
+    pub const CouncilMotionDuration: BlockNumber = 24 * MINUTES; // 3 * DAYS;
     pub const CouncilMaxProposals: u32 = 100;
     pub const CouncilMaxMembers: u32 = 100;
 }
@@ -645,7 +645,7 @@ parameter_types! {
     // additional data per vote is 32 bytes (account id).
     pub const VotingBondFactor: Balance = deposit(0, 32);
     /// Daily council elections
-    pub const TermDuration: BlockNumber = 24 * HOURS;
+    pub const TermDuration: BlockNumber = 24 * MINUTES; // 24 * HOURS;
     pub const DesiredMembers: u32 = 5;
     pub const DesiredRunnersUp: u32 = 5;
     pub const PhragmenElectionPalletId: LockIdentifier = *b"phrelect";
@@ -673,7 +673,7 @@ impl pallet_elections_phragmen::Config for Runtime {
 }
 
 parameter_types! {
-    pub const TechnicalMotionDuration: BlockNumber = 3 * DAYS;
+    pub const TechnicalMotionDuration: BlockNumber = 24 * MINUTES; // 3 * DAYS;
     pub const TechnicalMaxProposals: u32 = 100;
     pub const TechnicalMaxMembers: u32 = 100;
 }
@@ -753,13 +753,13 @@ impl pallet_treasury::Config for Runtime {
 }
 
 parameter_types! {
-    pub const LaunchPeriod: BlockNumber = 7 * DAYS;
-    pub const VotingPeriod: BlockNumber = 7 * DAYS;
-    pub const FastTrackVotingPeriod: BlockNumber = 3 * HOURS;
+    pub const LaunchPeriod: BlockNumber = 12 * MINUTES; // 7 * DAYS;
+    pub const VotingPeriod: BlockNumber = 12 * MINUTES; // 7 * DAYS;
+    pub const FastTrackVotingPeriod: BlockNumber = 4 * MINUTES; // 3 * HOURS;
     pub const InstantAllowed: bool = true;
     pub const MinimumDeposit: Balance = 10 * DOLLARS;
-    pub const EnactmentPeriod: BlockNumber = 8 * DAYS;
-    pub const CooloffPeriod: BlockNumber = 7 * DAYS;
+    pub const EnactmentPeriod: BlockNumber = 12 * MINUTES; // 8 * DAYS;
+    pub const CooloffPeriod: BlockNumber = 12 * MINUTES; // 7 * DAYS;
     // One cent: $10,000 / MB
     pub const PreimageByteDeposit: Balance = 1 * CENTS;
     pub const MaxVotes: u32 = 100;
