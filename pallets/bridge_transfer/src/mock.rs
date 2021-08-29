@@ -1,7 +1,5 @@
 #![cfg(test)]
 
-use super::*;
-
 use hex_literal::hex;
 use frame_support::{ord_parameter_types, parameter_types, weights::Weight, PalletId};
 use frame_system::{self as system};

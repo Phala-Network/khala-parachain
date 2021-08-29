@@ -1,90 +1,107 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::traits::{Currency, EnsureOrigin, ExistenceRequirement::AllowDeath, Get};
-use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult, ensure,
-};
-use frame_system::{self as system, ensure_root, ensure_signed};
-use pallet_bridge as bridge;
-use sp_arithmetic::traits::SaturatedConversion;
-use sp_core::U256;
-use sp_std::prelude::*;
-
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
 
-type ResourceId = bridge::ResourceId;
+pub use pallet::*;
+#[frame_support::pallet]
+pub mod pallet {
+	use frame_support::{
+		pallet_prelude::*,
+		traits::{Currency, ExistenceRequirement::AllowDeath, StorageVersion},
+	};
+	use frame_system::pallet_prelude::*;
+	pub use pallet_bridge as bridge;
+	use sp_arithmetic::traits::SaturatedConversion;
+	use sp_core::U256;
+	use sp_std::prelude::*;
 
-type BalanceOf<T> =
-	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	type ResourceId = bridge::ResourceId;
 
-pub trait Config: system::Config + bridge::Config {
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
+	type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-	/// Specifies the origin check provided by the bridge for calls that can only be called by the bridge pallet
-	type BridgeOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
-	/// The currency mechanism.
-	type Currency: Currency<Self::AccountId>;
+	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::storage_version(STORAGE_VERSION)]
+	pub struct Pallet<T>(_);
 
-	type BridgeTokenId: Get<ResourceId>;
-}
+	#[pallet::config]
+	pub trait Config: frame_system::Config + bridge::Config {
+		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-decl_storage! {
-	trait Store for Module<T: Config> as BridgeTransfer {
-		BridgeFee get(fn bridge_fee): map hasher(opaque_blake2_256) bridge::BridgeChainId => (BalanceOf<T>, u32);
+		/// Specifies the origin check provided by the bridge for calls that can only be called by the bridge pallet
+		type BridgeOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+
+		/// The currency mechanism.
+		type Currency: Currency<Self::AccountId>;
+
+		#[pallet::constant]
+		type BridgeTokenId: Get<ResourceId>;
 	}
-}
 
-decl_event! {
-	pub enum Event<T>
-	where
-		Balance = BalanceOf<T>,
-	{
+	#[pallet::event]
+	#[pallet::metadata(BalanceOf<T> = "Balance")]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event<T: Config> {
 		/// [chainId, min_fee, fee_scale]
-		FeeUpdated(bridge::BridgeChainId, Balance, u32),
+		FeeUpdated(bridge::BridgeChainId, BalanceOf<T>, u32),
 	}
-}
 
-decl_error! {
-	pub enum Error for Module<T: Config>{
+	#[pallet::error]
+	pub enum Error<T> {
 		InvalidTransfer,
 		InvalidCommand,
 		InvalidPayload,
 		InvalidFeeOption,
-		FeeOptionsMissiing,
+		FeeOptionsMissing,
 	}
-}
 
-decl_module! {
-	pub struct Module<T: Config> for enum Call where origin: T::Origin {
-		type Error = Error<T>;
-		//
-		// Initiation calls. These start a bridge transfer.
-		//
+	#[pallet::storage]
+	#[pallet::getter(fn bridge_fee)]
+	pub type BridgeFee<T: Config> =
+		StorageMap<_, Blake2_256, bridge::BridgeChainId, (BalanceOf<T>, u32), ValueQuery>;
 
-		fn deposit_event() = default;
-
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
 		/// Change extra bridge transfer fee that user should pay
-		#[weight = 195_000_000]
-		pub fn sudo_change_fee(origin, min_fee: BalanceOf<T>, fee_scale: u32, dest_id: bridge::BridgeChainId) -> DispatchResult {
-			ensure_root(origin)?;
+		#[pallet::weight(195_000_000)]
+		pub fn change_fee(
+			origin: OriginFor<T>,
+			min_fee: BalanceOf<T>,
+			fee_scale: u32,
+			dest_id: bridge::BridgeChainId,
+		) -> DispatchResult {
+			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
 			ensure!(fee_scale <= 1000u32, Error::<T>::InvalidFeeOption);
 			BridgeFee::<T>::insert(dest_id, (min_fee, fee_scale));
-			Self::deposit_event(RawEvent::FeeUpdated(dest_id, min_fee, fee_scale));
+			Self::deposit_event(Event::FeeUpdated(dest_id, min_fee, fee_scale));
 			Ok(())
 		}
 
 		/// Transfers some amount of the native token to some recipient on a (whitelisted) destination chain.
-		#[weight = 195_000_000]
-		pub fn transfer_native(origin, amount: BalanceOf<T>, recipient: Vec<u8>, dest_id: bridge::BridgeChainId) -> DispatchResult {
+		#[pallet::weight(195_000_000)]
+		pub fn transfer_native(
+			origin: OriginFor<T>,
+			amount: BalanceOf<T>,
+			recipient: Vec<u8>,
+			dest_id: bridge::BridgeChainId,
+		) -> DispatchResult {
 			let source = ensure_signed(origin)?;
-			ensure!(<bridge::Module<T>>::chain_whitelisted(dest_id), Error::<T>::InvalidTransfer);
-			let bridge_id = <bridge::Module<T>>::account_id();
-			ensure!(BridgeFee::<T>::contains_key(&dest_id), Error::<T>::FeeOptionsMissiing);
+			ensure!(
+				<bridge::Pallet<T>>::chain_whitelisted(dest_id),
+				Error::<T>::InvalidTransfer
+			);
+			let bridge_id = <bridge::Pallet<T>>::account_id();
+			ensure!(
+				BridgeFee::<T>::contains_key(&dest_id),
+				Error::<T>::FeeOptionsMissing
+			);
 			let (min_fee, fee_scale) = Self::bridge_fee(dest_id);
 			let fee_estimated = amount * fee_scale.into() / 1000u32.into();
 			let fee = if fee_estimated > min_fee {
@@ -94,7 +111,12 @@ decl_module! {
 			};
 			T::Currency::transfer(&source, &bridge_id, (amount + fee).into(), AllowDeath)?;
 
-			<bridge::Module<T>>::transfer_fungible(dest_id, T::BridgeTokenId::get(), recipient, U256::from(amount.saturated_into::<u128>()))
+			<bridge::Pallet<T>>::transfer_fungible(
+				dest_id,
+				T::BridgeTokenId::get(),
+				recipient,
+				U256::from(amount.saturated_into::<u128>()),
+			)
 		}
 
 		//
@@ -102,8 +124,13 @@ decl_module! {
 		//
 
 		/// Executes a simple currency transfer using the bridge account as the source
-		#[weight = 195_000_000]
-		pub fn transfer(origin, to: T::AccountId, amount: BalanceOf<T>, _rid: ResourceId) -> DispatchResult {
+		#[pallet::weight(195_000_000)]
+		pub fn transfer(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			amount: BalanceOf<T>,
+			_rid: ResourceId,
+		) -> DispatchResult {
 			let source = T::BridgeOrigin::ensure_origin(origin)?;
 			<T as Config>::Currency::transfer(&source, &to, amount.into(), AllowDeath)?;
 			Ok(())
