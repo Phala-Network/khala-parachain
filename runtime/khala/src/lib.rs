@@ -640,15 +640,15 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
 }
 
 parameter_types! {
-    pub const CandidacyBond: Balance = 10 * DOLLARS;
+    pub const CandidacyBond: Balance = 100 * DOLLARS;
     // 1 storage item created, key size is 32 bytes, value size is 16+16.
     pub const VotingBondBase: Balance = deposit(1, 64);
     // additional data per vote is 32 bytes (account id).
     pub const VotingBondFactor: Balance = deposit(0, 32);
     /// Daily council elections
     pub const TermDuration: BlockNumber = 24 * HOURS;
-    pub const DesiredMembers: u32 = 19;
-    pub const DesiredRunnersUp: u32 = 19;
+    pub const DesiredMembers: u32 = 5;
+    pub const DesiredRunnersUp: u32 = 5;
     pub const PhragmenElectionPalletId: LockIdentifier = *b"phrelect";
 }
 
@@ -758,7 +758,7 @@ parameter_types! {
     pub const VotingPeriod: BlockNumber = 7 * DAYS;
     pub const FastTrackVotingPeriod: BlockNumber = 3 * HOURS;
     pub const InstantAllowed: bool = true;
-    pub const MinimumDeposit: Balance = 100 * DOLLARS;
+    pub const MinimumDeposit: Balance = 10 * DOLLARS;
     pub const EnactmentPeriod: BlockNumber = 8 * DAYS;
     pub const CooloffPeriod: BlockNumber = 7 * DAYS;
     // One cent: $10,000 / MB
