@@ -13,6 +13,26 @@ const WS_ENDPOINT = process.env.ENDPOINT || 'ws://localhost:9944';
 const SESSION_KEY = process.env.SESSION_KEY || '//Alice//session';
 const DRY_RUN = process.env.DRY_RUN == '1' || false;
 
+async function insertKey(api, suri, keyringType, keyType) {
+    const keyring = keyringType.addFromUri(suri);
+
+    if (DRY_RUN) {
+        return;
+    }
+
+    const pubkey = u8aToHex(keyring.publicKey);
+    await api.rpc.author.insertKey(keyType, suri, pubkey);
+    const inserted = (await api.rpc.author.hasKey(pubkey, keyType)).toJSON();
+
+    if (inserted) {
+        console.log(`Set "${keyType}" successful, public key "${pubkey}"`)
+    } else {
+        console.log(`Set "${keyType}" failed, public key "${pubkey}"`)
+    }
+
+    return inserted;
+}
+
 async function main () {
     // load ops
     let operations;
@@ -28,34 +48,16 @@ async function main () {
 
     const keyringSr = new Keyring({ type: 'sr25519' });
 
+    if (DRY_RUN) {
+        console.log("Dry run mode, will not actually inject keys.");
+    }
+
     for (const {endpoint, key} of operations) {
         const wsProvider = new WsProvider(endpoint);
         const api = await ApiPromise.create({ provider: wsProvider, types: typedefs });
-        const aura = keyringSr.addFromUri(key);
-    
-        // Session Keys:
-        //   aura: AuraId,
-        const keys = api.createType('Keys', [
-            aura.publicKey
-        ]);
-        const opaqueSessionKey = keys.toHex();
-    
-        let rpcResult = {};
-        if (!DRY_RUN) {
-            const pubkeyAura = u8aToHex(aura.publicKey);
-            await api.rpc.author.insertKey('aura', key, pubkeyAura);
-            const inserted = (await api.rpc.author.hasSessionKeys(opaqueSessionKey)).toJSON();
-            rpcResult = {
-                pubkeyAura,
-                inserted,
-            };
-        }
-    
-        console.log({
-            endpoint,
-            opaqueSessionKey,
-            rpcResult,
-        });
+
+        console.log(`Connected to "${endpoint}"`)
+        await insertKey(api, key + "//aura", keyringSr, "aura")
     }
 }
 
