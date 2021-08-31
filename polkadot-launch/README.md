@@ -78,20 +78,20 @@ An example of `genesis` is:
 
 ```json
 "genesis": {
-  "runtime": {
-    "runtime_genesis_config": {
-      "parachainsConfiguration": {
-        "config": {
-          "validation_upgrade_frequency": 1,
-          "validation_upgrade_delay": 1
-        }
-      },
-      "palletCollective": {
-        "members": ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", "5DbKjhNLpqX3zqZdNBc9BGb4fHU1cRBaDhJUskrvkwfraDi6"]
-      }
-    },
-    "session_length_in_blocks": 10
-  }
+"runtime": {
+"runtime_genesis_config": {
+"configuration": {
+"config": {
+"validation_upgrade_frequency": 1,
+"validation_upgrade_delay": 1
+}
+},
+"palletCollective": {
+"members": ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", "5DbKjhNLpqX3zqZdNBc9BGb4fHU1cRBaDhJUskrvkwfraDi6"]
+}
+},
+"session_length_in_blocks": 10
+}
 }
 ```
 
@@ -154,12 +154,12 @@ ways you need to open channels in both directions.
 
 ```json
 "hrmpChannels": [
-    {
-        "sender": "200",
-        "recipient": "300",
-        "maxCapacity": 8,
-        "maxMessageSize": 512
-    }
+{
+"sender": "200",
+"recipient": "300",
+"maxCapacity": 8,
+"maxMessageSize": 512
+}
 ]
 ```
 
@@ -170,10 +170,10 @@ interface properly with your runtime.
 
 ```json
 "types": {
-    "HrmpChannelId": {
-        "sender": "u32",
-        "receiver": "u32"
-    }
+"HrmpChannelId": {
+"sender": "u32",
+"receiver": "u32"
+}
 }
 ```
 
@@ -197,7 +197,7 @@ in order to create a local test network.
   node:
   - We build a fresh chain spec using the `chain` parameter specified in your config.
     - Includes the authorities you specified.
-    - Includes changes to the `parachainsConfiguration`.
+    - Includes changes to the `paras`.
     - Includes parachains you have added.
       - `wasm` is generated using the `<node> export-genesis-wasm` subcommand.
       - `header` is retrieved by calling `api.rpc.chain.getHeader(genesis_hash)`.
