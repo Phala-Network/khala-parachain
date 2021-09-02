@@ -41,15 +41,15 @@ use substrate_prometheus_endpoint::Registry;
 // Native executor instance.
 pub struct KhalaParachainRuntimeExecutor;
 impl sc_executor::NativeExecutionDispatch for KhalaParachainRuntimeExecutor {
-	type ExtendHostFunctions = ();
+    type ExtendHostFunctions = ();
 
-	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
-		khala_parachain_runtime::api::dispatch(method, data)
-	}
+    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+        khala_parachain_runtime::api::dispatch(method, data)
+    }
 
-	fn native_version() -> sc_executor::NativeVersion {
-		khala_parachain_runtime::native_version()
-	}
+    fn native_version() -> sc_executor::NativeVersion {
+        khala_parachain_runtime::native_version()
+    }
 }
 
 /// Starts a `ServiceBuilder` for a full service.
