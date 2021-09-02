@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const fs = require('fs');
 const { ApiPromise, Keyring, WsProvider } = require('@polkadot/api');
-const { u8aToHex } = require('@polkadot/util');
+const { u8aToHex, stringToHex } = require('@polkadot/util');
 const typedefs = require('@phala/typedefs').khalaDev;
 
 const KEY_FILE = process.env.KEY_FILE;
@@ -28,6 +28,13 @@ async function insertKey(api, suri, keyringType, keyType) {
         console.log(`Set "${keyType}" successful, public key "${pubkey}"`)
     } else {
         console.log(`Set "${keyType}" failed, public key "${pubkey}"`)
+        return;
+    }
+
+    const encodedLeyType = stringToHex(keyType.split('').reverse().join(''));
+    const owner = await api.query.session.keyOwner([encodedLeyType, pubkey]);
+    if (!owner.isSome) {
+        console.warn(`Session key not found on-chain: ${keyType}-${pubkey}`);
     }
 
     return inserted;
@@ -56,8 +63,8 @@ async function main () {
         const wsProvider = new WsProvider(endpoint);
         const api = await ApiPromise.create({ provider: wsProvider, types: typedefs });
 
-        console.log(`Connected to "${endpoint}"`)
-        await insertKey(api, key + "//aura", keyringSr, "aura")
+        console.log(`Connected to "${endpoint}"`);
+        await insertKey(api, key, keyringSr, "aura");
     }
 }
 
