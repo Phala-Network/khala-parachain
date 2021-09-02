@@ -13,15 +13,19 @@ const WS_ENDPOINT = process.env.ENDPOINT || 'ws://localhost:9944';
 const SESSION_KEY = process.env.SESSION_KEY || '//Alice//session';
 const DRY_RUN = process.env.DRY_RUN == '1' || false;
 
-async function insertKey(api, suri, keyringType, keyType) {
-    const keyring = keyringType.addFromUri(suri);
+async function insertKey(api, sUri, keyType, keyringType) {
+    let fullSUri = sUri;
+    if (keyType && keyType !== "") {
+        fullSUri += "//" + keyType;
+    }
+    const keyring = new Keyring({ type: keyringType }).addFromUri(fullSUri);
 
     if (DRY_RUN) {
         return;
     }
 
     const pubkey = u8aToHex(keyring.publicKey);
-    await api.rpc.author.insertKey(keyType, suri, pubkey);
+    await api.rpc.author.insertKey(keyType, fullSUri, pubkey);
     const inserted = (await api.rpc.author.hasKey(pubkey, keyType)).toJSON();
 
     if (inserted) {
@@ -31,8 +35,8 @@ async function insertKey(api, suri, keyringType, keyType) {
         return;
     }
 
-    const encodedLeyType = stringToHex(keyType.split('').reverse().join(''));
-    const owner = await api.query.session.keyOwner([encodedLeyType, pubkey]);
+    const encodedKeyType = stringToHex(keyType.split('').reverse().join(''));
+    const owner = await api.query.session.keyOwner([encodedKeyType, pubkey]);
     if (!owner.isSome) {
         console.warn(`Session key not found on-chain: ${keyType}-${pubkey}`);
     }
@@ -53,18 +57,18 @@ async function main () {
         }];
     }
 
-    const keyringSr = new Keyring({ type: 'sr25519' });
-
     if (DRY_RUN) {
         console.log("Dry run mode, will not actually inject keys.");
     }
 
-    for (const {endpoint, key} of operations) {
+    for (const {endpoint, keys} of operations) {
         const wsProvider = new WsProvider(endpoint);
         const api = await ApiPromise.create({ provider: wsProvider, types: typedefs });
 
         console.log(`Connected to "${endpoint}"`);
-        await insertKey(api, key, keyringSr, "aura");
+        for (const {sUri, keyType, keyringType} of keys) {
+            await insertKey(api, sUri, keyType, keyringType);
+        }
     }
 }
 

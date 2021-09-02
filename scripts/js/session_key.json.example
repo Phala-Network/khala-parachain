@@ -1,14 +1,32 @@
 [
     {
         "endpoint": "ws://127.0.0.1:9144",
-        "key": "extend split brush maximum nominee oblige merit modify latin never shiver slide//validator//0//aura"
+        "keys": [
+            {
+                "sUri": "extend split brush maximum nominee oblige merit modify latin never shiver slide//validator//0",
+                "keyType": "aura",
+                "keyringType": "sr25519"
+            }
+        ]
     },
     {
         "endpoint": "ws://127.0.0.1:9244",
-        "key": "extend split brush maximum nominee oblige merit modify latin never shiver slide//validator//1//aura"
+        "keys": [
+            {
+                "sUri": "extend split brush maximum nominee oblige merit modify latin never shiver slide//validator//1",
+                "keyType": "aura",
+                "keyringType": "sr25519"
+            }
+        ]
     },
     {
         "endpoint": "ws://127.0.0.1:9344",
-        "key": "extend split brush maximum nominee oblige merit modify latin never shiver slide//validator//2//aura"
+        "keys": [
+            {
+                "sUri": "extend split brush maximum nominee oblige merit modify latin never shiver slide//validator//2",
+                "keyType": "aura",
+                "keyringType": "sr25519"
+            }
+        ]
     }
 ]
