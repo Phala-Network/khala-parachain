@@ -11,7 +11,7 @@ pub use pallet::*;
 pub mod pallet {
 	use frame_support::{
 		pallet_prelude::*,
-		traits::{Currency, ExistenceRequirement::AllowDeath, OnUnbalanced, StorageVersion},
+		traits::{Currency, ExistenceRequirement, OnUnbalanced, StorageVersion, WithdrawReasons},
 	};
 	use frame_system::pallet_prelude::*;
 	pub use pallet_bridge as bridge;
@@ -116,9 +116,19 @@ pub mod pallet {
 			} else {
 				min_fee
 			};
-			let (imbalance, _remaining) = <T as Config>::Currency::slash(&source, fee);
+			let imbalance = T::Currency::withdraw(
+				&source,
+				fee,
+				WithdrawReasons::FEE,
+				ExistenceRequirement::AllowDeath,
+			)?;
 			T::OnFeePay::on_unbalanced(imbalance);
-			<T as Config>::Currency::transfer(&source, &bridge_id, amount, AllowDeath)?;
+			<T as Config>::Currency::transfer(
+				&source,
+				&bridge_id,
+				amount,
+				ExistenceRequirement::AllowDeath,
+			)?;
 
 			<bridge::Pallet<T>>::transfer_fungible(
 				dest_id,
@@ -141,7 +151,12 @@ pub mod pallet {
 			_rid: ResourceId,
 		) -> DispatchResult {
 			let source = T::BridgeOrigin::ensure_origin(origin)?;
-			<T as Config>::Currency::transfer(&source, &to, amount.into(), AllowDeath)?;
+			<T as Config>::Currency::transfer(
+				&source,
+				&to,
+				amount.into(),
+				ExistenceRequirement::AllowDeath,
+			)?;
 			Ok(())
 		}
 	}
