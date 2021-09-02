@@ -14,7 +14,6 @@
   "relay_chain": "westend",
   "para_id": 2013,
   "consensusEngine": null,
-  "lightSyncState": null,
   "codeSubstitutes": {},
   "genesis": {
     "raw": {
