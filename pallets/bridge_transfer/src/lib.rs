@@ -11,7 +11,7 @@ pub use pallet::*;
 pub mod pallet {
 	use frame_support::{
 		pallet_prelude::*,
-		traits::{Currency, ExistenceRequirement::AllowDeath, StorageVersion},
+		traits::{Currency, ExistenceRequirement::AllowDeath, OnUnbalanced, StorageVersion},
 	};
 	use frame_system::pallet_prelude::*;
 	pub use pallet_bridge as bridge;
@@ -23,6 +23,10 @@ pub mod pallet {
 
 	type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
+	type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::NegativeImbalance;
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
@@ -43,6 +47,9 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type BridgeTokenId: Get<ResourceId>;
+
+		/// The handler to absorb the fee.
+		type OnFeePay: OnUnbalanced<NegativeImbalanceOf<Self>>;
 	}
 
 	#[pallet::event]
@@ -109,7 +116,9 @@ pub mod pallet {
 			} else {
 				min_fee
 			};
-			T::Currency::transfer(&source, &bridge_id, (amount + fee).into(), AllowDeath)?;
+			let (imbalance, _remaining) = <T as Config>::Currency::slash(&source, fee);
+			T::OnFeePay::on_unbalanced(imbalance);
+			<T as Config>::Currency::transfer(&source, &bridge_id, amount, AllowDeath)?;
 
 			<bridge::Pallet<T>>::transfer_fungible(
 				dest_id,
