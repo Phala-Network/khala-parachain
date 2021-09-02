@@ -1,8 +1,8 @@
 Cargo.lock linguist-generated=true
 yarn.lock linguist-generated=true
 
-Cargo.lock binary
-yarn.lock binary
+# Cargo.lock binary
+# yarn.lock binary
 
 * text=auto !eol
 *.sln eol=crlf
