@@ -933,11 +933,11 @@ impl pallet_bridge_transfer::Config for Runtime {
 }
 
 impl pallet_xcm_transfer::Config for Runtime {
-	type Event = Event;
-	type Origin = Origin;
-	type Currency = Balances;
-	type XcmSender = ();
-	type XcmExecutor = ();
+    type Event = Event;
+    type Origin = Origin;
+    type Currency = Balances;
+    type XcmSender = ();
+    type XcmExecutor = ();
 }
 
 impl_runtime_apis! {
