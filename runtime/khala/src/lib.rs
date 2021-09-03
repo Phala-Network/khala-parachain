@@ -927,6 +927,7 @@ impl pallet_bridge_transfer::Config for Runtime {
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
     type BridgeTokenId = BridgeTokenId;
+    type OnFeePay = Treasury;
 }
 
 impl_runtime_apis! {
