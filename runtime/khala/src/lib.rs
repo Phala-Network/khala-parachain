@@ -209,7 +209,7 @@ construct_runtime! {
         ChainBridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 80,
         BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
 
-        // `sudo` has been removed
+        // `sudo` has been removed on production
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
     }
 }
@@ -219,7 +219,7 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // Note: Sudo has been removed
+            // `sudo` has been removed on production
             // Call::Sudo(_) |
             // System
             Call::System(_) | Call::Timestamp(_) | Call::Utility(_) |
@@ -595,7 +595,7 @@ impl pallet_lottery::Config for Runtime {
     type WeightInfo = pallet_lottery::weights::SubstrateWeight<Runtime>;
 }
 
-// `sudo` has been removed
+// `sudo` has been removed on production
 // impl pallet_sudo::Config for Runtime {
 //     type Call = Call;
 //     type Event = Event;
