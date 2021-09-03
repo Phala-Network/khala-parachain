@@ -262,8 +262,7 @@ impl Contains<Call> for BaseCallFilter {
             // Phala
             // TODO: We will enable Phala through democracy
             // Call::PhalaMq(_) | Call::PhalaRegistry(_) |
-            // Call::PhalaMining(_) | Call::PhalaStakePool(_) |
-            // Sudo
+            // Call::PhalaMining(_) | Call::PhalaStakePool(_)
         )
     }
 }
