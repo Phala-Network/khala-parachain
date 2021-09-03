@@ -881,7 +881,7 @@ impl pallet_authorship::Config for Runtime {
 
 parameter_types! {
     pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(33);
-    pub const Period: u32 = 6 * HOURS;
+    pub const Period: u32 = 1 * HOURS;
     pub const Offset: u32 = 0;
 }
 
@@ -905,7 +905,7 @@ parameter_types! {
     pub const PotId: PalletId = PalletId(*b"PotStake");
     pub const MaxCandidates: u32 = 1000;
     pub const MinCandidates: u32 = 5;
-    pub const SessionLength: BlockNumber = 6 * HOURS;
+    pub const SessionLength: BlockNumber = 1 * HOURS;
     pub const MaxInvulnerables: u32 = 100;
 }
 
