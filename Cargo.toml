@@ -3,11 +3,28 @@ panic = "unwind"
 
 [workspace]
 resolver = "2"
+
+exclude = [
+	"vendor/webpki",
+	"vendor/ring",
+	"polkadot/node/service"
+]
+
 members = [
 	"node",
 	"parachains-common",
+	"crates/phala-types",
+	"crates/phala-mq",
+	"crates/phala-node-rpc-ext",
+	"crates/prpc",
+	"crates/phala-trie-storage",
+	"pallets/phala",
+	"pallets/phala/mq-runtime-api",
 	"pallets/bridge",
 	"pallets/bridge_transfer",
 	"pallets/parachain-info",
 	"runtime/khala",
 ]
+
+[patch."https://github.com/paritytech/polkadot"]
+polkadot-service = { path = "polkadot/node/service" }

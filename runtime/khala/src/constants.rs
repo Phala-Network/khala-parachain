@@ -15,6 +15,8 @@
 
 //! A set of constant values used in substrate runtime.
 
+#![allow(clippy::identity_op)]
+
 /// Money matters.
 pub mod currency {
     use parachains_common::Balance;
