@@ -13,8 +13,7 @@ pub use pallet::*;
 pub mod pallet {
 	use codec::{Decode, Encode, EncodeLike};
 	pub use frame_support::{
-		pallet_prelude::*, weights::GetDispatchInfo, PalletId, Parameter,
-		traits::StorageVersion,
+		pallet_prelude::*, traits::StorageVersion, weights::GetDispatchInfo, PalletId, Parameter,
 	};
 	use frame_system::{self as system, pallet_prelude::*};
 	pub use sp_core::U256;
@@ -38,7 +37,7 @@ pub mod pallet {
 		for i in 0..range {
 			r_id[30 - i] = id[range - 1 - i]; // Ensure left padding for eth compatibility
 		}
-		return r_id;
+		r_id
 	}
 
 	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
@@ -54,6 +53,20 @@ pub mod pallet {
 		pub votes_against: Vec<AccountId>,
 		pub status: ProposalStatus,
 		pub expiry: BlockNumber,
+	}
+
+	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+	pub enum BridgeEvent {
+		FungibleTransfer(BridgeChainId, DepositNonce, ResourceId, U256, Vec<u8>),
+		NonFungibleTransfer(
+			BridgeChainId,
+			DepositNonce,
+			ResourceId,
+			Vec<u8>,
+			Vec<u8>,
+			Vec<u8>,
+		),
+		GenericTransfer(BridgeChainId, DepositNonce, ResourceId, Vec<u8>),
 	}
 
 	impl<A: PartialEq, B: PartialOrd + Default> ProposalVotes<A, B> {
@@ -78,7 +91,7 @@ pub mod pallet {
 
 		/// Returns true if `who` has voted for or against the proposal
 		fn has_voted(&self, who: &A) -> bool {
-			self.votes_for.contains(&who) || self.votes_against.contains(&who)
+			self.votes_for.contains(who) || self.votes_against.contains(who)
 		}
 
 		/// Return true if the expiry time has been reached
@@ -98,7 +111,7 @@ pub mod pallet {
 		}
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -232,6 +245,19 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn resources)]
 	pub type Resources<T> = StorageMap<_, Blake2_256, ResourceId, Vec<u8>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn bridge_events)]
+	pub type BridgeEvents<T> = StorageValue<_, Vec<BridgeEvent>, ValueQuery>;
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_initialize(_n: T::BlockNumber) -> Weight {
+			// Clear all bridge transfer data
+			BridgeEvents::<T>::kill();
+			0
+		}
+	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -411,12 +437,12 @@ pub mod pallet {
 
 		/// Asserts if a resource is registered
 		pub fn resource_exists(id: ResourceId) -> bool {
-			return Self::resources(id) != None;
+			Self::resources(id).is_some()
 		}
 
 		/// Checks if a chain exists as a whitelisted destination
 		pub fn chain_whitelisted(id: BridgeChainId) -> bool {
-			return Self::chains(id) != None;
+			Self::chains(id).is_some()
 		}
 
 		/// Increments the deposit nonce for the specified chain ID
@@ -498,9 +524,10 @@ pub mod pallet {
 			let mut votes = match Votes::<T>::get(src_id, (nonce, prop.clone())) {
 				Some(v) => v,
 				None => {
-					let mut v = ProposalVotes::default();
-					v.expiry = now + T::ProposalLifetime::get();
-					v
+					ProposalVotes {
+						expiry: now + T::ProposalLifetime::get(),
+						..Default::default()
+					}
 				}
 			};
 
@@ -511,13 +538,13 @@ pub mod pallet {
 
 			if in_favour {
 				votes.votes_for.push(who.clone());
-				Self::deposit_event(Event::VoteFor(src_id, nonce, who.clone()));
+				Self::deposit_event(Event::VoteFor(src_id, nonce, who));
 			} else {
 				votes.votes_against.push(who.clone());
-				Self::deposit_event(Event::VoteAgainst(src_id, nonce, who.clone()));
+				Self::deposit_event(Event::VoteAgainst(src_id, nonce, who));
 			}
 
-			Votes::<T>::insert(src_id, (nonce, prop.clone()), votes.clone());
+			Votes::<T>::insert(src_id, (nonce, prop), votes);
 
 			Ok(())
 		}
@@ -535,7 +562,7 @@ pub mod pallet {
 
 				let status =
 					votes.try_to_complete(RelayerThreshold::<T>::get(), RelayerCount::<T>::get());
-				Votes::<T>::insert(src_id, (nonce, prop.clone()), votes.clone());
+				Votes::<T>::insert(src_id, (nonce, prop.clone()), votes);
 
 				match status {
 					ProposalStatus::Approved => Self::finalize_execution(src_id, nonce, prop),
@@ -543,7 +570,7 @@ pub mod pallet {
 					_ => Ok(()),
 				}
 			} else {
-				Err(Error::<T>::ProposalDoesNotExist)?
+				Err(Error::<T>::ProposalDoesNotExist.into())
 			}
 		}
 
@@ -571,6 +598,7 @@ pub mod pallet {
 		}
 
 		/// Execute the proposal and signals the result as an event
+		#[allow(clippy::boxed_local)]
 		fn finalize_execution(
 			src_id: BridgeChainId,
 			nonce: DepositNonce,
@@ -602,6 +630,13 @@ pub mod pallet {
 				Error::<T>::ChainNotWhitelisted
 			);
 			let nonce = Self::bump_nonce(dest_id);
+			BridgeEvents::<T>::append(BridgeEvent::FungibleTransfer(
+				dest_id,
+				nonce,
+				resource_id,
+				amount,
+				to.clone(),
+			));
 			Self::deposit_event(Event::FungibleTransfer(
 				dest_id,
 				nonce,
@@ -625,6 +660,14 @@ pub mod pallet {
 				Error::<T>::ChainNotWhitelisted
 			);
 			let nonce = Self::bump_nonce(dest_id);
+			BridgeEvents::<T>::append(BridgeEvent::NonFungibleTransfer(
+				dest_id,
+				nonce,
+				resource_id,
+				token_id.clone(),
+				to.clone(),
+				metadata.clone(),
+			));
 			Self::deposit_event(Event::NonFungibleTransfer(
 				dest_id,
 				nonce,
@@ -647,6 +690,12 @@ pub mod pallet {
 				Error::<T>::ChainNotWhitelisted
 			);
 			let nonce = Self::bump_nonce(dest_id);
+			BridgeEvents::<T>::append(BridgeEvent::GenericTransfer(
+				dest_id,
+				nonce,
+				resource_id,
+				metadata.clone(),
+			));
 			Self::deposit_event(Event::GenericTransfer(
 				dest_id,
 				nonce,
