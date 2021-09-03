@@ -240,7 +240,7 @@ fn khala_genesis(
         balances: khala_parachain_runtime::BalancesConfig {
             balances: endowed_accounts,
         },
-        sudo: khala_parachain_runtime::SudoConfig { key: root_key },
+        // sudo: khala_parachain_runtime::SudoConfig     { key: root_key }, // `sudo` has removed
         parachain_info: khala_parachain_runtime::ParachainInfoConfig { parachain_id: id },
         collator_selection: khala_parachain_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities

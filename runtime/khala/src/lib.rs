@@ -209,8 +209,8 @@ construct_runtime! {
         ChainBridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 80,
         BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
 
-        // Remove in future
-        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
+        // `sudo` has been removed
+        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
     }
 }
 
@@ -219,6 +219,8 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
+            // Note: Sudo has been removed
+            // Call::Sudo(_) |
             // System
             Call::System(_) | Call::Timestamp(_) | Call::Utility(_) |
             Call::Multisig(_) | Call::Proxy(_) | Call::Scheduler(_) |
@@ -239,9 +241,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Democracy(_) |
             Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
             Call::Bounties(_) | Call::Lottery(_) |
-            Call::PhragmenElection(..) |
-            // Sudo
-            Call::Sudo(_)
+            Call::PhragmenElection(..)
         )
     }
 }
@@ -595,10 +595,11 @@ impl pallet_lottery::Config for Runtime {
     type WeightInfo = pallet_lottery::weights::SubstrateWeight<Runtime>;
 }
 
-impl pallet_sudo::Config for Runtime {
-    type Call = Call;
-    type Event = Event;
-}
+// `sudo` has been removed
+// impl pallet_sudo::Config for Runtime {
+//     type Call = Call;
+//     type Event = Event;
+// }
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
