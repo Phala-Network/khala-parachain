@@ -249,7 +249,7 @@ construct_runtime! {
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
 
         // `sudo` has been removed on production
-        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
     }
 }
 
@@ -259,7 +259,7 @@ impl Contains<Call> for BaseCallFilter {
         matches!(
             call,
             // `sudo` has been removed on production
-            // Call::Sudo(_) |
+            Call::Sudo(_) |
             // System
             Call::System(_) | Call::Timestamp(_) | Call::Utility(_) |
             Call::Multisig(_) | Call::Proxy(_) | Call::Scheduler(_) |
@@ -638,10 +638,10 @@ impl pallet_lottery::Config for Runtime {
 }
 
 // `sudo` has been removed on production
-// impl pallet_sudo::Config for Runtime {
-//     type Call = Call;
-//     type Event = Event;
-// }
+impl pallet_sudo::Config for Runtime {
+    type Call = Call;
+    type Event = Event;
+}
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
