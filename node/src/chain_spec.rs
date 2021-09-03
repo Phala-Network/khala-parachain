@@ -250,7 +250,7 @@ fn khala_genesis(
             balances: endowed_accounts,
         },
         // `sudo` has been removed on production
-        // sudo: khala_parachain_runtime::SudoConfig { key: root_key },
+        sudo: khala_parachain_runtime::SudoConfig { key: root_key },
         parachain_info: khala_parachain_runtime::ParachainInfoConfig { parachain_id: id },
         collator_selection: khala_parachain_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities
