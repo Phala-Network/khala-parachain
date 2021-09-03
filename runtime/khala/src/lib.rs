@@ -208,6 +208,8 @@ construct_runtime! {
         // ChainBridge
         ChainBridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 80,
         BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
+        // XCM
+        XcmTransfer: pallet_xcm_transfer::{Pallet, Call, Event<T>, Storage} = 82,
 
         // `sudo` has been removed
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
@@ -928,6 +930,14 @@ impl pallet_bridge_transfer::Config for Runtime {
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
     type BridgeTokenId = BridgeTokenId;
+}
+
+impl pallet_xcm_transfer::Config for Runtime {
+	type Event = Event;
+	type Origin = Origin;
+	type Currency = Balances;
+	type XcmSender = ();
+	type XcmExecutor = ();
 }
 
 impl_runtime_apis! {
