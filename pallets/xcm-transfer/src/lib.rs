@@ -5,9 +5,7 @@ use cumulus_primitives_core::ParaId;
 use frame_system::Config as SystemConfig;
 use sp_runtime::traits::Saturating;
 use sp_std::prelude::*;
-use xcm::v1::{Error as XcmError, ExecuteXcm, Junction, OriginKind, SendXcm, Xcm};
-
-pub use pallet::*;
+use xcm::v1::{Error as XcmError, ExecuteXcm, MultiLocation, MultiAsset, Junction, OriginKind, SendXcm, Xcm};
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -17,7 +15,7 @@ pub mod pallet {
 		traits::{Currency, ExistenceRequirement, StorageVersion},
 		weights::Weight,
 	};
-	use frame_system::pallet_prelude::*;
+	use frame_system::{Account, pallet_prelude::*};
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
@@ -33,11 +31,11 @@ pub mod pallet {
 
 	/// XCM message infos provide for XCM sender and executor
 	/// TODO.wf XCM message lifecycle management
-	pub trait XCMMessageInfo<T> {
+	pub trait XCMMessageInfo<Call> {
 		/// Return XCM message transfer type.
 		fn kind() -> Option<XCMTransferType>;
 		/// Return generated XCM message, could be executed directly.
-		fn message() -> Option<XCM<T::Call>>;
+		fn message() -> Option<Xcm<Call>>;
 		/// Return weights would be cost by this XCM message.
 		fn weight() -> Option<Weight>;
 	}
@@ -112,19 +110,20 @@ pub mod pallet {
 			paraId: ParaId,
 			recipient: T::AccountId,
 			amount: BalanceOf<T>,
-		) -> Option<XCMMessage<T>> {
+		) -> Option<XCMMessage<T::AccountId, T::Call>> {
 			// TODO.wf
 			None
 		}
 	}
 
-	impl XCMMessageInfo<T> for XCMMessage<T> {
+	impl<AccountId, Call> XCMMessageInfo<Call> for XCMMessage<AccountId, Call>
+	{
 		fn kind() -> Option<XCMTransferType> {
 			// TODO.wf
 			None
 		}
 
-		fn message() -> Option<XCM<T::Call>> {
+		fn message() -> Option<Xcm<Call>> {
 			// TODO.wf
 			None
 		}
@@ -137,9 +136,10 @@ pub mod pallet {
 
 	/// Instance of a XCM message.
 	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-	pub struct XCMMessage<T> {
-		from: T::AccountId,
+	pub struct XCMMessage<AccountId, Call> {
+		from: AccountId,
 		asset: MultiAsset,
 		dest: MultiLocation,
+		message: Option<Xcm<Call>>
 	}
 }
