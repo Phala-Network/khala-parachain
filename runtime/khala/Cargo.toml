@@ -153,4 +153,5 @@ std = [
 	"pallet-parachain-info/std",
 	"pallet-bridge/std",
 	"pallet-bridge-transfer/std",
+	"pallet-xcm-transfer/std",
 ]

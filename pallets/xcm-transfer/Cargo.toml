@@ -27,6 +27,8 @@ default = ["std"]
 std = [
 	"codec/std",
 	"serde",
+	"sp-std/std",
+	"sp-runtime/std",
 	"cumulus-primitives-core/std",
 	"frame-support/std",
 	"frame-system/std",
