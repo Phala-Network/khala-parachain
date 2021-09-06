@@ -775,6 +775,7 @@ impl pallet_democracy::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type EnactmentPeriod = EnactmentPeriod;
+    type VoteLockingPeriod = EnactmentPeriod;
     type LaunchPeriod = LaunchPeriod;
     type VotingPeriod = VotingPeriod;
     type MinimumDeposit = MinimumDeposit;
@@ -845,9 +846,14 @@ impl pallet_democracy::Config for Runtime {
     type MaxProposals = MaxProposals;
 }
 
+parameter_types! {
+    pub const MaxAuthorities: u32 = 100_000;
+}
+
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
     type DisabledValidators = ();
+    type MaxAuthorities = MaxAuthorities;
 }
 
 parameter_types! {
@@ -947,7 +953,7 @@ impl_runtime_apis! {
         }
 
         fn authorities() -> Vec<AuraId> {
-            Aura::authorities()
+            Aura::authorities().to_vec()
         }
     }
 
