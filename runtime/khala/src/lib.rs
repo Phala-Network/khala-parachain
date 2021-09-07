@@ -383,6 +383,8 @@ pub enum ProxyType {
     Governance,
     /// Collator selection proxy. Can execute calls related to collator selection mechanism.
     Collator,
+    /// Stake pool manager
+    StakePoolManager
 }
 
 impl Default for ProxyType {
@@ -436,6 +438,17 @@ impl InstanceFilter<Call> for ProxyType {
                 Call::CollatorSelection(..) |
                 Call::Utility(..) |
                 Call::Multisig(..)
+            ),
+            ProxyType::StakePoolManager => matches!(
+                c,
+                Call::PhalaStakePool(pallet_stakepool::Call::add_worker(..)) |
+                Call::PhalaStakePool(pallet_stakepool::Call::remove_worker(..)) |
+                Call::PhalaStakePool(pallet_stakepool::Call::start_mining(..)) |
+                Call::PhalaStakePool(pallet_stakepool::Call::stop_mining(..)) |
+                Call::PhalaStakePool(pallet_stakepool::Call::relcaim_pool_worker(..)) |
+                Call::PhalaStakePool(pallet_stakepool::Call::create(..)) |
+                Call::PhalaRegistry(pallet_registry::Call::register_worker(..)) |
+                Call::PhalaMq(pallet_mq::Call::sync_offchain_message(..))
             ),
         }
     }
