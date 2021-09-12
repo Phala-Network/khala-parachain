@@ -20,14 +20,14 @@ hex = { version = "0.4.3", default-features = false }
 codec = { version = "2.2", package = "parity-scale-codec" }
 
 # primitives
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
+sp-api = { git = "https://github.com/paritytech/substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
 
 # client dependencies
-sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sc-client-api = { git = "https://github.com/paritytech/substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
+sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
+sc-rpc = { git = "https://github.com/paritytech/substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
 
 phala-mq = { path = "../../crates/phala-mq", default-features = false }
 phala-pallets = { path = "../../pallets/phala", default-features = false }
