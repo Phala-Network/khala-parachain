@@ -49,8 +49,8 @@ where
 /// Generate the session keys from individual elements.
 ///
 /// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn khala_session_keys(keys: AuraId) -> khala_parachain_runtime::phala_opaque::SessionKeys {
-    khala_parachain_runtime::phala_opaque::SessionKeys { aura: keys }
+pub fn khala_session_keys(keys: AuraId) -> khala_parachain_runtime::opaque::SessionKeys {
+    khala_parachain_runtime::opaque::SessionKeys { aura: keys }
 }
 
 /// The extensions for the [`ChainSpec`].
