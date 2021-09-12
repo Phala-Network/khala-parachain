@@ -1677,6 +1677,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "cumulus-pallet-dmp-queue"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.9#fd80849dde5c209c20a996cfcc5aaacd4666dcbe"
+dependencies = [
+ "cumulus-primitives-core",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "rand 0.8.4",
+ "rand_chacha 0.3.1",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+ "xcm-executor",
+]
+
+[[package]]
 name = "cumulus-pallet-parachain-system"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.9#fd80849dde5c209c20a996cfcc5aaacd4666dcbe"
@@ -1713,6 +1732,40 @@ dependencies = [
  "proc-macro2 1.0.28",
  "quote 1.0.9",
  "syn 1.0.75",
+]
+
+[[package]]
+name = "cumulus-pallet-xcm"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.9#fd80849dde5c209c20a996cfcc5aaacd4666dcbe"
+dependencies = [
+ "cumulus-primitives-core",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+]
+
+[[package]]
+name = "cumulus-pallet-xcmp-queue"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.9#fd80849dde5c209c20a996cfcc5aaacd4666dcbe"
+dependencies = [
+ "cumulus-primitives-core",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "rand 0.8.4",
+ "rand_chacha 0.3.1",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+ "xcm-executor",
 ]
 
 [[package]]
@@ -3750,7 +3803,10 @@ name = "khala-parachain-runtime"
 version = "0.0.16"
 dependencies = [
  "cumulus-pallet-aura-ext",
+ "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-timestamp",
  "cumulus-primitives-utility",
@@ -3790,10 +3846,14 @@ dependencies = [
  "pallet-treasury",
  "pallet-utility",
  "pallet-vesting",
+ "pallet-xcm",
+ "pallet-xcm-transfer",
  "parachains-common",
  "parity-scale-codec",
  "phala-pallets",
  "phala-types",
+ "polkadot-parachain",
+ "polkadot-runtime-common",
  "smallvec 1.6.1",
  "sp-api",
  "sp-block-builder",
@@ -3809,6 +3869,9 @@ dependencies = [
  "sp-version",
  "static_assertions",
  "substrate-wasm-builder",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
 ]
 
 [[package]]
@@ -5993,6 +6056,21 @@ dependencies = [
  "sp-std",
  "xcm",
  "xcm-executor",
+]
+
+[[package]]
+name = "pallet-xcm-transfer"
+version = "0.1.0"
+dependencies = [
+ "cumulus-pallet-xcm",
+ "cumulus-primitives-core",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
 ]
 
 [[package]]
