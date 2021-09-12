@@ -1,8 +1,8 @@
 #![cfg(test)]
 
-use hex_literal::hex;
 use frame_support::{ord_parameter_types, parameter_types, weights::Weight, PalletId};
 use frame_system::{self as system};
+use hex_literal::hex;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -109,6 +109,7 @@ impl Config for Test {
 	type BridgeOrigin = bridge::EnsureBridge<Test>;
 	type Currency = Balances;
 	type BridgeTokenId = BridgeTokenId;
+	type OnFeePay = ();
 }
 
 impl pallet_timestamp::Config for Test {

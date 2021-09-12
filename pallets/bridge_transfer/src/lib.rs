@@ -11,7 +11,7 @@ pub use pallet::*;
 pub mod pallet {
 	use frame_support::{
 		pallet_prelude::*,
-		traits::{Currency, ExistenceRequirement::AllowDeath, StorageVersion},
+		traits::{Currency, ExistenceRequirement, OnUnbalanced, StorageVersion, WithdrawReasons},
 	};
 	use frame_system::pallet_prelude::*;
 	pub use pallet_bridge as bridge;
@@ -23,6 +23,10 @@ pub mod pallet {
 
 	type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
+	type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::NegativeImbalance;
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
@@ -43,6 +47,9 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type BridgeTokenId: Get<ResourceId>;
+
+		/// The handler to absorb the fee.
+		type OnFeePay: OnUnbalanced<NegativeImbalanceOf<Self>>;
 	}
 
 	#[pallet::event]
@@ -60,6 +67,7 @@ pub mod pallet {
 		InvalidPayload,
 		InvalidFeeOption,
 		FeeOptionsMissing,
+		InsufficientBalance,
 	}
 
 	#[pallet::storage]
@@ -109,7 +117,22 @@ pub mod pallet {
 			} else {
 				min_fee
 			};
-			T::Currency::transfer(&source, &bridge_id, (amount + fee).into(), AllowDeath)?;
+			let free_balance = T::Currency::free_balance(&source);
+			ensure!(free_balance >= (amount + fee), Error::<T>::InsufficientBalance);
+
+			let imbalance = T::Currency::withdraw(
+				&source,
+				fee,
+				WithdrawReasons::FEE,
+				ExistenceRequirement::AllowDeath,
+			)?;
+			T::OnFeePay::on_unbalanced(imbalance);
+			<T as Config>::Currency::transfer(
+				&source,
+				&bridge_id,
+				amount,
+				ExistenceRequirement::AllowDeath,
+			)?;
 
 			<bridge::Pallet<T>>::transfer_fungible(
 				dest_id,
@@ -132,7 +155,12 @@ pub mod pallet {
 			_rid: ResourceId,
 		) -> DispatchResult {
 			let source = T::BridgeOrigin::ensure_origin(origin)?;
-			<T as Config>::Currency::transfer(&source, &to, amount.into(), AllowDeath)?;
+			<T as Config>::Currency::transfer(
+				&source,
+				&to,
+				amount,
+				ExistenceRequirement::AllowDeath,
+			)?;
 			Ok(())
 		}
 	}

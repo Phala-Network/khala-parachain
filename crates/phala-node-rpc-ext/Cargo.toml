@@ -1,0 +1,34 @@
+[package]
+name = "phala-node-rpc-ext"
+version = "0.1.0"
+edition = "2018"
+authors = ["Phala Network"]
+license = "Apache-2.0"
+homepage = "https://phala.network/"
+repository = "https://github.com/Phala-Network/phala-blockchain"
+
+[dependencies]
+# third-party dependencies
+serde = { version = "1.0.102", features = ["derive"] }
+thiserror = "1.0"
+jsonrpc-derive = "15.1.0"
+jsonrpc-core = "15.1.0"
+jsonrpc-core-client = "15.1.0"
+impl-serde = "0.3"
+log = { version = "0.4.14", default-features = false }
+hex = { version = "0.4.3", default-features = false }
+codec = { version = "2.2", package = "parity-scale-codec" }
+
+# primitives
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+
+# client dependencies
+sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+
+phala-mq = { path = "../../crates/phala-mq", default-features = false }
+phala-pallets = { path = "../../pallets/phala", default-features = false }
+pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }

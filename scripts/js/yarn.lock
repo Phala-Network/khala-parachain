@@ -3,16 +3,18 @@
 
 
 "@babel/runtime@^7.15.3":
-  version "7.15.3"
-  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.15.3.tgz#2e1c2880ca118e5b2f9988322bd8a7656a32502b"
-  integrity sha512-OvwMLqNXkCXSz1kSm58sEsNuhqOx/fKpnUnKnFB5v8uDda5bLNEHNgKPvhDN6IU0LDcnHQ90LlJ0Q6jnyBSIBA==
+  version "7.15.4"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.15.4.tgz#fd17d16bfdf878e6dd02d19753a39fa8a8d9c84a"
+  integrity sha512-99catp6bHCaxr4sJ/DbTGgHS4+Rs2RVd2g7iOap6SLGPDknRK9ztKNsE/Fg6QhSeh1FGE5f6gHGQmvvn3I3xhw==
   dependencies:
     regenerator-runtime "^0.13.4"
 
-"@phala/typedefs@^0.2.17":
-  version "0.2.17"
-  resolved "https://registry.yarnpkg.com/@phala/typedefs/-/typedefs-0.2.17.tgz#8e86c292d901bc029a63421718c58a88a4520a6a"
-  integrity sha512-Wgw/8LCHIDQW7ecID3N6WpUUX9Dkvf8h+hxzK6GD5ewr7Qo/m6td6mgOl29g1vLU2wMtDu71TpycX4upJRTesA==
+"@phala/typedefs@^0.2.21":
+  version "0.2.23"
+  resolved "https://registry.yarnpkg.com/@phala/typedefs/-/typedefs-0.2.23.tgz#4da14567b5eb8bee7b1ce5200ea93d800b76abee"
+  integrity sha512-xpoSQwdgYSWlwECkItFnS0ax+ZDc8Hmsd3YwK7h9x0ZT9hrgFIbip4c0vqAmnDbqL1lPnEN5opzl6pjRc0XH1w==
+  dependencies:
+    "@polkadot/types" "^5.7.1"
 
 "@polkadot/api-derive@5.7.1":
   version "5.7.1"

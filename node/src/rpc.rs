@@ -20,10 +20,10 @@
 
 use std::sync::Arc;
 
-use sc_client_api::AuxStore;
+use sc_client_api::{AuxStore, StorageProvider, BlockBackend, backend, Backend};
 pub use sc_rpc::{DenyUnsafe, SubscriptionTaskExecutor};
 use sc_transaction_pool_api::TransactionPool;
-use sp_api::ProvideRuntimeApi;
+use sp_api::{ApiExt, ProvideRuntimeApi};
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 
@@ -33,20 +33,26 @@ use parachains_common::{AccountId, Balance, Block, Index as Nonce};
 pub type RpcExtension = jsonrpc_core::IoHandler<sc_rpc::Metadata>;
 
 /// Full client dependencies
-pub struct FullDeps<C, P> {
+pub struct FullDeps<C, B, P> {
 	/// The client instance to use.
 	pub client: Arc<C>,
 	/// Transaction pool instance.
 	pub pool: Arc<P>,
+	/// Backend
+	pub backend: Arc<B>,
+	/// The client enable archive mode
+	pub enable_archive: bool,
 	/// Whether to deny unsafe calls
 	pub deny_unsafe: DenyUnsafe,
 }
 
 /// Instantiate all RPC extensions.
-pub fn create_full<C, P>(deps: FullDeps<C, P>) -> RpcExtension
+pub fn create_full<C, B, P>(deps: FullDeps<C, B, P>) -> RpcExtension
 where
 	C: ProvideRuntimeApi<Block>
+		+ StorageProvider<Block, B>
 		+ HeaderBackend<Block>
+		+ BlockBackend<Block>
 		+ AuxStore
 		+ HeaderMetadata<Block, Error = BlockChainError>
 		+ Send
@@ -55,6 +61,9 @@ where
 	C::Api: frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: BlockBuilder<Block>,
+	C::Api: sp_api::Metadata<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<B, Block>>,
+	C::Api: pallet_mq_runtime_api::MqApi<Block>,
+	B: Backend<Block> + 'static,
 	P: TransactionPool + Sync + Send + 'static,
 {
 	use frame_rpc_system::{FullSystem, SystemApi};
@@ -65,16 +74,20 @@ where
 		client,
 		pool,
 		deny_unsafe,
+		backend,
+		enable_archive,
 	} = deps;
 
 	io.extend_with(SystemApi::to_delegate(FullSystem::new(
 		client.clone(),
-		pool,
+		pool.clone(),
 		deny_unsafe,
 	)));
 	io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
 		client.clone(),
 	)));
+
+	phala_node_rpc_ext::extend_rpc(&mut io, client.clone(), backend.clone(), enable_archive, pool.clone());
 
 	io
 }

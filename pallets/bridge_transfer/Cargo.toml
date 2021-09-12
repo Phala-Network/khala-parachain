@@ -23,7 +23,7 @@ sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "pol
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
-pallet-bridge = { path = "../bridge" , default-features = false }
+pallet-bridge = { path = "../bridge", default-features = false }
 hex = { version = "0.4", default-features = false }
 
 [dev-dependencies]
