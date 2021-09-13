@@ -11,16 +11,16 @@ repository = "https://github.com/Phala-Network/phala-blockchain"
 codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
 
-sp-std = { git = "https://github.com/paritytech/substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", rev = "09c016ba0a77f00a662dcd6ea76e5a5c777f31f4", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", rev = "09c016ba0a77f00a662dcd6ea76e5a5c777f31f4", default-features = false }
 
-frame-support = { git = "https://github.com/paritytech/substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", rev = "09c016ba0a77f00a662dcd6ea76e5a5c777f31f4", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", rev = "09c016ba0a77f00a662dcd6ea76e5a5c777f31f4", default-features = false }
 
-xcm = { git = "https://github.com/paritytech/polkadot", rev = "2b0d32a7b8cd3e61dc0555e5a2570a8f47cc171a", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", rev = "63a4d8b420b06f410c446120d136fc3ec0c46b6a", default-features = false }
 
-cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", rev = "52bc169b523604b226107e062135d814c7959c0b", default-features = false }
-cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", rev = "52bc169b523604b226107e062135d814c7959c0b", default-features = false }
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", rev = "102a1d5428cd7acc4913d7d64cfba83fa35144dd", default-features = false }
+cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", rev = "102a1d5428cd7acc4913d7d64cfba83fa35144dd", default-features = false }
 
 [features]
 default = ["std"]
