@@ -43,9 +43,9 @@ webpki = { version = "0.22", default-features = false, features = ["alloc"] }
 webpki_wasm = { package = "webpki", path = "../../vendor/webpki", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
-frame-support-test = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-support-test = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 assert_matches = "1.4.0"
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 hex-literal = "0.3.1"
 libsecp256k1 = { version = "0.3.2", default-features = false }
 rand = "0.7.3"
