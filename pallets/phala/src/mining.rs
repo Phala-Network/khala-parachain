@@ -188,6 +188,7 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + mq::Config + registry::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type ExpectedBlockTimeSec: Get<u32>;
+		type MinInitP: Get<u32>;
 
 		type Currency: Currency<Self::AccountId>;
 		type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
@@ -197,6 +198,9 @@ pub mod pallet {
 		type OnStopped: OnStopped<BalanceOf<Self>>;
 		type OnTreasurySettled: OnUnbalanced<NegativeImbalanceOf<Self>>;
 		// Let the StakePool to take over the slash events.
+
+		/// The origin to update tokenomic.
+		type UpdateTokenomicOrigin: EnsureOrigin<Self::Origin>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
@@ -296,6 +300,9 @@ pub mod pallet {
 		InsufficientStake,
 		TooMuchStake,
 		InternalErrorBadTokenomicParameters,
+		DuplicateBoundWorker,
+		/// Indicating the initial benchmark score is too low to start mining.
+		BenchmarkTooLow,
 	}
 
 	type BalanceOf<T> =
@@ -400,7 +407,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			new_params: TokenomicParams,
 		) -> DispatchResult {
-			ensure_root(origin)?;
+			T::UpdateTokenomicOrigin::ensure_origin(origin)?;
 			Self::update_tokenomic_parameters(new_params);
 			Ok(())
 		}
@@ -543,9 +550,7 @@ pub mod pallet {
 				for info in &event.settle {
 					// Do not crash here
 					if Self::try_handle_settle(info, now).is_err() {
-						Self::deposit_event(Event::<T>::InternalErrorMinerSettleFailed(
-							info.pubkey,
-						))
+						Self::deposit_event(Event::<T>::InternalErrorMinerSettleFailed(info.pubkey))
 					}
 				}
 
@@ -606,7 +611,7 @@ pub mod pallet {
 			);
 			ensure!(
 				Self::ensure_worker_bound(&pubkey).is_err(),
-				Error::<T>::DuplicateBoundMiner
+				Error::<T>::DuplicateBoundWorker
 			);
 
 			let now = Self::now_sec();
@@ -664,6 +669,9 @@ pub mod pallet {
 		}
 
 		/// Starts mining with the given `stake`, assuming the stake is already locked externally
+		///
+		/// A minimal P is required to avoid some edge case (e.g. miner not getting full benchmark
+		/// with a close-to-zero score).
 		pub fn start_mining(miner: T::AccountId, stake: BalanceOf<T>) -> DispatchResult {
 			let worker = MinerBindings::<T>::get(&miner).ok_or(Error::<T>::MinerNotFound)?;
 
@@ -677,6 +685,8 @@ pub mod pallet {
 			let p = worker_info
 				.initial_score
 				.ok_or(Error::<T>::BenchmarkMissing)?;
+			// Disallow some weird benchmark score.
+			ensure!(p >= T::MinInitP::get(), Error::<T>::BenchmarkTooLow);
 
 			let tokenomic = Self::tokenomic()?;
 			let min_stake = tokenomic.minimal_stake(p);
@@ -1110,7 +1120,7 @@ pub mod pallet {
 				);
 				assert_noop!(
 					PhalaMining::bind(1, worker_pubkey(2)),
-					Error::<Test>::DuplicateBoundMiner
+					Error::<Test>::DuplicateBoundWorker
 				);
 				// Force unbind should be tested via StakePool
 			});

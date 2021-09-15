@@ -951,19 +951,6 @@ impl pallet_bridge_transfer::Config for Runtime {
     type OnFeePay = Treasury;
 }
 
-parameter_types! {
-    pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
-    pub const MinMiningStaking: Balance = 1 * DOLLARS;
-    pub const MinContribution: Balance = 1 * CENTS;
-    pub const MiningGracePeriod: u64 = 7 * 24 * 3600;
-}
-
-impl pallet_registry::Config for Runtime {
-    type Event = Event;
-    type AttestationValidator = pallet_registry::IasValidator;
-    type UnixTime = Timestamp;
-}
-
 pub struct MqCallMatcher;
 impl pallet_mq::CallMatcher<Runtime> for MqCallMatcher {
     fn match_call(call: &Call) -> Option<&pallet_mq::Call<Runtime>> {
@@ -974,14 +961,34 @@ impl pallet_mq::CallMatcher<Runtime> for MqCallMatcher {
     }
 }
 
+parameter_types! {
+    pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
+    pub const MinMiningStaking: Balance = 1 * DOLLARS;
+    pub const MinContribution: Balance = 1 * CENTS;
+    pub const MiningGracePeriod: u64 = 7 * 24 * 3600;
+    pub const MinInitP: u32 = 50;
+    pub const MiningEnabledByDefault: bool = false;
+    pub const MaxPoolWorkers: u32 = 200;
+    pub const VerifyPRuntime: bool = true;
+    pub const VerifyRelaychainGenesisBlockHash: bool = true;
+}
+
+impl pallet_registry::Config for Runtime {
+    type Event = Event;
+    type AttestationValidator = pallet_registry::IasValidator;
+    type UnixTime = Timestamp;
+    type VerifyPRuntime = VerifyPRuntime;
+    type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
+    type GovernanceOrigin = EnsureRootOrHalfCouncil;
+}
 impl pallet_mq::Config for Runtime {
     type QueueNotifyConfig = msg_routing::MessageRouteConfig;
     type CallMatcher = MqCallMatcher;
 }
-
 impl pallet_mining::Config for Runtime {
     type Event = Event;
     type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
+    type MinInitP = MinInitP;
     type Currency = Balances;
     type Randomness = RandomnessCollectiveFlip;
     type OnReward = PhalaStakePool;
@@ -989,14 +996,17 @@ impl pallet_mining::Config for Runtime {
     type OnReclaim = PhalaStakePool;
     type OnStopped = PhalaStakePool;
     type OnTreasurySettled = Treasury;
+    type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
 }
-
 impl pallet_stakepool::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type MinContribution = MinContribution;
     type GracePeriod = MiningGracePeriod;
+    type MiningEnabledByDefault = MiningEnabledByDefault;
+    type MaxPoolWorkers = MaxPoolWorkers;
     type OnSlashed = Treasury;
+    type MiningSwitchOrigin = EnsureRootOrHalfCouncil;
 }
 
 impl_runtime_apis! {

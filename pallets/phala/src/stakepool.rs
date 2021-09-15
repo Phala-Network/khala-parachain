@@ -16,8 +16,8 @@ pub mod pallet {
 		dispatch::DispatchResult,
 		pallet_prelude::*,
 		traits::{
-			Currency, LockIdentifier, LockableCurrency, OnUnbalanced, UnixTime, WithdrawReasons,
-			StorageVersion,
+			Currency, LockIdentifier, LockableCurrency, OnUnbalanced, StorageVersion, UnixTime,
+			WithdrawReasons,
 		},
 	};
 	use frame_system::pallet_prelude::*;
@@ -47,8 +47,8 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config + registry::Config + mining::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+
 		#[pallet::constant]
 		type MinContribution: Get<BalanceOf<Self>>;
 
@@ -56,8 +56,19 @@ pub mod pallet {
 		#[pallet::constant]
 		type GracePeriod: Get<u64>;
 
+		/// If mining is enabled by default.
+		#[pallet::constant]
+		type MiningEnabledByDefault: Get<bool>;
+
+		/// The max allowed workers in a pool
+		#[pallet::constant]
+		type MaxPoolWorkers: Get<u32>;
+
 		/// The handler to absorb the slashed amount.
 		type OnSlashed: OnUnbalanced<NegativeImbalanceOf<Self>>;
+
+		/// The origin that can turn on or off mining
+		type MiningSwitchOrigin: EnsureOrigin<Self::Origin>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
@@ -111,6 +122,16 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn withdrawal_timestamps)]
 	pub type WithdrawalTimestamps<T> = StorageValue<_, VecDeque<u64>, ValueQuery>;
+
+	/// Switch to enable the stake pool pallet (disabled by default)
+	#[pallet::storage]
+	#[pallet::getter(fn mining_enabled)]
+	pub type MiningEnabled<T> = StorageValue<_, bool, ValueQuery, MiningEnabledByDefault<T>>;
+
+	#[pallet::type_value]
+	pub fn MiningEnabledByDefault<T: Config>() -> bool {
+		T::MiningEnabledByDefault::get()
+	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -168,6 +189,10 @@ pub mod pallet {
 		/// has been resolved.
 		PoolBankrupt,
 		NoRewardToClaim,
+		/// The StakePool is not enabled yet.
+		FeatureNotEnabled,
+		/// Failed to add a worker because the number of the workers exceeds the upper limit.
+		WorkersExceedLimit,
 	}
 
 	type BalanceOf<T> =
@@ -256,14 +281,17 @@ pub mod pallet {
 				Error::<T>::BenchmarkMissing
 			);
 
-			// origin must be owner of pool
+			// origin must be the owner of the pool
 			let mut pool_info = Self::ensure_pool(pid)?;
 			ensure!(pool_info.owner == owner, Error::<T>::UnauthorizedPoolOwner);
 			// make sure worker has not been not added
-			// TODO: should we set a cap to avoid performance problem
 			let workers = &mut pool_info.workers;
-			// TODO: limit the number of workers to avoid performance issue.
 			ensure!(!workers.contains(&pubkey), Error::<T>::WorkerExists);
+			// too many workers may cause performance regression
+			ensure!(
+				workers.len() + 1 <= T::MaxPoolWorkers::get() as usize,
+				Error::<T>::WorkersExceedLimit
+			);
 
 			// generate miner account
 			let miner: T::AccountId = pool_sub_account(pid, &pubkey);
@@ -531,6 +559,7 @@ pub mod pallet {
 			stake: BalanceOf<T>,
 		) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
+			ensure!(Self::mining_enabled(), Error::<T>::FeatureNotEnabled);
 			let mut pool_info = Self::ensure_pool(pid)?;
 			// origin must be owner of pool
 			ensure!(pool_info.owner == owner, Error::<T>::UnauthorizedPoolOwner);
@@ -563,6 +592,7 @@ pub mod pallet {
 			worker: WorkerPublicKey,
 		) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
+			ensure!(Self::mining_enabled(), Error::<T>::FeatureNotEnabled);
 			let pool_info = Self::ensure_pool(pid)?;
 			// origin must be owner of pool
 			ensure!(pool_info.owner == owner, Error::<T>::UnauthorizedPoolOwner);
@@ -589,6 +619,14 @@ pub mod pallet {
 			Self::ensure_pool(pid)?;
 			let sub_account: T::AccountId = pool_sub_account(pid, &worker);
 			mining::Pallet::<T>::reclaim(origin, sub_account)
+		}
+
+		/// Enables or disables mining. Must be called with the council or root permission.
+		#[pallet::weight(0)]
+		pub fn set_mining_enable(origin: OriginFor<T>, enable: bool) -> DispatchResult {
+			T::MiningSwitchOrigin::ensure_origin(origin)?;
+			MiningEnabled::<T>::put(enable);
+			Ok(())
 		}
 	}
 
