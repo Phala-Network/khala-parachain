@@ -15,7 +15,7 @@ pub mod pallet {
 	use frame_system::Config as SystemConfig;
 	use sp_runtime::traits::Saturating;
 	use sp_std::{prelude::*, vec};
-	use xcm::latest::{Error as XcmError, ExecuteXcm, MultiLocation, MultiAsset, Junction, OriginKind, SendXcm, Xcm};
+	use xcm::v1::{Error as XcmError, ExecuteXcm, MultiLocation, MultiAsset, Junction, OriginKind, SendXcm, Xcm};
 	
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
