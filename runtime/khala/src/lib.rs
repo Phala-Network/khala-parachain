@@ -231,6 +231,7 @@ construct_runtime! {
         // `sudo` has been removed on production
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // TODO: Remove when we enable transfer
+        // TODO: We should do a migration to cleanup storage after we remove it
         PhalaOneshotTransfer: pallet_ott::{Pallet, Call, Event<T>, Storage} = 100,
     }
 }
