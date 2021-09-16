@@ -28,6 +28,3 @@ members = [
 
 [patch."https://github.com/paritytech/polkadot"]
 polkadot-service = { path = "polkadot/node/service" }
-
-[patch."crates-io"]
-snow073 = { git = "https://github.com/mcginty/snow.git", rev = "ae465b5ac5496c83eb2c7205207b7a81ade9772b", package = "snow" }
