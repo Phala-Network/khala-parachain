@@ -90,6 +90,7 @@ pub use parachains_common::*;
 
 pub use phala_pallets::{
     pallet_mq,
+    pallet_ott,
     pallet_registry,
     pallet_mining,
     pallet_stakepool,
@@ -229,6 +230,8 @@ construct_runtime! {
 
         // `sudo` has been removed on production
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
+        // TODO: Remove when we enable transfer
+        PhalaOneshotTransfer: pallet_ott::{Pallet, Call, Event<T>, Storage} = 100,
     }
 }
 
@@ -1006,6 +1009,10 @@ impl pallet_stakepool::Config for Runtime {
     type MaxPoolWorkers = MaxPoolWorkers;
     type OnSlashed = Treasury;
     type MiningSwitchOrigin = EnsureRootOrHalfCouncil;
+}
+impl pallet_ott::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
 }
 
 impl_runtime_apis! {
