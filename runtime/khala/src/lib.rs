@@ -260,7 +260,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // Governance
             Call::Identity(_) | Call::Treasury(_) |
-            Call::Democracy(_) |
+            Call::Democracy(_) | Call::PhragmenElection(..) |
             Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
             Call::Bounties(_) | Call::Lottery(_) |
             // Phala
