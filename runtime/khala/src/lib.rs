@@ -127,7 +127,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 1030,
+    spec_version: 1040,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -246,8 +246,9 @@ impl Contains<Call> for BaseCallFilter {
             // System
             Call::System(_) | Call::Timestamp(_) | Call::Utility(_) |
             Call::Multisig(_) | Call::Proxy(_) | Call::Scheduler(_) |
-            // TODO: We enable vesting after we enable transfer
-            // Call::Vesting(_) |
+            Call::Vesting(pallet_vesting::Call::vest()) |
+            Call::Vesting(pallet_vesting::Call::vest_other(_)) |
+            // TODO: We will enable other vesting features after we enabled transfer
             // Parachain
             Call::ParachainSystem(_) |
             // Monetary
