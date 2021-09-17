@@ -264,6 +264,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
             Call::Bounties(_) | Call::Lottery(_) |
             // Phala
+            Call::PhalaOneshotTransfer(_) | // TODO: Remove when we enable balance transfer
             Call::PhalaMq(_) | Call::PhalaRegistry(_) |
             Call::PhalaMining(_) | Call::PhalaStakePool(_)
         )
