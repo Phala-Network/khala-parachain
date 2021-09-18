@@ -73,6 +73,38 @@
           "port": 32333
         }
       ]
+    },
+    {
+      "bin": "./bin/khala-node",
+      "chain": "khala-dev-2005",
+      "balance": "1000000000000000000000",
+      "nodes": [
+        {
+          "name": "alice",
+          "wsPort": 9955,
+          "port": 30555,
+          "flags": [
+            "--node-key=03cf579968894332f07ac78990f418742a47888c56c9721d84250d349618ada5",
+            "--ws-external",
+            "--rpc-external",
+            "--rpc-cors=all",
+            "--rpc-methods=Unsafe",
+            "--",
+            "--node-key=9ad8595d81d5851a5d5c920d3346881e262b2a720b5878714ee38c919514bcea",
+            "--port=30334",
+            "--ws-port=9945",
+            "--pruning=archive",
+            "--ws-external",
+            "--rpc-external",
+            "--rpc-cors=all"
+          ]
+        },
+        {
+          "name": "bob",
+          "wsPort": 9255,
+          "port": 32555
+        }
+      ]
     }
   ],
   "simpleParachains": [],
