@@ -7,7 +7,8 @@ resolver = "2"
 exclude = [
 	"vendor/webpki",
 	"vendor/ring",
-	"polkadot/node/service"
+	"polkadot/node/service",
+	"substrate/client/network"
 ]
 
 members = [
@@ -28,3 +29,6 @@ members = [
 
 [patch."https://github.com/paritytech/polkadot"]
 polkadot-service = { path = "polkadot/node/service" }
+
+[patch."https://github.com/paritytech/substrate"]
+sc-network = { path = "substrate/client/network" }
