@@ -215,6 +215,7 @@ construct_runtime! {
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 66,
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 67,
         PhragmenElection: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 68,
+        Tips: pallet_tips::{Pallet, Call, Storage, Event<T>} = 69,
 
         // Main, starts from 80
 
@@ -263,7 +264,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Identity(_) | Call::Treasury(_) |
             Call::Democracy(_) | Call::PhragmenElection(..) |
             Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
-            Call::Bounties(_) | Call::Lottery(_) |
+            Call::Bounties(_) | Call::Lottery(_) | Call::Tips(..) |
             // Phala
             Call::PhalaOneshotTransfer(_) | // TODO: Remove when we enable balance transfer
             Call::PhalaMq(_) | Call::PhalaRegistry(_) |
@@ -411,6 +412,7 @@ impl InstanceFilter<Call> for ProxyType {
                 Call::TechnicalMembership(..) |
                 Call::Treasury(..) |
                 Call::Bounties(..) |
+                Call::Tips(..) |
                 Call::Utility(..) |
                 Call::Identity(..) |
                 Call::Vesting(pallet_vesting::Call::vest(..)) |
@@ -434,6 +436,7 @@ impl InstanceFilter<Call> for ProxyType {
                 Call::Treasury(..) |
                 Call::Utility(..) |
                 Call::Bounties(..) |
+                Call::Tips(..) |
                 Call::Lottery(..)
             ),
             ProxyType::Collator => matches!(
@@ -564,6 +567,17 @@ impl pallet_bounties::Config for Runtime {
     type DataDepositPerByte = DataDepositPerByte;
     type MaximumReasonLength = MaximumReasonLength;
     type WeightInfo = pallet_bounties::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_tips::Config for Runtime {
+    type Event = Event;
+    type DataDepositPerByte = DataDepositPerByte;
+    type MaximumReasonLength = MaximumReasonLength;
+    type Tippers = PhragmenElection;
+    type TipCountdown = TipCountdown;
+    type TipFindersFee = TipFindersFee;
+    type TipReportDepositBase = TipReportDepositBase;
+    type WeightInfo = pallet_tips::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1156,6 +1170,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_session, SessionBench::<Runtime>);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
+            list_benchmark!(list, extra, pallet_tips, Tips);
             list_benchmark!(list, extra, pallet_treasury, Treasury);
             list_benchmark!(list, extra, pallet_utility, Utility);
             list_benchmark!(list, extra, pallet_vesting, Vesting);
@@ -1212,6 +1227,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_session, SessionBench::<Runtime>);
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
+            add_benchmark!(params, batches, pallet_tips, Tips);
             add_benchmark!(params, batches, pallet_treasury, Treasury);
             add_benchmark!(params, batches, pallet_utility, Utility);
             add_benchmark!(params, batches, pallet_vesting, Vesting);
