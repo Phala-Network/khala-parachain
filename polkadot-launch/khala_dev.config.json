@@ -108,7 +108,14 @@
     }
   ],
   "simpleParachains": [],
-  "hrmpChannels": [],
-  "types": {},
+  "hrmpChannels": [
+    {
+      "sender": 2004,
+      "recipient": 2005,
+      "maxCapacity": 8,
+      "maxMessageSize": 512
+    }
+  ],
+  "types": "./types.json",
   "finalization": false
 }

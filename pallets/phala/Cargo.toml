@@ -24,6 +24,9 @@ sp-application-crypto = { git = "https://github.com/paritytech/substrate", branc
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false, optional = true }
 log = { version = "0.4.14", default-features = false }
 
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.10", default-features = false }
+cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.10", default-features = false }
+
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false }
 
 phala-types = { path = "../../crates/phala-types", default-features = false }

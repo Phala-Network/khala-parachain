@@ -214,7 +214,7 @@ construct_runtime! {
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
-        // Monetary stuff
+        // Monetary stuffe
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 40,
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 41,
 
@@ -243,7 +243,7 @@ construct_runtime! {
         BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
 
         // Phala
-        PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
+        PhalaMq: pallet_mq::{Pallet, Call, Event, Storage} = 85,
         PhalaRegistry: pallet_registry::{Pallet, Call, Event, Storage, Config<T>} = 86,
         PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
@@ -652,10 +652,10 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type Event = Event;
     type OnValidationData = ();
     type SelfParaId = pallet_parachain_info::Pallet<Runtime>;
-    type DmpMessageHandler = ();
+	type OutboundXcmpMessageSource = XcmpQueue;
+    type DmpMessageHandler = DmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
-    type OutboundXcmpMessageSource = ();
-    type XcmpMessageHandler = ();
+    type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
 }
 
@@ -774,21 +774,23 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 parameter_types! {
 	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
-	pub UnitWeightCost: Weight = 1_000_000_000;
+	pub UnitWeightCost: Weight = 1_000_000;
 	// pub const MaxInstructions: u32 = 100;
 }
 match_type! {
-	pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
+	pub type ParentOrParentsExecutiveOrUnitPlurality: impl Contains<MultiLocation> = {
 		MultiLocation { parents: 1, interior: Here } |
-		MultiLocation { parents: 1, interior: X1(Plurality { id: BodyId::Executive, .. }) }
+		MultiLocation { parents: 1, interior: X1(Plurality { id: BodyId::Executive, .. }) } |
+		MultiLocation { parents: 1, interior: X1(Plurality { id: BodyId::Unit, .. }) }
 	};
 }
 pub type Barrier = (
 	TakeWeightCredit,
 	AllowTopLevelPaidExecutionFrom<Everything>,
-	AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
+	AllowUnpaidExecutionFrom<Everything>,
 	// ^^^ Parent and its exec plurality get free execution
 );
+
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type Call = Call;
@@ -1181,6 +1183,8 @@ impl pallet_mq::CallMatcher<Runtime> for MqCallMatcher {
 }
 
 impl pallet_mq::Config for Runtime {
+    type Event = Event;
+    type Origin = Origin;
     type QueueNotifyConfig = msg_routing::MessageRouteConfig;
     type CallMatcher = MqCallMatcher;
 }

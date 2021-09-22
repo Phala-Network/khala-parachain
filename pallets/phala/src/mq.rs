@@ -17,8 +17,14 @@ pub mod pallet {
 	use primitive_types::H256;
 	use sp_std::vec::Vec;
 
+    use frame_system::Config as SystemConfig;
+    use cumulus_primitives_core::ParaId;
+    use cumulus_pallet_xcm::{Origin as CumulusOrigin, ensure_sibling_para};
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config + crate::registry::Config {
+		type Event: From<Event> + IsType<<Self as frame_system::Config>::Event>;
+		type Origin: From<<Self as SystemConfig>::Origin> + Into<Result<CumulusOrigin, <Self as Config>::Origin>>;
 		type QueueNotifyConfig: QueueNotifyConfig;
 		type CallMatcher: CallMatcher<Self>;
 	}
@@ -50,6 +56,12 @@ pub mod pallet {
 		BadSequence,
 		BadDestination,
 	}
+
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event {
+		RemarkReceived(ParaId, Vec<u8>),
+    }
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
@@ -104,6 +116,13 @@ pub mod pallet {
 			Self::dispatch_message(message);
 			Ok(())
 		}
+
+        #[pallet::weight(0)]
+        pub fn remark(origin: OriginFor<T>, remark: Vec<u8>) -> DispatchResult {
+			let para = ensure_sibling_para(<T as Config>::Origin::from(origin))?;
+			Self::deposit_event(Event::RemarkReceived(para, remark));
+            Ok(())
+        }
 	}
 
 	impl<T: Config> Pallet<T> {

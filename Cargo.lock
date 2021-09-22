@@ -6456,6 +6456,8 @@ dependencies = [
  "assert_matches",
  "base64 0.11.0",
  "chrono",
+ "cumulus-pallet-xcm",
+ "cumulus-primitives-core",
  "fixed",
  "fixed-macro",
  "fixed-sqrt",
