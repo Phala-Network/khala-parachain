@@ -275,6 +275,11 @@ impl Contains<Call> for BaseCallFilter {
             Call::BridgeTransfer(pallet_bridge_transfer::Call::transfer(..)) |
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
+            // XCM
+            Call::PolkadotXcm(_) |
+            Call::XcmpQueue(_) |
+            Call::DmpQueue(_) |
+
             // Governance
             Call::Identity(_) | Call::Treasury(_) |
             Call::Democracy(_) |
