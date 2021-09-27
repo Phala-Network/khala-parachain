@@ -241,6 +241,7 @@ construct_runtime! {
         // ChainBridge
         ChainBridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 80,
         BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
+        XcmTransfer: pallet_xcm_transfer::{Pallet, Call, Event<T>, Storage} = 82,
 
         // Phala
         PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
@@ -269,7 +270,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::ParachainSystem(_) |
             // Monetary
             // TODO: We disable transfer at launch
-            // Call::Balances(_) |
+            Call::Balances(_) |
             Call::ChainBridge(_) |
             // TODO: We disable Khala -> ETH bridge at launch
             Call::BridgeTransfer(pallet_bridge_transfer::Call::transfer(..)) |
@@ -279,6 +280,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::PolkadotXcm(_) |
             Call::XcmpQueue(_) |
             Call::DmpQueue(_) |
+            Call::XcmTransfer(_) |
 
             // Governance
             Call::Identity(_) | Call::Treasury(_) |
@@ -673,7 +675,7 @@ parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
-	pub const Local: MultiLocation = Here.into();
+	pub const LocalLocation: MultiLocation = Here.into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 }
 
@@ -724,7 +726,7 @@ where
 // 	ConvertedConcreteAssetId<
 // 		AssetId,
 // 		Balance,
-// 		AsPrefixedGeneralIndex<Local, AssetId, JustTry>,
+// 		AsPrefixedGeneralIndex<LocalLocation, AssetId, JustTry>,
 // 		JustTry,
 // 	>,
 // 	// Convert an XCM MultiLocation into a local account id:
@@ -745,7 +747,7 @@ pub type LocalAssetTransactor = CurrencyAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	IsConcrete<KsmLocation>,
+	IsConcrete<LocalLocation>,
 	// Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -805,7 +807,7 @@ impl<T: Get<MultiLocation>> FilterAssetLocation for AssetsFrom<T> {
 }
 
 parameter_types! {
-	pub PhalaLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(2005)));
+	pub PhalaLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(2004)));
 }
 pub type Reserves = (NativeAsset, AssetsFrom<PhalaLocation>);
 
@@ -821,7 +823,7 @@ impl Config for XcmConfig {
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
-	type Trader = UsingComponents<IdentityFee<Balance>, KsmLocation, AccountId, Balances, ()>;
+	type Trader = UsingComponents<IdentityFee<Balance>, LocalLocation, AccountId, Balances, ()>;
 	type ResponseHandler = ();
 	type SubscriptionService = PolkadotXcm;
 }
@@ -866,6 +868,17 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 	type Event = Event;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+}
+
+impl pallet_xcm_transfer::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+	type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+	type XcmRouter = XcmRouter;
+	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+	type XcmExecutor = XcmExecutor<XcmConfig>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+	type LocationInverter = LocationInverter<Ancestry>;
 }
 
 parameter_types! {
