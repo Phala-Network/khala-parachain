@@ -48,6 +48,7 @@ pub trait WeightInfo {
 	fn batch(c: u32, ) -> Weight;
 	fn as_derivative() -> Weight;
 	fn batch_all(c: u32, ) -> Weight;
+	fn batch_try(c: u32, ) -> Weight;
 }
 
 /// Weights for pallet_utility using the Substrate node and recommended hardware.
@@ -66,6 +67,11 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			// Standard Error: 3_000
 			.saturating_add((7_251_000 as Weight).saturating_mul(c as Weight))
 	}
+	fn batch_try(c: u32, ) -> Weight {
+		(30_319_000 as Weight)
+			// Standard Error: 3_000
+			.saturating_add((6_759_000 as Weight).saturating_mul(c as Weight))
+	}
 }
 
 // For backwards compatibility and tests
@@ -82,5 +88,10 @@ impl WeightInfo for () {
 		(26_621_000 as Weight)
 			// Standard Error: 3_000
 			.saturating_add((7_251_000 as Weight).saturating_mul(c as Weight))
+	}
+	fn batch_try(c: u32, ) -> Weight {
+		(30_319_000 as Weight)
+			// Standard Error: 3_000
+			.saturating_add((6_759_000 as Weight).saturating_mul(c as Weight))
 	}
 }

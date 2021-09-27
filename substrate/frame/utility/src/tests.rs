@@ -593,6 +593,31 @@ fn batch_all_does_not_nest() {
 }
 
 #[test]
+fn batch_try_works() {
+	new_test_ext().execute_with(|| {
+		assert_eq!(Balances::free_balance(1), 10);
+		assert_eq!(Balances::free_balance(2), 10);
+		assert_ok!(Utility::batch_try(
+			Origin::signed(1),
+			vec![
+				Call::Balances(BalancesCall::transfer(2, 5)),
+				Call::Example(ExampleCall::foobar(true, 75, None)),
+				Call::Balances(BalancesCall::transfer(2, 10)),
+				Call::Balances(BalancesCall::transfer(2, 5)),
+			]
+		),);
+		System::assert_last_event(
+			utility::Event::BatchCompletedWithErrors(vec![1, 2]).into(),
+		);
+		System::assert_has_event(
+			utility::Event::ItemFailed(1, DispatchError::Other("")).into(),
+		);
+		assert_eq!(Balances::free_balance(1), 0);
+		assert_eq!(Balances::free_balance(2), 20);
+	});
+}
+
+#[test]
 fn batch_limit() {
 	new_test_ext().execute_with(|| {
 		let calls = vec![Call::System(SystemCall::remark(vec![])); 40_000];
