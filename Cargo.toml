@@ -19,6 +19,7 @@ members = [
 	"crates/phala-node-rpc-ext",
 	"crates/prpc",
 	"crates/phala-trie-storage",
+	"substrate/frame/utility",
 	"pallets/phala",
 	"pallets/phala/mq-runtime-api",
 	"pallets/bridge",
