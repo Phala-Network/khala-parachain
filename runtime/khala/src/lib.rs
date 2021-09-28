@@ -993,10 +993,10 @@ parameter_types! {
     pub const MinContribution: Balance = 1 * CENTS;
     pub const MiningGracePeriod: u64 = 7 * 24 * 3600;
     pub const MinInitP: u32 = 50;
-    pub const MiningEnabledByDefault: bool = false;
+    pub const MiningEnabledByDefault: bool = true;
     pub const MaxPoolWorkers: u32 = 200;
-    pub const VerifyPRuntime: bool = true;
-    pub const VerifyRelaychainGenesisBlockHash: bool = true;
+    pub const VerifyPRuntime: bool = false;
+    pub const VerifyRelaychainGenesisBlockHash: bool = false;
 }
 
 impl pallet_registry::Config for Runtime {
