@@ -3805,7 +3805,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
- "pallet-utility",
+ "pallet-utility 4.0.0-dev",
  "pallet-vesting",
  "parachains-common",
  "parity-scale-codec",
@@ -3878,7 +3878,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
- "pallet-utility",
+ "pallet-utility 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9)",
  "pallet-vesting",
  "pallet-xcm",
  "parity-scale-codec",
@@ -5969,6 +5969,21 @@ dependencies = [
 [[package]]
 name = "pallet-utility"
 version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-utility"
+version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9#91061a7d925b5bc597804293da283477512ba4ff"
 dependencies = [
  "frame-benchmarking",
@@ -7361,7 +7376,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
- "pallet-utility",
+ "pallet-utility 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9)",
  "pallet-vesting",
  "parity-scale-codec",
  "polkadot-primitives",
@@ -8352,7 +8367,7 @@ dependencies = [
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-utility",
+ "pallet-utility 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9)",
  "pallet-xcm",
  "parity-scale-codec",
  "polkadot-parachain",
@@ -12237,7 +12252,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
- "pallet-utility",
+ "pallet-utility 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9)",
  "pallet-vesting",
  "pallet-xcm",
  "parity-scale-codec",
