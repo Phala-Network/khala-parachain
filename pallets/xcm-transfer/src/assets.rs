@@ -5,25 +5,28 @@ pub use self::pallet::*;
 pub mod pallet {
 	use codec::{Decode, Encode};
 	use frame_support::{
-		fail,
 		pallet_prelude::*,
 		traits::{
-			Contains, Currency, ExistenceRequirement, OnUnbalanced, StorageVersion, WithdrawReasons,
+			Contains, Currency, ExistenceRequirement::AllowDeath, StorageVersion, WithdrawReasons,
 		},
 	};
-	use frame_system::pallet_prelude::*;
-	use sp_runtime::traits::CheckedConversion;
-	use sp_std::{convert::TryFrom, vec::Vec};
+	use frame_system::pallet_prelude::OriginFor;
+	use sp_runtime::traits::{SaturatedConversion, Saturating};
+	use sp_std::{convert::TryInto, result, vec::Vec};
 
-	use xcm::{
-		v1::prelude::*, Version as XcmVersion, VersionedMultiAssets, VersionedMultiLocation,
-		VersionedXcm,
+	use xcm::v1::{
+		AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset, MultiLocation,
+		Result as XcmResult,
+	};
+	use xcm_executor::{
+		traits::{Convert, MatchesFungible, TransactAsset},
+		Assets,
 	};
 
 	const LOG_TARGET: &str = "xcm-transfer:assets";
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
-	pub type PhalaAssetId = [u8; 32];
+	pub type XTransferAssetId = [u8; 32];
 
 	type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -34,9 +37,9 @@ pub mod pallet {
 
 	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
 	pub struct AssetInfo {
-		pub dest_id: MultiLocation,
+		pub asset_location: MultiLocation,
 		pub asset_identity: Vec<u8>,
-		pub is_reserve: bool,
+		pub asset_id: XTransferAssetId,
 	}
 
 	#[pallet::config]
@@ -45,6 +48,8 @@ pub mod pallet {
 		type Currency: Currency<Self::AccountId>;
 		/// Origin used to administer the pallet
 		type XTransferCommitteeOrigin: EnsureOrigin<Self::Origin>;
+		type FungibleMatcher: MatchesFungible<BalanceOf<Self>>;
+		type AccountIdConverter: Convert<MultiLocation, Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -57,56 +62,236 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// [chainId, asset_identity, assetId]
-		AssetRegistered(MultiLocation, Vec<u8>, PhalaAssetId),
+		AssetRegistered(MultiLocation, Vec<u8>, XTransferAssetId),
+		/// [who, amount]
+		NativeAssetDeposited(T::AccountId, BalanceOf<T>),
+		/// [location, who, amount]
+		AssetDeposited(MultiLocation, T::AccountId, BalanceOf<T>),
+		/// [who, amount]
+		NativeAssetWithdrawn(T::AccountId, BalanceOf<T>),
+		/// [location, who, amount]
+		AssetWithdrawn(MultiLocation, T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
-		InsufficientBalance,
+		/// AssetId already in used
 		AssetIdInUsed,
+		/// Asset has not registered
 		AssetNotRegistered,
+		/// Asset not found.
+		AssetNotFound,
+		/// `MultiLocation` to `AccountId` conversion failed.
+		AccountIdConversionFailed,
+		/// `u128` amount to currency `Balance` conversion failed.
+		AmountToBalanceConversionFailed,
+		/// Insufficient  balance
+		InsufficientBalance,
+	}
+
+	impl<T: Config> From<Error<T>> for XcmError {
+		fn from(e: Error<T>) -> Self {
+			use XcmError::FailedToTransactAsset;
+			match e {
+				Error::<T>::AssetIdInUsed => FailedToTransactAsset("AssetIdInUsed"),
+				Error::<T>::AssetNotRegistered => XcmError::AssetNotFound,
+				Error::<T>::AssetNotFound => XcmError::AssetNotFound,
+				Error::<T>::AccountIdConversionFailed => {
+					FailedToTransactAsset("AccountIdConversionFailed")
+				}
+				Error::<T>::AmountToBalanceConversionFailed => {
+					FailedToTransactAsset("AmountToBalanceConversionFailed")
+				}
+				Error::<T>::InsufficientBalance => FailedToTransactAsset("InsufficientBalance"),
+				_ => FailedToTransactAsset("Unknown"),
+			}
+		}
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn xtransfer_assets)]
-	pub type XTransferAssets<T: Config> = StorageMap<_, Blake2_256, PhalaAssetId, AssetInfo>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn xtransfer_reserve_assets)]
-	pub type XTransferReserveAssets<T: Config> =
-		StorageMap<_, Blake2_256, MultiLocation, AssetInfo>;
+	pub type XTransferAssets<T: Config> = StorageMap<_, Blake2_256, MultiLocation, AssetInfo>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn xtransfer_balances)]
 	pub type XTransferBalances<T: Config> =
-		StorageDoubleMap<_, Blake2_256, PhalaAssetId, Blake2_256, T::AccountId, BalanceOf<T>>;
+		StorageDoubleMap<_, Blake2_256, MultiLocation, Blake2_256, T::AccountId, BalanceOf<T>>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Register an asset.
 		#[pallet::weight(195_000_000)]
-		pub fn register_reserve_asset(
+		pub fn register_asset(
 			origin: OriginFor<T>,
 			asset_identity: Vec<u8>,
-			dest_id: MultiLocation,
+			asset_location: MultiLocation,
 		) -> DispatchResult {
 			T::XTransferCommitteeOrigin::ensure_origin(origin)?;
 			// TODO. Properly way to generate an asset id.
 			let asset_id = [0; 32];
 			ensure!(
-				!XTransferReserveAssets::<T>::contains_key(&dest_id),
+				!XTransferAssets::<T>::contains_key(&asset_location),
 				Error::<T>::AssetIdInUsed
 			);
-			XTransferReserveAssets::<T>::insert(
-				&dest_id,
+			XTransferAssets::<T>::insert(
+				&asset_location,
 				AssetInfo {
-					dest_id: dest_id.clone(),
+					asset_location: asset_location.clone(),
 					asset_identity: asset_identity.clone(),
-					is_reserve: true,
+					asset_id: asset_id.clone(),
 				},
 			);
-			Self::deposit_event(Event::AssetRegistered(dest_id, asset_identity, asset_id));
+			Self::deposit_event(Event::AssetRegistered(
+				asset_location,
+				asset_identity,
+				asset_id,
+			));
 			Ok(())
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		/// Deposit specific amount assets into recipient account.
+		///
+		/// DO NOT guarantee asset was registered
+		pub fn do_asset_deposit(
+			asset: &MultiLocation,
+			recipient: &T::AccountId,
+			amount: BalanceOf<T>,
+		) {
+			let recipient_balance =
+				XTransferBalances::<T>::get(asset, recipient).unwrap_or_default();
+			XTransferBalances::<T>::insert(
+				asset,
+				recipient,
+				recipient_balance.saturating_add(amount),
+			);
+		}
+
+		/// Withdraw specific amount assets from sender.
+		///
+		/// Assets would be withdrawn from the sender.
+		///
+		/// DO NOT guarantee asset was registered
+		/// DO NOT grarantee sender account has enough balance
+		pub fn do_asset_withdraw(
+			asset: &MultiLocation,
+			sender: &T::AccountId,
+			amount: BalanceOf<T>,
+		) {
+			let recipient_balance = XTransferBalances::<T>::get(asset, sender).unwrap_or_default();
+
+			XTransferBalances::<T>::insert(asset, sender, recipient_balance.saturating_sub(amount));
+		}
+	}
+
+	pub trait IsNativeAsset {
+		fn is_native_asset(asset: &MultiAsset) -> bool;
+	}
+
+	impl<T: Config> IsNativeAsset for Pallet<T> {
+		fn is_native_asset(asset: &MultiAsset) -> bool {
+			match (&asset.id, &asset.fun) {
+				// So far our native asset is concrete
+				(Concrete(ref id), Fungible(_)) if (MultiLocation::here() == *id) => true,
+				_ => false,
+			}
+		}
+	}
+
+	pub trait ConcreteId {
+		fn concrete_id(asset: &MultiAsset) -> Option<MultiLocation>;
+	}
+
+	impl<T: Config> ConcreteId for Pallet<T> {
+		fn concrete_id(asset: &MultiAsset) -> Option<MultiLocation> {
+			match (&asset.id, &asset.fun) {
+				// So far our native asset is concrete
+				(Concrete(id), Fungible(_)) => Some(id.clone()),
+				_ => None,
+			}
+		}
+	}
+
+	impl<T: Config> TransactAsset for Pallet<T> {
+		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult {
+			log::error!(
+				target: LOG_TARGET,
+				"deposit_asset, what: {:?}, who: {:?}.",
+				what.clone(),
+				who.clone(),
+			);
+			// Check we handle this asset.
+			let amount: u128 = T::FungibleMatcher::matches_fungible(&what)
+				.ok_or(Error::<T>::AssetNotFound)?
+				.saturated_into();
+			let who = T::AccountIdConverter::convert_ref(who)
+				.map_err(|()| Error::<T>::AccountIdConversionFailed)?;
+			let balance_amount = amount
+				.try_into()
+				.map_err(|_| Error::<T>::AmountToBalanceConversionFailed)?;
+
+			if Self::is_native_asset(&what) {
+				let _imbalance = T::Currency::deposit_creating(&who, balance_amount);
+				Self::deposit_event(Event::NativeAssetDeposited(who, balance_amount));
+			} else {
+				Self::do_asset_deposit(
+					&Self::concrete_id(&what).ok_or(Error::<T>::AssetNotFound)?,
+					&who,
+					balance_amount,
+				);
+				Self::deposit_event(Event::AssetDeposited(
+					Self::concrete_id(&what).unwrap(),
+					who,
+					balance_amount,
+				));
+			}
+			Ok(())
+		}
+
+		fn withdraw_asset(
+			what: &MultiAsset,
+			who: &MultiLocation,
+		) -> result::Result<Assets, XcmError> {
+			log::error!(
+				target: LOG_TARGET,
+				"withdraw_asset, what: {:?}, who: {:?}.",
+				what.clone(),
+				who.clone(),
+			);
+			// Check we handle this asset.
+			let amount: u128 = T::FungibleMatcher::matches_fungible(what)
+				.ok_or(Error::<T>::AssetNotFound)?
+				.saturated_into();
+			let who = T::AccountIdConverter::convert_ref(who)
+				.map_err(|()| Error::<T>::AccountIdConversionFailed)?;
+			let balance_amount = amount
+				.try_into()
+				.map_err(|_| Error::<T>::AmountToBalanceConversionFailed)?;
+
+			if Self::is_native_asset(&what) {
+				let _imbalance = T::Currency::withdraw(
+					&who,
+					balance_amount,
+					WithdrawReasons::TRANSFER,
+					AllowDeath,
+				)
+				.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+				Self::deposit_event(Event::NativeAssetWithdrawn(who, balance_amount));
+			} else {
+				Self::do_asset_withdraw(
+					&Self::concrete_id(&what).ok_or(Error::<T>::AssetNotFound)?,
+					&who,
+					balance_amount,
+				);
+				Self::deposit_event(Event::AssetWithdrawn(
+					Self::concrete_id(&what).unwrap(),
+					who,
+					balance_amount,
+				));
+			}
+
+			Ok(what.clone().into())
 		}
 	}
 
@@ -116,12 +301,12 @@ pub mod pallet {
 				target: LOG_TARGET,
 				"xtransfer_assets check location {:?}.",
 				a.clone(),
-            );
-            if *a == MultiLocation::here() {
-                true
-            } else {
-                XTransferReserveAssets::<T>::contains_key(&a)
-            }
+			);
+			if *a == MultiLocation::here() {
+				true
+			} else {
+				XTransferAssets::<T>::contains_key(&a)
+			}
 		}
 	}
 }
