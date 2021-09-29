@@ -57,8 +57,7 @@ use sp_runtime::{
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
 };
-use sp_std::prelude::*;
-use sp_std::marker::PhantomData;
+use sp_std::{prelude::*, marker::PhantomData};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -109,6 +108,13 @@ pub use phala_pallets::{
     pallet_mining,
     pallet_stakepool,
 };
+
+pub use xtransfer_pallets::{
+	pallet_xtransfer_assets,
+	pallet_xcm_transfer,
+    xtransfer_matcher,
+};
+
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -242,6 +248,7 @@ construct_runtime! {
         ChainBridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 80,
         BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
         XcmTransfer: pallet_xcm_transfer::{Pallet, Call, Event<T>, Storage} = 82,
+		XTransferAssets: pallet_xtransfer_assets::{Pallet, Call, Event<T>, Storage} = 83,
 
         // Phala
         PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
@@ -281,6 +288,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::XcmpQueue(_) |
             Call::DmpQueue(_) |
             Call::XcmTransfer(_) |
+            Call::XTransferAssets(_) |
 
             // Governance
             Call::Identity(_) | Call::Treasury(_) |
@@ -676,6 +684,7 @@ parameter_types! {
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 	pub const LocalLocation: MultiLocation = Here.into();
+	pub const FeeAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2004)) };
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 }
 
@@ -691,63 +700,12 @@ pub type LocationToAccountId = (
 	AccountId32Aliases<RelayNetwork, AccountId>,
 );
 
-/// Means for transacting the native currency on this chain.
-// pub type CurrencyTransactor = CurrencyAdapter<
-// 	// Use this currency:
-// 	Balances,
-// 	// Use this currency when it is a fungible asset matching the given location or name:
-// 	IsConcrete<KsmLocation>,
-// 	// Convert an XCM MultiLocation into a local account id:
-// 	LocationToAccountId,
-// 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
-// 	AccountId,
-// 	// We don't track any teleports.
-// 	// We don't track any teleports of `Balances`.
-// 	(),
-// >;
-
-/// Allow checking in assets that have issuance > 0.
-pub struct NonZeroIssuance<AccountId, Assets>(PhantomData<(AccountId, Assets)>);
-impl<AccountId, Assets> Contains<<Assets as fungibles::Inspect<AccountId>>::AssetId>
-    for NonZeroIssuance<AccountId, Assets>
-where
-    Assets: fungibles::Inspect<AccountId>,
-{
-    fn contains(id: &<Assets as fungibles::Inspect<AccountId>>::AssetId) -> bool {
-        !Assets::total_issuance(*id).is_zero()
-    }
-}
-
-/// Means for transacting assets besides the native currency on this chain.
-// pub type FungiblesTransactor = FungiblesAdapter<
-// 	// Use this fungibles implementation:
-// 	Balances,
-// 	// Use this currency when it is a fungible asset matching the given location or name:
-// 	ConvertedConcreteAssetId<
-// 		AssetId,
-// 		Balance,
-// 		AsPrefixedGeneralIndex<LocalLocation, AssetId, JustTry>,
-// 		JustTry,
-// 	>,
-// 	// Convert an XCM MultiLocation into a local account id:
-// 	LocationToAccountId,
-// 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
-// 	AccountId,
-// 	// We only want to allow teleports of known assets. We use non-zero issuance as an indication
-// 	// that this asset is known.
-// 	NonZeroIssuance<AccountId, Balances>,
-// 	// The account to use for tracking teleports.
-// 	CheckingAccount,
-// >;
-/// Means for transacting assets on this chain.
-// pub type AssetTransactors = (CurrencyTransactor, FungiblesTransactor);
-
 /// Means for transacting assets on this chain.
 pub type LocalAssetTransactor = CurrencyAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	IsConcrete<LocalLocation>,
+	xtransfer_matcher::IsSiblingParachainsConcrete<XTransferAssets>,
 	// Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -797,20 +755,6 @@ pub type Barrier = (
 	// ^^^ Parent and its exec plurality get free execution
 );
 
-pub struct AssetsFrom<T>(PhantomData<T>);
-impl<T: Get<MultiLocation>> FilterAssetLocation for AssetsFrom<T> {
-	fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
-		let loc = T::get();
-		&loc == origin && matches!(asset, MultiAsset { id: AssetId::Concrete(asset_loc), fun: Fungible(_a) }
-			if asset_loc.match_and_split(&loc).is_some())
-	}
-}
-
-parameter_types! {
-	pub PhalaLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(2004)));
-}
-pub type Reserves = (NativeAsset, AssetsFrom<PhalaLocation>);
-
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type Call = Call;
@@ -818,12 +762,12 @@ impl Config for XcmConfig {
 	// How to withdraw and deposit an asset.
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = Reserves;
+	type IsReserve = NativeAsset;
 	type IsTeleporter = (); // <- should be enough to allow teleportation of KSM
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
-	type Trader = UsingComponents<IdentityFee<Balance>, LocalLocation, AccountId, Balances, ()>;
+	type Trader = UsingComponents<IdentityFee<Balance>, FeeAssetId, AccountId, Balances, ()>;
 	type ResponseHandler = ();
 	type SubscriptionService = PolkadotXcm;
 }
@@ -879,6 +823,12 @@ impl pallet_xcm_transfer::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
 	type LocationInverter = LocationInverter<Ancestry>;
+}
+
+impl pallet_xtransfer_assets::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type XTransferCommitteeOrigin = EnsureRootOrHalfCouncil;
 }
 
 parameter_types! {

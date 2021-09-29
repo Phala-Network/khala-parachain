@@ -1,7 +1,7 @@
 [package]
 authors = ["Phala Network"]
 edition = "2018"
-name = "pallet-xcm-transfer"
+name = "xtransfer-pallets"
 version = '0.1.0'
 license = "Apache 2.0"
 homepage = "https://phala.network/"
@@ -10,6 +10,7 @@ repository = "https://github.com/Phala-Network/phala-blockchain"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
+log = { version = "0.4.14", default-features = false }
 
 # Substrate
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false }
@@ -30,6 +31,7 @@ default = ["std"]
 std = [
 	"codec/std",
 	"serde",
+    "log/std",
 	"sp-std/std",
 	"sp-runtime/std",
 	"cumulus-primitives-core/std",

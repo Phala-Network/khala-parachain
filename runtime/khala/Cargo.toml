@@ -84,7 +84,7 @@ pallet-bridge = { path = "../../pallets/bridge", default-features = false }
 pallet-bridge-transfer = { path = "../../pallets/bridge_transfer", default-features = false }
 phala-pallets = { path = "../../pallets/phala", default-features = false }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }
-pallet-xcm-transfer = { path = "../../pallets/xcm-transfer", default-features = false }
+xtransfer-pallets = { path = "../../pallets/xcm-transfer", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
@@ -176,5 +176,5 @@ std = [
 	"pallet-bridge-transfer/std",
 	"phala-pallets/std",
 	"pallet-mq-runtime-api/std",
-	"pallet-xcm-transfer/std",
+	"xtransfer-pallets/std",
 ]

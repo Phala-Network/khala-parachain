@@ -3804,7 +3804,6 @@ dependencies = [
  "pallet-utility",
  "pallet-vesting",
  "pallet-xcm",
- "pallet-xcm-transfer",
  "parachains-common",
  "parity-scale-codec",
  "phala-pallets",
@@ -3829,6 +3828,7 @@ dependencies = [
  "xcm",
  "xcm-builder",
  "xcm-executor",
+ "xtransfer-pallets",
 ]
 
 [[package]]
@@ -6054,22 +6054,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "parity-scale-codec",
- "serde",
- "sp-runtime",
- "sp-std",
- "xcm",
- "xcm-executor",
-]
-
-[[package]]
-name = "pallet-xcm-transfer"
-version = "0.1.0"
-dependencies = [
- "cumulus-pallet-xcm",
- "cumulus-primitives-core",
- "frame-support",
- "frame-system",
  "parity-scale-codec",
  "serde",
  "sp-runtime",
@@ -12411,6 +12395,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
+ "log",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "polkadot-parachain",
@@ -12447,6 +12432,23 @@ dependencies = [
  "proc-macro2 1.0.28",
  "quote 1.0.9",
  "syn 1.0.75",
+]
+
+[[package]]
+name = "xtransfer-pallets"
+version = "0.1.0"
+dependencies = [
+ "cumulus-pallet-xcm",
+ "cumulus-primitives-core",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "serde",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+ "xcm-executor",
 ]
 
 [[package]]
