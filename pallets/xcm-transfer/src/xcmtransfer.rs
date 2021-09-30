@@ -3,51 +3,23 @@ pub use self::pallet::*;
 #[allow(unused_variables)]
 #[frame_support::pallet]
 pub mod pallet {
+	use crate::assets as xtransfer_assets;
+	use cumulus_primitives_core::ParaId;
 	use frame_support::{
 		pallet_prelude::*,
-		traits::{Currency, ExistenceRequirement, StorageVersion},
+		traits::{Currency, StorageVersion},
 		weights::Weight,
 	};
 	use frame_system::pallet_prelude::*;
-
-	use cumulus_pallet_xcm::{ensure_sibling_para, Origin as CumulusOrigin};
-	use cumulus_primitives_core::ParaId;
-	use frame_system::Config as SystemConfig;
-	use sp_runtime::traits::{Convert, Saturating};
-	use sp_std::{prelude::*, vec};
-
-	use xcm::{
-		v1::prelude::*, Version as XcmVersion, VersionedMultiAssets, VersionedMultiLocation,
-		VersionedXcm,
+	use sp_std::{convert::TryInto, prelude::*, vec};
+	use xcm::v1::{
+		prelude::*, AssetId::Concrete, Fungibility::Fungible, MultiAsset, MultiLocation,
 	};
-	use xcm_executor::traits::{
-		ConvertOrigin, InvertLocation, VersionChangeNotifier, WeightBounds,
-	};
+	use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 	/// The logging target.
 	const LOG_TARGET: &str = "xcm-transfer";
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
-
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-	pub enum XCMTransferType {
-		/// Transfer reserve asset to other location
-		TransferReserveAsset,
-		/// Transfer assets to its reserve location
-		TransferToReserve,
-		/// Transfer assets to non-reserve location
-		TransferToNonReserve,
-	}
-
-	/// XCM message infos provide for XCM sender and executor
-	/// TODO.wf XCM message lifecycle management
-	pub trait XCMMessageInfo<Call> {
-		/// Return XCM message transfer type.
-		fn kind() -> Option<XCMTransferType>;
-		/// Return generated XCM message, could be executed directly.
-		fn message() -> Option<Xcm<Call>>;
-		/// Return weights would be cost by this XCM message.
-		fn weight() -> Option<Weight>;
-	}
 
 	type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -58,7 +30,7 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + xtransfer_assets::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		type Currency: Currency<Self::AccountId>;
@@ -83,6 +55,9 @@ pub mod pallet {
 
 		/// Means of inverting a location.
 		type LocationInverter: InvertLocation;
+
+		/// ParachainID
+		type ParachainInfo: Get<ParaId>;
 	}
 
 	/// Mapping asset name to corresponding MultiAsset
@@ -94,22 +69,8 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	#[pallet::metadata(T::BlockNumber = "BlockNumber", T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
 	pub enum Event<T: Config> {
-		/// Send PHA to other chains. \[from, paraId, to, amount, outcome\]
-		ReserveAssetSent(
-			T::AccountId,
-			ParaId,
-			T::AccountId,
-			BalanceOf<T>,
-			xcm::v1::Outcome,
-		),
-		/// Received PHA from other chains. \[from, paraId, to, amount\]
-		ReserveAssetReceived(
-			T::AccountId,
-			ParaId,
-			T::AccountId,
-			BalanceOf<T>,
-			xcm::v1::Outcome,
-		),
+		/// Assets sent to parachain or relaychain. \[from, paraId, to, amount\]
+		AssetTransfered(T::AccountId, ParaId, T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -118,6 +79,10 @@ pub mod pallet {
 		CannotReanchor,
 		UnweighableMessage,
 		FeePaymentEmpty,
+		ExecutionFailed,
+		UnknownTransfer,
+		AssetNotFound,
+		AssetNotSupported,
 	}
 
 	#[pallet::call]
@@ -126,136 +91,235 @@ pub mod pallet {
 		T::AccountId: Into<[u8; 32]>,
 		BalanceOf<T>: Into<u128>,
 	{
-		#[pallet::weight(6_000_000_000)]
-		pub fn transfer_reserve(
+		#[pallet::weight(0)]
+		pub fn transfer_by_asset_identity(
 			origin: OriginFor<T>,
+			asset_identity: Vec<u8>,
 			para_id: ParaId,
 			recipient: T::AccountId,
 			amount: BalanceOf<T>,
+			dest_weight: Weight,
+		) -> DispatchResult {
+			// get asset location by identity
+			let asset_info = xtransfer_assets::AssetsIdentityToInfo::<T>::get(&asset_identity)
+				.ok_or(Error::<T>::AssetNotFound)?;
+			let asset_location: MultiLocation = asset_info
+				.try_into()
+				.map_err(|_| Error::<T>::AssetNotSupported)?;
+			let asset: MultiAsset = (asset_location, amount.into()).into();
+
+			Self::do_transfer(origin, asset, para_id, recipient, amount, dest_weight)
+		}
+
+		#[pallet::weight(0)]
+		pub fn transfer_by_asset_id(
+			origin: OriginFor<T>,
+			asset_id: xtransfer_assets::XTransferAssetId,
+			para_id: ParaId,
+			recipient: T::AccountId,
+			amount: BalanceOf<T>,
+			dest_weight: Weight,
+		) -> DispatchResult {
+			// get asset location by asset id
+			let asset_info = xtransfer_assets::AssetIdToInfo::<T>::get(&asset_id)
+				.ok_or(Error::<T>::AssetNotFound)?;
+			let asset_location: MultiLocation = asset_info
+				.try_into()
+				.map_err(|_| Error::<T>::AssetNotSupported)?;
+			let asset: MultiAsset = (asset_location, amount.into()).into();
+
+			Self::do_transfer(origin, asset, para_id, recipient, amount, dest_weight)
+		}
+	}
+
+	impl<T: Config> Pallet<T>
+	where
+		T::AccountId: Into<[u8; 32]>,
+		BalanceOf<T>: Into<u128>,
+	{
+		pub fn do_transfer(
+			origin: OriginFor<T>,
+			asset: MultiAsset,
+			para_id: ParaId,
+			recipient: T::AccountId,
+			amount: BalanceOf<T>,
+			dest_weight: Weight,
 		) -> DispatchResult {
 			sp_runtime::runtime_logger::RuntimeLogger::init();
-			log::error!(
-				target: LOG_TARGET,
-				"Trying to trasnfer reserve to {:?}.",
-				(para_id.clone(), recipient.clone()),
-			);
-			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin.clone())?;
-			let who = ensure_signed(origin)?;
-			let assets: MultiAssets = (Here, amount.into()).into();
-			let max_assets = assets.len() as u32;
-			let dest = MultiLocation {
+
+			let sender = ensure_signed(origin.clone())?;
+			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
+			let dest_location = MultiLocation {
 				parents: 1,
 				interior: X1(Parachain(para_id.into())),
 			};
-			let dest_weight = 6_000_000_000u64.into();
-			let beneficiary: MultiLocation = Junction::AccountId32 {
-				network: NetworkId::Any,
-				id: recipient.clone().into(),
+
+			let xcm_session = XCMSession::<T> {
+				asset,
+				origin_location,
+				dest_location,
+				sender: sender.clone(),
+				recipient: recipient.clone(),
+				dest_weight,
+			};
+			let mut msg = xcm_session.message()?;
+			log::error!(
+				target: LOG_TARGET,
+				"Trying to exectute xcm message {:?}.",
+				msg.clone(),
+			);
+			xcm_session.execute(&mut msg)?;
+
+			Self::deposit_event(Event::AssetTransfered(sender, para_id, recipient, amount));
+
+			Ok(())
+		}
+	}
+	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+	pub enum TransferType {
+		/// Transfer assets that reserved by origin chain
+		FromNative,
+		/// Transfer assets that reserved by dest chain
+		ToReserve,
+		/// Transfer assets that nont  reserved by dest chain
+		ToNonReserve,
+	}
+
+	pub trait MessageHandler<T: Config> {
+		fn message(&self) -> Result<Xcm<T::Call>, DispatchError>;
+		fn execute(&self, message: &mut Xcm<T::Call>) -> DispatchResult;
+	}
+
+	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+	struct XCMSession<T: Config> {
+		asset: MultiAsset,
+		origin_location: MultiLocation,
+		dest_location: MultiLocation,
+		sender: T::AccountId,
+		recipient: T::AccountId,
+		dest_weight: Weight,
+	}
+
+	impl<T: Config> XCMSession<T> {
+		fn reserve(&self) -> Option<MultiLocation> {
+			match (&self.asset.id, &self.asset.fun) {
+				(Concrete(ref id), Fungible(ref amount)) => Some(id.clone()),
+				_ => None,
 			}
-			.into();
+		}
 
-			let value = (origin_location, assets.drain());
-			let (origin_location, assets) = value;
+		fn kind(&self) -> Option<TransferType> {
+			let reserve_locations = [
+				MultiLocation {
+					parents: 0,
+					interior: Here,
+				},
+				MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(T::ParachainInfo::get().into())),
+				},
+			];
+			match self.reserve() {
+				Some(asset_reserve_location) => {
+					if reserve_locations.contains(&asset_reserve_location) {
+						Some(TransferType::FromNative)
+					} else if asset_reserve_location == self.dest_location {
+						Some(TransferType::ToReserve)
+					} else {
+						Some(TransferType::ToNonReserve)
+					}
+				}
+				None => None,
+			}
+		}
+	}
 
-			let inv_dest = T::LocationInverter::invert_location(&dest);
-			let fees = assets
-				.get(0 as usize)
-				.ok_or(Error::<T>::FeePaymentEmpty)?
+	impl<T: Config> MessageHandler<T> for XCMSession<T>
+	where
+		T::AccountId: Into<[u8; 32]>,
+	{
+		fn execute(&self, message: &mut Xcm<T::Call>) -> DispatchResult {
+			let weight =
+				T::Weigher::weight(message).map_err(|()| Error::<T>::UnweighableMessage)?;
+			T::XcmExecutor::execute_xcm_in_credit(
+				self.origin_location.clone(),
+				message.clone(),
+				weight,
+				weight,
+			)
+			.ensure_complete()
+			.map_err(|_| Error::<T>::ExecutionFailed)?;
+			Ok(())
+		}
+
+		fn message(&self) -> Result<Xcm<T::Call>, DispatchError> {
+			let inv_dest = T::LocationInverter::invert_location(&self.dest_location);
+			let fees = self
+				.asset
 				.clone()
 				.reanchored(&inv_dest)
 				.map_err(|_| Error::<T>::CannotReanchor)?;
-			let assets = assets.into();
-			let mut message = Xcm::TransferReserveAsset {
-				assets,
-				dest,
-				effects: vec![
-					BuyExecution {
-						fees,
-						// Zero weight for additional instructions/orders (since there are none to execute)
-						weight: 0,
-						debt: dest_weight, // covers this, `TransferReserveAsset` xcm, and `DepositAsset` order.
-						halt_on_error: false,
-						instructions: vec![],
-					},
-					DepositAsset {
-						assets: Wild(All),
-						max_assets,
-						beneficiary: beneficiary.into(),
-					},
-				],
+			let beneficiary: MultiLocation = Junction::AccountId32 {
+				network: NetworkId::Any,
+				id: self.recipient.clone().into(),
+			}
+			.into();
+
+			let buy_execution = BuyExecution {
+				fees,
+				// Zero weight for additional instructions/orders (since there are none to execute)
+				weight: 0,
+				debt: self.dest_weight, // covers this, `TransferReserveAsset` xcm, and `DepositAsset` order.
+				halt_on_error: false,
+				instructions: vec![],
 			};
-			log::error!(
-				target: LOG_TARGET,
-				"Generated reserve token transfer message {:?}.",
-				message.clone(),
-			);
-			let weight =
-				T::Weigher::weight(&mut message).map_err(|()| Error::<T>::UnweighableMessage)?;
-			let outcome =
-				T::XcmExecutor::execute_xcm_in_credit(origin_location, message, weight, weight);
 
-			Self::deposit_event(Event::ReserveAssetSent(
-				who, para_id, recipient, amount, outcome,
-			));
+			let deposit_asset = DepositAsset {
+				assets: Wild(All),
+				max_assets: 1u32,
+				beneficiary: beneficiary.into(),
+			};
 
-			Ok(())
+			let kind = self.kind().ok_or(Error::<T>::UnknownTransfer)?;
+			log::error!(target: LOG_TARGET, "Transfer type is {:?}.", kind.clone(),);
+			let message = match kind {
+				TransferType::FromNative => Xcm::TransferReserveAsset {
+					assets: self.asset.clone().into(),
+					dest: self.dest_location.clone(),
+					effects: vec![buy_execution.clone(), deposit_asset],
+				},
+				TransferType::ToReserve => {
+					let asset_reserve_location = self.dest_location.clone();
+					WithdrawAsset {
+						assets: self.asset.clone().into(),
+						effects: vec![InitiateReserveWithdraw {
+							assets: self.asset.clone().into(),
+							reserve: asset_reserve_location,
+							effects: vec![buy_execution, deposit_asset],
+						}],
+					}
+				}
+				TransferType::ToNonReserve => {
+					let asset_reserve_location = self.reserve().unwrap();
+					WithdrawAsset {
+						assets: self.asset.clone().into(),
+						effects: vec![InitiateReserveWithdraw {
+							assets: self.asset.clone().into(),
+							reserve: asset_reserve_location,
+							effects: vec![
+								buy_execution.clone(),
+								DepositReserveAsset {
+									assets: self.asset.clone().into(),
+									max_assets: 1u32,
+									dest: self.dest_location.clone(),
+									effects: vec![buy_execution, deposit_asset],
+								},
+							],
+						}],
+					}
+				}
+			};
+			Ok(message)
 		}
-
-		#[pallet::weight(0)]
-		pub fn transfer(
-			origin: OriginFor<T>,
-			name: Vec<u8>,
-			para_id: ParaId,
-			recipient: T::AccountId,
-			amount: BalanceOf<T>,
-		) -> DispatchResult {
-			// TODO.wf
-			Ok(())
-		}
-
-		#[pallet::weight(0)]
-		pub fn register(origin: OriginFor<T>, name: Vec<u8>, asset: MultiAsset) -> DispatchResult {
-			// TODO.wf
-			Ok(())
-		}
-	}
-
-	impl<T: Config> Pallet<T> {
-		pub fn create_message(
-			from: T::AccountId,
-			name: Vec<u8>,
-			para_id: ParaId,
-			recipient: T::AccountId,
-			amount: BalanceOf<T>,
-		) -> Option<XCMMessage<T::AccountId, T::Call>> {
-			// TODO.wf
-			None
-		}
-	}
-
-	impl<AccountId, Call> XCMMessageInfo<Call> for XCMMessage<AccountId, Call> {
-		fn kind() -> Option<XCMTransferType> {
-			// TODO.wf
-			None
-		}
-
-		fn message() -> Option<Xcm<Call>> {
-			// TODO.wf
-			None
-		}
-
-		fn weight() -> Option<Weight> {
-			// TODO.wf
-			None
-		}
-	}
-
-	/// Instance of a XCM message.
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-	pub struct XCMMessage<AccountId, Call> {
-		from: AccountId,
-		asset: MultiAsset,
-		dest: MultiLocation,
-		message: Option<Xcm<Call>>,
 	}
 }

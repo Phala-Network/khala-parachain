@@ -42,6 +42,14 @@ pub mod pallet {
 		pub asset_id: XTransferAssetId,
 	}
 
+	impl TryInto<MultiLocation> for AssetInfo {
+		type Error = ();
+		fn try_into(self) -> Result<MultiLocation, Self::Error> {
+			// TODO: return error if asset comes from a solo chain(e.g. bridge assets)
+			Ok(self.asset_location)
+		}
+	}
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -110,7 +118,15 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn xtransfer_assets)]
-	pub type XTransferAssets<T: Config> = StorageMap<_, Blake2_256, MultiLocation, AssetInfo>;
+	pub type AssetLocationToInfo<T: Config> = StorageMap<_, Blake2_256, MultiLocation, AssetInfo>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn assetidentity_to_into)]
+	pub type AssetsIdentityToInfo<T: Config> = StorageMap<_, Blake2_256, Vec<u8>, AssetInfo>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn assetid_to_info)]
+	pub type AssetIdToInfo<T: Config> = StorageMap<_, Blake2_256, XTransferAssetId, AssetInfo>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn xtransfer_balances)]
@@ -130,17 +146,24 @@ pub mod pallet {
 			// TODO. Properly way to generate an asset id.
 			let asset_id = [0; 32];
 			ensure!(
-				!XTransferAssets::<T>::contains_key(&asset_location),
+				!AssetLocationToInfo::<T>::contains_key(&asset_location),
 				Error::<T>::AssetIdInUsed
 			);
-			XTransferAssets::<T>::insert(
-				&asset_location,
-				AssetInfo {
-					asset_location: asset_location.clone(),
-					asset_identity: asset_identity.clone(),
-					asset_id: asset_id.clone(),
-				},
+			ensure!(
+				!AssetsIdentityToInfo::<T>::contains_key(&asset_identity),
+				Error::<T>::AssetIdInUsed
 			);
+
+			let asset_info = AssetInfo {
+				asset_location: asset_location.clone(),
+				asset_identity: asset_identity.clone(),
+				asset_id: asset_id.clone(),
+			};
+
+			AssetLocationToInfo::<T>::insert(&asset_location, &asset_info);
+			AssetsIdentityToInfo::<T>::insert(&asset_identity, &asset_info);
+			AssetIdToInfo::<T>::insert(&asset_id, &asset_info);
+
 			Self::deposit_event(Event::AssetRegistered(
 				asset_location,
 				asset_identity,
@@ -305,7 +328,7 @@ pub mod pallet {
 			if *a == MultiLocation::here() {
 				true
 			} else {
-				XTransferAssets::<T>::contains_key(&a)
+				AssetLocationToInfo::<T>::contains_key(&a)
 			}
 		}
 	}

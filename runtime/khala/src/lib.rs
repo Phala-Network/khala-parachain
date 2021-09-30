@@ -790,7 +790,8 @@ impl pallet_xcm_transfer::Config for Runtime {
 	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
-	type LocationInverter = LocationInverter<Ancestry>;
+    type LocationInverter = LocationInverter<Ancestry>;
+    type ParachainInfo = ParachainInfo;
 }
 
 impl pallet_xtransfer_assets::Config for Runtime {
