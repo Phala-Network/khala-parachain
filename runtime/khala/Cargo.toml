@@ -34,6 +34,7 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "polk
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false }
 frame-system-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", optional = true, default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", optional = true, default-features = false }
+frame-try-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.10" }
 
 pallet-aura = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false }
 pallet-authorship = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false }
@@ -128,6 +129,7 @@ std = [
 	"frame-executive/std",
 	"frame-system/std",
 	"frame-system-rpc-runtime-api/std",
+	"frame-try-runtime/std",
 	"cumulus-pallet-parachain-system/std",
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-primitives-core/std",
@@ -163,4 +165,36 @@ std = [
 	"pallet-bridge-transfer/std",
 	"phala-pallets/std",
 	"pallet-mq-runtime-api/std"
+]
+
+try-runtime = [
+	"frame-executive/try-runtime",
+	"frame-system/try-runtime",
+	"frame-try-runtime",
+	"pallet-aura/try-runtime",
+	"pallet-authorship/try-runtime",
+	"pallet-session/try-runtime",
+	"pallet-balances/try-runtime",
+	"pallet-randomness-collective-flip/try-runtime",
+	"pallet-timestamp/try-runtime",
+	"pallet-sudo/try-runtime",
+	"pallet-transaction-payment/try-runtime",
+	# "pallet-transaction-payment-rpc-runtime-api/try-runtime",
+	"pallet-utility/try-runtime",
+	"pallet-multisig/try-runtime",
+	"pallet-proxy/try-runtime",
+	"pallet-scheduler/try-runtime",
+	"pallet-collective/try-runtime",
+	"pallet-membership/try-runtime",
+	"pallet-treasury/try-runtime",
+	"pallet-bounties/try-runtime",
+	"pallet-lottery/try-runtime",
+	"pallet-vesting/try-runtime",
+	"pallet-identity/try-runtime",
+	"pallet-democracy/try-runtime",
+	"pallet-elections-phragmen/try-runtime",
+	# "pallet-collator-selection/try-runtime",
+	"pallet-tips/try-runtime",
+	# "pallet-parachain-info/try-runtime",
+    "phala-pallets/try-runtime",
 ]
