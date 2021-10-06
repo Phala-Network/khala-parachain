@@ -251,8 +251,7 @@ impl Contains<Call> for BaseCallFilter {
             // Parachain
             Call::ParachainSystem(_) |
             // Monetary
-            // TODO: We disable transfer at launch
-            // Call::Balances(_) |
+            Call::Balances(_) |
             Call::ChainBridge(_) |
             // TODO: We disable Khala -> ETH bridge at launch
             Call::BridgeTransfer(pallet_bridge_transfer::Call::transfer(..)) |
