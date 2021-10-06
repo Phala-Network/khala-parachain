@@ -67,6 +67,8 @@ sp-session = { git = "https://github.com/paritytech/substrate", branch = "polkad
 sp-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
 
+try-runtime-cli = { git = "https://github.com/paritytech/substrate", optional = true , branch = "polkadot-v0.9.10" }
+
 cumulus-client-cli = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.10" }
 cumulus-client-consensus-aura = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.10" }
 cumulus-client-consensus-relay-chain = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.10" }
@@ -89,8 +91,12 @@ khala-parachain-runtime = { path = "../runtime/khala" }
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
 
 [features]
-default = []
+default = [
+	"try-runtime-cli",
+	"try-runtime",
+]
 runtime-benchmarks = [
 	"polkadot-service/runtime-benchmarks",
 	"khala-parachain-runtime/runtime-benchmarks",
 ]
+try-runtime = [ "khala-parachain-runtime/try-runtime" ]

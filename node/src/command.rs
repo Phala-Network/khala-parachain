@@ -37,7 +37,8 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     let (norm_id, para_id) = extract_parachain_id(id);
     info!(
         "Loading spec: {}, custom parachain-id = {:?}",
-        norm_id, para_id.unwrap_or(ParaId::new(0)).to_string()
+        norm_id,
+        para_id.unwrap_or(ParaId::new(0)).to_string()
     );
     Ok(match norm_id {
         "khala-dev" => Box::new(chain_spec::khala_development_config(
@@ -300,6 +301,33 @@ pub fn run() -> Result<()> {
                     .into())
             }
         }
+        #[cfg(feature = "try-runtime")]
+        Some(Subcommand::TryRuntime(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
+            use sc_service::TaskManager;
+            let registry = &runner
+                .config()
+                .prometheus_config
+                .as_ref()
+                .map(|cfg| &cfg.registry);
+            let task_manager =
+                TaskManager::new(runner.config().task_executor.clone(), *registry)
+                    .map_err(|e| sc_cli::Error::Service(sc_service::Error::Prometheus(e)))?;
+
+            runner.async_run(|config| {
+                Ok((
+                    cmd.run::<khala_parachain_runtime::Block, KhalaParachainRuntimeExecutor>(
+                        config,
+                    ),
+                    task_manager,
+                ))
+            })
+        }
+        #[cfg(not(feature = "try-runtime"))]
+        Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
+				You can enable it with `--features try-runtime`."
+            .into())
+        .into(),
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
 
@@ -345,14 +373,10 @@ pub fn run() -> Result<()> {
                     }
                 );
 
-                crate::service::start_khala_parachain_node(
-                    config,
-                    polkadot_config,
-                    id
-                )
-                .await
-                .map(|r| r.0)
-                .map_err(Into::into)
+                crate::service::start_khala_parachain_node(config, polkadot_config, id)
+                    .await
+                    .map(|r| r.0)
+                    .map_err(Into::into)
             })
         }
     }
