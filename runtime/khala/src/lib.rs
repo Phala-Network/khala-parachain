@@ -449,7 +449,7 @@ impl InstanceFilter<Call> for ProxyType {
                 Call::PhalaStakePool(pallet_stakepool::Call::remove_worker(..)) |
                 Call::PhalaStakePool(pallet_stakepool::Call::start_mining(..)) |
                 Call::PhalaStakePool(pallet_stakepool::Call::stop_mining(..)) |
-                Call::PhalaStakePool(pallet_stakepool::Call::relcaim_pool_worker(..)) |
+                Call::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker(..)) |
                 Call::PhalaStakePool(pallet_stakepool::Call::create(..)) |
                 Call::PhalaRegistry(pallet_registry::Call::register_worker(..)) |
                 Call::PhalaMq(pallet_mq::Call::sync_offchain_message(..))
@@ -1021,7 +1021,6 @@ impl pallet_mining::Config for Runtime {
     type Randomness = RandomnessCollectiveFlip;
     type OnReward = PhalaStakePool;
     type OnUnbound = PhalaStakePool;
-    type OnReclaim = PhalaStakePool;
     type OnStopped = PhalaStakePool;
     type OnTreasurySettled = Treasury;
     type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
@@ -1035,6 +1034,7 @@ impl pallet_stakepool::Config for Runtime {
     type MaxPoolWorkers = MaxPoolWorkers;
     type OnSlashed = Treasury;
     type MiningSwitchOrigin = EnsureRootOrHalfCouncil;
+    type BackfillOrigin = EnsureRootOrHalfCouncil;
 }
 
 impl_runtime_apis! {
