@@ -179,7 +179,6 @@ try-runtime = [
 	"pallet-timestamp/try-runtime",
 	"pallet-sudo/try-runtime",
 	"pallet-transaction-payment/try-runtime",
-	# "pallet-transaction-payment-rpc-runtime-api/try-runtime",
 	"pallet-utility/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-proxy/try-runtime",
@@ -193,8 +192,6 @@ try-runtime = [
 	"pallet-identity/try-runtime",
 	"pallet-democracy/try-runtime",
 	"pallet-elections-phragmen/try-runtime",
-	# "pallet-collator-selection/try-runtime",
 	"pallet-tips/try-runtime",
-	# "pallet-parachain-info/try-runtime",
-    "phala-pallets/try-runtime",
+ 	"phala-pallets/try-runtime",
 ]
