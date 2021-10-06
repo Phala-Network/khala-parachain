@@ -90,7 +90,6 @@ pub use parachains_common::*;
 
 pub use phala_pallets::{
     pallet_mq,
-    pallet_ott,
     pallet_registry,
     pallet_mining,
     pallet_stakepool,
@@ -231,9 +230,8 @@ construct_runtime! {
 
         // `sudo` has been removed on production
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
-        // TODO: Remove when we enable transfer
-        // TODO: We should do a migration to cleanup storage after we remove it
-        PhalaOneshotTransfer: pallet_ott::{Pallet, Call, Event<T>, Storage} = 100,
+        // `OTT` has been removed, the index should be kept
+        // PhalaOneshotTransfer: pallet_ott::{Pallet, Call, Event<T>, Storage} = 100,
     }
 }
 
@@ -253,8 +251,7 @@ impl Contains<Call> for BaseCallFilter {
             // Parachain
             Call::ParachainSystem(_) |
             // Monetary
-            // TODO: We disable transfer at launch
-            // Call::Balances(_) |
+            Call::Balances(_) |
             Call::ChainBridge(_) |
             // TODO: We disable Khala -> ETH bridge at launch
             Call::BridgeTransfer(pallet_bridge_transfer::Call::transfer(..)) |
@@ -266,7 +263,6 @@ impl Contains<Call> for BaseCallFilter {
             Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
             Call::Bounties(_) | Call::Lottery(_) | Call::Tips(..) |
             // Phala
-            Call::PhalaOneshotTransfer(_) | // TODO: Remove when we enable balance transfer
             Call::PhalaMq(_) | Call::PhalaRegistry(_) |
             Call::PhalaMining(_) | Call::PhalaStakePool(_)
         )
@@ -1039,10 +1035,6 @@ impl pallet_stakepool::Config for Runtime {
     type MaxPoolWorkers = MaxPoolWorkers;
     type OnSlashed = Treasury;
     type MiningSwitchOrigin = EnsureRootOrHalfCouncil;
-}
-impl pallet_ott::Config for Runtime {
-    type Event = Event;
-    type Currency = Balances;
 }
 
 impl_runtime_apis! {
