@@ -245,9 +245,7 @@ impl Contains<Call> for BaseCallFilter {
             // System
             Call::System(_) | Call::Timestamp(_) | Call::Utility(_) |
             Call::Multisig(_) | Call::Proxy(_) | Call::Scheduler(_) |
-            Call::Vesting(pallet_vesting::Call::vest()) |
-            Call::Vesting(pallet_vesting::Call::vest_other(_)) |
-            // TODO: We will enable other vesting features after we enabled transfer
+            Call::Vesting(_) |
             // Parachain
             Call::ParachainSystem(_) |
             // Monetary
