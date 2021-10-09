@@ -11,6 +11,7 @@ pub mod pallet {
 		weights::Weight,
 	};
 	use frame_system::pallet_prelude::*;
+	use sp_runtime::{traits::Zero, DispatchError};
 	use sp_std::{convert::TryInto, prelude::*, vec};
 	use xcm::v1::{
 		prelude::*, AssetId::Concrete, Fungibility::Fungible, MultiAsset, MultiLocation,
@@ -232,6 +233,47 @@ pub mod pallet {
 				None => None,
 			}
 		}
+
+		fn buy_execution_on(&self, location: &MultiLocation) -> Result<Order<()>, DispatchError> {
+			let inv_dest = T::LocationInverter::invert_location(location);
+			let fee_asset: MultiAsset = match self.asset.fun {
+				// so far only half of amount are allowed to be used as fee
+				Fungible(amount) => MultiAsset {
+					fun: Fungible(amount.checked_div(2).expect("div can't overflow; qed")),
+					id: self.asset.id.clone(),
+				},
+				_ => MultiAsset {
+					fun: Fungible(Zero::zero()),
+					id: self.asset.id.clone(),
+				},
+			};
+			let fees = fee_asset
+				.reanchored(&inv_dest)
+				.map_err(|_| Error::<T>::CannotReanchor)?;
+
+			Ok(BuyExecution {
+				fees,
+				weight: 0,
+				debt: self.dest_weight,
+				halt_on_error: false,
+				instructions: vec![],
+			})
+		}
+
+		fn invert_based_reserve(
+			&self,
+			reserve: MultiLocation,
+			location: MultiLocation,
+		) -> MultiLocation {
+			if reserve == MultiLocation::parent() {
+				MultiLocation {
+					parents: 0,
+					interior: location.interior().clone(),
+				}
+			} else {
+				location
+			}
+		}
 	}
 
 	impl<T: Config> MessageHandler<T> for XCMSession<T>
@@ -253,26 +295,11 @@ pub mod pallet {
 		}
 
 		fn message(&self) -> Result<Xcm<T::Call>, DispatchError> {
-			let inv_dest = T::LocationInverter::invert_location(&self.dest_location);
-			let fees = self
-				.asset
-				.clone()
-				.reanchored(&inv_dest)
-				.map_err(|_| Error::<T>::CannotReanchor)?;
 			let beneficiary: MultiLocation = Junction::AccountId32 {
 				network: NetworkId::Any,
 				id: self.recipient.clone().into(),
 			}
 			.into();
-
-			let buy_execution = BuyExecution {
-				fees,
-				// Zero weight for additional instructions/orders (since there are none to execute)
-				weight: 0,
-				debt: self.dest_weight, // covers this, `TransferReserveAsset` xcm, and `DepositAsset` order.
-				halt_on_error: false,
-				instructions: vec![],
-			};
 
 			let deposit_asset = DepositAsset {
 				assets: Wild(All),
@@ -286,16 +313,19 @@ pub mod pallet {
 				TransferType::FromNative => Xcm::TransferReserveAsset {
 					assets: self.asset.clone().into(),
 					dest: self.dest_location.clone(),
-					effects: vec![buy_execution.clone(), deposit_asset],
+					effects: vec![self.buy_execution_on(&self.dest_location)?, deposit_asset],
 				},
 				TransferType::ToReserve => {
 					let asset_reserve_location = self.dest_location.clone();
 					WithdrawAsset {
 						assets: self.asset.clone().into(),
 						effects: vec![InitiateReserveWithdraw {
-							assets: self.asset.clone().into(),
+							assets: Wild(All),
 							reserve: asset_reserve_location,
-							effects: vec![buy_execution, deposit_asset],
+							effects: vec![
+								self.buy_execution_on(&self.dest_location)?,
+								deposit_asset,
+							],
 						}],
 					}
 				}
@@ -304,15 +334,21 @@ pub mod pallet {
 					WithdrawAsset {
 						assets: self.asset.clone().into(),
 						effects: vec![InitiateReserveWithdraw {
-							assets: self.asset.clone().into(),
-							reserve: asset_reserve_location,
+							assets: Wild(All),
+							reserve: asset_reserve_location.clone(),
 							effects: vec![
-								buy_execution.clone(),
+								self.buy_execution_on(&asset_reserve_location)?,
 								DepositReserveAsset {
-									assets: self.asset.clone().into(),
+									assets: Wild(All),
 									max_assets: 1u32,
-									dest: self.dest_location.clone(),
-									effects: vec![buy_execution, deposit_asset],
+									dest: self.invert_based_reserve(
+										asset_reserve_location.clone(),
+										self.dest_location.clone(),
+									),
+									effects: vec![
+										self.buy_execution_on(&self.dest_location)?,
+										deposit_asset,
+									],
 								},
 							],
 						}],

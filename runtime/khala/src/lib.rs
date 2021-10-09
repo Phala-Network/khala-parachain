@@ -681,7 +681,9 @@ parameter_types! {
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 	pub const LocalLocation: MultiLocation = Here.into();
-	pub const FeeAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2004)) };
+    pub const DOTAsFee: MultiLocation = MultiLocation { parents: 1, interior: Here };
+	pub const PHA2004AsFee: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2004)) };
+	pub const PHA2005AsFee: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2005)) };
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -747,7 +749,11 @@ impl Config for XcmConfig {
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
-	type Trader = UsingComponents<IdentityFee<Balance>, FeeAssetId, AccountId, Balances, ()>;
+	type Trader = (
+        UsingComponents<IdentityFee<Balance>, DOTAsFee, AccountId, Balances, ()>,
+        UsingComponents<IdentityFee<Balance>, PHA2004AsFee, AccountId, Balances, ()>,
+        UsingComponents<IdentityFee<Balance>, PHA2005AsFee, AccountId, Balances, ()>,
+    );
 	type ResponseHandler = ();
 	type SubscriptionService = ();
 }
