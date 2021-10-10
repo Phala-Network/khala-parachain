@@ -389,7 +389,7 @@ pub mod pallet {
 					Self::deposit_event(Event::ItemCompleted);
 				}
 			}
-			if error_indexes.len() > 1 {
+			if error_indexes.len() > 0 {
 				Self::deposit_event(Event::BatchCompletedWithErrors(error_indexes));
 			} else {
 				Self::deposit_event(Event::BatchCompleted);

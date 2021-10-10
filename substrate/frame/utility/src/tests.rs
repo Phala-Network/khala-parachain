@@ -614,6 +614,27 @@ fn batch_try_works() {
 		);
 		assert_eq!(Balances::free_balance(1), 0);
 		assert_eq!(Balances::free_balance(2), 20);
+
+		assert_ok!(Utility::batch_try(
+			Origin::signed(2),
+			vec![
+				Call::Balances(BalancesCall::transfer(1, 5)),
+				Call::Balances(BalancesCall::transfer(1, 5)),
+			]
+		),);
+		System::assert_last_event(
+			utility::Event::BatchCompleted.into(),
+		);
+
+		assert_ok!(Utility::batch_try(
+			Origin::signed(1),
+			vec![
+				Call::Balances(BalancesCall::transfer(2, 50)),
+			]
+		),);
+		System::assert_last_event(
+			utility::Event::BatchCompletedWithErrors(vec![0]).into(),
+		);
 	});
 }
 
