@@ -251,8 +251,7 @@ impl Contains<Call> for BaseCallFilter {
             // Monetary
             Call::Balances(_) |
             Call::ChainBridge(_) |
-            // TODO: We disable Khala -> ETH bridge at launch
-            Call::BridgeTransfer(pallet_bridge_transfer::Call::transfer(..)) |
+            Call::BridgeTransfer(_) |
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // Governance
