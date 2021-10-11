@@ -8,3 +8,6 @@ pub mod xcmtransfer;
 pub use assets as pallet_xtransfer_assets;
 pub use matcher as xtransfer_matcher;
 pub use xcmtransfer as pallet_xcm_transfer;
+
+#[cfg(test)]
+mod mock;

@@ -174,6 +174,10 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		pub fn free_balance(asset: &MultiLocation, who: &T::AccountId) -> BalanceOf<T> {
+			XTransferBalances::<T>::get(asset, who).unwrap_or_default()
+		}
+
 		/// Deposit specific amount assets into recipient account.
 		///
 		/// DO NOT guarantee asset was registered
@@ -331,5 +335,58 @@ pub mod pallet {
 				AssetLocationToInfo::<T>::contains_key(&a)
 			}
 		}
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use cumulus_primitives_core::ParaId;
+	use frame_support::{assert_err, assert_noop, assert_ok, traits::Currency};
+	use polkadot_parachain::primitives::{AccountIdConversion, Sibling};
+	use sp_runtime::AccountId32;
+	use xcm::v1::{
+		AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset, MultiLocation,
+		Result as XcmResult,
+	};
+	use xcm_simulator::TestExt;
+
+	use super::*;
+	use crate::mock::{
+		para::Origin, para::Runtime as Test, para_event_exists, para_ext, XTransferAssets,
+	};
+
+	#[test]
+	fn test_register_asset() {
+		para_ext(2004).execute_with(|| {
+			assert_ok!(XTransferAssets::register_asset(
+				Origin::root(),
+				b"PHA-2004".to_vec(),
+				MultiLocation::here(),
+			));
+
+			para_event_exists(Event::AssetRegistered(
+				MultiLocation::here(),
+				b"PHA-2004".to_vec(),
+				[0; 32],
+			));
+
+			assert_noop!(
+				XTransferAssets::register_asset(
+					Origin::root(),
+					b"PHA-2004".to_vec(),
+					MultiLocation::parent(),
+				),
+				Error::<Test>::AssetIdInUsed
+			);
+
+			assert_noop!(
+				XTransferAssets::register_asset(
+					Origin::root(),
+					b"PHA-2005".to_vec(),
+					MultiLocation::here(),
+				),
+				Error::<Test>::AssetIdInUsed
+			);
+		});
 	}
 }

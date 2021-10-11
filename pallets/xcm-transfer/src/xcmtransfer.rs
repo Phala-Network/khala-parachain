@@ -359,3 +359,192 @@ pub mod pallet {
 		}
 	}
 }
+
+#[cfg(test)]
+mod test {
+	use cumulus_primitives_core::ParaId;
+	use frame_support::{assert_err, assert_noop, assert_ok, traits::Currency};
+	use polkadot_parachain::primitives::Sibling;
+	use sp_runtime::traits::AccountIdConversion;
+	use sp_runtime::AccountId32;
+
+	use xcm::v1::{
+		prelude::*, AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset,
+		MultiLocation, Result as XcmResult,
+	};
+	use xcm_simulator::TestExt;
+
+	use super::*;
+	use crate::mock::{
+		para::Origin as ParaOrigin, para_event_exists, para_ext, relay::Origin as RelayOrigin,
+		relay_ext, ParaA, ParaB, ParaBalances, ParaC, Relay, RelayBalances, TestNet,
+		XTransferAssets, XcmTransfer, ALICE, BOB,
+	};
+
+	fn para_a_account() -> AccountId32 {
+		ParaId::from(1).into_account()
+	}
+
+	fn para_b_account() -> AccountId32 {
+		ParaId::from(2).into_account()
+	}
+
+	fn sibling_a_account() -> AccountId32 {
+		use sp_runtime::traits::AccountIdConversion;
+		Sibling::from(1).into_account()
+	}
+
+	fn sibling_b_account() -> AccountId32 {
+		use sp_runtime::traits::AccountIdConversion;
+		Sibling::from(2).into_account()
+	}
+
+	fn sibling_c_account() -> AccountId32 {
+		use sp_runtime::traits::AccountIdConversion;
+		Sibling::from(3).into_account()
+	}
+
+	#[test]
+	fn test_transfer_native_to_parachain() {
+		TestNet::reset();
+
+		ParaA::execute_with(|| {
+			// ParaA register it's own native asset
+			assert_ok!(XTransferAssets::register_asset(
+				ParaOrigin::root(),
+				b"ParaA Native Asset".to_vec(),
+				MultiLocation {
+					parents: 0,
+					interior: Here,
+				},
+			));
+		});
+
+		ParaB::execute_with(|| {
+			// ParaB register native asset of paraA
+			assert_ok!(XTransferAssets::register_asset(
+				ParaOrigin::root(),
+				b"ParaA Native Asset".to_vec(),
+				MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(1u32.into())),
+				},
+			));
+		});
+
+		ParaA::execute_with(|| {
+			// ParaA send it's own native asset to paraB
+			assert_ok!(XcmTransfer::transfer_by_asset_identity(
+				Some(ALICE).into(),
+				b"ParaA Native Asset".to_vec(),
+				2u32.into(),
+				BOB,
+				10,
+				1,
+			));
+
+			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10);
+		});
+
+		ParaB::execute_with(|| {
+			assert_eq!(
+				XTransferAssets::free_balance(
+					&MultiLocation {
+						parents: 1,
+						interior: X1(Parachain(1u32.into())),
+					},
+					&BOB
+				),
+				10 - 1
+			);
+		});
+	}
+
+	#[test]
+	fn test_transfer_to_resolve_parachain() {
+		TestNet::reset();
+
+		ParaA::execute_with(|| {
+			// ParaA register it's own native asset
+			assert_ok!(XTransferAssets::register_asset(
+				ParaOrigin::root(),
+				b"ParaA Native Asset".to_vec(),
+				MultiLocation {
+					parents: 0,
+					interior: Here,
+				},
+			));
+		});
+
+		ParaB::execute_with(|| {
+			// ParaB register native asset of paraA
+			assert_ok!(XTransferAssets::register_asset(
+				ParaOrigin::root(),
+				b"ParaA Native Asset".to_vec(),
+				MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(1u32.into())),
+				},
+			));
+		});
+
+		ParaA::execute_with(|| {
+			// ParaA send it's own native asset to paraB
+			assert_ok!(XcmTransfer::transfer_by_asset_identity(
+				Some(ALICE).into(),
+				b"ParaA Native Asset".to_vec(),
+				2u32.into(),
+				BOB,
+				10,
+				1,
+			));
+
+			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10);
+		});
+
+		ParaB::execute_with(|| {
+			assert_eq!(
+				XTransferAssets::free_balance(
+					&MultiLocation {
+						parents: 1,
+						interior: X1(Parachain(1u32.into())),
+					},
+					&BOB
+				),
+				10 - 1
+			);
+		});
+
+		// now, let's transfer back to paraA
+		ParaB::execute_with(|| {
+			// ParaB send back ParaA's native asset
+			assert_ok!(XcmTransfer::transfer_by_asset_identity(
+				Some(BOB).into(),
+				b"ParaA Native Asset".to_vec(),
+				1u32.into(),
+				ALICE,
+				5,
+				1,
+			));
+
+			assert_eq!(
+				XTransferAssets::free_balance(
+					&MultiLocation {
+						parents: 1,
+						interior: X1(Parachain(1u32.into())),
+					},
+					&BOB
+				),
+				9 - 5
+			);
+		});
+
+		// FIXME
+		// ParaA::execute_with(|| {
+		// 	assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10 + 4);
+		// });
+	}
+
+	#[test]
+	fn test_transfer_to_unresolve_parachain() {}
+}
