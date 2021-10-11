@@ -256,9 +256,9 @@ impl Contains<Call> for BaseCallFilter {
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // Governance
             Call::Identity(_) | Call::Treasury(_) |
-            Call::Democracy(_) | Call::PhragmenElection(..) |
+            Call::Democracy(_) | Call::PhragmenElection { .. } |
             Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
-            Call::Bounties(_) | Call::Lottery(_) | Call::Tips(..) |
+            Call::Bounties(_) | Call::Lottery(_) | Call::Tips { .. } |
             // Phala
             Call::PhalaMq(_) | Call::PhalaRegistry(_) |
             Call::PhalaMining(_) | Call::PhalaStakePool(_)
@@ -370,7 +370,10 @@ parameter_types! {
 }
 
 /// The type used to represent the kinds of proxying allowed.
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen,
+    scale_info::TypeInfo,
+)]
 pub enum ProxyType {
     /// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
     Any,
@@ -397,59 +400,59 @@ impl InstanceFilter<Call> for ProxyType {
             ProxyType::Any => true,
             ProxyType::NonTransfer => matches!(
                 c,
-                Call::System(..) |
-                Call::Timestamp(..) |
-                Call::Session(..) |
-                Call::Democracy(..) |
-                Call::Council(..) |
-                Call::PhragmenElection(..) |
-                Call::TechnicalCommittee(..) |
-                Call::TechnicalMembership(..) |
-                Call::Treasury(..) |
-                Call::Bounties(..) |
-                Call::Tips(..) |
-                Call::Utility(..) |
-                Call::Identity(..) |
-                Call::Vesting(pallet_vesting::Call::vest(..)) |
-                Call::Vesting(pallet_vesting::Call::vest_other(..)) |
-                Call::Scheduler(..) |
-                Call::Proxy(..) |
-                Call::Multisig(..)
+                Call::System { .. } |
+                Call::Timestamp { .. } |
+                Call::Session { .. } |
+                Call::Democracy { .. } |
+                Call::Council { .. } |
+                Call::PhragmenElection { .. } |
+                Call::TechnicalCommittee { .. } |
+                Call::TechnicalMembership { .. } |
+                Call::Treasury { .. } |
+                Call::Bounties { .. } |
+                Call::Tips { .. } |
+                Call::Utility { .. } |
+                Call::Identity { .. } |
+                Call::Vesting(pallet_vesting::Call::vest { .. }) |
+                Call::Vesting(pallet_vesting::Call::vest_other { .. }) |
+                Call::Scheduler { .. } |
+                Call::Proxy { .. } |
+                Call::Multisig { .. }
             ),
             ProxyType::CancelProxy => matches!(
                 c,
-                Call::Proxy(pallet_proxy::Call::reject_announcement(..)) |
-                Call::Utility(..) |
-                Call::Multisig(..)
+                Call::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
+                Call::Utility { .. } |
+                Call::Multisig { .. }
             ),
             ProxyType::Governance => matches!(
                 c,
-                Call::Democracy(..) |
-                Call::PhragmenElection(..) |
-                Call::Council(..) |
-                Call::TechnicalCommittee(..) |
-                Call::Treasury(..) |
-                Call::Utility(..) |
-                Call::Bounties(..) |
-                Call::Tips(..) |
-                Call::Lottery(..)
+                Call::Democracy { .. } |
+                Call::PhragmenElection { .. } |
+                Call::Council { .. } |
+                Call::TechnicalCommittee { .. } |
+                Call::Treasury { .. } |
+                Call::Utility { .. } |
+                Call::Bounties { .. } |
+                Call::Tips { .. } |
+                Call::Lottery { .. }
             ),
             ProxyType::Collator => matches!(
                 c,
-                Call::CollatorSelection(..) |
-                Call::Utility(..) |
-                Call::Multisig(..)
+                Call::CollatorSelection { .. } |
+                Call::Utility { .. } |
+                Call::Multisig { .. }
             ),
             ProxyType::StakePoolManager => matches!(
                 c,
-                Call::PhalaStakePool(pallet_stakepool::Call::add_worker(..)) |
-                Call::PhalaStakePool(pallet_stakepool::Call::remove_worker(..)) |
-                Call::PhalaStakePool(pallet_stakepool::Call::start_mining(..)) |
-                Call::PhalaStakePool(pallet_stakepool::Call::stop_mining(..)) |
-                Call::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker(..)) |
-                Call::PhalaStakePool(pallet_stakepool::Call::create(..)) |
-                Call::PhalaRegistry(pallet_registry::Call::register_worker(..)) |
-                Call::PhalaMq(pallet_mq::Call::sync_offchain_message(..))
+                Call::PhalaStakePool(pallet_stakepool::Call::add_worker { .. }) |
+                Call::PhalaStakePool(pallet_stakepool::Call::remove_worker { .. }) |
+                Call::PhalaStakePool(pallet_stakepool::Call::start_mining { .. }) |
+                Call::PhalaStakePool(pallet_stakepool::Call::stop_mining { .. }) |
+                Call::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker { .. }) |
+                Call::PhalaStakePool(pallet_stakepool::Call::create { .. }) |
+                Call::PhalaRegistry(pallet_registry::Call::register_worker { .. }) |
+                Call::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })
             ),
         }
     }
@@ -531,6 +534,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
     pub const TransactionByteFee: Balance = 1 * MILLICENTS;
     pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
+    pub const OperationalFeeMultiplier: u8 = 5;
     pub AdjustmentVariable: pallet_transaction_payment::Multiplier =
         pallet_transaction_payment::Multiplier::saturating_from_rational(1, 100_000);
     pub MinimumMultiplier: pallet_transaction_payment::Multiplier =
@@ -561,6 +565,7 @@ impl pallet_transaction_payment::Config for Runtime {
         AdjustmentVariable,
         MinimumMultiplier,
     >;
+    type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
 
 impl pallet_bounties::Config for Runtime {
@@ -1061,7 +1066,7 @@ impl_runtime_apis! {
 
     impl sp_api::Metadata<Block> for Runtime {
         fn metadata() -> OpaqueMetadata {
-            Runtime::metadata().into()
+            OpaqueMetadata::new(Runtime::metadata().into())
         }
     }
 
