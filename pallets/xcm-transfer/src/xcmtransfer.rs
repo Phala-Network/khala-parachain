@@ -9,9 +9,13 @@ pub mod pallet {
 		pallet_prelude::*,
 		traits::{Currency, StorageVersion},
 		weights::Weight,
+		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_runtime::{traits::Zero, DispatchError};
+	use sp_runtime::{
+		traits::{AccountIdConversion, Zero},
+		DispatchError,
+	};
 	use sp_std::{convert::TryInto, prelude::*, vec};
 	use xcm::v1::{
 		prelude::*, AssetId::Concrete, Fungibility::Fungible, MultiAsset, MultiLocation,
@@ -92,7 +96,7 @@ pub mod pallet {
 		T::AccountId: Into<[u8; 32]>,
 		BalanceOf<T>: Into<u128>,
 	{
-		#[pallet::weight(0)]
+		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
 		pub fn transfer_by_asset_identity(
 			origin: OriginFor<T>,
 			asset_identity: Vec<u8>,
@@ -112,7 +116,7 @@ pub mod pallet {
 			Self::do_transfer(origin, asset, para_id, recipient, amount, dest_weight)
 		}
 
-		#[pallet::weight(0)]
+		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
 		pub fn transfer_by_asset_id(
 			origin: OriginFor<T>,
 			asset_id: xtransfer_assets::XTransferAssetId,
@@ -138,6 +142,22 @@ pub mod pallet {
 		T::AccountId: Into<[u8; 32]>,
 		BalanceOf<T>: Into<u128>,
 	{
+		pub fn estimate_transfer_weight() -> Weight {
+			// we treat nonreserve xcm transfer cost the most weight
+			let nonreserve_xcm_transfer_session = XCMSession::<T> {
+				asset: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
+				origin_location: MultiLocation::new(1, X1(Parachain(1u32))),
+				dest_location: MultiLocation::new(1, X1(Parachain(2u32))),
+				sender: PalletId(*b"phala/bg").into_account(),
+				recipient: PalletId(*b"phala/bg").into_account(),
+				dest_weight: 0,
+			};
+			let mut msg = nonreserve_xcm_transfer_session
+				.message()
+				.expect("Xcm message must be generated; qed.");
+			T::Weigher::weight(&mut msg).map_or(Weight::max_value(), |w| w)
+		}
+
 		pub fn do_transfer(
 			origin: OriginFor<T>,
 			asset: MultiAsset,
@@ -414,8 +434,8 @@ mod test {
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
 				MultiLocation {
-					parents: 0,
-					interior: Here,
+					parents: 1,
+					interior: X1(Parachain(1u32.into())),
 				},
 			));
 		});
@@ -470,8 +490,8 @@ mod test {
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
 				MultiLocation {
-					parents: 0,
-					interior: Here,
+					parents: 1,
+					interior: X1(Parachain(1u32.into())),
 				},
 			));
 		});
@@ -540,9 +560,9 @@ mod test {
 		});
 
 		// FIXME
-		// ParaA::execute_with(|| {
-		// 	assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10 + 4);
-		// });
+		ParaA::execute_with(|| {
+			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10 + 4);
+		});
 	}
 
 	#[test]
