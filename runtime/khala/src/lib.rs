@@ -797,7 +797,6 @@ impl pallet_xcm_transfer::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
     type LocationInverter = LocationInverter<Ancestry>;
-    type ParachainInfo = ParachainInfo;
 }
 
 impl pallet_xtransfer_assets::Config for Runtime {
@@ -806,6 +805,7 @@ impl pallet_xtransfer_assets::Config for Runtime {
     type XTransferCommitteeOrigin = EnsureRootOrHalfCouncil;
     type FungibleMatcher = xtransfer_matcher::IsSiblingParachainsConcrete<XTransferAssets>;
     type AccountIdConverter = LocationToAccountId;
+    type ParachainInfo = ParachainInfo;
 }
 
 parameter_types! {

@@ -13,9 +13,9 @@ pub mod pallet {
 	use frame_system::pallet_prelude::OriginFor;
 	use sp_runtime::traits::{SaturatedConversion, Saturating};
 	use sp_std::{convert::TryInto, result, vec::Vec};
-
+	use cumulus_primitives_core::ParaId;
 	use xcm::v1::{
-		AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset, MultiLocation,
+		prelude::*, AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset, MultiLocation,
 		Result as XcmResult,
 	};
 	use xcm_executor::{
@@ -58,6 +58,8 @@ pub mod pallet {
 		type XTransferCommitteeOrigin: EnsureOrigin<Self::Origin>;
 		type FungibleMatcher: MatchesFungible<BalanceOf<Self>>;
 		type AccountIdConverter: Convert<MultiLocation, Self::AccountId>;
+		/// ParachainID
+		type ParachainInfo: Get<ParaId>;
 	}
 
 	#[pallet::pallet]
@@ -218,9 +220,16 @@ pub mod pallet {
 
 	impl<T: Config> IsNativeAsset for Pallet<T> {
 		fn is_native_asset(asset: &MultiAsset) -> bool {
+			let native_locations = [
+				MultiLocation::here(),
+				MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(T::ParachainInfo::get().into())),
+				},
+			];
 			match (&asset.id, &asset.fun) {
 				// So far our native asset is concrete
-				(Concrete(ref id), Fungible(_)) if (MultiLocation::here() == *id) => true,
+				(Concrete(ref id), Fungible(_)) if native_locations.contains(id) => true,
 				_ => false,
 			}
 		}

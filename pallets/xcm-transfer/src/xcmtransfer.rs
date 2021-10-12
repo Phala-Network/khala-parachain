@@ -60,9 +60,6 @@ pub mod pallet {
 
 		/// Means of inverting a location.
 		type LocationInverter: InvertLocation;
-
-		/// ParachainID
-		type ParachainInfo: Get<ParaId>;
 	}
 
 	/// Mapping asset name to corresponding MultiAsset
@@ -230,11 +227,8 @@ pub mod pallet {
 		}
 
 		fn kind(&self) -> Option<TransferType> {
-			let reserve_locations = [
-				MultiLocation {
-					parents: 0,
-					interior: Here,
-				},
+			let native_locations = [
+				MultiLocation::here(),
 				MultiLocation {
 					parents: 1,
 					interior: X1(Parachain(T::ParachainInfo::get().into())),
@@ -242,7 +236,7 @@ pub mod pallet {
 			];
 			match self.reserve() {
 				Some(asset_reserve_location) => {
-					if reserve_locations.contains(&asset_reserve_location) {
+					if native_locations.contains(&asset_reserve_location) {
 						Some(TransferType::FromNative)
 					} else if asset_reserve_location == self.dest_location {
 						Some(TransferType::ToReserve)
@@ -410,17 +404,14 @@ mod test {
 	}
 
 	fn sibling_a_account() -> AccountId32 {
-		use sp_runtime::traits::AccountIdConversion;
 		Sibling::from(1).into_account()
 	}
 
 	fn sibling_b_account() -> AccountId32 {
-		use sp_runtime::traits::AccountIdConversion;
 		Sibling::from(2).into_account()
 	}
 
 	fn sibling_c_account() -> AccountId32 {
-		use sp_runtime::traits::AccountIdConversion;
 		Sibling::from(3).into_account()
 	}
 
@@ -434,8 +425,8 @@ mod test {
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
 				MultiLocation {
-					parents: 1,
-					interior: X1(Parachain(1u32.into())),
+					parents: 0,
+					interior: Here,
 				},
 			));
 		});
@@ -490,8 +481,8 @@ mod test {
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
 				MultiLocation {
-					parents: 1,
-					interior: X1(Parachain(1u32.into())),
+					parents: 0,
+					interior: Here,
 				},
 			));
 		});
