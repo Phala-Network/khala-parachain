@@ -23,6 +23,8 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "pol
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false, optional = true }
 
+phala-types = { path = "../../crates/phala-types", default-features = false }
+phala-pallets = { path = "../phala", default-features = false }
 pallet-bridge = { path = "../bridge", default-features = false }
 hex = { version = "0.4", default-features = false }
 
@@ -49,4 +51,5 @@ std = [
 	"frame-system/std",
 	"frame-benchmarking/std",
 	"pallet-bridge/std",
+	"phala-pallets/std",
 ]
