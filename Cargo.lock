@@ -5370,6 +5370,8 @@ dependencies = [
  "pallet-bridge",
  "pallet-timestamp",
  "parity-scale-codec",
+ "phala-pallets",
+ "phala-types",
  "sp-arithmetic",
  "sp-core",
  "sp-io",
