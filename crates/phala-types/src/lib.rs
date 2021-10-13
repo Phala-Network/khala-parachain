@@ -218,21 +218,21 @@ pub mod messaging {
 
     // Messages for Geo Location
     #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
-    pub struct CoordinateInfo {
+    pub struct Geocoding {
         pub latitude: i32,
         pub longitude: i32,
-        pub city_name: String,
+        pub region_name: String,
     }
 
     bind_contract32!(GeolocationCommand, contract::GEOLOCATION);
     #[derive(Debug, Clone, Encode, Decode)]
     pub enum GeolocationCommand {
-        UpdateGeolocation { geolocation_info: CoordinateInfo },
+        UpdateGeolocation { geocoding: Option<Geocoding> },
     }
 
     impl GeolocationCommand {
-        pub fn update_geolocation(geolocation_info: CoordinateInfo) -> Self {
-            Self::UpdateGeolocation { geolocation_info }
+        pub fn update_geolocation(geocoding: Option<Geocoding>) -> Self {
+            Self::UpdateGeolocation { geocoding }
         }
     }
 
@@ -570,7 +570,7 @@ pub struct Score {
 
 type MachineId = Vec<u8>;
 pub type Sr25519Signature = sp_core::sr25519::Signature;
-pub type WorkerPublicKey = sp_core::sr25519::Public;
+pub use sp_core::sr25519::Public as WorkerPublicKey;
 pub type ContractPublicKey = sp_core::sr25519::Public;
 pub type MasterPublicKey = sp_core::sr25519::Public;
 #[derive(Encode, Decode, Clone, Debug, Eq, PartialEq)]
