@@ -511,6 +511,7 @@ mod test {
 			));
 
 			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10);
+			assert_eq!(ParaBalances::free_balance(&sibling_b_account()), 10);
 		});
 
 		ParaB::execute_with(|| {
@@ -552,6 +553,7 @@ mod test {
 
 		// FIXME
 		ParaA::execute_with(|| {
+			assert_eq!(ParaBalances::free_balance(&sibling_b_account()), 6);
 			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10 + 4);
 		});
 	}

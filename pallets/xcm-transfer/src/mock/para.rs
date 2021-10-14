@@ -120,14 +120,14 @@ impl pallet_parachain_info::Config for Runtime {}
 
 parameter_types! {
 	pub const KsmLocation: MultiLocation = MultiLocation::parent();
-	pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
+	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 	pub const LocalLocation: MultiLocation = Here.into();
-	pub const DOTAsFee: MultiLocation = MultiLocation { parents: 1, interior: Here };
-	pub const ParaAAsFee: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(1)) };
-	pub const ParaBAsFee: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2)) };
-	pub const ParaCAsFee: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(3)) };
+	pub const DOTMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: Here };
+	pub const ParaAMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(1)) };
+	pub const ParaBMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2)) };
+	pub const ParaCMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(3)) };
 }
 
 pub type LocationToAccountId = (
@@ -173,9 +173,10 @@ impl Config for XcmConfig {
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
 	type Trader = (
-		UsingComponents<IdentityFee<Balance>, DOTAsFee, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, ParaAAsFee, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, ParaBAsFee, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, DOTMultiAssetId, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, ParaAMultiAssetId, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, ParaBMultiAssetId, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, ParaCMultiAssetId, AccountId, Balances, ()>,
 	);
 	type ResponseHandler = ();
 	type SubscriptionService = ();

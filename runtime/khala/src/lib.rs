@@ -40,7 +40,7 @@ pub mod defaults;
 
 // Constant values used within the runtime.
 pub mod constants;
-use constants::{currency::*, fee::WeightToFee};
+use constants::{currency::*, fee::WeightToFee, parachains};
 
 mod msg_routing;
 
@@ -677,13 +677,13 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
 	pub const KsmLocation: MultiLocation = MultiLocation::parent();
-	pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
+	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
-	pub const LocalLocation: MultiLocation = Here.into();
-    pub const DOTAsFee: MultiLocation = MultiLocation { parents: 1, interior: Here };
-	pub const PHA2004AsFee: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2004)) };
-	pub const PHA2005AsFee: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2005)) };
+    pub const DOTMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: Here };
+    pub KARMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec())) };
+	pub const PHA2004MultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2004)) };
+	pub const PHA2005MultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2005)) };
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -750,9 +750,10 @@ impl Config for XcmConfig {
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
 	type Trader = (
-        UsingComponents<IdentityFee<Balance>, DOTAsFee, AccountId, Balances, ()>,
-        UsingComponents<IdentityFee<Balance>, PHA2004AsFee, AccountId, Balances, ()>,
-        UsingComponents<IdentityFee<Balance>, PHA2005AsFee, AccountId, Balances, ()>,
+        UsingComponents<IdentityFee<Balance>, DOTMultiAssetId, AccountId, Balances, ()>,
+        UsingComponents<IdentityFee<Balance>, KARMultiAssetId, AccountId, Balances, ()>,
+        UsingComponents<IdentityFee<Balance>, PHA2004MultiAssetId, AccountId, Balances, ()>,
+        UsingComponents<IdentityFee<Balance>, PHA2005MultiAssetId, AccountId, Balances, ()>,
     );
 	type ResponseHandler = ();
 	type SubscriptionService = ();
