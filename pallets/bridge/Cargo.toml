@@ -10,7 +10,6 @@ repository = "https://github.com/Phala-Network/phala-blockchain"
 [dependencies]
 # third-party dependencies
 codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
-serde = { version = "1.0.101", optional = true }
 blake2-rfc = { version = "0.2.18", default-features = false }
 
 # primitives
@@ -22,19 +21,25 @@ sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-
 # frame dependencies
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false, optional = true }
 
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10", default-features = false }
 
 [features]
 default = ["std"]
+runtime-benchmarks = [
+	'frame-benchmarking',
+	'frame-support/runtime-benchmarks',
+	'frame-system/runtime-benchmarks',
+]
 std = [
 	"codec/std",
-	"serde",
 	"sp-std/std",
 	"sp-runtime/std",
-    "sp-io/std",
-    "sp-core/std",
+	"sp-io/std",
+	"sp-core/std",
 	"frame-support/std",
 	"frame-system/std",
+	"frame-benchmarking/std",
 	"pallet-balances/std",
 ]

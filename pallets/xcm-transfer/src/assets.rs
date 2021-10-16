@@ -4,6 +4,7 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use codec::{Decode, Encode};
+	use cumulus_primitives_core::ParaId;
 	use frame_support::{
 		pallet_prelude::*,
 		traits::{
@@ -13,10 +14,9 @@ pub mod pallet {
 	use frame_system::pallet_prelude::OriginFor;
 	use sp_runtime::traits::{SaturatedConversion, Saturating};
 	use sp_std::{convert::TryInto, result, vec::Vec};
-	use cumulus_primitives_core::ParaId;
 	use xcm::v1::{
-		prelude::*, AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset, MultiLocation,
-		Result as XcmResult,
+		prelude::*, AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset,
+		MultiLocation, Result as XcmResult,
 	};
 	use xcm_executor::{
 		traits::{Convert, MatchesFungible, TransactAsset},

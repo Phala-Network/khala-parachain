@@ -24,7 +24,7 @@ sc-transaction-pool = { git = "https://github.com/paritytech/substrate", branch 
 sc-sync-state-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
 sc-keystore = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
 sc-basic-authorship = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
-service = { package = "sc-service", git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.10" }
+service = { package = "sc-service", git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.10" }
 telemetry = { package = "sc-telemetry", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.10" }
 
 # Substrate Primitives
@@ -77,7 +77,7 @@ polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = 
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.10" }
 polkadot-node-primitives = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.10" }
 polkadot-rpc = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.10" }
-polkadot-subsystem = { package = "polkadot-node-subsystem", git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.10" }
+polkadot-subsystem = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.10", package = "polkadot-node-subsystem" }
 polkadot-node-subsystem-util = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.10" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.10" }
 polkadot-node-network-protocol = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.10" }

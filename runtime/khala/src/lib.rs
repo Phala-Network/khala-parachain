@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 16,
+    spec_version: 1070,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -211,7 +211,7 @@ construct_runtime! {
 
         // Parachain staff
         ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config} = 20,
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>} = 21,
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 21,
 
         // XCM helpers
         XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
@@ -239,6 +239,7 @@ construct_runtime! {
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 66,
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 67,
         PhragmenElection: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 68,
+        Tips: pallet_tips::{Pallet, Call, Storage, Event<T>} = 69,
 
         // Main, starts from 80
 
@@ -256,6 +257,8 @@ construct_runtime! {
 
         // `sudo` has been removed on production
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
+        // `OTT` has been removed, the index should be kept
+        // PhalaOneshotTransfer: pallet_ott::{Pallet, Call, Event<T>, Storage} = 100,
     }
 }
 
@@ -269,16 +272,13 @@ impl Contains<Call> for BaseCallFilter {
             // System
             Call::System(_) | Call::Timestamp(_) | Call::Utility(_) |
             Call::Multisig(_) | Call::Proxy(_) | Call::Scheduler(_) |
-            // TODO: We enable vesting after we enable transfer
-            // Call::Vesting(_) |
+            Call::Vesting(_) |
             // Parachain
             Call::ParachainSystem(_) |
             // Monetary
-            // TODO: We disable transfer at launch
             Call::Balances(_) |
             Call::ChainBridge(_) |
-            // TODO: We disable Khala -> ETH bridge at launch
-            Call::BridgeTransfer(pallet_bridge_transfer::Call::transfer(..)) |
+            Call::BridgeTransfer(_) |
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // XCM
@@ -289,13 +289,12 @@ impl Contains<Call> for BaseCallFilter {
 
             // Governance
             Call::Identity(_) | Call::Treasury(_) |
-            Call::Democracy(_) |
+            Call::Democracy(_) | Call::PhragmenElection(..) |
             Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
-            Call::Bounties(_) | Call::Lottery(_)
+            Call::Bounties(_) | Call::Lottery(_) | Call::Tips(..) |
             // Phala
-            // TODO: We will enable Phala through democracy
-            // Call::PhalaMq(_) | Call::PhalaRegistry(_) |
-            // Call::PhalaMining(_) | Call::PhalaStakePool(_)
+            Call::PhalaMq(_) | Call::PhalaRegistry(_) |
+            Call::PhalaMining(_) | Call::PhalaStakePool(_)
         )
     }
 }
@@ -416,6 +415,8 @@ pub enum ProxyType {
     Governance,
     /// Collator selection proxy. Can execute calls related to collator selection mechanism.
     Collator,
+    /// Stake pool manager
+    StakePoolManager
 }
 
 impl Default for ProxyType {
@@ -439,6 +440,7 @@ impl InstanceFilter<Call> for ProxyType {
                 Call::TechnicalMembership(..) |
                 Call::Treasury(..) |
                 Call::Bounties(..) |
+                Call::Tips(..) |
                 Call::Utility(..) |
                 Call::Identity(..) |
                 Call::Vesting(pallet_vesting::Call::vest(..)) |
@@ -462,6 +464,7 @@ impl InstanceFilter<Call> for ProxyType {
                 Call::Treasury(..) |
                 Call::Utility(..) |
                 Call::Bounties(..) |
+                Call::Tips(..) |
                 Call::Lottery(..)
             ),
             ProxyType::Collator => matches!(
@@ -469,6 +472,17 @@ impl InstanceFilter<Call> for ProxyType {
                 Call::CollatorSelection(..) |
                 Call::Utility(..) |
                 Call::Multisig(..)
+            ),
+            ProxyType::StakePoolManager => matches!(
+                c,
+                Call::PhalaStakePool(pallet_stakepool::Call::add_worker(..)) |
+                Call::PhalaStakePool(pallet_stakepool::Call::remove_worker(..)) |
+                Call::PhalaStakePool(pallet_stakepool::Call::start_mining(..)) |
+                Call::PhalaStakePool(pallet_stakepool::Call::stop_mining(..)) |
+                Call::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker(..)) |
+                Call::PhalaStakePool(pallet_stakepool::Call::create(..)) |
+                Call::PhalaRegistry(pallet_registry::Call::register_worker(..)) |
+                Call::PhalaMq(pallet_mq::Call::sync_offchain_message(..))
             ),
         }
     }
@@ -592,6 +606,17 @@ impl pallet_bounties::Config for Runtime {
     type DataDepositPerByte = DataDepositPerByte;
     type MaximumReasonLength = MaximumReasonLength;
     type WeightInfo = pallet_bounties::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_tips::Config for Runtime {
+    type Event = Event;
+    type DataDepositPerByte = DataDepositPerByte;
+    type MaximumReasonLength = MaximumReasonLength;
+    type Tippers = PhragmenElection;
+    type TipCountdown = TipCountdown;
+    type TipFindersFee = TipFindersFee;
+    type TipReportDepositBase = TipReportDepositBase;
+    type WeightInfo = pallet_tips::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1107,28 +1132,15 @@ impl pallet_bridge::Config for Runtime {
 
 parameter_types! {
     // bridge::derive_resource_id(1, &bridge::hashing::blake2_128(b"PHA"));
-    pub const BridgeTokenId: [u8; 32] = hex_literal::hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
+    pub const NativeTokenResourceId: [u8; 32] = hex_literal::hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
 }
 
 impl pallet_bridge_transfer::Config for Runtime {
     type Event = Event;
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
-    type BridgeTokenId = BridgeTokenId;
+    type NativeTokenResourceId = NativeTokenResourceId;
     type OnFeePay = Treasury;
-}
-
-parameter_types! {
-    pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
-    pub const MinMiningStaking: Balance = 1 * DOLLARS;
-    pub const MinContribution: Balance = 1 * CENTS;
-    pub const MiningGracePeriod: u64 = 7 * 24 * 3600;
-}
-
-impl pallet_registry::Config for Runtime {
-    type Event = Event;
-    type AttestationValidator = pallet_registry::IasValidator;
-    type UnixTime = Timestamp;
 }
 
 pub struct MqCallMatcher;
@@ -1141,29 +1153,52 @@ impl pallet_mq::CallMatcher<Runtime> for MqCallMatcher {
     }
 }
 
+parameter_types! {
+    pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
+    pub const MinMiningStaking: Balance = 1 * DOLLARS;
+    pub const MinContribution: Balance = 1 * CENTS;
+    pub const MiningGracePeriod: u64 = 7 * 24 * 3600;
+    pub const MinInitP: u32 = 50;
+    pub const MiningEnabledByDefault: bool = false;
+    pub const MaxPoolWorkers: u32 = 200;
+    pub const VerifyPRuntime: bool = true;
+    pub const VerifyRelaychainGenesisBlockHash: bool = true;
+}
+
+impl pallet_registry::Config for Runtime {
+    type Event = Event;
+    type AttestationValidator = pallet_registry::IasValidator;
+    type UnixTime = Timestamp;
+    type VerifyPRuntime = VerifyPRuntime;
+    type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
+    type GovernanceOrigin = EnsureRootOrHalfCouncil;
+}
 impl pallet_mq::Config for Runtime {
     type QueueNotifyConfig = msg_routing::MessageRouteConfig;
     type CallMatcher = MqCallMatcher;
 }
-
 impl pallet_mining::Config for Runtime {
     type Event = Event;
     type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
+    type MinInitP = MinInitP;
     type Currency = Balances;
     type Randomness = RandomnessCollectiveFlip;
     type OnReward = PhalaStakePool;
     type OnUnbound = PhalaStakePool;
-    type OnReclaim = PhalaStakePool;
     type OnStopped = PhalaStakePool;
     type OnTreasurySettled = Treasury;
+    type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
 }
-
 impl pallet_stakepool::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type MinContribution = MinContribution;
     type GracePeriod = MiningGracePeriod;
+    type MiningEnabledByDefault = MiningEnabledByDefault;
+    type MaxPoolWorkers = MaxPoolWorkers;
     type OnSlashed = Treasury;
+    type MiningSwitchOrigin = EnsureRootOrHalfCouncil;
+    type BackfillOrigin = EnsureRootOrHalfCouncil;
 }
 
 impl_runtime_apis! {
@@ -1275,22 +1310,67 @@ impl_runtime_apis! {
         }
     }
 
+    #[cfg(feature = "try-runtime")]
+    impl frame_try_runtime::TryRuntime<Block> for Runtime {
+        fn on_runtime_upgrade() -> Result<(Weight, Weight), sp_runtime::RuntimeString> {
+            log::info!("try-runtime::on_runtime_upgrade khala.");
+            let weight = Executive::try_runtime_upgrade()?;
+            Ok((weight, RuntimeBlockWeights::get().max_block))
+        }
+    }
+
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
+        fn benchmark_metadata(extra: bool) -> (
+            Vec<frame_benchmarking::BenchmarkList>,
+            Vec<frame_support::traits::StorageInfo>,
+        ) {
+            use frame_benchmarking::{list_benchmark, Benchmarking, BenchmarkList};
+            use frame_support::traits::StorageInfoTrait;
+
+            use frame_system_benchmarking::Pallet as SystemBench;
+            use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
+
+            let mut list = Vec::<BenchmarkList>::new();
+
+            list_benchmark!(list, extra, pallet_balances, Balances);
+            list_benchmark!(list, extra, pallet_bounties, Bounties);
+            list_benchmark!(list, extra, pallet_collective, Council);
+            list_benchmark!(list, extra, pallet_collective, TechnicalCommittee);
+            list_benchmark!(list, extra, pallet_democracy, Democracy);
+            // TODO: assertion failed `failed to submit candidacy`
+            list_benchmark!(list, extra, pallet_elections_phragmen, PhragmenElection);
+            list_benchmark!(list, extra, pallet_identity, Identity);
+            list_benchmark!(list, extra, pallet_membership, TechnicalMembership);
+            list_benchmark!(list, extra, pallet_multisig, Multisig);
+            list_benchmark!(list, extra, pallet_proxy, Proxy);
+            list_benchmark!(list, extra, pallet_scheduler, Scheduler);
+            list_benchmark!(list, extra, pallet_session, SessionBench::<Runtime>);
+            list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
+            list_benchmark!(list, extra, pallet_timestamp, Timestamp);
+            list_benchmark!(list, extra, pallet_tips, Tips);
+            list_benchmark!(list, extra, pallet_treasury, Treasury);
+            list_benchmark!(list, extra, pallet_utility, Utility);
+            list_benchmark!(list, extra, pallet_vesting, Vesting);
+            list_benchmark!(list, extra, pallet_lottery, Lottery);
+            // TODO: panic
+            list_benchmark!(list, extra, pallet_collator_selection, CollatorSelection);
+
+            let storage_info = AllPalletsWithSystem::storage_info();
+
+            return (list, storage_info)
+        }
+
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
-        ) -> Result<
-            (Vec<frame_benchmarking::BenchmarkBatch>, Vec<frame_support::traits::StorageInfo>),
-            sp_runtime::RuntimeString,
-        > {
+        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
             use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
-            use frame_support::traits::StorageInfoTrait;
 
             use frame_system_benchmarking::Pallet as SystemBench;
             impl frame_system_benchmarking::Config for Runtime {}
 
-            use pallet_session_benchmarking::Pallet as SessionBench;
-            impl pallet_session_benchmarking::Config for Runtime {}
+            use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
+            impl cumulus_pallet_session_benchmarking::Config for Runtime {}
 
             let whitelist: Vec<TrackedStorageKey> = vec![
                 // Block Number
@@ -1303,34 +1383,38 @@ impl_runtime_apis! {
                 hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850").to_vec().into(),
                 // System Events
                 hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec().into(),
+                // Treasury Account
+                hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da95ecffd7b6c0f78751baa9d281e0bfa3a6d6f646c70792f74727372790000000000000000000000000000000000000000").to_vec().into(),
             ];
-
-            let storage_info = AllPalletsWithSystem::storage_info();
 
             let mut batches = Vec::<BenchmarkBatch>::new();
             let params = (&config, &whitelist);
 
-            add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
-            add_benchmark!(params, batches, pallet_session, SessionBench::<Runtime>);
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_bounties, Bounties);
             add_benchmark!(params, batches, pallet_collective, Council);
+            add_benchmark!(params, batches, pallet_collective, TechnicalCommittee);
             add_benchmark!(params, batches, pallet_democracy, Democracy);
+            // TODO: assertion failed `failed to submit candidacy`
             add_benchmark!(params, batches, pallet_elections_phragmen, PhragmenElection);
             add_benchmark!(params, batches, pallet_identity, Identity);
-            add_benchmark!(params, batches, pallet_lottery, Lottery);
             add_benchmark!(params, batches, pallet_membership, TechnicalMembership);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_proxy, Proxy);
             add_benchmark!(params, batches, pallet_scheduler, Scheduler);
+            add_benchmark!(params, batches, pallet_session, SessionBench::<Runtime>);
+            add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
+            add_benchmark!(params, batches, pallet_tips, Tips);
             add_benchmark!(params, batches, pallet_treasury, Treasury);
             add_benchmark!(params, batches, pallet_utility, Utility);
             add_benchmark!(params, batches, pallet_vesting, Vesting);
+            add_benchmark!(params, batches, pallet_lottery, Lottery);
+            // TODO: panic
             add_benchmark!(params, batches, pallet_collator_selection, CollatorSelection);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
-            Ok((batches, storage_info))
+            Ok(batches)
         }
     }
 }

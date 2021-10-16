@@ -1,6 +1,6 @@
 use crate::{
 	attestation::{Attestation, AttestationValidator, Error as AttestationError, IasFields},
-	mining, mq, registry, stakepool,
+	mining, mq, ott, registry, stakepool,
 };
 
 use frame_support::{
@@ -37,10 +37,12 @@ frame_support::construct_runtime!(
 		PhalaRegistry: registry::{Pallet, Event, Storage, Config<T>},
 		PhalaMining: mining::{Pallet, Event<T>, Storage, Config},
 		PhalaStakePool: stakepool::{Pallet, Event<T>},
+		PhalaOneshotTransfer: ott::{Pallet, Event<T>},
 	}
 );
 
 parameter_types! {
+	pub const ExistentialDeposit: u64 = 2;
 	pub const BlockHashCount: u64 = 250;
 	pub const SS58Prefix: u8 = 20;
 	pub const MinimumPeriod: u64 = 1;
@@ -48,6 +50,11 @@ parameter_types! {
 	pub const MinMiningStaking: Balance = 1 * DOLLARS;
 	pub const MinContribution: Balance = 1 * CENTS;
 	pub const MiningGracePeriod: u64 = 7 * 24 * 3600;
+	pub const MinInitP: u32 = 1;
+	pub const MiningEnabledByDefault: bool = true;
+	pub const MaxPoolWorkers: u32 = 10;
+	pub const VerifyPRuntime: bool = false;
+	pub const VerifyRelaychainGenesisBlockHash: bool = true;
 }
 impl system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
@@ -79,7 +86,7 @@ impl pallet_balances::Config for Test {
 	type Balance = Balance;
 	type DustRemoval = ();
 	type Event = Event;
-	type ExistentialDeposit = ();
+	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
 	type MaxLocks = ();
@@ -116,18 +123,22 @@ impl registry::Config for Test {
 	type Event = Event;
 	type AttestationValidator = MockValidator;
 	type UnixTime = Timestamp;
+	type VerifyPRuntime = VerifyPRuntime;
+	type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
+	type GovernanceOrigin = frame_system::EnsureRoot<Self::AccountId>;
 }
 
 impl mining::Config for Test {
 	type Event = Event;
 	type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
+	type MinInitP = MinInitP;
 	type Currency = Balances;
 	type Randomness = TestRandomness<Self>;
 	type OnReward = PhalaStakePool;
 	type OnUnbound = PhalaStakePool;
-	type OnReclaim = PhalaStakePool;
 	type OnStopped = PhalaStakePool;
 	type OnTreasurySettled = ();
+	type UpdateTokenomicOrigin = frame_system::EnsureRoot<Self::AccountId>;
 }
 
 impl stakepool::Config for Test {
@@ -135,7 +146,16 @@ impl stakepool::Config for Test {
 	type Currency = Balances;
 	type MinContribution = MinContribution;
 	type GracePeriod = MiningGracePeriod;
+	type MiningEnabledByDefault = MiningEnabledByDefault;
+	type MaxPoolWorkers = MaxPoolWorkers;
 	type OnSlashed = ();
+	type MiningSwitchOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type BackfillOrigin = frame_system::EnsureRoot<Self::AccountId>;
+}
+
+impl ott::Config for Test {
+	type Event = Event;
+	type Currency = Balances;
 }
 
 pub struct MockValidator;
@@ -144,6 +164,8 @@ impl AttestationValidator for MockValidator {
 		_attestation: &Attestation,
 		_user_data_hash: &[u8; 32],
 		_now: u64,
+		_verify_pruntime: bool,
+		_pruntime_allowlist: Vec<Vec<u8>>,
 	) -> Result<IasFields, AttestationError> {
 		Ok(IasFields {
 			mr_enclave: [0u8; 32],
@@ -222,6 +244,15 @@ pub fn ecdh_pubkey(i: u8) -> EcdhPublicKey {
 	raw[31] = i;
 	raw[30] = 1; // distinguish with the genesis config
 	EcdhPublicKey(raw)
+}
+
+pub fn setup_relaychain_genesis_allowlist() {
+	use frame_support::assert_ok;
+	let sample: H256 = H256::repeat_byte(1);
+	assert_ok!(PhalaRegistry::add_relaychain_genesis_block_hash(
+		Origin::root(),
+		sample
+	));
 }
 
 /// Sets up `n` workers starting from 1, registered and benchmarked. All owned by account1.

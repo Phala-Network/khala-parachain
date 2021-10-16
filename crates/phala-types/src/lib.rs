@@ -216,6 +216,26 @@ pub mod messaging {
         pub kitty_id: Vec<u8>,
     }
 
+    // Messages for Geo Location
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    pub struct Geocoding {
+        pub latitude: i32,
+        pub longitude: i32,
+        pub region_name: String,
+    }
+
+    bind_contract32!(GeolocationCommand, contract::GEOLOCATION);
+    #[derive(Debug, Clone, Encode, Decode)]
+    pub enum GeolocationCommand {
+        UpdateGeolocation { geocoding: Option<Geocoding> },
+    }
+
+    impl GeolocationCommand {
+        pub fn update_geolocation(geocoding: Option<Geocoding>) -> Self {
+            Self::UpdateGeolocation { geocoding }
+        }
+    }
+
     /// A fixed point number with 64 integer bits and 64 fractional bits.
     pub type U64F64Bits = u128;
 
@@ -447,6 +467,7 @@ pub mod messaging {
     pub enum GatekeeperEvent {
         NewRandomNumber(RandomNumberEvent),
         TokenomicParametersChanged(TokenomicParameters),
+        RepairV,
     }
 
     impl GatekeeperEvent {
@@ -549,7 +570,7 @@ pub struct Score {
 
 type MachineId = Vec<u8>;
 pub type Sr25519Signature = sp_core::sr25519::Signature;
-pub type WorkerPublicKey = sp_core::sr25519::Public;
+pub use sp_core::sr25519::Public as WorkerPublicKey;
 pub type ContractPublicKey = sp_core::sr25519::Public;
 pub type MasterPublicKey = sp_core::sr25519::Public;
 #[derive(Encode, Decode, Clone, Debug, Eq, PartialEq)]
