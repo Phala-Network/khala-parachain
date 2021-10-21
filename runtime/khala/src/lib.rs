@@ -442,6 +442,7 @@ impl InstanceFilter<Call> for ProxyType {
             ),
             ProxyType::StakePoolManager => matches!(
                 c,
+                Call::Utility(..) |
                 Call::PhalaStakePool(pallet_stakepool::Call::add_worker(..)) |
                 Call::PhalaStakePool(pallet_stakepool::Call::remove_worker(..)) |
                 Call::PhalaStakePool(pallet_stakepool::Call::start_mining(..)) |
