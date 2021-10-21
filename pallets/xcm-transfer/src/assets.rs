@@ -216,10 +216,19 @@ pub mod pallet {
 
 	pub trait IsNativeAsset {
 		fn is_native_asset(asset: &MultiAsset) -> bool;
+		fn is_native_asset_id(id: &MultiLocation) -> bool;
 	}
 
 	impl<T: Config> IsNativeAsset for Pallet<T> {
 		fn is_native_asset(asset: &MultiAsset) -> bool {
+			match (&asset.id, &asset.fun) {
+				// So far our native asset is concrete
+				(Concrete(ref id), Fungible(_)) if Self::is_native_asset_id(id) => true,
+				_ => false,
+			}
+		}
+
+		fn is_native_asset_id(id: &MultiLocation) -> bool {
 			let native_locations = [
 				MultiLocation::here(),
 				MultiLocation {
@@ -227,11 +236,7 @@ pub mod pallet {
 					interior: X1(Parachain(T::ParachainInfo::get().into())),
 				},
 			];
-			match (&asset.id, &asset.fun) {
-				// So far our native asset is concrete
-				(Concrete(ref id), Fungible(_)) if native_locations.contains(id) => true,
-				_ => false,
-			}
+			native_locations.contains(id)
 		}
 	}
 
@@ -338,7 +343,7 @@ pub mod pallet {
 				"xtransfer_assets check location {:?}.",
 				a.clone(),
 			);
-			if *a == MultiLocation::here() {
+			if Self::is_native_asset_id(a) {
 				true
 			} else {
 				AssetLocationToInfo::<T>::contains_key(&a)
