@@ -21,6 +21,7 @@ pub mod pallet {
 		prelude::*, AssetId::Concrete, Fungibility::Fungible, MultiAsset, MultiLocation,
 	};
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
+	use crate::xcm_helper::ConcrateAsset;
 
 	/// The logging target.
 	const LOG_TARGET: &str = "xcm-transfer";
@@ -219,13 +220,6 @@ pub mod pallet {
 	}
 
 	impl<T: Config> XCMSession<T> {
-		fn reserve(&self) -> Option<MultiLocation> {
-			match (&self.asset.id, &self.asset.fun) {
-				(Concrete(ref id), Fungible(ref amount)) => Some(id.clone()),
-				_ => None,
-			}
-		}
-
 		fn kind(&self) -> Option<TransferType> {
 			let native_locations = [
 				MultiLocation::here(),
@@ -234,7 +228,7 @@ pub mod pallet {
 					interior: X1(Parachain(T::ParachainInfo::get().into())),
 				},
 			];
-			match self.reserve() {
+			match ConcrateAsset::origin(&self.asset) {
 				Some(asset_reserve_location) => {
 					if native_locations.contains(&asset_reserve_location) {
 						Some(TransferType::FromNative)
@@ -344,7 +338,7 @@ pub mod pallet {
 					}
 				}
 				TransferType::ToNonReserve => {
-					let asset_reserve_location = self.reserve().unwrap();
+					let asset_reserve_location = ConcrateAsset::origin(&self.asset).unwrap();
 					WithdrawAsset {
 						assets: self.asset.clone().into(),
 						effects: vec![InitiateReserveWithdraw {
@@ -551,7 +545,6 @@ mod test {
 			);
 		});
 
-		// FIXME
 		ParaA::execute_with(|| {
 			assert_eq!(ParaBalances::free_balance(&sibling_b_account()), 5);
 			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10 + 4);

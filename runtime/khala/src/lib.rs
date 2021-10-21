@@ -57,7 +57,7 @@ use sp_runtime::{
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
 };
-use sp_std::{prelude::*, marker::PhantomData};
+use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -82,12 +82,12 @@ use frame_system::{
     EnsureOneOf, EnsureRoot,
 };
 
-use xcm::v1::prelude::*;
+use xcm::{v1::prelude::*, Version as XcmVersion};
 use polkadot_parachain::primitives::Sibling;
 use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
 	AsPrefixedGeneralIndex, ConvertedConcreteAssetId, CurrencyAdapter, EnsureXcmOrigin,
-	FixedWeightBounds, FungiblesAdapter, IsConcrete, LocationInverter, NativeAsset,
+	FixedWeightBounds, FungiblesAdapter, IsConcrete, LocationInverter,
 	ParentAsSuperuser, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
 	SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
@@ -111,7 +111,7 @@ pub use phala_pallets::{
 pub use xtransfer_pallets::{
 	pallet_xtransfer_assets,
 	pallet_xcm_transfer,
-    xtransfer_matcher,
+    xcm_helper,
 };
 
 
@@ -769,7 +769,7 @@ impl Config for XcmConfig {
 	// How to withdraw and deposit an asset.
 	type AssetTransactor = XTransferAssets;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = NativeAsset;
+	type IsReserve = xcm_helper::AssetOriginFilter;
 	type IsTeleporter = (); // <- should be enough to allow teleportation of KSM
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
@@ -829,7 +829,7 @@ impl pallet_xtransfer_assets::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
     type XTransferCommitteeOrigin = EnsureRootOrHalfCouncil;
-    type FungibleMatcher = xtransfer_matcher::IsSiblingParachainsConcrete<XTransferAssets>;
+    type FungibleMatcher = xcm_helper::IsSiblingParachainsConcrete<XTransferAssets>;
     type AccountIdConverter = LocationToAccountId;
     type ParachainInfo = ParachainInfo;
 }

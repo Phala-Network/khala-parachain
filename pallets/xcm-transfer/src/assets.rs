@@ -22,6 +22,7 @@ pub mod pallet {
 		traits::{Convert, MatchesFungible, TransactAsset},
 		Assets,
 	};
+	use crate::xcm_helper::{ConcrateAsset, NativeAssetFilter};
 
 	const LOG_TARGET: &str = "xcm-transfer:assets";
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
@@ -214,46 +215,6 @@ pub mod pallet {
 		}
 	}
 
-	pub trait IsNativeAsset {
-		fn is_native_asset(asset: &MultiAsset) -> bool;
-		fn is_native_asset_id(id: &MultiLocation) -> bool;
-	}
-
-	impl<T: Config> IsNativeAsset for Pallet<T> {
-		fn is_native_asset(asset: &MultiAsset) -> bool {
-			match (&asset.id, &asset.fun) {
-				// So far our native asset is concrete
-				(Concrete(ref id), Fungible(_)) if Self::is_native_asset_id(id) => true,
-				_ => false,
-			}
-		}
-
-		fn is_native_asset_id(id: &MultiLocation) -> bool {
-			let native_locations = [
-				MultiLocation::here(),
-				MultiLocation {
-					parents: 1,
-					interior: X1(Parachain(T::ParachainInfo::get().into())),
-				},
-			];
-			native_locations.contains(id)
-		}
-	}
-
-	pub trait ConcreteId {
-		fn concrete_id(asset: &MultiAsset) -> Option<MultiLocation>;
-	}
-
-	impl<T: Config> ConcreteId for Pallet<T> {
-		fn concrete_id(asset: &MultiAsset) -> Option<MultiLocation> {
-			match (&asset.id, &asset.fun) {
-				// So far our native asset is concrete
-				(Concrete(id), Fungible(_)) => Some(id.clone()),
-				_ => None,
-			}
-		}
-	}
-
 	impl<T: Config> TransactAsset for Pallet<T> {
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult {
 			log::error!(
@@ -272,17 +233,17 @@ pub mod pallet {
 				.try_into()
 				.map_err(|_| Error::<T>::AmountToBalanceConversionFailed)?;
 
-			if Self::is_native_asset(&what) {
+			if NativeAssetFilter::<T::ParachainInfo>::is_native_asset(&what) {
 				let _imbalance = T::Currency::deposit_creating(&who, balance_amount);
 				Self::deposit_event(Event::NativeAssetDeposited(who, balance_amount));
 			} else {
 				Self::do_asset_deposit(
-					&Self::concrete_id(&what).ok_or(Error::<T>::AssetNotFound)?,
+					&ConcrateAsset::id(&what).ok_or(Error::<T>::AssetNotFound)?,
 					&who,
 					balance_amount,
 				);
 				Self::deposit_event(Event::AssetDeposited(
-					Self::concrete_id(&what).unwrap(),
+					ConcrateAsset::id(&what).unwrap(),
 					who,
 					balance_amount,
 				));
@@ -310,7 +271,7 @@ pub mod pallet {
 				.try_into()
 				.map_err(|_| Error::<T>::AmountToBalanceConversionFailed)?;
 
-			if Self::is_native_asset(&what) {
+			if NativeAssetFilter::<T::ParachainInfo>::is_native_asset(&what) {
 				let _imbalance = T::Currency::withdraw(
 					&who,
 					balance_amount,
@@ -321,12 +282,12 @@ pub mod pallet {
 				Self::deposit_event(Event::NativeAssetWithdrawn(who, balance_amount));
 			} else {
 				Self::do_asset_withdraw(
-					&Self::concrete_id(&what).ok_or(Error::<T>::AssetNotFound)?,
+					&ConcrateAsset::id(&what).ok_or(Error::<T>::AssetNotFound)?,
 					&who,
 					balance_amount,
 				);
 				Self::deposit_event(Event::AssetWithdrawn(
-					Self::concrete_id(&what).unwrap(),
+					ConcrateAsset::id(&what).unwrap(),
 					who,
 					balance_amount,
 				));
@@ -343,7 +304,7 @@ pub mod pallet {
 				"xtransfer_assets check location {:?}.",
 				a.clone(),
 			);
-			if Self::is_native_asset_id(a) {
+			if NativeAssetFilter::<T::ParachainInfo>::is_native_asset_id(a) {
 				true
 			} else {
 				AssetLocationToInfo::<T>::contains_key(&a)
