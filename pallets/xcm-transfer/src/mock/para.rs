@@ -1,5 +1,5 @@
 use super::ParachainXcmRouter;
-use crate::{pallet_xcm_transfer, pallet_xtransfer_assets, xtransfer_matcher};
+use crate::{pallet_xcm_transfer, pallet_xtransfer_assets, xcm_helper};
 
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
@@ -228,7 +228,7 @@ impl pallet_xtransfer_assets::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type XTransferCommitteeOrigin = EnsureRoot<AccountId>;
-	type FungibleMatcher = xtransfer_matcher::IsSiblingParachainsConcrete<XTransferAssets>;
+	type FungibleMatcher = xcm_helper::IsSiblingParachainsConcrete<XTransferAssets>;
 	type AccountIdConverter = LocationToAccountId;
 	type ParachainInfo = ParachainInfo;
 }

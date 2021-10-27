@@ -127,3 +127,15 @@ pub fn para_event_exists<E: Into<para::Event>>(e: E) {
 	}
 	assert!(exists);
 }
+
+pub fn para_take_events() -> Vec<para::Event> {
+	use para::Runtime;
+
+	let evt = frame_system::Pallet::<Runtime>::events()
+		.into_iter()
+		.map(|evt| evt.event)
+		.collect::<Vec<_>>();
+	println!("event(): {:?}", evt);
+	frame_system::Pallet::<Runtime>::reset_events();
+	evt
+}

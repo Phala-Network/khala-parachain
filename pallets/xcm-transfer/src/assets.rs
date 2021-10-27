@@ -327,10 +327,11 @@ mod test {
 		Result as XcmResult,
 	};
 	use xcm_simulator::TestExt;
+	use assert_matches::assert_matches;
 
 	use super::*;
 	use crate::mock::{
-		para::Origin, para::Runtime as Test, para_event_exists, para_ext, XTransferAssets,
+		para::Origin, para::Runtime as Test, para::Event as ParaEvent, para_take_events, para_ext, XTransferAssets,
 	};
 
 	// TODO. Add more test cases.
@@ -343,11 +344,18 @@ mod test {
 				MultiLocation::here(),
 			));
 
-			para_event_exists(Event::AssetRegistered(
-				MultiLocation::here(),
-				b"PHA-2004".to_vec(),
-				[0; 32],
-			));
+			let ev = para_take_events();
+			let expected_ev: Vec<ParaEvent> = [
+				Event::AssetRegistered(
+					MultiLocation::here(),
+					b"PHA-2004".to_vec(),
+					[0; 32],
+				).into(),
+			].to_vec();
+			assert_matches!(
+				ev,
+				expected_ev
+			);
 
 			assert_noop!(
 				XTransferAssets::register_asset(
