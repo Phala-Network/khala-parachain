@@ -5,9 +5,9 @@ pub mod contract;
 
 use alloc::vec::Vec;
 use codec::{Decode, Encode};
-use scale_info::TypeInfo;
 use core::convert::{TryFrom, TryInto};
 use core::fmt::Debug;
+use scale_info::TypeInfo;
 use sp_core::H256;
 
 // Messages: Phase Wallet
@@ -16,8 +16,8 @@ pub mod messaging {
     use alloc::string::String;
     use alloc::vec::Vec;
     use codec::{Decode, Encode};
-    use scale_info::TypeInfo;
     use core::fmt::Debug;
+    use scale_info::TypeInfo;
     use sp_core::U256;
 
     #[cfg(feature = "enable_serde")]
