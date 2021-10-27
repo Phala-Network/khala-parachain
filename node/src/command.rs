@@ -301,6 +301,7 @@ pub fn run() -> Result<()> {
                     .into())
             }
         }
+        Some(Subcommand::Key(cmd)) => Ok(cmd.run(&cli)?),
         #[cfg(feature = "try-runtime")]
         Some(Subcommand::TryRuntime(cmd)) => {
             let runner = cli.create_runner(cmd)?;
