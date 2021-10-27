@@ -4,6 +4,7 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use codec::Encode;
+    use scale_info::TypeInfo;
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
@@ -29,7 +30,7 @@ pub mod pallet {
 	};
 
 	bind_topic!(RegistryEvent, b"^phala/registry/event");
-	#[derive(Encode, Decode, Clone, Debug)]
+	#[derive(Encode, Decode, TypeInfo, Clone, Debug)]
 	pub enum RegistryEvent {
 		BenchReport { start_time: u64, iterations: u64 },
 		MasterPubkey { master_pubkey: MasterPublicKey },
@@ -632,7 +633,7 @@ pub mod pallet {
 		type Config = T;
 	}
 
-	#[derive(Encode, Decode, Default, Debug, Clone)]
+	#[derive(Encode, Decode, TypeInfo, Default, Debug, Clone)]
 	pub struct WorkerInfo<AccountId> {
 		// identity
 		pubkey: WorkerPublicKey,
