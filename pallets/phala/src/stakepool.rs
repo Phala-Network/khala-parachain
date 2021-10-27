@@ -1929,7 +1929,6 @@ pub mod pallet {
 					staker3.shares
 				));
 				let ev = take_events();
-				// [Event::Balances(Event::Slashed(1, 25000000000000)), Event::PhalaStakePool(Event::SlashSettled(0, 1, 25000000000000)), Event::PhalaStakePool(Event::Withdrawal(0, 1, 25000000000000)), Event::Balances(Event::Slashed(2, 100000000000000)), Event::PhalaStakePool(Event::SlashSettled(0, 2, 100000000000000)), Event::PhalaStakePool(Event::Withdrawal(0, 2, 100000000000000)), Event::Balances(Event::Slashed(3, 125000000000001)), Event::PhalaStakePool(Event::SlashSettled(0, 3, 125000000000001)), Event::PhalaStakePool(Event::Withdrawal(0, 3, 125000000000000))]
 				assert_eq!(
 					ev,
 					vec![
