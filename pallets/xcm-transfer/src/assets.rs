@@ -188,14 +188,16 @@ pub mod pallet {
 			asset: &MultiLocation,
 			recipient: &T::AccountId,
 			amount: BalanceOf<T>,
-		) {
-			let recipient_balance =
+		) -> Result<(), Error<T>> {
+			let resolve_balance =
 				XTransferBalances::<T>::get(asset, recipient).unwrap_or_default();
 			XTransferBalances::<T>::insert(
 				asset,
 				recipient,
-				recipient_balance.saturating_add(amount),
+				resolve_balance.saturating_add(amount),
 			);
+
+			Ok(())
 		}
 
 		/// Withdraw specific amount assets from sender.
@@ -208,10 +210,11 @@ pub mod pallet {
 			asset: &MultiLocation,
 			sender: &T::AccountId,
 			amount: BalanceOf<T>,
-		) {
-			let recipient_balance = XTransferBalances::<T>::get(asset, sender).unwrap_or_default();
-
-			XTransferBalances::<T>::insert(asset, sender, recipient_balance.saturating_sub(amount));
+		) -> Result<(), Error<T>> {
+			let resolve_balance = XTransferBalances::<T>::get(asset, sender).unwrap_or_default();
+			ensure!(resolve_balance >= amount, Error::<T>::InsufficientBalance);
+			XTransferBalances::<T>::insert(asset, sender, resolve_balance.saturating_sub(amount));
+			Ok(())
 		}
 	}
 
@@ -241,7 +244,7 @@ pub mod pallet {
 					&ConcrateAsset::id(&what).ok_or(Error::<T>::AssetNotFound)?,
 					&who,
 					balance_amount,
-				);
+				).map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
 				Self::deposit_event(Event::AssetDeposited(
 					ConcrateAsset::id(&what).unwrap(),
 					who,
@@ -285,7 +288,7 @@ pub mod pallet {
 					&ConcrateAsset::id(&what).ok_or(Error::<T>::AssetNotFound)?,
 					&who,
 					balance_amount,
-				);
+				).map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
 				Self::deposit_event(Event::AssetWithdrawn(
 					ConcrateAsset::id(&what).unwrap(),
 					who,
