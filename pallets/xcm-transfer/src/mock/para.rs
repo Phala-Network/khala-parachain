@@ -140,7 +140,6 @@ pub type XcmOriginToTransactDispatchOrigin = (
 	SovereignSignedViaLocation<LocationToAccountId, Origin>,
 	RelayChainAsNative<RelayChainOrigin, Origin>,
 	SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
-	ParentAsSuperuser<Origin>,
 	SignedAccountId32AsNative<RelayNetwork, Origin>,
 );
 parameter_types! {
@@ -157,6 +156,7 @@ match_type! {
 pub type Barrier = (
 	TakeWeightCredit,
 	AllowTopLevelPaidExecutionFrom<Everything>,
+	// TODO: would be removed when we ready to release, it's unreasonable to let Everything execute without pay.
 	AllowUnpaidExecutionFrom<Everything>,
 	// ^^^ Parent and its exec plurality get free execution
 );

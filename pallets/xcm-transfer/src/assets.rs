@@ -333,6 +333,7 @@ mod test {
 		para::Origin, para::Runtime as Test, para_event_exists, para_ext, XTransferAssets,
 	};
 
+	// TODO. Add more test cases.
 	#[test]
 	fn test_register_asset() {
 		para_ext(2004).execute_with(|| {

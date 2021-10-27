@@ -247,7 +247,7 @@ pub mod pallet {
 			let fee_asset: MultiAsset = match self.asset.fun {
 				// so far only half of amount are allowed to be used as fee
 				Fungible(amount) => MultiAsset {
-					fun: Fungible(amount.checked_div(2).expect("div can't overflow; qed")),
+					fun: Fungible(amount/2),
 					id: self.asset.id.clone(),
 				},
 				_ => MultiAsset {
