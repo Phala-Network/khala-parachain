@@ -1852,8 +1852,10 @@ pub mod pallet {
 				assert_eq!(
 					ev,
 					vec![
+						TestEvent::Balances(pallet_balances::Event::Slashed(1, 50000000000000)),
 						TestEvent::PhalaStakePool(Event::SlashSettled(0, 1, 50000000000000)),
-						TestEvent::PhalaStakePool(Event::SlashSettled(0, 2, 200000000000000)),
+						TestEvent::Balances(pallet_balances::Event::Slashed(2, 200000000000000)),
+						TestEvent::PhalaStakePool(Event::SlashSettled(0, 2, 200000000000000))
 					]
 				);
 				// Check slash settled. Remaining: 50 PHA, 200 PHA
@@ -1927,16 +1929,20 @@ pub mod pallet {
 					staker3.shares
 				));
 				let ev = take_events();
+				// [Event::Balances(Event::Slashed(1, 25000000000000)), Event::PhalaStakePool(Event::SlashSettled(0, 1, 25000000000000)), Event::PhalaStakePool(Event::Withdrawal(0, 1, 25000000000000)), Event::Balances(Event::Slashed(2, 100000000000000)), Event::PhalaStakePool(Event::SlashSettled(0, 2, 100000000000000)), Event::PhalaStakePool(Event::Withdrawal(0, 2, 100000000000000)), Event::Balances(Event::Slashed(3, 125000000000001)), Event::PhalaStakePool(Event::SlashSettled(0, 3, 125000000000001)), Event::PhalaStakePool(Event::Withdrawal(0, 3, 125000000000000))]
 				assert_eq!(
 					ev,
 					vec![
 						// Account1: ~25 PHA remaining
+						TestEvent::Balances(pallet_balances::Event::Slashed(1, 25000000000000)),
 						TestEvent::PhalaStakePool(Event::SlashSettled(0, 1, 25000000000000)),
 						TestEvent::PhalaStakePool(Event::Withdrawal(0, 1, 25000000000000)),
 						// Account2: ~100 PHA remaining
+						TestEvent::Balances(pallet_balances::Event::Slashed(2, 100000000000000)),
 						TestEvent::PhalaStakePool(Event::SlashSettled(0, 2, 100000000000000)),
 						TestEvent::PhalaStakePool(Event::Withdrawal(0, 2, 100000000000000)),
 						// Account1: ~125 PHA remaining
+						TestEvent::Balances(pallet_balances::Event::Slashed(3, 125000000000001)),
 						TestEvent::PhalaStakePool(Event::SlashSettled(0, 3, 125000000000001)),
 						TestEvent::PhalaStakePool(Event::Withdrawal(0, 3, 125000000000000))
 					]
@@ -2376,9 +2382,11 @@ pub mod pallet {
 					[
 						TestEvent::PhalaStakePool(Event::PoolSlashed(0, 100 * DOLLARS)),
 						// Staker 2 got 75% * 99 PHA back
+						TestEvent::Balances(pallet_balances::Event::Slashed(2, 99_750000000000)),
 						TestEvent::PhalaStakePool(Event::SlashSettled(0, 2, 99_750000000000)),
 						TestEvent::PhalaStakePool(Event::Withdrawal(0, 2, 74_250000000000)),
 						// Staker 1 got 75% * 1 PHA back
+						TestEvent::Balances(pallet_balances::Event::Slashed(1, 250000000000)),
 						TestEvent::PhalaStakePool(Event::SlashSettled(0, 1, 250000000000)),
 						TestEvent::PhalaStakePool(Event::Withdrawal(0, 1, 750000000000)),
 					]
