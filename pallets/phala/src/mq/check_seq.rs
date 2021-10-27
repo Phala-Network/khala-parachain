@@ -171,14 +171,16 @@ mod tests {
 	}
 
 	fn sync_msg_call(i: u8, seq: u64) -> TestCall {
-		TestCall::PhalaMq(Call::<Test>::sync_offchain_message(SignedMessage {
-			message: Message::new(
-				MessageOrigin::Worker(worker_pubkey(i)),
-				Topic::new(*b""),
-				Vec::new(),
-			),
-			sequence: seq,
-			signature: Vec::new(),
-		}))
+		TestCall::PhalaMq(Call::<Test>::sync_offchain_message {
+			signed_message: SignedMessage {
+				message: Message::new(
+					MessageOrigin::Worker(worker_pubkey(i)),
+					Topic::new(*b""),
+					Vec::new(),
+				),
+				sequence: seq,
+				signature: Vec::new(),
+			},
+		})
 	}
 }
