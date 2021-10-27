@@ -121,20 +121,20 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn xtransfer_assets)]
-	pub type AssetLocationToInfo<T: Config> = StorageMap<_, Blake2_256, MultiLocation, AssetInfo>;
+	pub type AssetLocationToInfo<T: Config> = StorageMap<_, Twox64Concat, MultiLocation, AssetInfo>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn assetidentity_to_into)]
-	pub type AssetsIdentityToInfo<T: Config> = StorageMap<_, Blake2_256, Vec<u8>, AssetInfo>;
+	pub type AssetsIdentityToInfo<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, AssetInfo>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn assetid_to_info)]
-	pub type AssetIdToInfo<T: Config> = StorageMap<_, Blake2_256, XTransferAssetId, AssetInfo>;
+	pub type AssetIdToInfo<T: Config> = StorageMap<_, Twox64Concat, XTransferAssetId, AssetInfo>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn xtransfer_balances)]
 	pub type XTransferBalances<T: Config> =
-		StorageDoubleMap<_, Blake2_256, MultiLocation, Blake2_256, T::AccountId, BalanceOf<T>>;
+		StorageDoubleMap<_, Twox64Concat, MultiLocation, Twox64Concat, T::AccountId, BalanceOf<T>>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
