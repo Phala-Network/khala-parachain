@@ -182,7 +182,7 @@ pub mod pallet {
 				dest_weight,
 			};
 			let mut msg = xcm_session.message()?;
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"Trying to exectute xcm message {:?}.",
 				msg.clone(),
@@ -316,7 +316,7 @@ pub mod pallet {
 			};
 
 			let kind = self.kind().ok_or(Error::<T>::UnknownTransfer)?;
-			log::error!(target: LOG_TARGET, "Transfer type is {:?}.", kind.clone(),);
+			log::trace!(target: LOG_TARGET, "Transfer type is {:?}.", kind.clone(),);
 			let message = match kind {
 				TransferType::FromNative => Xcm::TransferReserveAsset {
 					assets: self.asset.clone().into(),

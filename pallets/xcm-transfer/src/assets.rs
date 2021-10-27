@@ -217,7 +217,7 @@ pub mod pallet {
 
 	impl<T: Config> TransactAsset for Pallet<T> {
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult {
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"deposit_asset, what: {:?}, who: {:?}.",
 				what.clone(),
@@ -255,7 +255,7 @@ pub mod pallet {
 			what: &MultiAsset,
 			who: &MultiLocation,
 		) -> result::Result<Assets, XcmError> {
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"withdraw_asset, what: {:?}, who: {:?}.",
 				what.clone(),
@@ -299,7 +299,7 @@ pub mod pallet {
 
 	impl<T: Config> Contains<MultiLocation> for Pallet<T> {
 		fn contains(a: &MultiLocation) -> bool {
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"xtransfer_assets check location {:?}.",
 				a.clone(),

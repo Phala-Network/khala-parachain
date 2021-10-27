@@ -20,7 +20,7 @@ pub mod xcm_helper {
 		for IsSiblingParachainsConcrete<T>
 	{
 		fn matches_fungible(a: &MultiAsset) -> Option<B> {
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"IsSiblingParachainsConcrete check fungible {:?}.",
 				a.clone(),
@@ -37,7 +37,7 @@ pub mod xcm_helper {
 	pub struct IsSiblingParachainsAbstract<T>(PhantomData<T>);
 	impl<T: Contains<Vec<u8>>, B: TryFrom<u128>> MatchesFungible<B> for IsSiblingParachainsAbstract<T> {
 		fn matches_fungible(a: &MultiAsset) -> Option<B> {
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"IsSiblingParachainsAbstract check fungible {:?}.",
 				a.clone(),
