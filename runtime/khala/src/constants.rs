@@ -33,11 +33,11 @@ pub mod currency {
 
 /// Fee-related.
 pub mod fee {
-    use parachains_common::Balance;
     use frame_support::weights::{
         constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
         WeightToFeePolynomial,
     };
+    use parachains_common::Balance;
     use smallvec::smallvec;
     use sp_runtime::Perbill;
 

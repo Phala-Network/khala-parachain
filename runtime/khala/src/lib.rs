@@ -18,7 +18,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
-
 #![allow(clippy::identity_op)]
 
 // Make the WASM binary available.
@@ -67,8 +66,8 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
-        Currency, Imbalance, Contains, InstanceFilter, IsInVec, KeyOwnerProofSystem, LockIdentifier,
-        OnUnbalanced, Randomness, U128CurrencyToVote,
+        Contains, Currency, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem,
+        LockIdentifier, OnUnbalanced, Randomness, U128CurrencyToVote,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -88,12 +87,7 @@ pub use pallet_timestamp::Call as TimestampCall;
 
 pub use parachains_common::*;
 
-pub use phala_pallets::{
-    pallet_mq,
-    pallet_registry,
-    pallet_mining,
-    pallet_stakepool,
-};
+pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -371,7 +365,16 @@ parameter_types! {
 
 /// The type used to represent the kinds of proxying allowed.
 #[derive(
-    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen,
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Encode,
+    Decode,
+    RuntimeDebug,
+    MaxEncodedLen,
     scale_info::TypeInfo,
 )]
 pub enum ProxyType {
@@ -386,7 +389,7 @@ pub enum ProxyType {
     /// Collator selection proxy. Can execute calls related to collator selection mechanism.
     Collator,
     /// Stake pool manager
-    StakePoolManager
+    StakePoolManager,
 }
 
 impl Default for ProxyType {
@@ -400,60 +403,58 @@ impl InstanceFilter<Call> for ProxyType {
             ProxyType::Any => true,
             ProxyType::NonTransfer => matches!(
                 c,
-                Call::System { .. } |
-                Call::Timestamp { .. } |
-                Call::Session { .. } |
-                Call::Democracy { .. } |
-                Call::Council { .. } |
-                Call::PhragmenElection { .. } |
-                Call::TechnicalCommittee { .. } |
-                Call::TechnicalMembership { .. } |
-                Call::Treasury { .. } |
-                Call::Bounties { .. } |
-                Call::Tips { .. } |
-                Call::Utility { .. } |
-                Call::Identity { .. } |
-                Call::Vesting(pallet_vesting::Call::vest { .. }) |
-                Call::Vesting(pallet_vesting::Call::vest_other { .. }) |
-                Call::Scheduler { .. } |
-                Call::Proxy { .. } |
-                Call::Multisig { .. }
+                Call::System { .. }
+                    | Call::Timestamp { .. }
+                    | Call::Session { .. }
+                    | Call::Democracy { .. }
+                    | Call::Council { .. }
+                    | Call::PhragmenElection { .. }
+                    | Call::TechnicalCommittee { .. }
+                    | Call::TechnicalMembership { .. }
+                    | Call::Treasury { .. }
+                    | Call::Bounties { .. }
+                    | Call::Tips { .. }
+                    | Call::Utility { .. }
+                    | Call::Identity { .. }
+                    | Call::Vesting(pallet_vesting::Call::vest { .. })
+                    | Call::Vesting(pallet_vesting::Call::vest_other { .. })
+                    | Call::Scheduler { .. }
+                    | Call::Proxy { .. }
+                    | Call::Multisig { .. }
             ),
             ProxyType::CancelProxy => matches!(
                 c,
-                Call::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
-                Call::Utility { .. } |
-                Call::Multisig { .. }
+                Call::Proxy(pallet_proxy::Call::reject_announcement { .. })
+                    | Call::Utility { .. }
+                    | Call::Multisig { .. }
             ),
             ProxyType::Governance => matches!(
                 c,
-                Call::Democracy { .. } |
-                Call::PhragmenElection { .. } |
-                Call::Council { .. } |
-                Call::TechnicalCommittee { .. } |
-                Call::Treasury { .. } |
-                Call::Utility { .. } |
-                Call::Bounties { .. } |
-                Call::Tips { .. } |
-                Call::Lottery { .. }
+                Call::Democracy { .. }
+                    | Call::PhragmenElection { .. }
+                    | Call::Council { .. }
+                    | Call::TechnicalCommittee { .. }
+                    | Call::Treasury { .. }
+                    | Call::Utility { .. }
+                    | Call::Bounties { .. }
+                    | Call::Tips { .. }
+                    | Call::Lottery { .. }
             ),
             ProxyType::Collator => matches!(
                 c,
-                Call::CollatorSelection { .. } |
-                Call::Utility { .. } |
-                Call::Multisig { .. }
+                Call::CollatorSelection { .. } | Call::Utility { .. } | Call::Multisig { .. }
             ),
             ProxyType::StakePoolManager => matches!(
                 c,
-                Call::Utility { .. } |
-                Call::PhalaStakePool(pallet_stakepool::Call::add_worker { .. }) |
-                Call::PhalaStakePool(pallet_stakepool::Call::remove_worker { .. }) |
-                Call::PhalaStakePool(pallet_stakepool::Call::start_mining { .. }) |
-                Call::PhalaStakePool(pallet_stakepool::Call::stop_mining { .. }) |
-                Call::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker { .. }) |
-                Call::PhalaStakePool(pallet_stakepool::Call::create { .. }) |
-                Call::PhalaRegistry(pallet_registry::Call::register_worker { .. }) |
-                Call::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })
+                Call::Utility { .. }
+                    | Call::PhalaStakePool(pallet_stakepool::Call::add_worker { .. })
+                    | Call::PhalaStakePool(pallet_stakepool::Call::remove_worker { .. })
+                    | Call::PhalaStakePool(pallet_stakepool::Call::start_mining { .. })
+                    | Call::PhalaStakePool(pallet_stakepool::Call::stop_mining { .. })
+                    | Call::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker { .. })
+                    | Call::PhalaStakePool(pallet_stakepool::Call::create { .. })
+                    | Call::PhalaRegistry(pallet_registry::Call::register_worker { .. })
+                    | Call::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })
             ),
         }
     }
@@ -626,6 +627,7 @@ impl pallet_vesting::Config for Runtime {
     type BlockNumberToBalance = ConvertInto;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+    const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
 parameter_types! {
@@ -826,52 +828,47 @@ impl pallet_democracy::Config for Runtime {
     type EnactmentPeriod = EnactmentPeriod;
     type LaunchPeriod = LaunchPeriod;
     type VotingPeriod = VotingPeriod;
+    type VoteLockingPeriod = EnactmentPeriod; // Same as EnactmentPeriod
     type MinimumDeposit = MinimumDeposit;
     /// A straight majority of the council can decide what their next motion is.
-    type ExternalOrigin =
-        frame_system::EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
-            frame_system::EnsureRoot<AccountId>,
-        >;
+    type ExternalOrigin = frame_system::EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
+        frame_system::EnsureRoot<AccountId>,
+    >;
     /// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
-    type ExternalMajorityOrigin =
-        frame_system::EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>,
-            frame_system::EnsureRoot<AccountId>,
-        >;
+    type ExternalMajorityOrigin = frame_system::EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>,
+        frame_system::EnsureRoot<AccountId>,
+    >;
     /// A unanimous council can have the next scheduled referendum be a straight default-carries
     /// (NTB) vote.
-    type ExternalDefaultOrigin =
-        frame_system::EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
-            frame_system::EnsureRoot<AccountId>,
-        >;
+    type ExternalDefaultOrigin = frame_system::EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
+        frame_system::EnsureRoot<AccountId>,
+    >;
     /// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
     /// be tabled immediately and with a shorter voting/enactment period.
-    type FastTrackOrigin =
-        frame_system::EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, TechnicalCollective>,
-            frame_system::EnsureRoot<AccountId>,
-        >;
-    type InstantOrigin =
-        frame_system::EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
-            frame_system::EnsureRoot<AccountId>,
-        >;
+    type FastTrackOrigin = frame_system::EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, TechnicalCollective>,
+        frame_system::EnsureRoot<AccountId>,
+    >;
+    type InstantOrigin = frame_system::EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
+        frame_system::EnsureRoot<AccountId>,
+    >;
     type InstantAllowed = InstantAllowed;
     type FastTrackVotingPeriod = FastTrackVotingPeriod;
     // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
-    type CancellationOrigin =
-        EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>,
-            EnsureRoot<AccountId>,
-        >;
+    type CancellationOrigin = EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>,
+        EnsureRoot<AccountId>,
+    >;
     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
     // Root must agree.
     type CancelProposalOrigin = EnsureOneOf<
@@ -894,9 +891,14 @@ impl pallet_democracy::Config for Runtime {
     type MaxProposals = MaxProposals;
 }
 
+parameter_types! {
+    pub const MaxAuthorities: u32 = 100;
+}
+
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
     type DisabledValidators = ();
+    type MaxAuthorities = MaxAuthorities;
 }
 
 parameter_types! {
@@ -911,7 +913,6 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(33);
     pub const Period: u32 = 6 * HOURS;
     pub const Offset: u32 = 0;
 }
@@ -928,7 +929,6 @@ impl pallet_session::Config for Runtime {
     type SessionHandler =
         <opaque::SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
     type Keys = opaque::SessionKeys;
-    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1047,7 +1047,7 @@ impl_runtime_apis! {
         }
 
         fn authorities() -> Vec<AuraId> {
-            Aura::authorities()
+            Aura::authorities().into_inner()
         }
     }
 
@@ -1151,10 +1151,17 @@ impl_runtime_apis! {
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade() -> Result<(Weight, Weight), sp_runtime::RuntimeString> {
+        fn on_runtime_upgrade() -> (Weight, Weight) {
             log::info!("try-runtime::on_runtime_upgrade khala.");
-            let weight = Executive::try_runtime_upgrade()?;
-            Ok((weight, RuntimeBlockWeights::get().max_block))
+            // NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
+            // have a backtrace here. If any of the pre/post migration checks fail, we shall stop
+            // right here and right now.
+            let weight = Executive::try_runtime_upgrade().unwrap();
+            (weight, RuntimeBlockWeights::get().max_block)
+        }
+
+        fn execute_block_no_check(block: Block) -> Weight {
+            Executive::execute_block_no_check(block)
         }
     }
 
@@ -1274,8 +1281,8 @@ impl cumulus_pallet_parachain_system::CheckInherents<Block> for CheckInherents {
                 relay_chain_slot,
                 sp_std::time::Duration::from_secs(6),
             )
-                .create_inherent_data()
-                .expect("Could not create the timestamp inherent data");
+            .create_inherent_data()
+            .expect("Could not create the timestamp inherent data");
 
         inherent_data.check_extrinsics(&block)
     }
