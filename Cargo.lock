@@ -4873,19 +4873,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "node-primitives"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12#d76f39995315ec36980908e4b99709bd14927044"
-dependencies = [
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "sp-application-crypto",
- "sp-core",
- "sp-runtime",
-]
-
-[[package]]
 name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6037,7 +6024,6 @@ dependencies = [
  "frame-executive",
  "frame-support",
  "frame-system",
- "node-primitives",
  "pallet-authorship",
  "pallet-balances",
  "pallet-collator-selection",
@@ -6403,31 +6389,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "phala-trie-storage"
-version = "0.1.0"
-dependencies = [
- "hash256-std-hasher",
- "hex",
- "impl-serde",
- "parity-scale-codec",
- "serde",
- "serde_json",
- "sp-application-crypto",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-state-machine",
- "sp-trie",
-]
-
-[[package]]
 name = "phala-types"
 version = "0.3.0"
 dependencies = [
  "hex",
  "parity-scale-codec",
  "phala-mq",
- "phala-trie-storage",
  "prpc",
  "serde",
  "sp-core",

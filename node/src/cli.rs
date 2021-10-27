@@ -54,6 +54,9 @@ pub enum Subcommand {
     #[structopt(name = "benchmark", about = "Benchmark runtime pallets.")]
     Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 
+    /// Key management CLI utilities
+    Key(sc_cli::KeySubcommand),
+
     /// Try some command against runtime state.
     #[cfg(feature = "try-runtime")]
     TryRuntime(try_runtime_cli::TryRuntimeCmd),
