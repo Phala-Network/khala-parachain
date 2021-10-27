@@ -22,7 +22,6 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "polk
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
-node-primitives = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 
 # Polkadot dependencies
 polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.12", default-features = false }
@@ -51,7 +50,6 @@ std = [
 	"frame-system/std",
 	"pallet-collator-selection/std",
 	"pallet-balances/std",
-	"node-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-primitives/std",
 ]
