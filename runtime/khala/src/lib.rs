@@ -86,11 +86,11 @@ use xcm::{v1::prelude::*, Version as XcmVersion};
 use polkadot_parachain::primitives::Sibling;
 use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
-	AsPrefixedGeneralIndex, ConvertedConcreteAssetId, CurrencyAdapter, EnsureXcmOrigin,
-	FixedWeightBounds, FungiblesAdapter, IsConcrete, LocationInverter,
-	ParentAsSuperuser, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+    AsPrefixedGeneralIndex, ConvertedConcreteAssetId, CurrencyAdapter, EnsureXcmOrigin,
+    FixedWeightBounds, FungiblesAdapter, IsConcrete, LocationInverter, ParentAsSuperuser,
+    ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+    UsingComponents,
 };
 use xcm_executor::{traits::{JustTry, FilterAssetLocation}, Config, XcmExecutor};
 
@@ -109,8 +109,8 @@ pub use phala_pallets::{
 };
 
 pub use xtransfer_pallets::{
-	pallet_xtransfer_assets,
-	pallet_xcm_transfer,
+    pallet_xtransfer_assets,
+    pallet_xcm_transfer,
     xcm_helper,
 };
 
@@ -247,7 +247,7 @@ construct_runtime! {
         ChainBridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 80,
         BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
         XcmTransfer: pallet_xcm_transfer::{Pallet, Call, Event<T>, Storage} = 82,
-		XTransferAssets: pallet_xtransfer_assets::{Pallet, Call, Event<T>, Storage} = 83,
+        XTransferAssets: pallet_xtransfer_assets::{Pallet, Call, Event<T>, Storage} = 83,
 
         // Phala
         PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
@@ -702,14 +702,15 @@ impl pallet_parachain_info::Config for Runtime {}
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
-	pub const KsmLocation: MultiLocation = MultiLocation::parent();
-	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
-	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
-	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+    pub const KsmLocation: MultiLocation = MultiLocation::parent();
+    pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
+    pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
     pub const DOTMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: Here };
     pub KARMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec())) };
-	pub const PHA2004MultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2004)) };
-	pub const PHA2005MultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2005)) };
+    // TODO: would be removed when ready to release
+    pub const PHA2004MultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2004)) };
+    pub const PHA2005MultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2005)) };
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -818,11 +819,11 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 impl pallet_xcm_transfer::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
-	type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-	type XcmRouter = XcmRouter;
-	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmRouter = XcmRouter;
+    type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
     type LocationInverter = LocationInverter<Ancestry>;
 }
 

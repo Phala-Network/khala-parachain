@@ -146,7 +146,7 @@ pub mod pallet {
 			asset_location: MultiLocation,
 		) -> DispatchResult {
 			T::XTransferCommitteeOrigin::ensure_origin(origin)?;
-			// TODO. Properly way to generate an asset id.
+			// TODO. Proper way to generate an asset id.
 			let asset_id = [0; 32];
 			ensure!(
 				!AssetLocationToInfo::<T>::contains_key(&asset_location),

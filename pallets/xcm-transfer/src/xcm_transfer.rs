@@ -426,7 +426,7 @@ mod test {
 		});
 
 		ParaB::execute_with(|| {
-			// ParaB register native asset of paraA
+			// ParaB register the native asset of paraA
 			assert_ok!(XTransferAssets::register_asset(
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
@@ -482,7 +482,7 @@ mod test {
 		});
 
 		ParaB::execute_with(|| {
-			// ParaB register native asset of paraA
+			// ParaB register the native asset of paraA
 			assert_ok!(XTransferAssets::register_asset(
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
