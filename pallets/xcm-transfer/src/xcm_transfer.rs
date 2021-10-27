@@ -140,6 +140,7 @@ pub mod pallet {
 		T::AccountId: Into<[u8; 32]>,
 		BalanceOf<T>: Into<u128>,
 	{
+		/// Returns the estimated max weight for a xcm based on non-reserve xcm transfer cost
 		pub fn estimate_transfer_weight() -> Weight {
 			// we treat nonreserve xcm transfer cost the most weight
 			let nonreserve_xcm_transfer_session = XCMSession::<T> {
@@ -164,8 +165,6 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			sp_runtime::runtime_logger::RuntimeLogger::init();
-
 			let sender = ensure_signed(origin.clone())?;
 			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
 			let dest_location = MultiLocation {
@@ -196,11 +195,11 @@ pub mod pallet {
 	}
 	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
 	pub enum TransferType {
-		/// Transfer assets that reserved by origin chain
+		/// Transfer assets reserved by the origin chain
 		FromNative,
-		/// Transfer assets that reserved by dest chain
+		/// Transfer assets reserved by the dest chain
 		ToReserve,
-		/// Transfer assets that nont  reserved by dest chain
+		/// Transfer assets not reserved by the dest chain
 		ToNonReserve,
 	}
 
@@ -228,18 +227,17 @@ pub mod pallet {
 					interior: X1(Parachain(T::ParachainInfo::get().into())),
 				},
 			];
-			match ConcrateAsset::origin(&self.asset) {
-				Some(asset_reserve_location) => {
-					if native_locations.contains(&asset_reserve_location) {
-						Some(TransferType::FromNative)
-					} else if asset_reserve_location == self.dest_location {
-						Some(TransferType::ToReserve)
-					} else {
-						Some(TransferType::ToNonReserve)
-					}
+			let mut transfer_type = None;
+			ConcrateAsset::origin(&self.asset).map(|asset_reserve_location| {
+				if native_locations.contains(&asset_reserve_location) {
+					transfer_type = Some(TransferType::FromNative);
+				} else if asset_reserve_location == self.dest_location {
+					transfer_type = Some(TransferType::ToReserve);
+				} else {
+					transfer_type = Some(TransferType::ToNonReserve);
 				}
-				None => None,
-			}
+			});
+			transfer_type
 		}
 
 		fn buy_execution_on(&self, location: &MultiLocation) -> Result<Order<()>, DispatchError> {

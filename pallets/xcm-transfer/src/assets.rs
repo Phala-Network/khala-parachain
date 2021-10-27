@@ -226,7 +226,7 @@ pub mod pallet {
 				what.clone(),
 				who.clone(),
 			);
-			// Check we handle this asset.
+			// Check if we handle this asset.
 			let amount: u128 = T::FungibleMatcher::matches_fungible(&what)
 				.ok_or(Error::<T>::AssetNotFound)?
 				.saturated_into();
