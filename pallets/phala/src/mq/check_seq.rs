@@ -1,9 +1,9 @@
 use super::{Call, CallMatcher, Config, IntoH256, OffchainIngress};
 
 use codec::{Decode, Encode};
-use scale_info::TypeInfo;
 use frame_support::weights::DispatchInfo;
 use phala_types::messaging::MessageOrigin;
+use scale_info::TypeInfo;
 use sp_runtime::traits::{DispatchInfoOf, Dispatchable, SignedExtension};
 use sp_runtime::transaction_validity::{
 	InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
@@ -75,7 +75,7 @@ where
 		_len: usize,
 	) -> Result<(), TransactionValidityError> {
 		let signed_message = match T::CallMatcher::match_call(call) {
-			Some(Call::sync_offchain_message{ signed_message }) => signed_message,
+			Some(Call::sync_offchain_message { signed_message }) => signed_message,
 			_ => return Ok(()),
 		};
 		let sender = &signed_message.message.sender;

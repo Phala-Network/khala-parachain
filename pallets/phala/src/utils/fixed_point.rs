@@ -1,6 +1,6 @@
 use codec::{Decode, Encode, EncodeLike, Input, Output};
-use scale_info::TypeInfo;
 use fixed::types::U64F64 as FixedPoint;
+use scale_info::TypeInfo;
 
 /// Wrapped FixedPoint (U64F64) to make scale-codec happy
 #[derive(Default, Clone, Copy, PartialEq, Eq, Debug)]
