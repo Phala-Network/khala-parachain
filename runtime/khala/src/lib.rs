@@ -626,6 +626,7 @@ impl pallet_vesting::Config for Runtime {
     type BlockNumberToBalance = ConvertInto;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+    const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
 parameter_types! {
@@ -826,6 +827,7 @@ impl pallet_democracy::Config for Runtime {
     type EnactmentPeriod = EnactmentPeriod;
     type LaunchPeriod = LaunchPeriod;
     type VotingPeriod = VotingPeriod;
+    type VoteLockingPeriod = EnactmentPeriod; // Same as EnactmentPeriod
     type MinimumDeposit = MinimumDeposit;
     /// A straight majority of the council can decide what their next motion is.
     type ExternalOrigin =
@@ -894,9 +896,14 @@ impl pallet_democracy::Config for Runtime {
     type MaxProposals = MaxProposals;
 }
 
+parameter_types! {
+    pub const MaxAuthorities: u32 = 100;
+}
+
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
     type DisabledValidators = ();
+    type MaxAuthorities = MaxAuthorities;
 }
 
 parameter_types! {
@@ -911,7 +918,6 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(33);
     pub const Period: u32 = 6 * HOURS;
     pub const Offset: u32 = 0;
 }
@@ -928,7 +934,6 @@ impl pallet_session::Config for Runtime {
     type SessionHandler =
         <opaque::SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
     type Keys = opaque::SessionKeys;
-    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1047,7 +1052,7 @@ impl_runtime_apis! {
         }
 
         fn authorities() -> Vec<AuraId> {
-            Aura::authorities()
+            Aura::authorities().into_inner()
         }
     }
 
@@ -1151,10 +1156,17 @@ impl_runtime_apis! {
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade() -> Result<(Weight, Weight), sp_runtime::RuntimeString> {
+        fn on_runtime_upgrade() -> (Weight, Weight) {
             log::info!("try-runtime::on_runtime_upgrade khala.");
-            let weight = Executive::try_runtime_upgrade()?;
-            Ok((weight, RuntimeBlockWeights::get().max_block))
+            // NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
+            // have a backtrace here. If any of the pre/post migration checks fail, we shall stop
+            // right here and right now.
+            let weight = Executive::try_runtime_upgrade().unwrap();
+            (weight, RuntimeBlockWeights::get().max_block)
+        }
+
+        fn execute_block_no_check(block: Block) -> Weight {
+            Executive::execute_block_no_check(block)
         }
     }
 

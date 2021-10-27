@@ -10,6 +10,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use codec::{Decode, Encode};
+    use scale_info::TypeInfo;
 	use frame_support::{
 		fail,
 		pallet_prelude::*,
@@ -35,7 +36,7 @@ pub mod pallet {
 		<T as frame_system::Config>::AccountId,
 	>>::NegativeImbalance;
 
-	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+	#[derive(PartialEq, Eq, Clone, Encode, Decode, TypeInfo, RuntimeDebug)]
 	pub struct AssetInfo {
 		pub dest_id: bridge::BridgeChainId,
 		pub asset_identity: Vec<u8>,
@@ -66,7 +67,6 @@ pub mod pallet {
 	}
 
 	#[pallet::event]
-	#[pallet::metadata(BalanceOf<T> = "Balance", bridge::BridgeChainId = "BridgeChainId", bridge::ResourceId = "ResourceId")]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// [chainId, min_fee, fee_scale]

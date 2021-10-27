@@ -8,6 +8,7 @@ edition = "2018"
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
 serde = { version = "1.0.101", default-features = false, optional = true }
 codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["full"] }
+scale-info = { version = "1.0", default-features = false, features = ["derive", "serde", "decode"] }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false, optional = true }
 
