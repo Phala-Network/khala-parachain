@@ -25,6 +25,7 @@ pub mod pallet {
 		balance_close_to_zero, balances_nearly_equal, extract_dust, is_nondust_balance, BalanceOf,
 		NegativeImbalanceOf,
 	};
+    use scale_info::TypeInfo;
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
@@ -152,7 +153,6 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	#[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
 	pub enum Event<T: Config> {
 		/// \[owner, pid\]
 		PoolCreated(T::AccountId, u64),
@@ -1110,7 +1110,7 @@ pub mod pallet {
 			.unwrap_or_default()
 	}
 
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, Default, RuntimeDebug)]
+	#[derive(Encode, Decode, TypeInfo, Clone, PartialEq, Eq, Default, RuntimeDebug)]
 	pub struct PoolInfo<AccountId: Default, Balance> {
 		/// Pool ID
 		pub pid: u64,
@@ -1383,7 +1383,7 @@ pub mod pallet {
 		}
 	}
 
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+	#[derive(Encode, Decode, TypeInfo, Clone, PartialEq, Eq, RuntimeDebug)]
 	pub struct UserStakeInfo<AccountId: Default, Balance> {
 		/// User account
 		pub user: AccountId,
@@ -1400,7 +1400,7 @@ pub mod pallet {
 		pub reward_debt: Balance,
 	}
 
-	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+	#[derive(Encode, Decode, TypeInfo, Clone, PartialEq, Eq, RuntimeDebug)]
 	pub struct WithdrawInfo<AccountId: Default, Balance> {
 		/// The withdrawal requester
 		pub user: AccountId,
