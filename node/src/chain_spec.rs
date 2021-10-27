@@ -14,16 +14,17 @@
 // limitations under the License.
 
 use cumulus_primitives_core::ParaId;
+use hex_literal::hex;
 use khala_parachain_runtime::{AccountId, AuraId, Signature};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup, Properties};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
-use hex_literal::hex;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
-pub type ChainSpec = sc_service::GenericChainSpec<khala_parachain_runtime::GenesisConfig, Extensions>;
+pub type ChainSpec =
+    sc_service::GenericChainSpec<khala_parachain_runtime::GenesisConfig, Extensions>;
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_pair_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -115,11 +116,9 @@ pub fn khala_development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
                 id,
-                Some(
-                    dev_registry_config(
-                        get_account_id_from_seed::<sr25519::Public>("Alice")
-                    )
-                )
+                Some(dev_registry_config(get_account_id_from_seed::<
+                    sr25519::Public,
+                >("Alice"))),
             )
         },
         vec![],
@@ -226,7 +225,7 @@ fn khala_genesis(
     technical_committee: Vec<AccountId>,
     endowed_accounts: Vec<(AccountId, u128)>,
     id: ParaId,
-    dev_registry_override: Option<khala_parachain_runtime::PhalaRegistryConfig>
+    dev_registry_override: Option<khala_parachain_runtime::PhalaRegistryConfig>,
 ) -> khala_parachain_runtime::GenesisConfig {
     let all_accounts: Vec<_> = initial_authorities
         .iter()
@@ -279,7 +278,10 @@ fn khala_genesis(
         aura: Default::default(),
         aura_ext: Default::default(),
         parachain_system: Default::default(),
-        council: khala_parachain_runtime::CouncilConfig { members: vec![], phantom: Default::default() },
+        council: khala_parachain_runtime::CouncilConfig {
+            members: vec![],
+            phantom: Default::default(),
+        },
         technical_committee: khala_parachain_runtime::TechnicalCommitteeConfig {
             members: technical_committee,
             phantom: Default::default(),
@@ -294,7 +296,7 @@ fn khala_genesis(
                 workers: Vec::new(),
                 gatekeepers: Vec::new(),
                 benchmark_duration: 50,
-            }
+            },
         ),
         phala_mining: Default::default(),
     }
@@ -305,7 +307,7 @@ fn khala_testnet_genesis(
     initial_authorities: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
-    dev_registry_override: Option<khala_parachain_runtime::PhalaRegistryConfig>
+    dev_registry_override: Option<khala_parachain_runtime::PhalaRegistryConfig>,
 ) -> khala_parachain_runtime::GenesisConfig {
     // Testnet setup:
     // - 1,152,921 PHA per endowed account
@@ -354,14 +356,18 @@ fn check_accounts_endowed(
 
 fn dev_registry_config(operator: AccountId) -> khala_parachain_runtime::PhalaRegistryConfig {
     // The pubkey of "0x1"
-    let raw_dev_sr25519_pubkey: [u8; 32] = hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"];
+    let raw_dev_sr25519_pubkey: [u8; 32] =
+        hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"];
     let dev_sr25519_pubkey = sp_core::sr25519::Public::from_raw(raw_dev_sr25519_pubkey);
-    let dev_ecdh_pubkey = hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"].to_vec();
+    let dev_ecdh_pubkey =
+        hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"].to_vec();
 
     khala_parachain_runtime::PhalaRegistryConfig {
-        workers: vec![
-            (dev_sr25519_pubkey.clone(), dev_ecdh_pubkey, Some(operator.clone()))
-        ],
+        workers: vec![(
+            dev_sr25519_pubkey.clone(),
+            dev_ecdh_pubkey,
+            Some(operator.clone()),
+        )],
         gatekeepers: vec![dev_sr25519_pubkey],
         benchmark_duration: 1,
     }

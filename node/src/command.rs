@@ -307,10 +307,13 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
 
             use sc_service::TaskManager;
-            let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
-            let task_manager =
-                TaskManager::new(runner.config().tokio_handle.clone(), *registry)
-                    .map_err(|e| sc_cli::Error::Service(sc_service::Error::Prometheus(e)))?;
+            let registry = &runner
+                .config()
+                .prometheus_config
+                .as_ref()
+                .map(|cfg| &cfg.registry);
+            let task_manager = TaskManager::new(runner.config().tokio_handle.clone(), *registry)
+                .map_err(|e| sc_cli::Error::Service(sc_service::Error::Prometheus(e)))?;
 
             // TODO: add the dev mode check
             // ensure_dev(chain_spec).map_err(sc_cli::Error::Input)?;
@@ -448,7 +451,11 @@ impl CliConfiguration<Self> for RelayChainCli {
     fn chain_id(&self, is_dev: bool) -> Result<String> {
         let chain_id = self.base.base.chain_id(is_dev)?;
 
-        Ok(if chain_id.is_empty() { self.chain_id.clone().unwrap_or_default() } else { chain_id })
+        Ok(if chain_id.is_empty() {
+            self.chain_id.clone().unwrap_or_default()
+        } else {
+            chain_id
+        })
     }
 
     fn role(&self, is_dev: bool) -> Result<sc_service::Role> {
