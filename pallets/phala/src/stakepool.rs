@@ -25,7 +25,6 @@ pub mod pallet {
 		balance_close_to_zero, balances_nearly_equal, extract_dust, is_nondust_balance, BalanceOf,
 		NegativeImbalanceOf,
 	};
-    use scale_info::TypeInfo;
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
@@ -36,6 +35,7 @@ pub mod pallet {
 		transactional,
 	};
 	use frame_system::pallet_prelude::*;
+	use scale_info::TypeInfo;
 	use sp_runtime::{
 		traits::{Saturating, TrailingZeroInput, Zero},
 		Permill, SaturatedConversion,

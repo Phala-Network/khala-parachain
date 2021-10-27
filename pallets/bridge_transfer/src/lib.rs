@@ -10,7 +10,6 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use codec::{Decode, Encode};
-    use scale_info::TypeInfo;
 	use frame_support::{
 		fail,
 		pallet_prelude::*,
@@ -19,9 +18,10 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	pub use pallet_bridge as bridge;
+	use scale_info::TypeInfo;
 	use sp_arithmetic::traits::SaturatedConversion;
 	use sp_core::U256;
-	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
+	use sp_runtime::traits::{CheckedAdd, CheckedSub};
 	use sp_std::prelude::*;
 
 	use pallet_mq::MessageOriginInfo;
