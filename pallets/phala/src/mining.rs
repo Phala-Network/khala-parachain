@@ -5,7 +5,6 @@ pub use self::pallet::*;
 pub mod pallet {
 	use crate::mq::{self, MessageOriginInfo};
 	use crate::registry;
-    use scale_info::TypeInfo;
 	use frame_support::traits::WithdrawReasons;
 	use frame_support::{
 		dispatch::DispatchResult,
@@ -25,6 +24,7 @@ pub mod pallet {
 		},
 		WorkerPublicKey,
 	};
+	use scale_info::TypeInfo;
 	use sp_core::U256;
 	use sp_runtime::{
 		traits::{AccountIdConversion, One, Zero},

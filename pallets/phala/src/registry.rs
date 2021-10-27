@@ -4,13 +4,13 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use codec::Encode;
-    use scale_info::TypeInfo;
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
 		traits::{StorageVersion, UnixTime},
 	};
 	use frame_system::pallet_prelude::*;
+	use scale_info::TypeInfo;
 	use sp_core::H256;
 	use sp_runtime::SaturatedConversion;
 	use sp_std::prelude::*;
@@ -102,7 +102,6 @@ pub mod pallet {
 		StorageValue<_, Vec<H256>, ValueQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event {
 		GatekeeperAdded(WorkerPublicKey),
 	}
