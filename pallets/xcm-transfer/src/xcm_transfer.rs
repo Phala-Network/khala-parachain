@@ -167,10 +167,10 @@ pub mod pallet {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
-			let dest_location = MultiLocation {
-				parents: 1,
-				interior: X1(Parachain(para_id.into())),
-			};
+			let dest_location = (
+				1,
+				X1(Parachain(para_id.into())),
+            ).into();
 
 			let xcm_session = XCMSession::<T> {
 				asset,
@@ -222,10 +222,10 @@ pub mod pallet {
 		fn kind(&self) -> Option<TransferType> {
 			let native_locations = [
 				MultiLocation::here(),
-				MultiLocation {
-					parents: 1,
-					interior: X1(Parachain(T::ParachainInfo::get().into())),
-				},
+				(
+                    1,
+					X1(Parachain(T::ParachainInfo::get().into())),
+                ).into(),
 			];
 			let mut transfer_type = None;
 			ConcrateAsset::origin(&self.asset).map(|asset_reserve_location| {
@@ -272,10 +272,10 @@ pub mod pallet {
 			location: MultiLocation,
 		) -> MultiLocation {
 			if reserve == MultiLocation::parent() {
-				MultiLocation {
-					parents: 0,
-					interior: location.interior().clone(),
-				}
+				(
+                    0,
+					location.interior().clone(),
+                ).into()
 			} else {
 				location
 			}
@@ -416,10 +416,7 @@ mod test {
 			assert_ok!(XTransferAssets::register_asset(
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
-				MultiLocation {
-					parents: 0,
-					interior: Here,
-				},
+                (0, Here).into(),
 			));
 		});
 
@@ -428,10 +425,10 @@ mod test {
 			assert_ok!(XTransferAssets::register_asset(
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
-				MultiLocation {
-					parents: 1,
-					interior: X1(Parachain(1u32.into())),
-				},
+				(
+					1,
+					X1(Parachain(1u32.into())),
+                ).into(),
 			));
 		});
 
@@ -452,10 +449,10 @@ mod test {
 		ParaB::execute_with(|| {
 			assert_eq!(
 				XTransferAssets::free_balance(
-					&MultiLocation {
-						parents: 1,
-						interior: X1(Parachain(1u32.into())),
-					},
+					&(
+						1,
+						X1(Parachain(1u32.into())),
+                    ).into(),
 					&BOB
 				),
 				10 - 1
@@ -472,10 +469,7 @@ mod test {
 			assert_ok!(XTransferAssets::register_asset(
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
-				MultiLocation {
-					parents: 0,
-					interior: Here,
-				},
+				(0, Here).into(),
 			));
 		});
 
@@ -484,10 +478,10 @@ mod test {
 			assert_ok!(XTransferAssets::register_asset(
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
-				MultiLocation {
-					parents: 1,
-					interior: X1(Parachain(1u32.into())),
-				},
+				(
+					1,
+					X1(Parachain(1u32.into())),
+                ).into(),
 			));
 		});
 
@@ -509,10 +503,10 @@ mod test {
 		ParaB::execute_with(|| {
 			assert_eq!(
 				XTransferAssets::free_balance(
-					&MultiLocation {
-						parents: 1,
-						interior: X1(Parachain(1u32.into())),
-					},
+					&(
+						1,
+						X1(Parachain(1u32.into())),
+                    ).into(),
 					&BOB
 				),
 				10 - 1
@@ -533,10 +527,10 @@ mod test {
 
 			assert_eq!(
 				XTransferAssets::free_balance(
-					&MultiLocation {
-						parents: 1,
-						interior: X1(Parachain(1u32.into())),
-					},
+					&(
+						1,
+						X1(Parachain(1u32.into())),
+                    ).into(),
 					&BOB
 				),
 				9 - 5

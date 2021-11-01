@@ -78,10 +78,10 @@ pub mod xcm_helper {
 		pub fn is_native_asset_id(id: &MultiLocation) -> bool {
 			let native_locations = [
 				MultiLocation::here(),
-				MultiLocation {
-					parents: 1,
-					interior: X1(Parachain(T::get().into())),
-				},
+				(
+                    1,
+					X1(Parachain(T::get().into())),
+                ).into(),
 			];
 			native_locations.contains(id)
 		}
