@@ -12,7 +12,7 @@ scale-info = { version = "1.0", default-features = false, features = ["derive", 
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false, optional = true }
 
-# phala-trie-storage = { path = "../../crates/phala-trie-storage", default-features = false, optional = true }
+phala-trie-storage = { path = "../../crates/phala-trie-storage", default-features = false, optional = true }
 phala-mq = { path = "../../crates/phala-mq", default-features = false }
 prpc = { path = "../../crates/prpc", default-features = false }
 
@@ -30,7 +30,7 @@ enable_serde = [
 ]
 pruntime = [
 	"sp-runtime",
-#	"phala-trie-storage",
+	"phala-trie-storage",
 ]
 sgx = [
 	"full_crypto",
