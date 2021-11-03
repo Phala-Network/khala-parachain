@@ -1,7 +1,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::hash::{Hash, Hasher};
-use primitive_types::H256;
 
 use derive_more::Display;
 use parity_scale_codec::{Decode, Encode};
@@ -10,8 +9,11 @@ use sp_core::crypto::{AccountId32, UncheckedFrom};
 
 pub type Path = Vec<u8>;
 pub type SenderId = MessageOrigin;
-pub type ContractId = H256;
-pub type AccountId = H256;
+pub use sp_core::H256 as ContractId;
+pub use sp_core::H256 as AccountId;
+pub use sp_core::H256 as ContractGroupId;
+
+use crate::MessageSigner;
 
 pub fn contract_id256(id: u32) -> ContractId {
     ContractId::from_low_u64_be(id as u64)
@@ -80,9 +82,9 @@ impl MessageOrigin {
     }
 
     /// Returns the account id if the origin is from a user, or `Err(BadOrigin)` otherwise
-    pub fn account(self) -> Result<AccountId32, BadOrigin> {
+    pub fn account(&self) -> Result<AccountId32, BadOrigin> {
         match self {
-            Self::AccountId(account_id) => Ok(AccountId32::unchecked_from(account_id)),
+            Self::AccountId(account_id) => Ok(AccountId32::unchecked_from(account_id.clone())),
             _ => Err(BadOrigin),
         }
     }
@@ -284,5 +286,26 @@ pub(crate) struct MessageToBeSigned<'a> {
 impl<'a> MessageToBeSigned<'a> {
     pub(crate) fn raw_data(&self) -> Vec<u8> {
         self.encode()
+    }
+}
+
+#[derive(Encode, Decode, Debug, Clone)]
+pub struct SigningMessage<Signer> {
+    pub message: Message,
+    pub signer: Signer,
+}
+
+impl<Signer: MessageSigner> SigningMessage<Signer> {
+    pub fn sign(self, sequence: u64) -> SignedMessage {
+        let data = MessageToBeSigned {
+            message: &self.message,
+            sequence,
+        };
+        let signature = self.signer.sign(&data.raw_data());
+        SignedMessage {
+            message: self.message,
+            sequence,
+            signature,
+        }
     }
 }
