@@ -8,7 +8,6 @@ exclude = [
 	"vendor/webpki",
 	"vendor/ring",
 	"polkadot/node/service",
-	"crates/phala-trie-storage",
 ]
 
 members = [
@@ -18,6 +17,7 @@ members = [
 	"crates/phala-mq",
 	"crates/phala-node-rpc-ext",
 	"crates/prpc",
+	"crates/phala-trie-storage",
 	"substrate/frame/utility",
 	"pallets/phala",
 	"pallets/phala/mq-runtime-api",
