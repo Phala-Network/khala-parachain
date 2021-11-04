@@ -5,12 +5,12 @@
   "license": "MIT",
   "dependencies": {
     "@phala/typedefs": "^0.2.29",
-    "@polkadot/api": "^5.9.1",
-    "@polkadot/keyring": "^7.5.1",
-    "@polkadot/rpc-provider": "^5.9.1",
-    "@polkadot/types": "^5.9.1",
-    "@polkadot/util": "^7.5.1",
-    "@polkadot/util-crypto": "^7.5.1",
+    "@polkadot/api": "^6.6.1",
+    "@polkadot/keyring": "^7.7.1",
+    "@polkadot/rpc-provider": "^6.6.1",
+    "@polkadot/types": "^6.6.1",
+    "@polkadot/util": "^7.7.1",
+    "@polkadot/util-crypto": "^7.7.1",
     "dotenv": "^10.0.0",
     "yargs": "^17.2.1"
   }
