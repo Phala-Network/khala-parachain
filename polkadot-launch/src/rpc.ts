@@ -2,16 +2,16 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 import { Keyring } from "@polkadot/api";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 
-const filterConsole = require("filter-console");
-
-// Hide some warning messages that are coming from Polkadot JS API.
-// TODO: Make configurable.
-filterConsole([
-	`code: '1006' reason: 'connection failed'`,
-	`Unhandled promise rejections`,
-	`UnhandledPromiseRejectionWarning:`,
-	`Unknown types found`,
-]);
+// import filterConsole from "filter-console";
+//
+// // Hide some warning messages that are coming from Polkadot JS API.
+// // TODO: Make configurable.
+// filterConsole([
+// 	`code: '1006' reason: 'connection failed'`,
+// 	`Unhandled promise rejections`,
+// 	`UnhandledPromiseRejectionWarning:`,
+// 	`Unknown types found`,
+// ]);
 
 // Connect to a local Substrate node. This function wont resolve until connected.
 // TODO: Add a timeout where we know something went wrong so we don't wait forever.
