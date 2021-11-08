@@ -3,6 +3,7 @@ pub use self::pallet::*;
 #[allow(unused_variables)]
 #[frame_support::pallet]
 pub mod pallet {
+	use crate::xcm_helper::{ConcrateAsset, NativeAssetFilter};
 	use codec::{Decode, Encode};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::{
@@ -22,7 +23,6 @@ pub mod pallet {
 		traits::{Convert, MatchesFungible, TransactAsset},
 		Assets,
 	};
-	use crate::xcm_helper::{ConcrateAsset, NativeAssetFilter};
 
 	const LOG_TARGET: &str = "xcm-transfer:assets";
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
@@ -189,8 +189,7 @@ pub mod pallet {
 			recipient: &T::AccountId,
 			amount: BalanceOf<T>,
 		) -> Result<(), Error<T>> {
-			let resolve_balance =
-				XTransferBalances::<T>::get(asset, recipient).unwrap_or_default();
+			let resolve_balance = XTransferBalances::<T>::get(asset, recipient).unwrap_or_default();
 			XTransferBalances::<T>::insert(
 				asset,
 				recipient,
@@ -244,7 +243,8 @@ pub mod pallet {
 					&ConcrateAsset::id(&what).ok_or(Error::<T>::AssetNotFound)?,
 					&who,
 					balance_amount,
-				).map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+				)
+				.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
 				Self::deposit_event(Event::AssetDeposited(
 					ConcrateAsset::id(&what).unwrap(),
 					who,
@@ -288,7 +288,8 @@ pub mod pallet {
 					&ConcrateAsset::id(&what).ok_or(Error::<T>::AssetNotFound)?,
 					&who,
 					balance_amount,
-				).map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+				)
+				.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
 				Self::deposit_event(Event::AssetWithdrawn(
 					ConcrateAsset::id(&what).unwrap(),
 					who,
@@ -318,6 +319,7 @@ pub mod pallet {
 
 #[cfg(test)]
 mod test {
+	use assert_matches::assert_matches;
 	use cumulus_primitives_core::ParaId;
 	use frame_support::{assert_err, assert_noop, assert_ok, traits::Currency};
 	use polkadot_parachain::primitives::{AccountIdConversion, Sibling};
@@ -327,11 +329,11 @@ mod test {
 		Result as XcmResult,
 	};
 	use xcm_simulator::TestExt;
-	use assert_matches::assert_matches;
 
 	use super::*;
 	use crate::mock::{
-		para::Origin, para::Runtime as Test, para::Event as ParaEvent, para_take_events, para_ext, XTransferAssets,
+		para::Event as ParaEvent, para::Origin, para::Runtime as Test, para_ext, para_take_events,
+		XTransferAssets,
 	};
 
 	// TODO. Add more test cases.
@@ -345,17 +347,13 @@ mod test {
 			));
 
 			let ev = para_take_events();
-			let expected_ev: Vec<ParaEvent> = [
-				Event::AssetRegistered(
-					MultiLocation::here(),
-					b"PHA-2004".to_vec(),
-					[0; 32],
-				).into(),
-			].to_vec();
-			assert_matches!(
-				ev,
-				expected_ev
-			);
+			let expected_ev: Vec<ParaEvent> =
+				[
+					Event::AssetRegistered(MultiLocation::here(), b"PHA-2004".to_vec(), [0; 32])
+						.into(),
+				]
+				.to_vec();
+			assert_matches!(ev, expected_ev);
 
 			assert_noop!(
 				XTransferAssets::register_asset(

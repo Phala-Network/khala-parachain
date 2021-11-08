@@ -1,10 +1,10 @@
 pub use self::xcm_helper::*;
 
 pub mod xcm_helper {
+	use cumulus_primitives_core::ParaId;
 	use frame_support::{pallet_prelude::*, traits::Contains};
 	use sp_runtime::traits::CheckedConversion;
 	use sp_std::{convert::TryFrom, marker::PhantomData, vec::Vec};
-	use cumulus_primitives_core::ParaId;
 	use xcm::v1::{
 		prelude::*,
 		AssetId::{Abstract, Concrete},
@@ -78,10 +78,7 @@ pub mod xcm_helper {
 		pub fn is_native_asset_id(id: &MultiLocation) -> bool {
 			let native_locations = [
 				MultiLocation::here(),
-				(
-                    1,
-					X1(Parachain(T::get().into())),
-                ).into(),
+				(1, X1(Parachain(T::get().into()))).into(),
 			];
 			native_locations.contains(id)
 		}

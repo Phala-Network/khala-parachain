@@ -4,6 +4,7 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::assets as xtransfer_assets;
+	use crate::xcm_helper::ConcrateAsset;
 	use cumulus_primitives_core::ParaId;
 	use frame_support::{
 		pallet_prelude::*,
@@ -21,7 +22,6 @@ pub mod pallet {
 		prelude::*, AssetId::Concrete, Fungibility::Fungible, MultiAsset, MultiLocation,
 	};
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
-	use crate::xcm_helper::ConcrateAsset;
 
 	/// The logging target.
 	const LOG_TARGET: &str = "xcm-transfer";
@@ -167,10 +167,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
-			let dest_location = (
-				1,
-				X1(Parachain(para_id.into())),
-            ).into();
+			let dest_location = (1, X1(Parachain(para_id.into()))).into();
 
 			let xcm_session = XCMSession::<T> {
 				asset,
@@ -222,10 +219,7 @@ pub mod pallet {
 		fn kind(&self) -> Option<TransferType> {
 			let native_locations = [
 				MultiLocation::here(),
-				(
-                    1,
-					X1(Parachain(T::ParachainInfo::get().into())),
-                ).into(),
+				(1, X1(Parachain(T::ParachainInfo::get().into()))).into(),
 			];
 			let mut transfer_type = None;
 			ConcrateAsset::origin(&self.asset).map(|asset_reserve_location| {
@@ -245,7 +239,7 @@ pub mod pallet {
 			let fee_asset: MultiAsset = match self.asset.fun {
 				// so far only half of amount are allowed to be used as fee
 				Fungible(amount) => MultiAsset {
-					fun: Fungible(amount/2),
+					fun: Fungible(amount / 2),
 					id: self.asset.id.clone(),
 				},
 				_ => MultiAsset {
@@ -272,10 +266,7 @@ pub mod pallet {
 			location: MultiLocation,
 		) -> MultiLocation {
 			if reserve == MultiLocation::parent() {
-				(
-                    0,
-					location.interior().clone(),
-                ).into()
+				(0, location.interior().clone()).into()
 			} else {
 				location
 			}
@@ -416,7 +407,7 @@ mod test {
 			assert_ok!(XTransferAssets::register_asset(
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
-                (0, Here).into(),
+				(0, Here).into(),
 			));
 		});
 
@@ -425,10 +416,7 @@ mod test {
 			assert_ok!(XTransferAssets::register_asset(
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
-				(
-					1,
-					X1(Parachain(1u32.into())),
-                ).into(),
+				(1, X1(Parachain(1u32.into())),).into(),
 			));
 		});
 
@@ -448,13 +436,7 @@ mod test {
 
 		ParaB::execute_with(|| {
 			assert_eq!(
-				XTransferAssets::free_balance(
-					&(
-						1,
-						X1(Parachain(1u32.into())),
-                    ).into(),
-					&BOB
-				),
+				XTransferAssets::free_balance(&(1, X1(Parachain(1u32.into())),).into(), &BOB),
 				10 - 1
 			);
 		});
@@ -478,10 +460,7 @@ mod test {
 			assert_ok!(XTransferAssets::register_asset(
 				ParaOrigin::root(),
 				b"ParaA Native Asset".to_vec(),
-				(
-					1,
-					X1(Parachain(1u32.into())),
-                ).into(),
+				(1, X1(Parachain(1u32.into())),).into(),
 			));
 		});
 
@@ -502,13 +481,7 @@ mod test {
 
 		ParaB::execute_with(|| {
 			assert_eq!(
-				XTransferAssets::free_balance(
-					&(
-						1,
-						X1(Parachain(1u32.into())),
-                    ).into(),
-					&BOB
-				),
+				XTransferAssets::free_balance(&(1, X1(Parachain(1u32.into())),).into(), &BOB),
 				10 - 1
 			);
 		});
@@ -526,13 +499,7 @@ mod test {
 			));
 
 			assert_eq!(
-				XTransferAssets::free_balance(
-					&(
-						1,
-						X1(Parachain(1u32.into())),
-                    ).into(),
-					&BOB
-				),
+				XTransferAssets::free_balance(&(1, X1(Parachain(1u32.into())),).into(), &BOB),
 				9 - 5
 			);
 		});
