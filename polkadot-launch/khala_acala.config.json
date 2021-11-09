@@ -77,8 +77,9 @@
       ]
     },
     {
-        "bin": "./bin/khala-node",
-        "chain": "khala-dev-2005",
+        "bin": "./bin/acala",
+        "chain": "karura-dev",
+        "id": "2000",
         "balance": "1000000000000000000000",
         "nodes": [
           {
@@ -115,12 +116,12 @@
   "hrmpChannels": [
     {
         "sender": 2004,
-        "recipient": 2005,
+        "recipient": 2000,
         "maxCapacity": 8,
         "maxMessageSize": 512
     },
     {
-        "sender": 2005,
+        "sender": 2000,
         "recipient": 2004,
         "maxCapacity": 8,
         "maxMessageSize": 512
