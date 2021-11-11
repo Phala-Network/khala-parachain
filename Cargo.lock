@@ -3704,7 +3704,7 @@ dependencies = [
 
 [[package]]
 name = "khala-node"
-version = "0.1.7-quickfix"
+version = "0.1.7"
 dependencies = [
  "async-trait",
  "cumulus-client-cli",
@@ -3771,7 +3771,7 @@ dependencies = [
 
 [[package]]
 name = "khala-parachain-runtime"
-version = "0.0.900"
+version = "0.1.7"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
