@@ -18,6 +18,7 @@ pub mod pallet {
 		DispatchError,
 	};
 	use sp_std::{convert::TryInto, prelude::*, vec};
+	use scale_info::TypeInfo;
 	use xcm::v1::{
 		prelude::*, AssetId::Concrete, Fungibility::Fungible, MultiAsset, MultiLocation,
 	};
@@ -70,7 +71,6 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	#[pallet::metadata(T::BlockNumber = "BlockNumber", T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
 	pub enum Event<T: Config> {
 		/// Assets sent to parachain or relaychain. \[from, paraId, to, amount\]
 		AssetTransfered(T::AccountId, ParaId, T::AccountId, BalanceOf<T>),
@@ -190,7 +190,7 @@ pub mod pallet {
 			Ok(())
 		}
 	}
-	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 	pub enum TransferType {
 		/// Transfer assets reserved by the origin chain
 		FromNative,
@@ -205,7 +205,7 @@ pub mod pallet {
 		fn execute(&self, message: &mut Xcm<T::Call>) -> DispatchResult;
 	}
 
-	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 	struct XCMSession<T: Config> {
 		asset: MultiAsset,
 		origin_location: MultiLocation,
