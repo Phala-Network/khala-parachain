@@ -89,7 +89,7 @@ pub mod pallet {
 		type BackfillOrigin: EnsureOrigin<Self::Origin>;
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -238,7 +238,10 @@ pub mod pallet {
 				w += super::migrations::migrate_to_v1::<T>();
 				STORAGE_VERSION.put::<super::Pallet<T>>();
 				w += T::DbWeight::get().writes(1);
-			}
+			} else if old == 1 {
+				w += super::migrations::migrate_to_v1::<T>();
+                STORAGE_VERSION.put::<super::Pallet<T>>();
+            }
 			w
 		}
 	}
@@ -722,7 +725,7 @@ pub mod pallet {
 		///
 		/// After the cool down ends, worker was cleaned up, whose contributed balance would be
 		/// reset to zero.
-		fn handle_reclaim(pid: u64, orig_stake: BalanceOf<T>, slashed: BalanceOf<T>) {
+		pub(crate) fn handle_reclaim(pid: u64, orig_stake: BalanceOf<T>, slashed: BalanceOf<T>) {
 			let mut pool_info = Self::ensure_pool(pid).expect("Stake pool must exist; qed.");
 
 			let returned = orig_stake - slashed;
@@ -848,6 +851,12 @@ pub mod pallet {
 					);
 					// Actually remove the fulfilled withdraw request. Dust in the user shares is
 					// considered but it in the request is ignored.
+                    log::info!(
+                        "removing withdrawing_shares: {}, total = {}, user = {:?}",
+                        withdrawing_shares,
+                        pool_info.total_shares,
+                        user_info,
+                    );
 					Self::maybe_settle_slash(pool_info, &mut user_info);
 					let (reduced, dust) = pool_info
 						.remove_stake(&mut user_info, withdrawing_shares)
@@ -1196,9 +1205,10 @@ pub mod pallet {
 			// deposit it to the Treasury.
 			let price = self.share_price()?;
 			let amount = bmul(shares, &price);
-			// In case `amount` is a little bit larger than `free_stake`. It also implies that
-			// amount will never exceed user.stake.
-			let amount = amount.min(self.free_stake);
+            log::info!("- to release amount = {}, pool free_stake = {}", amount, self.free_stake);
+			// In case `amount` is a little bit larger than `free_stake` or `user.locked`. It also
+            // implies that amount will never exceed user.stake.
+			let amount = amount.min(self.free_stake).min(user.locked);
 			// Remove shares and stake from the user record
 			let user_shares = user.shares.checked_sub(&shares)?;
 			let (user_shares, shares_dust) = extract_dust(user_shares);

@@ -6489,6 +6489,7 @@ dependencies = [
  "phala-types",
  "primitive-types",
  "rand 0.7.3",
+ "serde",
  "serde_json",
  "sp-application-crypto",
  "sp-core",
@@ -12504,6 +12505,7 @@ dependencies = [
 name = "xtransfer-pallets"
 version = "0.1.0"
 dependencies = [
+ "assert_matches",
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcm",

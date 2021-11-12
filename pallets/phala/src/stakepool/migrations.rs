@@ -3,7 +3,7 @@ use super::*;
 use crate::balance_convert::FixedPointConvert;
 use frame_support::pallet_prelude::Weight;
 use frame_support::traits::Get;
-use log::info;
+use log::{info, warn};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::fmt::Display;
 use sp_std::marker::PhantomData;
@@ -17,7 +17,9 @@ where
 	T: crate::mining::Config<Currency = <T as Config>::Currency>,
 	BalanceOf<T>: FixedPointConvert + Display,
 {
-	Migration::<T>::migrate_fix487_490()
+    #[cfg(feature = "std")]
+    issue500::migrate_fix500::<T>();
+    0
 }
 
 /// Indicating now it's pre or post migration
@@ -34,6 +36,7 @@ where
 	T: crate::mining::Config<Currency = <T as Config>::Currency>,
 	BalanceOf<T>: FixedPointConvert + Display,
 {
+
 	/// Fix bug #487
 	pub fn migrate_fix487_490() -> Weight {
 		info!("== migrate_fix487: Pre-Migration ==");
@@ -209,4 +212,96 @@ where
 
 		Ok(T::DbWeight::get().reads_writes(num_reads, num_writes))
 	}
+}
+
+#[cfg(feature = "std")]
+mod issue500 {
+    use super::*;
+    use crate::mining;
+    use primitive_types::H256;
+    use ::serde::{Serialize, Deserialize};
+    use serde::de::DeserializeOwned;
+    use serde_json::Value;
+    use std::str::FromStr;
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Reconcile<AccountId: Ord> {
+        latest_block: u32,
+        preimage: BTreeMap<AccountId, Preimage>,
+        missing_stake: Vec<MissingStake<AccountId>>,
+    }
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Preimage {
+        worker: String,
+        pid: u64,
+    }
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct MissingStake<AccountId> {
+        blocknum: u32,
+        stopped_at: u32,
+        pid: u64,
+        worker: String,
+        miner: AccountId,
+        orig_stake: String,
+        returned: String,
+        slashed: String,
+    }
+
+    pub fn migrate_fix500<T: Config>() -> Weight
+    where
+        T: crate::mining::Config<Currency = <T as Config>::Currency>,
+        BalanceOf<T>: FixedPointConvert + Display,
+    {
+		info!("== migrate_fix500: Pre-Migration ==");
+
+        let reconcile_bytes = include_bytes!("./issue500Reconciling.json");
+        let reconcile: Reconcile<T::AccountId> = serde_json::from_slice(reconcile_bytes).unwrap();
+        let missing_stakes = reconcile.missing_stake;
+
+        for missing_stake in &missing_stakes {
+            let pid = missing_stake.pid;
+            let orig_stake: BalanceOf<T> = serde_json::from_str(&missing_stake.orig_stake).unwrap();
+            let slashed: BalanceOf<T> = serde_json::from_str(&missing_stake.slashed).unwrap();
+            info!("triggering reclaim: {} {} {}", pid, orig_stake, slashed);
+            Pallet::<T>::handle_reclaim(pid, orig_stake, slashed);
+        }
+
+		info!("== migrate_fix500: Post-Migration ==");
+
+        let events = frame_system::Pallet::<T>::events();
+        info!("Events: {:#?}", events);
+
+        // --- check withdraw result ---
+
+        // get all cd_stake in pools
+        let mut cd_stake = BTreeMap::<u64, BalanceOf<T>>::new();
+        for (miner, miner_info) in mining::Miners::<T>::iter() {
+            if miner_info.state == mining::MinerState::MiningCoolingDown {
+                let preimage = match reconcile.preimage.get(&miner) {
+                    Some(x) => x,
+                    None => {
+                        warn!("miner preimage not found: {}", miner);
+                        continue
+                    },
+                };
+                let stake = mining::Stakes::<T>::get(&miner).unwrap();
+                *cd_stake.entry(preimage.pid).or_insert(Zero::zero()) += stake;
+            }
+        }
+        use sp_runtime::SaturatedConversion;
+        let b1e12 = BalanceOf::<T>::saturated_from(1_000_000_000_000u128);
+        // check actual releasing stake
+        for (pid, pool) in StakePools::<T>::iter() {
+            let cd = cd_stake.get(&pid).cloned().unwrap_or_default();
+            if pool.releasing_stake != cd {
+                warn!("cd mismatch: [{}] cd = {}, releasing = {}", pid, cd / b1e12, pool.releasing_stake / b1e12);
+            }
+        }
+        0
+    }
 }
