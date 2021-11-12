@@ -66,7 +66,7 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
-        Contains, Currency, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem,
+        Contains, Currency, Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem,
         LockIdentifier, OnUnbalanced, Randomness, U128CurrencyToVote,
     },
     weights::{
@@ -84,8 +84,8 @@ use frame_system::{
 use xcm::{v1::prelude::*, Version as XcmVersion};
 use polkadot_parachain::primitives::Sibling;
 use xcm_builder::{
-    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
-    AsPrefixedGeneralIndex, ConvertedConcreteAssetId, CurrencyAdapter, EnsureXcmOrigin,
+    AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
+    AllowUnpaidExecutionFrom, AsPrefixedGeneralIndex, ConvertedConcreteAssetId, CurrencyAdapter, EnsureXcmOrigin,
     FixedWeightBounds, FungiblesAdapter, IsConcrete, LocationInverter, ParentAsSuperuser,
     ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
     SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
@@ -752,7 +752,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 parameter_types! {
 	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
 	pub UnitWeightCost: Weight = 1_000_000_000;
-	// pub const MaxInstructions: u32 = 100;
+	pub const MaxInstructions: u32 = 100;
 }
 match_type! {
 	pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
@@ -765,7 +765,10 @@ pub type Barrier = (
 	AllowTopLevelPaidExecutionFrom<Everything>,
     // TODO: would be removed when we ready to release, it's unreasonable to let Everything execute without pay.
 	AllowUnpaidExecutionFrom<Everything>,
-	// ^^^ Parent and its exec plurality get free execution
+	// Expected responses are OK.
+	// AllowKnownQueryResponses<PolkadotXcm>,
+	// Subscriptions for version tracking are OK.
+	AllowSubscriptionsFrom<Everything>,
 );
 
 pub struct XcmConfig;
@@ -779,7 +782,7 @@ impl Config for XcmConfig {
 	type IsTeleporter = (); // <- should be enough to allow teleportation of KSM
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
-	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type Trader = (
         UsingComponents<IdentityFee<Balance>, DOTMultiAssetId, AccountId, Balances, ()>,
         UsingComponents<IdentityFee<Balance>, KARMultiAssetId, AccountId, Balances, ()>,
@@ -787,6 +790,8 @@ impl Config for XcmConfig {
         UsingComponents<IdentityFee<Balance>, PHA2005MultiAssetId, AccountId, Balances, ()>,
     );
 	type ResponseHandler = ();
+	type AssetTrap = ();
+	type AssetClaims = ();
 	type SubscriptionService = ();
 }
 parameter_types! {
@@ -827,7 +832,7 @@ impl pallet_xcm_transfer::Config for Runtime {
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type LocationInverter = LocationInverter<Ancestry>;
 }
 

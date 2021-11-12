@@ -13,13 +13,13 @@ pub mod pallet {
 		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
+	use scale_info::TypeInfo;
 	use sp_runtime::{
 		traits::{AccountIdConversion, Zero},
 		DispatchError,
 	};
 	use sp_std::{convert::TryInto, prelude::*, vec};
-	use scale_info::TypeInfo;
-	use xcm::v1::{
+	use xcm::latest::{
 		prelude::*, AssetId::Concrete, Fungibility::Fungible, MultiAsset, MultiLocation,
 	};
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
@@ -86,6 +86,7 @@ pub mod pallet {
 		UnknownTransfer,
 		AssetNotFound,
 		AssetNotSupported,
+		LocationInvertFailed,
 	}
 
 	#[pallet::call]
@@ -234,8 +235,12 @@ pub mod pallet {
 			transfer_type
 		}
 
-		fn buy_execution_on(&self, location: &MultiLocation) -> Result<Order<()>, DispatchError> {
-			let inv_dest = T::LocationInverter::invert_location(location);
+		fn buy_execution_on(
+			&self,
+			location: &MultiLocation,
+		) -> Result<Instruction<()>, DispatchError> {
+			let inv_dest = T::LocationInverter::invert_location(location)
+				.map_err(|()| Error::<T>::LocationInvertFailed)?;
 			let fee_asset: MultiAsset = match self.asset.fun {
 				// so far only half of amount are allowed to be used as fee
 				Fungible(amount) => MultiAsset {
@@ -253,10 +258,7 @@ pub mod pallet {
 
 			Ok(BuyExecution {
 				fees,
-				weight: 0,
-				debt: self.dest_weight,
-				halt_on_error: false,
-				instructions: vec![],
+				weight_limit: WeightLimit::Limited(self.dest_weight),
 			})
 		}
 
@@ -307,33 +309,36 @@ pub mod pallet {
 			let kind = self.kind().ok_or(Error::<T>::UnknownTransfer)?;
 			log::trace!(target: LOG_TARGET, "Transfer type is {:?}.", kind.clone(),);
 			let message = match kind {
-				TransferType::FromNative => Xcm::TransferReserveAsset {
+				TransferType::FromNative => Xcm(vec![TransferReserveAsset {
 					assets: self.asset.clone().into(),
 					dest: self.dest_location.clone(),
-					effects: vec![self.buy_execution_on(&self.dest_location)?, deposit_asset],
-				},
+					xcm: Xcm(vec![
+						self.buy_execution_on(&self.dest_location)?,
+						deposit_asset,
+					]),
+				}]),
 				TransferType::ToReserve => {
 					let asset_reserve_location = self.dest_location.clone();
-					WithdrawAsset {
-						assets: self.asset.clone().into(),
-						effects: vec![InitiateReserveWithdraw {
+					Xcm(vec![
+						WithdrawAsset(self.asset.clone().into()),
+						InitiateReserveWithdraw {
 							assets: Wild(All),
 							reserve: asset_reserve_location,
-							effects: vec![
+							xcm: Xcm(vec![
 								self.buy_execution_on(&self.dest_location)?,
 								deposit_asset,
-							],
-						}],
-					}
+							]),
+						},
+					])
 				}
 				TransferType::ToNonReserve => {
 					let asset_reserve_location = ConcrateAsset::origin(&self.asset).unwrap();
-					WithdrawAsset {
-						assets: self.asset.clone().into(),
-						effects: vec![InitiateReserveWithdraw {
+					Xcm(vec![
+						WithdrawAsset(self.asset.clone().into()),
+						InitiateReserveWithdraw {
 							assets: Wild(All),
 							reserve: asset_reserve_location.clone(),
-							effects: vec![
+							xcm: Xcm(vec![
 								self.buy_execution_on(&asset_reserve_location)?,
 								DepositReserveAsset {
 									assets: Wild(All),
@@ -342,14 +347,14 @@ pub mod pallet {
 										asset_reserve_location.clone(),
 										self.dest_location.clone(),
 									),
-									effects: vec![
+									xcm: Xcm(vec![
 										self.buy_execution_on(&self.dest_location)?,
 										deposit_asset,
-									],
+									]),
 								},
-							],
-						}],
-					}
+							]),
+						},
+					])
 				}
 			};
 			Ok(message)
@@ -365,7 +370,7 @@ mod test {
 	use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::AccountId32;
 
-	use xcm::v1::{
+	use xcm::latest::{
 		prelude::*, AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset,
 		MultiLocation, Result as XcmResult,
 	};
