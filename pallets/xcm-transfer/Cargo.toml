@@ -9,6 +9,7 @@ repository = "https://github.com/Phala-Network/phala-blockchain"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
+scale-info = { version = "1.0", default-features = false, features = ["derive", "serde", "decode"] }
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
 log = { version = "0.4.14", default-features = false }
 
