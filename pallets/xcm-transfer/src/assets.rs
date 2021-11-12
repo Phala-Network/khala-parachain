@@ -13,10 +13,10 @@ pub mod pallet {
 		},
 	};
 	use frame_system::pallet_prelude::OriginFor;
+	use scale_info::TypeInfo;
 	use sp_runtime::traits::{SaturatedConversion, Saturating};
 	use sp_std::{convert::TryInto, result, vec::Vec};
-	use scale_info::TypeInfo;
-	use xcm::v1::{
+	use xcm::latest::{
 		prelude::*, AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset,
 		MultiLocation, Result as XcmResult,
 	};
@@ -325,7 +325,7 @@ mod test {
 	use frame_support::{assert_err, assert_noop, assert_ok, traits::Currency};
 	use polkadot_parachain::primitives::{AccountIdConversion, Sibling};
 	use sp_runtime::AccountId32;
-	use xcm::v1::{
+	use xcm::latest::{
 		AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset, MultiLocation,
 		Result as XcmResult,
 	};
