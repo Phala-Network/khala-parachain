@@ -3417,7 +3417,7 @@ dependencies = [
 
 [[package]]
 name = "khala-node"
-version = "0.1.7-quickfix"
+version = "0.1.7-quickfix2"
 dependencies = [
  "async-trait",
  "cumulus-client-cli",
