@@ -34,61 +34,98 @@ use std::{io::Write, net::SocketAddr};
 use crate::service::Block;
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-    let (norm_id, para_id) = extract_parachain_id(id);
-    info!(
-        "Loading spec: {}, custom parachain-id = {:?}",
-        norm_id,
-        para_id.unwrap_or(ParaId::new(0)).to_string()
-    );
-    Ok(match norm_id {
-        "khala-dev" => Box::new(chain_spec::khala_development_config(
-            para_id.expect("Must specify parachain id"),
-        )),
-        "khala-local" => Box::new(chain_spec::khala_local_config(
-            para_id.expect("Must specify parachain id"),
-        )),
-        "whala-local" => Box::new(chain_spec::whala_local_config(
-            para_id.expect("Must specify parachain id"),
-        )),
-        "whala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
-            &include_bytes!("../res/whala.json")[..],
-        )?),
-        "khala-staging" => Box::new(chain_spec::khala_staging_config()),
-        "khala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
-            &include_bytes!("../res/khala.json")[..],
-        )?),
-        path => Box::new(chain_spec::ChainSpec::from_json_file(
-            std::path::PathBuf::from(path),
-        )?),
-    })
-}
+    const RUNTIME_NAMES: [&str; 2] = ["khala", "whala"];
 
-/// Extracts the normalized chain id and parachain id from the input chain id
-///
-/// E.g. "khala-dev-2004" yields ("khala-dev", Some(2004))
-fn extract_parachain_id(id: &str) -> (&str, Option<ParaId>) {
-    const DEV_PARAM_PREFIX: &str = "khala-dev-";
-    const LOCAL_PARAM_PREFIX: &str = "khala-local-";
-    const WHALA_PARAM_PREFIX: &str = "whala-local-";
+    let path = std::path::PathBuf::from(id);
+    if path.exists() {
+        let filename = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("Can not get file name");
+        let runtime_name = RUNTIME_NAMES.iter()
+            .cloned()
+            .find(|&chain| filename.starts_with(chain))
+            .expect("File name must start with a runtime name");
 
-    let (norm_id, para) = if id.starts_with(DEV_PARAM_PREFIX) {
-        let suffix = &id[DEV_PARAM_PREFIX.len()..];
-        let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
-        (&id[..DEV_PARAM_PREFIX.len() - 1], Some(para_id))
-    } else if id.starts_with(LOCAL_PARAM_PREFIX) {
-        let suffix = &id[LOCAL_PARAM_PREFIX.len()..];
-        let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
-        (&id[..LOCAL_PARAM_PREFIX.len() - 1], Some(para_id))
-    } else if id.starts_with(WHALA_PARAM_PREFIX) {
-        let suffix = &id[WHALA_PARAM_PREFIX.len()..];
-        let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
-        (&id[..WHALA_PARAM_PREFIX.len() - 1], Some(para_id))
-    } else if id == "khala-dev" || id == "khala-local" {
-        (id, Some(2004u32))
-    } else {
-        (id, None)
-    };
-    (norm_id, para.map(Into::into))
+        return Ok(
+            match runtime_name {
+                "khala" => Box::new(
+                    chain_spec::khala::ChainSpec::from_json_file(path)?
+                ),
+                "whala" => Box::new(
+                    chain_spec::khala::ChainSpec::from_json_file(path)?
+                ),
+                other => panic!("Unsupported runtime {}", other)
+            }
+        )
+    }
+
+    let normalized_id: Vec<&str> = id.split("-").collect();
+    let runtime_name = normalized_id[0];
+    let environment =
+        if normalized_id.len() == 1 || normalized_id.len() == 2 {
+            None
+        } else if normalized_id.len() == 3 {
+            Some(normalized_id[1])
+        } else {
+            return Err(format!(
+                "ParaId pattern must be runtime_name-environment-para_id or runtime_name-para_id"
+            ))
+        };
+    let para_id: Option<u32> =
+        if normalized_id.len() == 1 {
+            None
+        } else if normalized_id.len() == 2 {
+            Some(normalized_id[1].parse().expect("ParaId must be a valid integer"))
+        } else if normalized_id.len() == 3 {
+            Some(normalized_id[2].parse().expect("ParaId must be a valid integer"))
+        } else {
+            return Err(format!(
+                "ParaId pattern must be runtime_name-environment-para_id or runtime_name-para_id"
+            ))
+        };
+
+    if runtime_name == "khala" {
+        if normalized_id.len() == 1 {
+            return Ok(
+                Box::new(chain_spec::ChainSpec::from_json_bytes(
+                    &include_bytes!("../res/khala.json")[..],
+                )?)
+            )
+        }
+
+        let environment = environment.expect("Must specify environment");
+        return match environment {
+            "dev" => Ok(Box::new(chain_spec::khala::khala_development_config(
+                para_id.expect("Must specify parachain id").into(),
+            ))),
+            "local" => Ok(Box::new(chain_spec::khala::khala_local_config(
+                para_id.expect("Must specify parachain id").into(),
+            ))),
+            "staging" => Ok(Box::new(chain_spec::khala::khala_staging_config())),
+            other => Err(format!("Unsupported environment {} for Khala", other))
+        }
+    }
+
+    if runtime_name == "whala" {
+        if normalized_id.len() == 1 {
+            return Ok(
+                Box::new(chain_spec::ChainSpec::from_json_bytes(
+                    &include_bytes!("../res/whala.json")[..],
+                )?)
+            )
+        }
+
+        let environment = environment.expect("Must specify environment");
+        return match environment {
+            "local" => Ok(Box::new(chain_spec::khala::whala_local_config(
+                para_id.expect("Must specify parachain id").into(),
+            ))),
+            other => Err(format!("Unsupported environment {} for Whala", other))
+        }
+    }
+
+    Err("Unknown parachain-id".to_string())
 }
 
 impl SubstrateCli for Cli {
