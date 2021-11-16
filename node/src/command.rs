@@ -71,21 +71,27 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         } else if normalized_id.len() == 3 {
             Some(normalized_id[1])
         } else {
-            return Err(format!(
-                "ParaId pattern must be runtime_name-environment-para_id or runtime_name-para_id"
-            ))
+            return Err(
+                "ParaId pattern must be runtime_name-environment-para_id or runtime_name-para_id".to_string()
+            )
         };
     let para_id: Option<u32> =
         if normalized_id.len() == 1 {
             None
         } else if normalized_id.len() == 2 {
-            Some(normalized_id[1].parse().expect("ParaId must be a valid integer"))
+            match normalized_id[1].parse() {
+                Ok(value) => Some(value),
+                _ => return Err("ParaId must be a valid integer".to_string())
+            }
         } else if normalized_id.len() == 3 {
-            Some(normalized_id[2].parse().expect("ParaId must be a valid integer"))
+            match normalized_id[2].parse() {
+                Ok(value) => Some(value),
+                _ => return Err("ParaId must be a valid integer".to_string())
+            }
         } else {
-            return Err(format!(
-                "ParaId pattern must be runtime_name-environment-para_id or runtime_name-para_id"
-            ))
+            return Err(
+                "ParaId pattern must be runtime_name-environment-para_id or runtime_name-para_id".to_string()
+            )
         };
 
     if runtime_name == "khala" {
@@ -97,13 +103,20 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             )
         }
 
-        let environment = environment.expect("Must specify environment");
+        let environment = match environment {
+            Some(value) => value,
+            None => return Err("Must specify environment".to_string())
+        };
+        let para_id = match para_id {
+            Some(value) => value,
+            None => return Err("Must specify parachain id".to_string())
+        };
         return match environment {
             "dev" => Ok(Box::new(chain_spec::khala::khala_development_config(
-                para_id.expect("Must specify parachain id").into(),
+                para_id.into(),
             ))),
             "local" => Ok(Box::new(chain_spec::khala::khala_local_config(
-                para_id.expect("Must specify parachain id").into(),
+                para_id.into(),
             ))),
             "staging" => Ok(Box::new(chain_spec::khala::khala_staging_config())),
             other => Err(format!("Unsupported environment {} for Khala", other))
@@ -119,29 +132,46 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             )
         }
 
-        let environment = environment.expect("Must specify environment");
+        let environment = match environment {
+            Some(value) => value,
+            None => return Err("Must specify environment".to_string())
+        };
+        let para_id = match para_id {
+            Some(value) => value,
+            None => return Err("Must specify parachain id".to_string())
+        };
         return match environment {
             "local" => Ok(Box::new(chain_spec::khala::whala_local_config(
-                para_id.expect("Must specify parachain id").into(),
+                para_id.into(),
             ))),
             other => Err(format!("Unsupported environment {} for Whala", other))
         }
     }
 
     if runtime_name == "thala" {
-        let environment = environment.expect("Must specify environment");
+        let environment = match environment {
+            Some(value) => value,
+            None => return Err("Must specify environment".to_string())
+        };
+        let para_id = match para_id {
+          Some(value) => value,
+            None => return Err("Must specify parachain id".to_string())
+        };
         return match environment {
             "dev" => Ok(Box::new(chain_spec::thala::development_config(
-                para_id.expect("Must specify parachain id").into(),
+                para_id.into(),
             ))),
             "local" => Ok(Box::new(chain_spec::thala::local_config(
-                para_id.expect("Must specify parachain id").into(),
+                para_id.into(),
             ))),
             other => Err(format!("Unsupported environment {} for Thala", other))
         }
     }
 
-    Err("Unknown parachain-id".to_string())
+    Err(format!(
+        "Invalid `--chain` arg. \
+            give exported chain-spec or follow pattern: runtime-environment-para_id"
+    ))
 }
 
 impl SubstrateCli for Cli {
