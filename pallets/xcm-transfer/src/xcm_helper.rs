@@ -5,7 +5,7 @@ pub mod xcm_helper {
 	use frame_support::{pallet_prelude::*, traits::Contains};
 	use sp_runtime::traits::CheckedConversion;
 	use sp_std::{convert::TryFrom, marker::PhantomData, vec::Vec};
-	use xcm::v1::{
+	use xcm::latest::{
 		prelude::*,
 		AssetId::{Abstract, Concrete},
 		Fungibility::Fungible,

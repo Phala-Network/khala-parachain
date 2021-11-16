@@ -13,9 +13,10 @@ pub mod pallet {
 		},
 	};
 	use frame_system::pallet_prelude::OriginFor;
+	use scale_info::TypeInfo;
 	use sp_runtime::traits::{SaturatedConversion, Saturating};
 	use sp_std::{convert::TryInto, result, vec::Vec};
-	use xcm::v1::{
+	use xcm::latest::{
 		prelude::*, AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset,
 		MultiLocation, Result as XcmResult,
 	};
@@ -36,7 +37,7 @@ pub mod pallet {
 		<T as frame_system::Config>::AccountId,
 	>>::NegativeImbalance;
 
-	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 	pub struct AssetInfo {
 		pub asset_location: MultiLocation,
 		pub asset_identity: Vec<u8>,
@@ -60,6 +61,7 @@ pub mod pallet {
 		type FungibleMatcher: MatchesFungible<BalanceOf<Self>>;
 		type AccountIdConverter: Convert<MultiLocation, Self::AccountId>;
 		/// ParachainID
+		#[pallet::constant]
 		type ParachainInfo: Get<ParaId>;
 	}
 
@@ -69,7 +71,6 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::event]
-	#[pallet::metadata(BalanceOf<T> = "Balance")]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// [chainId, asset_identity, assetId]
@@ -324,7 +325,7 @@ mod test {
 	use frame_support::{assert_err, assert_noop, assert_ok, traits::Currency};
 	use polkadot_parachain::primitives::{AccountIdConversion, Sibling};
 	use sp_runtime::AccountId32;
-	use xcm::v1::{
+	use xcm::latest::{
 		AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset, MultiLocation,
 		Result as XcmResult,
 	};

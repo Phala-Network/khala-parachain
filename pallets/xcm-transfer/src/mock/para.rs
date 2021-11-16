@@ -145,7 +145,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 parameter_types! {
 	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
 	pub UnitWeightCost: Weight = 1;
-	// pub const MaxInstructions: u32 = 100;
+	pub const MaxInstructions: u32 = 100;
 }
 match_type! {
 	pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
@@ -171,7 +171,7 @@ impl Config for XcmConfig {
 	type IsTeleporter = ();
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
-	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type Trader = (
 		UsingComponents<IdentityFee<Balance>, DOTMultiAssetId, AccountId, Balances, ()>,
 		UsingComponents<IdentityFee<Balance>, ParaAMultiAssetId, AccountId, Balances, ()>,
@@ -179,6 +179,8 @@ impl Config for XcmConfig {
 		UsingComponents<IdentityFee<Balance>, ParaCMultiAssetId, AccountId, Balances, ()>,
 	);
 	type ResponseHandler = ();
+	type AssetTrap = ();
+	type AssetClaims = ();
 	type SubscriptionService = ();
 }
 parameter_types! {
@@ -220,7 +222,7 @@ impl pallet_xcm_transfer::Config for Runtime {
 	type XcmRouter = XcmRouter;
 	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type LocationInverter = LocationInverter<Ancestry>;
 }
 
