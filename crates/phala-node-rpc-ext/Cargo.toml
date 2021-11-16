@@ -17,7 +17,8 @@ jsonrpc-core-client = "18.0.0"
 impl-serde = "0.3"
 log = { version = "0.4.14", default-features = false }
 hex = { version = "0.4.3", default-features = false }
-codec = { version = "2.2", package = "parity-scale-codec" }
+codec = { package = "parity-scale-codec", version = "2.2" }
+scale-info = { version = "1.0.0", default-features = false }
 
 # primitives
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
@@ -32,3 +33,4 @@ sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v
 phala-mq = { path = "../../crates/phala-mq", default-features = false }
 phala-pallets = { path = "../../pallets/phala", default-features = false }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }
+ext-types = { path = "./types", package = "phala-node-rpc-ext-types", default-features = false }

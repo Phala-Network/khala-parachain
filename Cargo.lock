@@ -1098,7 +1098,7 @@ checksum = "fa66045b9cb23c2e9c1520732030608b02ee07e5cfaa5a521ec15ded7fa24c90"
 dependencies = [
  "glob",
  "libc",
- "libloading 0.7.1",
+ "libloading 0.7.2",
 ]
 
 [[package]]
@@ -3792,9 +3792,9 @@ dependencies = [
 
 [[package]]
 name = "libloading"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0cf036d15402bea3c5d4de17b3fce76b3e4a56ebc1f577be0e7a72f7c607cf0"
+checksum = "afe203d669ec979b7128619bae5a63b7b42e9203c1b29146079ee05e2f604b52"
 dependencies = [
  "cfg-if 1.0.0",
  "winapi 0.3.9",
@@ -6035,9 +6035,9 @@ dependencies = [
 
 [[package]]
 name = "parity-db"
-version = "0.3.4"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cb5195cb862b13055cf7f7a76c55073dc73885c2a61511e322b8c1666be7332"
+checksum = "78a95abf24f1097c6e3181abbbbfc3630b3b5e681470940f719b69acb4911c7f"
 dependencies = [
  "blake2-rfc",
  "crc32fast",
@@ -6336,15 +6336,27 @@ dependencies = [
  "pallet-mq-runtime-api",
  "parity-scale-codec",
  "phala-mq",
+ "phala-node-rpc-ext-types",
  "phala-pallets",
  "sc-client-api",
  "sc-rpc",
  "sc-transaction-pool-api",
+ "scale-info",
  "serde",
  "sp-api",
  "sp-blockchain",
  "sp-runtime",
  "thiserror",
+]
+
+[[package]]
+name = "phala-node-rpc-ext-types"
+version = "0.1.0"
+dependencies = [
+ "impl-serde",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
 ]
 
 [[package]]
@@ -10822,9 +10834,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.13.0"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "588b2d10a336da58d877567cd8fb8a14b463e2104910f8132cd054b4b96e29ee"
+checksum = "52963f91310c08d91cb7bff5786dfc8b79642ab839e188187e92105dbfb9d2c8"
 dependencies = [
  "autocfg",
  "bytes 1.1.0",
