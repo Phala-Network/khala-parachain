@@ -34,7 +34,7 @@ use std::{io::Write, net::SocketAddr};
 use crate::service::Block;
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-    const RUNTIME_NAMES: [&str; 2] = ["khala", "whala"];
+    const RUNTIME_NAMES: [&str; 3] = ["khala", "thala", "whala"];
 
     let path = std::path::PathBuf::from(id);
     if path.exists() {
@@ -54,6 +54,9 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
                 ),
                 "whala" => Box::new(
                     chain_spec::khala::ChainSpec::from_json_file(path)?
+                ),
+                "thala" => Box::new(
+                    chain_spec::thala::ChainSpec::from_json_file(path)?
                 ),
                 other => panic!("Unsupported runtime {}", other)
             }
@@ -122,6 +125,19 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
                 para_id.expect("Must specify parachain id").into(),
             ))),
             other => Err(format!("Unsupported environment {} for Whala", other))
+        }
+    }
+
+    if runtime_name == "thala" {
+        let environment = environment.expect("Must specify environment");
+        return match environment {
+            "dev" => Ok(Box::new(chain_spec::thala::development_config(
+                para_id.expect("Must specify parachain id").into(),
+            ))),
+            "local" => Ok(Box::new(chain_spec::thala::local_config(
+                para_id.expect("Must specify parachain id").into(),
+            ))),
+            other => Err(format!("Unsupported environment {} for Thala", other))
         }
     }
 

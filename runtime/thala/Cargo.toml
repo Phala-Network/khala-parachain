@@ -1,5 +1,5 @@
 [package]
-name = "khala-parachain-runtime"
+name = "thala-parachain-runtime"
 version = "0.1.7"
 authors = ["Phala Network"]
 edition = "2018"
@@ -43,6 +43,7 @@ pallet-session = { git = "https://github.com/paritytech/substrate", branch = "po
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 pallet-randomness-collective-flip = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
+pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 pallet-utility = { path = "../../substrate/frame/utility", default-features = false } # Use our fork
@@ -160,6 +161,7 @@ std = [
 	"pallet-balances/std",
 	"pallet-randomness-collective-flip/std",
 	"pallet-timestamp/std",
+	"pallet-sudo/std",
 	"pallet-transaction-payment/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-utility/std",
@@ -195,6 +197,7 @@ try-runtime = [
 	"pallet-balances/try-runtime",
 	"pallet-randomness-collective-flip/try-runtime",
 	"pallet-timestamp/try-runtime",
+	"pallet-sudo/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-utility/try-runtime",
 	"pallet-multisig/try-runtime",

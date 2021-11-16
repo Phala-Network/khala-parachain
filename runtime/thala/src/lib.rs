@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Khala runtime.
+//! Thala runtime.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
@@ -137,8 +137,8 @@ pub mod opaque {
 /// This runtime version.
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("khala"),
-    impl_name: create_runtime_str!("khala"),
+    spec_name: create_runtime_str!("thala"),
+    impl_name: create_runtime_str!("thala"),
     authoring_version: 1,
     spec_version: 1070,
     impl_version: 0,
@@ -249,9 +249,8 @@ construct_runtime! {
         PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
 
-        // `sudo` has been removed on production
-        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
-        // `OTT` has been removed, the index should be kept
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
+        // `OTT` was used in Khala, we avoid to use the index
         // PhalaOneshotTransfer: pallet_ott::{Pallet, Call, Event<T>, Storage} = 100,
     }
 }
@@ -261,6 +260,7 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
+            Call::Sudo { .. } |
             // System
             Call::System { .. } | Call::Timestamp { .. } | Call::Utility { .. } |
             Call::Multisig { .. } | Call::Proxy { .. } | Call::Scheduler { .. } |
@@ -677,6 +677,11 @@ impl pallet_lottery::Config for Runtime {
     type ValidateCall = Lottery;
     type MaxGenerateRandom = MaxGenerateRandom;
     type WeightInfo = pallet_lottery::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_sudo::Config for Runtime {
+    type Call = Call;
+    type Event = Event;
 }
 
 parameter_types! {

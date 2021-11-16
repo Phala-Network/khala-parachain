@@ -25,6 +25,7 @@ members = [
 	"pallets/bridge_transfer",
 	"pallets/parachain-info",
 	"runtime/khala",
+	"runtime/thala",
 ]
 
 [patch."https://github.com/paritytech/polkadot"]
