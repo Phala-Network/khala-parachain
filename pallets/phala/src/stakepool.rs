@@ -188,7 +188,7 @@ pub mod pallet {
 		BenchmarkMissing,
 		WorkerExists,
 		WorkerDoesNotExist,
-		WorerInAnotherPool,
+		WorkerInAnotherPool,
 		UnauthorizedOperator,
 		UnauthorizedPoolOwner,
 		/// The stake capacity is set too low for the existing stake
@@ -356,7 +356,7 @@ pub mod pallet {
 			// - The worker is already in `PoolInfo::worker` list
 			let lookup_pid =
 				WorkerAssignments::<T>::get(worker).ok_or(Error::<T>::WorkerDoesNotExist)?;
-			ensure!(pid == lookup_pid, Error::<T>::WorerInAnotherPool);
+			ensure!(pid == lookup_pid, Error::<T>::WorkerInAnotherPool);
 			// Remove the worker from the pool (notification suspended)
 			let sub_account: T::AccountId = pool_sub_account(pid, &worker);
 			mining::pallet::Pallet::<T>::unbind_miner(&sub_account, false)?;
@@ -663,28 +663,6 @@ pub mod pallet {
 		pub fn set_mining_enable(origin: OriginFor<T>, enable: bool) -> DispatchResult {
 			T::MiningSwitchOrigin::ensure_origin(origin)?;
 			MiningEnabled::<T>::put(enable);
-			Ok(())
-		}
-
-		/// Reconciles the locked releasing stake as described in issue 500
-		///
-		/// The data is a vector of `(pid, worker_pubkey, orig_stake, slashed)` that was supposed
-		/// to be triggered by `reclaim` on the miners in CD. This function should be called with
-		/// the bug analysis result, as described in:
-		/// <https://github.com/Phala-Network/phala-blockchain/issues/500>
-		///
-		/// The backfill will only be called once and will be removed in the next runtime upgrade
-		/// after it's used.
-		#[pallet::weight(0)]
-		#[transactional]
-		pub fn backfill_issue500_reclaim(
-			origin: OriginFor<T>,
-			data: Vec<(u64, WorkerPublicKey, BalanceOf<T>, BalanceOf<T>)>,
-		) -> DispatchResult {
-			T::BackfillOrigin::ensure_origin(origin)?;
-			for (pid, worker_pubkey, orig_stake, slashed) in data {
-				Self::handle_reclaim(pid, orig_stake, slashed);
-			}
 			Ok(())
 		}
 	}
@@ -1196,9 +1174,10 @@ pub mod pallet {
 			// deposit it to the Treasury.
 			let price = self.share_price()?;
 			let amount = bmul(shares, &price);
-			// In case `amount` is a little bit larger than `free_stake`. It also implies that
-			// amount will never exceed user.stake.
-			let amount = amount.min(self.free_stake);
+			// In case `amount` is a little bit larger than `free_stake` or `user.locked`. Note
+			// that it should never really exceed `user.locked` because we ask the caller to ensure
+			// the share to remove is not greater than user's shares.
+			let amount = amount.min(self.free_stake).min(user.locked);
 			// Remove shares and stake from the user record
 			let user_shares = user.shares.checked_sub(&shares)?;
 			let (user_shares, shares_dust) = extract_dust(user_shares);
@@ -2929,55 +2908,6 @@ pub mod pallet {
 				);
 				let miner = PhalaMining::miners(subaccount).unwrap();
 				assert_eq!(miner.state, mining::MinerState::MiningCoolingDown);
-			});
-		}
-
-		#[test]
-		fn issue500_backfill() {
-			new_test_ext().execute_with(|| {
-				set_block_1();
-				// Only callable by backfill origin
-				assert_noop!(
-					PhalaStakePool::backfill_issue500_reclaim(Origin::signed(1), vec![]),
-					DispatchError::BadOrigin
-				);
-				// Simulate a case of issue #500. We cannot reproduce it because it's alreayd fixed.
-				//
-				// To simulate, we start a worker normally, but then increase the `releasing_stake`
-				// and `total_stake` in the pool, and user's locked amount, just like they have
-				// stopped the worker, remove it, add it back, and start it (where the stake is
-				// frozen).
-				setup_workers(1);
-				setup_pool_with_workers(1, &[1]); // pid=0
-				assert_ok!(PhalaStakePool::contribute(
-					Origin::signed(2),
-					0,
-					1500 * DOLLARS
-				));
-				assert_ok!(PhalaStakePool::start_mining(
-					Origin::signed(1),
-					0,
-					worker_pubkey(1),
-					1500 * DOLLARS
-				));
-				const MISSING_STAKE: u128 = 100 * DOLLARS;
-				StakePools::<Test>::mutate(0, |pool| {
-					let pool = pool.as_mut().unwrap();
-					pool.total_stake += MISSING_STAKE;
-					pool.releasing_stake += MISSING_STAKE;
-				});
-				PoolStakers::<Test>::mutate(&(0, 2), |user| {
-					let user = user.as_mut().unwrap();
-					user.locked += MISSING_STAKE;
-				});
-				assert_ok!(PhalaStakePool::backfill_issue500_reclaim(
-					Origin::root(),
-					vec![(0, worker_pubkey(1), MISSING_STAKE, 0)]
-				));
-				let pool = PhalaStakePool::stake_pools(0).unwrap();
-				assert_eq!(pool.total_stake, 1600 * DOLLARS);
-				assert_eq!(pool.free_stake, MISSING_STAKE);
-				assert_eq!(pool.releasing_stake, 0);
 			});
 		}
 

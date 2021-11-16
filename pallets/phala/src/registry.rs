@@ -24,7 +24,7 @@ pub mod pallet {
 	use phala_types::{
 		messaging::{
 			self, bind_topic, DecodedMessage, GatekeeperChange, GatekeeperLaunch, MessageOrigin,
-			SignedMessage, SystemEvent, WorkerEvent,
+			SignedMessage, SystemEvent, WorkerEvent, WorkerPinkReport,
 		},
 		ContractPublicKey, EcdhPublicKey, MasterPublicKey, WorkerPublicKey, WorkerRegistrationInfo,
 	};
@@ -506,6 +506,26 @@ pub mod pallet {
 							));
 						}
 					}
+				}
+			}
+			Ok(())
+		}
+
+		pub fn on_pink_message_received(
+			message: DecodedMessage<WorkerPinkReport>,
+		) -> DispatchResult {
+			match &message.sender {
+				MessageOrigin::Worker(_) => (),
+				_ => return Err(Error::<T>::InvalidSender.into()),
+			}
+			match message.payload {
+				WorkerPinkReport::PinkInstantiated {
+					id,
+					group_id: _,
+					owner: _,
+					pubkey,
+				} => {
+					ContractKey::<T>::insert(id, pubkey);
 				}
 			}
 			Ok(())
