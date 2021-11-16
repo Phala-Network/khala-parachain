@@ -10,7 +10,6 @@ repository = "https://github.com/Phala-Network/phala-blockchain"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
 scale-info = { version = "1.0", default-features = false, features = ["derive", "serde", "decode"] }
-serde = { version = "1.0.101", optional = true, features = ["derive"] }
 log = { version = "0.4.14", default-features = false }
 
 # Substrate
@@ -47,7 +46,6 @@ polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", 
 xcm-simulator = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.12" }
 polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.12" }
 
-
 # Cumulus
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.12" }
 cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.12" }
@@ -64,7 +62,7 @@ pallet-parachain-info = { path = "../../pallets/parachain-info" }
 default = ["std"]
 std = [
 	"codec/std",
-	"serde",
+	"scale-info/std",
     "log/std",
 	"sp-std/std",
 	"sp-runtime/std",

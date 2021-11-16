@@ -35,6 +35,7 @@ runtime-benchmarks = [
 ]
 std = [
 	"codec/std",
+	"scale-info/std",
 	"sp-std/std",
 	"sp-runtime/std",
 	"sp-io/std",
