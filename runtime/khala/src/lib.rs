@@ -276,10 +276,10 @@ impl Contains<Call> for BaseCallFilter {
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // XCM
-            Call::XcmpQueue { .. } |
-            Call::DmpQueue { .. } |
-            Call::XcmTransfer { .. } |
-            Call::XTransferAssets { .. } |
+            // Call::XcmpQueue { .. } |
+            // Call::DmpQueue { .. } |
+            // Call::XcmTransfer { .. } |
+            // Call::XTransferAssets { .. } |
             // Governance
             Call::Identity { .. } | Call::Treasury { .. } |
             Call::Democracy { .. } | Call::PhragmenElection { .. } |
@@ -714,9 +714,6 @@ parameter_types! {
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
     pub const DOTMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: Here };
     pub KARMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec())) };
-    // TODO: would be removed when ready to release
-    pub const PHA2004MultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2004)) };
-    pub const PHA2005MultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2005)) };
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -763,8 +760,6 @@ match_type! {
 pub type Barrier = (
 	TakeWeightCredit,
 	AllowTopLevelPaidExecutionFrom<Everything>,
-    // TODO: would be removed when we ready to release, it's unreasonable to let Everything execute without pay.
-	AllowUnpaidExecutionFrom<Everything>,
 	// Expected responses are OK.
 	// AllowKnownQueryResponses<PolkadotXcm>,
 	// Subscriptions for version tracking are OK.
@@ -786,8 +781,6 @@ impl Config for XcmConfig {
 	type Trader = (
         UsingComponents<IdentityFee<Balance>, DOTMultiAssetId, AccountId, Balances, ()>,
         UsingComponents<IdentityFee<Balance>, KARMultiAssetId, AccountId, Balances, ()>,
-        UsingComponents<IdentityFee<Balance>, PHA2004MultiAssetId, AccountId, Balances, ()>,
-        UsingComponents<IdentityFee<Balance>, PHA2005MultiAssetId, AccountId, Balances, ()>,
     );
 	type ResponseHandler = ();
 	type AssetTrap = ();
