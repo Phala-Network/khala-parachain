@@ -29,7 +29,7 @@ use sc_cli::{
 use sc_service::config::{BasePath, PrometheusConfig};
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
-use std::{io::Write, net::SocketAddr};
+use std::{collections::VecDeque, io::Write, net::SocketAddr};
 
 use crate::service::Block;
 
@@ -42,130 +42,82 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("Can not get file name");
-        let runtime_name = RUNTIME_NAMES.iter()
+        let runtime_name = RUNTIME_NAMES
+            .iter()
             .cloned()
             .find(|&chain| filename.starts_with(chain))
             .expect("File name must start with a runtime name");
 
-        return Ok(
-            match runtime_name {
-                "khala" => Box::new(
-                    chain_spec::khala::ChainSpec::from_json_file(path)?
-                ),
-                "whala" => Box::new(
-                    chain_spec::khala::ChainSpec::from_json_file(path)?
-                ),
-                "thala" => Box::new(
-                    chain_spec::thala::ChainSpec::from_json_file(path)?
-                ),
-                other => panic!("Unsupported runtime {}", other)
-            }
-        )
+        return Ok(match runtime_name {
+            "khala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path)?),
+            "whala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path)?),
+            "thala" => Box::new(chain_spec::thala::ChainSpec::from_json_file(path)?),
+            other => panic!("Unsupported runtime {}", other),
+        });
     }
 
-    let normalized_id: Vec<&str> = id.split("-").collect();
-    let runtime_name = normalized_id[0];
-    let environment =
-        if normalized_id.len() == 1 || normalized_id.len() == 2 {
-            None
-        } else if normalized_id.len() == 3 {
-            Some(normalized_id[1])
-        } else {
-            return Err(
-                "ParaId pattern must be runtime_name-environment-para_id or runtime_name-para_id".to_string()
-            )
-        };
-    let para_id: Option<u32> =
-        if normalized_id.len() == 1 {
-            None
-        } else if normalized_id.len() == 2 {
-            match normalized_id[1].parse() {
-                Ok(value) => Some(value),
-                _ => return Err("ParaId must be a valid integer".to_string())
-            }
-        } else if normalized_id.len() == 3 {
-            match normalized_id[2].parse() {
-                Ok(value) => Some(value),
-                _ => return Err("ParaId must be a valid integer".to_string())
-            }
-        } else {
-            return Err(
-                "ParaId pattern must be runtime_name-environment-para_id or runtime_name-para_id".to_string()
-            )
-        };
+    let mut normalized_id: VecDeque<&str> = id.split("-").collect();
+    if normalized_id.len() > 3 {
+        return Err(
+            "ParaId pattern must be runtime_name-environment-para_id or runtime_name-para_id"
+                .into(),
+        );
+    }
+
+    let runtime_name = normalized_id.pop_front().expect("Nerver empty");
+
+    let para_id = normalized_id
+        .pop_back()
+        .map(|id| id.parse::<u32>().or(Err("Invalid parachain id")))
+        .transpose()?
+        .ok_or("Must specify parachain id");
+
+    let environment = normalized_id.pop_back().ok_or("Must specify environment");
+
+    drop(normalized_id);
 
     if runtime_name == "khala" {
-        if normalized_id.len() == 1 {
-            return Ok(
-                Box::new(chain_spec::ChainSpec::from_json_bytes(
-                    &include_bytes!("../res/khala.json")[..],
-                )?)
-            )
+        if para_id.is_err() {
+            return Ok(Box::new(chain_spec::ChainSpec::from_json_bytes(
+                &include_bytes!("../res/khala.json")[..],
+            )?));
         }
 
-        let environment = match environment {
-            Some(value) => value,
-            None => return Err("Must specify environment".to_string())
-        };
-        let para_id = match para_id {
-            Some(value) => value,
-            None => return Err("Must specify parachain id".to_string())
-        };
-        return match environment {
+        return match environment? {
             "dev" => Ok(Box::new(chain_spec::khala::khala_development_config(
-                para_id.into(),
+                para_id?.into(),
             ))),
             "local" => Ok(Box::new(chain_spec::khala::khala_local_config(
-                para_id.into(),
+                para_id?.into(),
             ))),
             "staging" => Ok(Box::new(chain_spec::khala::khala_staging_config())),
-            other => Err(format!("Unsupported environment {} for Khala", other))
-        }
+            other => Err(format!("Unsupported environment {} for Khala", other)),
+        };
     }
 
     if runtime_name == "whala" {
-        if normalized_id.len() == 1 {
-            return Ok(
-                Box::new(chain_spec::ChainSpec::from_json_bytes(
-                    &include_bytes!("../res/whala.json")[..],
-                )?)
-            )
+        if para_id.is_err() {
+            return Ok(Box::new(chain_spec::ChainSpec::from_json_bytes(
+                &include_bytes!("../res/whala.json")[..],
+            )?));
         }
 
-        let environment = match environment {
-            Some(value) => value,
-            None => return Err("Must specify environment".to_string())
-        };
-        let para_id = match para_id {
-            Some(value) => value,
-            None => return Err("Must specify parachain id".to_string())
-        };
-        return match environment {
+        return match environment? {
             "local" => Ok(Box::new(chain_spec::khala::whala_local_config(
-                para_id.into(),
+                para_id?.into(),
             ))),
-            other => Err(format!("Unsupported environment {} for Whala", other))
-        }
+            other => Err(format!("Unsupported environment {} for Whala", other)),
+        };
     }
 
     if runtime_name == "thala" {
-        let environment = match environment {
-            Some(value) => value,
-            None => return Err("Must specify environment".to_string())
-        };
-        let para_id = match para_id {
-          Some(value) => value,
-            None => return Err("Must specify parachain id".to_string())
-        };
-        return match environment {
+        return match environment? {
             "dev" => Ok(Box::new(chain_spec::thala::development_config(
-                para_id.into(),
+                para_id?.into(),
             ))),
-            "local" => Ok(Box::new(chain_spec::thala::local_config(
-                para_id.into(),
-            ))),
-            other => Err(format!("Unsupported environment {} for Thala", other))
-        }
+            "local" => Ok(Box::new(chain_spec::thala::local_config(para_id?.into()))),
+            other => Err(format!("Unsupported environment {} for Thala", other)),
+        };
     }
 
     Err(format!(
