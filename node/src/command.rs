@@ -374,6 +374,11 @@ pub fn run() -> Result<()> {
                 let para_id =
                     chain_spec::Extensions::try_get(&*config.chain_spec).map(|e| e.para_id);
 
+                let para_id =
+                    chain_spec::Extensions::try_get(&*config.chain_spec)
+                        .map(|e| e.para_id)
+                        .ok_or_else(|| "Could not find parachain extension for chain-spec.")?;
+
                 let polkadot_cli = RelayChainCli::new(
                     &config,
                     [RelayChainCli::executable_name().to_string()]
@@ -381,12 +386,7 @@ pub fn run() -> Result<()> {
                         .chain(cli.relaychain_args.iter()),
                 );
 
-                let id = ParaId::from(
-                    cli.run
-                        .parachain_id
-                        .or(para_id)
-                        .expect("Unable to determine parachain id"),
-                );
+                let id = ParaId::from(para_id);
 
                 let parachain_account =
                     AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);

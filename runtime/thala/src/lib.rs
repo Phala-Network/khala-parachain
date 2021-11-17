@@ -66,7 +66,8 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
-        Contains, Currency, Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem,
+        Contains, EqualPrivilegeOnly, Currency, Everything, Imbalance, InstanceFilter,
+        IsInVec, KeyOwnerProofSystem,
         LockIdentifier, OnUnbalanced, Randomness, U128CurrencyToVote,
     },
     weights::{
@@ -93,10 +94,6 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::{JustTry, FilterAssetLocation}, Config, XcmExecutor};
 
-pub use frame_system::Call as SystemCall;
-pub use pallet_balances::Call as BalancesCall;
-pub use pallet_timestamp::Call as TimestampCall;
-
 pub use parachains_common::*;
 pub use parachains_common::Index;
 
@@ -108,7 +105,14 @@ pub use xtransfer_pallets::{
     xcm_helper,
 };
 
-
+#[cfg(any(feature = "std", test))]
+pub use frame_system::Call as SystemCall;
+#[cfg(any(feature = "std", test))]
+pub use pallet_balances::Call as BalancesCall;
+#[cfg(any(feature = "std", test))]
+pub use pallet_timestamp::Call as TimestampCall;
+#[cfg(any(feature = "std", test))]
+pub use pallet_sudo::Call as SudoCall;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
@@ -360,6 +364,7 @@ impl pallet_randomness_collective_flip::Config for Runtime {}
 impl pallet_utility::Config for Runtime {
     type Event = Event;
     type Call = Call;
+    type PalletsOrigin = OriginCaller;
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
 }
 
@@ -529,6 +534,7 @@ impl pallet_scheduler::Config for Runtime {
     type ScheduleOrigin = EnsureRootOrHalfCouncil;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+    type OriginPrivilegeCmp = EqualPrivilegeOnly;
 }
 
 parameter_types! {
@@ -1156,7 +1162,7 @@ parameter_types! {
     pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
     pub const MinMiningStaking: Balance = 1 * DOLLARS;
     pub const MinContribution: Balance = 1 * CENTS;
-    pub const MiningGracePeriod: u64 = 7 * 24 * 3600;
+    pub const MiningGracePeriod: u64 = 1 * 3600;
     pub const MinInitP: u32 = 50;
     pub const MiningEnabledByDefault: bool = true;
     pub const MaxPoolWorkers: u32 = 200;

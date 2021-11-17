@@ -205,7 +205,6 @@ fn khala_genesis(
             code: khala_parachain_runtime::WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
-            changes_trie_config: Default::default(),
         },
         balances: khala_parachain_runtime::BalancesConfig {
             balances: endowed_accounts,
