@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// 	http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,29 +31,65 @@ use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
 use std::{collections::VecDeque, io::Write, net::SocketAddr};
 
-use crate::service::Block;
+use crate::service::{
+    Block, new_partial,
+    KhalaParachainRuntimeExecutor, ThalaParachainRuntimeExecutor
+};
+
+trait IdentifyChain {
+    fn is_khala(&self) -> bool;
+    fn is_whala(&self) -> bool;
+    fn is_thala(&self) -> bool;
+}
+
+impl IdentifyChain for dyn sc_service::ChainSpec {
+    fn is_khala(&self) -> bool {
+        self.id().starts_with("khala")
+    }
+    fn is_whala(&self) -> bool {
+        self.id().starts_with("whala")
+    }
+    fn is_thala(&self) -> bool {
+        self.id().starts_with("thala")
+    }
+}
+
+impl<T: sc_service::ChainSpec + 'static> IdentifyChain for T {
+    fn is_khala(&self) -> bool {
+        <dyn sc_service::ChainSpec>::is_khala(self)
+    }
+    fn is_whala(&self) -> bool {
+        <dyn sc_service::ChainSpec>::is_whala(self)
+    }
+    fn is_thala(&self) -> bool {
+        <dyn sc_service::ChainSpec>::is_thala(self)
+    }
+}
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-    const RUNTIME_NAMES: [&str; 3] = ["khala", "thala", "whala"];
-
     let path = std::path::PathBuf::from(id);
-    if path.exists() {
-        let filename = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("Can not get file name");
-        let runtime_name = RUNTIME_NAMES
-            .iter()
-            .cloned()
-            .find(|&chain| filename.starts_with(chain))
-            .expect("File name must start with a runtime name");
-
-        return Ok(match runtime_name {
-            "khala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path)?),
-            "whala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path)?),
-            "thala" => Box::new(chain_spec::thala::ChainSpec::from_json_file(path)?),
-            other => panic!("Unsupported runtime {}", other),
-        });
+    if id.to_lowercase().ends_with(".json") && path.exists() {
+        info!("Load chain spec {}", path.to_str().unwrap());
+        let chain_spec =
+            chain_spec::ChainSpec::from_json_file(path.clone().into())?;
+        return if chain_spec.is_khala() {
+            Ok(
+                Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?)
+            )
+        } else if chain_spec.is_whala() {
+            // Historical reason, Whala shares the same runtime with Khala
+            Ok(
+                Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?)
+            )
+        } else if chain_spec.is_thala() {
+            Ok(
+                Box::new(chain_spec::thala::ChainSpec::from_json_file(path.into())?)
+            )
+        } else {
+            Err(
+                "`id` must starts with a known runtime name!".to_string()
+            )
+        }
     }
 
     let mut normalized_id: VecDeque<&str> = id.split("-").collect();
@@ -64,7 +100,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         );
     }
 
-    let runtime_name = normalized_id.pop_front().expect("Nerver empty");
+    let runtime_name = normalized_id.pop_front().expect("Never empty");
 
     let para_id = normalized_id
         .pop_back()
@@ -214,19 +250,39 @@ fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<V
         .ok_or_else(|| "Could not find wasm file in genesis state!".into())
 }
 
-use crate::service::{new_partial, KhalaParachainRuntimeExecutor};
-
 macro_rules! construct_async_run {
     (|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
         let runner = $cli.create_runner($cmd)?;
-        runner.async_run(|$config| {
-            let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
-                &$config,
-                crate::service::khala_parachain_build_import_queue,
-            )?;
-            let task_manager = $components.task_manager;
-            { $( $code )* }.map(|v| (v, task_manager))
-        })
+        if runner.config().chain_spec.is_khala() {
+            runner.async_run(|$config| {
+                let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
+                    &$config,
+                    crate::service::khala_parachain_build_import_queue,
+                )?;
+                let task_manager = $components.task_manager;
+                { $( $code )* }.map(|v| (v, task_manager))
+            })
+        } else if runner.config().chain_spec.is_whala() {
+            runner.async_run(|$config| {
+                let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
+                    &$config,
+                    crate::service::khala_parachain_build_import_queue,
+                )?;
+                let task_manager = $components.task_manager;
+                { $( $code )* }.map(|v| (v, task_manager))
+            })
+        } else if runner.config().chain_spec.is_thala() {
+            runner.async_run(|$config| {
+                let $components = new_partial::<thala_parachain_runtime::RuntimeApi, ThalaParachainRuntimeExecutor, _>(
+                    &$config,
+                    crate::service::thala_parachain_build_import_queue,
+                )?;
+                let task_manager = $components.task_manager;
+                { $( $code )* }.map(|v| (v, task_manager))
+            })
+        } else {
+            panic!("Can not determine runtime")
+        }
     }}
 }
 
@@ -329,10 +385,16 @@ pub fn run() -> Result<()> {
         Some(Subcommand::Benchmark(cmd)) => {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
-                runner.sync_run(|config| cmd.run::<Block, KhalaParachainRuntimeExecutor>(config))
+                if runner.config().chain_spec.is_khala() {
+                    runner.sync_run(|config| cmd.run::<Block, KhalaParachainRuntimeExecutor>(config))
+                } else if runner.config().chain_spec.is_thala() {
+                    runner.sync_run(|config| cmd.run::<Block, ThalaParachainRuntimeExecutor>(config))
+                } else {
+                    Err("Chain doesn't support benchmarking".into())
+                }
             } else {
                 Err("Benchmarking wasn't enabled when building the node. \
-                You can enable it with `--features runtime-benchmarks`."
+                    You can enable it with `--features runtime-benchmarks`."
                     .into())
             }
         }
@@ -353,14 +415,36 @@ pub fn run() -> Result<()> {
             // TODO: add the dev mode check
             // ensure_dev(chain_spec).map_err(sc_cli::Error::Input)?;
 
-            runner.async_run(|config| {
-                Ok((
-                    cmd.run::<khala_parachain_runtime::Block, KhalaParachainRuntimeExecutor>(
-                        config,
-                    ),
-                    task_manager,
-                ))
-            })
+            if runner.config().chain_spec.is_khala() {
+                runner.async_run(|config| {
+                    Ok((
+                        cmd.run::<khala_parachain_runtime::Block, KhalaParachainRuntimeExecutor>(
+                            config,
+                        ),
+                        task_manager,
+                    ))
+                })
+            } else if runner.config().chain_spec.is_whala() {
+                runner.async_run(|config| {
+                    Ok((
+                        cmd.run::<khala_parachain_runtime::Block, KhalaParachainRuntimeExecutor>(
+                            config,
+                        ),
+                        task_manager,
+                    ))
+                })
+            } else if runner.config().chain_spec.is_thala() {
+                runner.async_run(|config| {
+                    Ok((
+                        cmd.run::<thala_parachain_runtime::Block, ThalaParachainRuntimeExecutor>(
+                            config,
+                        ),
+                        task_manager,
+                    ))
+                })
+            } else {
+                Err("Chain doesn't support try-runtime".into())
+            }
         }
         #[cfg(not(feature = "try-runtime"))]
         Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
@@ -371,9 +455,6 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(&cli.run.normalize())?;
 
             runner.run_node_until_exit(|config| async move {
-                let para_id =
-                    chain_spec::Extensions::try_get(&*config.chain_spec).map(|e| e.para_id);
-
                 let para_id =
                     chain_spec::Extensions::try_get(&*config.chain_spec)
                         .map(|e| e.para_id)
@@ -412,10 +493,24 @@ pub fn run() -> Result<()> {
                     }
                 );
 
-                crate::service::start_khala_parachain_node(config, polkadot_config, id)
-                    .await
-                    .map(|r| r.0)
-                    .map_err(Into::into)
+                if config.chain_spec.is_khala() {
+                    crate::service::start_khala_parachain_node(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                } else if config.chain_spec.is_whala() {
+                    crate::service::start_khala_parachain_node(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                } else if config.chain_spec.is_thala() {
+                    crate::service::start_thala_parachain_node(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                } else {
+                    Err("Chain doesn't support benchmarking".into())
+                }
             })
         }
     }

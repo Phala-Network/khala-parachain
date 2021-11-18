@@ -57,7 +57,6 @@
             "--rpc-external",
             "--rpc-cors=all",
             "--rpc-methods=Unsafe",
-            "--execution=native",
             "--",
             "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
             "--port=30334",
@@ -65,8 +64,7 @@
             "--pruning=archive",
             "--ws-external",
             "--rpc-external",
-            "--rpc-cors=all",
-            "--execution=native"
+            "--rpc-cors=all"
           ]
         },
         {
@@ -75,57 +73,10 @@
           "port": 32333
         }
       ]
-    },
-    {
-        "bin": "./bin/khala-node",
-        "chain": "khala-dev-2005",
-        "balance": "1000000000000000000000",
-        "nodes": [
-          {
-            "name": "alice",
-            "wsPort": 9955,
-            "port": 30555,
-            "flags": [
-              "--node-key=03cf579968894332f07ac78990f418742a47888c56c9721d84250d349618ada5",
-              "--ws-external",
-              "--rpc-external",
-              "--rpc-cors=all",
-              "--rpc-methods=Unsafe",
-              "--execution=native",
-              "--",
-              "--node-key=9ad8595d81d5851a5d5c920d3346881e262b2a720b5878714ee38c919514bcea",
-              "--port=30334",
-              "--ws-port=9945",
-              "--pruning=archive",
-              "--ws-external",
-              "--rpc-external",
-              "--rpc-cors=all",
-              "--execution=native"
-            ]
-          },
-          {
-            "name": "bob",
-            "wsPort": 9255,
-            "port": 32555
-          }
-        ]
-      }
-  ],
-  "simpleParachains": [],
-  "hrmpChannels": [
-    {
-        "sender": 2004,
-        "recipient": 2005,
-        "maxCapacity": 8,
-        "maxMessageSize": 512
-    },
-    {
-        "sender": 2005,
-        "recipient": 2004,
-        "maxCapacity": 8,
-        "maxMessageSize": 512
     }
   ],
+  "simpleParachains": [],
+  "hrmpChannels": [],
   "types": {},
   "finalization": false
 }

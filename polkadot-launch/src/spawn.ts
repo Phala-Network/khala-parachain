@@ -70,6 +70,8 @@ export async function getParachainIdFromSpec(
 			args.push("--chain=" + chain);
 		}
 
+		console.log(`Full args "${args}"`);
+
 		let data = "";
 
 		p["spec"] = spawn(bin, args);

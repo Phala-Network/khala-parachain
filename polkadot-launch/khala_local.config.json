@@ -6,7 +6,6 @@
       {
         "name": "alice",
         "wsPort": 19944,
-        "rpcPort": 19933,
         "port": 10333,
         "basePath": "data/relay_alice",
         "flags": [
@@ -17,21 +16,18 @@
       {
         "name": "bob",
         "wsPort": 19244,
-        "rpcPort": 19233,
         "port": 12333,
         "basePath": "data/relay_bob"
       },
       {
         "name": "charlie",
         "wsPort": 19344,
-        "rpcPort": 19333,
         "port": 13333,
         "basePath": "data/relay_charlie"
       },
       {
         "name": "dave",
         "wsPort": 19444,
-        "rpcPort": 19433,
         "port": 14333,
         "basePath": "data/relay_dave"
       }
@@ -59,45 +55,39 @@
         {
           "name": "alice",
           "wsPort": 9144,
-          "rpcPort": 9133,
           "port": 31333,
           "basePath": "data/para_alice",
           "flags": [
             "--node-key=81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
             "--rpc-cors=all",
+            "--discover-local",
             "--",
             "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
-            "--port=31334",
-            "--rpc-port=9134",
-            "--ws-port=9145"
+            "--port=31334"
           ]
         },
         {
           "name": "bob",
           "wsPort": 9244,
-          "rpcPort": 9233,
           "port": 32333,
           "basePath": "data/para_bob",
           "flags": [
             "--rpc-cors=all",
+            "--discover-local",
             "--",
-            "--port=32334",
-            "--rpc-port=9234",
-            "--ws-port=9245"
+            "--port=32334"
           ]
         },
         {
           "name": "charlie",
           "wsPort": 9344,
-          "rpcPort": 9333,
           "port": 33333,
           "basePath": "data/para_charlie",
           "flags": [
             "--rpc-cors=all",
+            "--discover-local",
             "--",
-            "--port=33334",
-            "--rpc-port=9334",
-            "--ws-port=9345"
+            "--port=33334"
           ]
         }
       ]

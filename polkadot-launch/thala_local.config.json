@@ -65,6 +65,7 @@
           "flags": [
             "--node-key=81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
             "--rpc-cors=all",
+            "--discover-local",
             "--",
             "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
             "--port=31334",
@@ -80,6 +81,7 @@
           "basePath": "data/para_bob",
           "flags": [
             "--rpc-cors=all",
+            "--discover-local",
             "--",
             "--port=32334",
             "--rpc-port=9234",
@@ -94,6 +96,7 @@
           "basePath": "data/para_charlie",
           "flags": [
             "--rpc-cors=all",
+            "--discover-local",
             "--",
             "--port=33334",
             "--rpc-port=9334",
