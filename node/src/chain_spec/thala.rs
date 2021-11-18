@@ -91,6 +91,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         Extensions {
             relay_chain: "kusama-dev".into(),
             para_id: id.into(),
+            runtime: "thala".to_string(),
         },
     )
 }
@@ -137,6 +138,7 @@ fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str
         Extensions {
             relay_chain: relay_chain.into(),
             para_id: id.into(),
+            runtime: "thala".to_string(),
         },
     )
 }

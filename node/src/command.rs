@@ -37,24 +37,33 @@ use crate::service::{
 };
 
 trait IdentifyChain {
+    fn runtime_name(&self) -> String;
     fn is_khala(&self) -> bool;
     fn is_whala(&self) -> bool;
     fn is_thala(&self) -> bool;
 }
 
 impl IdentifyChain for dyn sc_service::ChainSpec {
+    fn runtime_name(&self) -> String {
+        chain_spec::Extensions::try_get(self)
+            .map(|e| e.runtime.clone())
+            .expect("Could not find parachain extension for chain-spec.")
+    }
     fn is_khala(&self) -> bool {
-        self.id().starts_with("khala")
+        self.runtime_name() == "khala"
     }
     fn is_whala(&self) -> bool {
-        self.id().starts_with("whala")
+        self.runtime_name() == "whala"
     }
     fn is_thala(&self) -> bool {
-        self.id().starts_with("thala")
+        self.runtime_name() == "thala"
     }
 }
 
 impl<T: sc_service::ChainSpec + 'static> IdentifyChain for T {
+    fn runtime_name(&self) -> String {
+        <dyn sc_service::ChainSpec>::runtime_name(self)
+    }
     fn is_khala(&self) -> bool {
         <dyn sc_service::ChainSpec>::is_khala(self)
     }
@@ -114,7 +123,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 
     if runtime_name == "khala" {
         if para_id.is_err() {
-            return Ok(Box::new(chain_spec::ChainSpec::from_json_bytes(
+            return Ok(Box::new(chain_spec::khala::ChainSpec::from_json_bytes(
                 &include_bytes!("../res/khala.json")[..],
             )?));
         }
@@ -133,7 +142,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 
     if runtime_name == "whala" {
         if para_id.is_err() {
-            return Ok(Box::new(chain_spec::ChainSpec::from_json_bytes(
+            return Ok(Box::new(chain_spec::khala::ChainSpec::from_json_bytes(
                 &include_bytes!("../res/whala.json")[..],
             )?));
         }

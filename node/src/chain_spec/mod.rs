@@ -33,6 +33,8 @@ pub struct Extensions {
     pub relay_chain: String,
     /// The id of the Parachain.
     pub para_id: u32,
+    /// The runtime of the Parachain
+    pub runtime: String,
 }
 
 impl Extensions {
