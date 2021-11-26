@@ -59,6 +59,8 @@ pallet-vesting = { git = "https://github.com/paritytech/substrate", branch = "po
 pallet-identity = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 pallet-democracy = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
+pallet-tips = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
+pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 
 # Cumulus dependencies
 pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.13", default-features = false }
@@ -78,7 +80,7 @@ polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot", bran
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.13", default-features = false }
 xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.13", default-features = false }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.13", default-features = false }
-pallet-tips = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.13", default-features = false }
 
 # Local dependencies
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
@@ -86,7 +88,7 @@ pallet-bridge = { path = "../../pallets/bridge", default-features = false }
 pallet-bridge-transfer = { path = "../../pallets/bridge_transfer", default-features = false }
 phala-pallets = { path = "../../pallets/phala", default-features = false }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }
-xtransfer-pallets = { path = "../../pallets/xcm-transfer", default-features = false }
+xtransfer-pallets = { path = "../../pallets/xtransfer", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
@@ -119,7 +121,8 @@ runtime-benchmarks = [
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-tips/runtime-benchmarks",
 	"phala-pallets/runtime-benchmarks",
-	"pallet-bridge/runtime-benchmarks"
+	"pallet-bridge/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks"
 ]
 std = [
 	"codec/std",
@@ -154,6 +157,7 @@ std = [
 	"xcm/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
+	"pallet-xcm/std",
 	"parachains-common/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
@@ -179,6 +183,7 @@ std = [
 	"pallet-elections-phragmen/std",
 	"pallet-collator-selection/std",
 	"pallet-tips/std",
+	"pallet-assets/std",
 	"pallet-parachain-info/std",
 	"pallet-bridge/std",
 	"pallet-bridge-transfer/std",
