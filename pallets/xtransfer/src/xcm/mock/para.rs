@@ -1,10 +1,11 @@
 use super::ParachainXcmRouter;
-use crate::{pallet_xcm_transfer, pallet_xtransfer_assets, xcm_helper};
+use crate::{pallet_assets_wrapper, pallet_xcm_transfer, xcm_helper};
+use pallet_assets_wrapper::XTransferAssetId;
 
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
-	traits::Everything,
-	weights::{constants::WEIGHT_PER_SECOND, IdentityFee, Weight},
+	traits::{Contains, Everything},
+	weights::{IdentityFee, Weight},
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
@@ -17,11 +18,11 @@ use sp_runtime::{
 
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use polkadot_parachain::primitives::Sibling;
-use xcm::v1::prelude::*;
+use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, EnsureXcmOrigin,
-	FixedWeightBounds, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsDefault,
-	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
+	EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, LocationInverter, NativeAsset,
+	ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	UsingComponents,
 };
@@ -49,6 +50,8 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+		AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>},
 
 		// Parachain staff
 		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config},
@@ -60,7 +63,6 @@ construct_runtime!(
 
 		// local palelts
 		XcmTransfer: pallet_xcm_transfer::{Pallet, Call, Event<T>, Storage},
-		XTransferAssets: pallet_xtransfer_assets::{Pallet, Call, Event<T>, Storage},
 	}
 );
 
@@ -112,6 +114,30 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
+	pub const AssetDeposit: Balance = 1 * CENTS; // 1 CENTS deposit to create asset
+	pub const ApprovalDeposit: Balance = 1 * CENTS;
+	pub const AssetsStringLimit: u32 = 50;
+	pub const MetadataDepositBase: Balance = 1 * CENTS;
+	pub const MetadataDepositPerByte: Balance = 1 * CENTS;
+}
+
+impl pallet_assets::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type AssetId = XTransferAssetId;
+	type Currency = Balances;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type AssetDeposit = AssetDeposit;
+	type MetadataDepositBase = MetadataDepositBase;
+	type MetadataDepositPerByte = MetadataDepositPerByte;
+	type ApprovalDeposit = ApprovalDeposit;
+	type StringLimit = AssetsStringLimit;
+	type Freezer = ();
+	type Extra = ();
+	type WeightInfo = ();
+}
+
+parameter_types! {
 	pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
 	pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
 }
@@ -156,16 +182,55 @@ match_type! {
 pub type Barrier = (
 	TakeWeightCredit,
 	AllowTopLevelPaidExecutionFrom<Everything>,
-	// TODO: would be removed when we ready to release, it's unreasonable to let Everything execute without pay.
 	AllowUnpaidExecutionFrom<Everything>,
-	// ^^^ Parent and its exec plurality get free execution
 );
+
+/// Means for transacting the native currency on this chain.
+pub type CurrencyTransactor = CurrencyAdapter<
+	// Use this currency:
+	Balances,
+	// Use this currency when it is a fungible asset matching the given location or name:
+	xcm_helper::NativeAssetMatcher<xcm_helper::NativeAssetFilter<ParachainInfo>>,
+	// Convert an XCM MultiLocation into a local account id:
+	LocationToAccountId,
+	// Our chain's account ID type (we can't get away without mentioning it explicitly):
+	AccountId,
+	// We don't track any teleports of `Balances`.
+	(),
+>;
+
+pub struct AssetChecker;
+impl Contains<XTransferAssetId> for AssetChecker {
+	fn contains(_: &XTransferAssetId) -> bool {
+		false
+	}
+}
+
+/// Means for transacting assets besides the native currency on this chain.
+pub type FungiblesTransactor = FungiblesAdapter<
+	// Use this fungibles implementation:
+	Assets,
+	// Use this currency when it is a fungible asset matching the given location or name:
+	xcm_helper::ConcreteAssetsMatcher<XTransferAssetId, Balance, AssetsWrapper>,
+	// Convert an XCM MultiLocation into a local account id:
+	LocationToAccountId,
+	// Our chain's account ID type (we can't get away without mentioning it explicitly):
+	AccountId,
+	// We do not support teleport assets
+	AssetChecker,
+	// We do not support teleport assets
+	(),
+>;
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type Call = Call;
 	type XcmSender = XcmRouter;
-	type AssetTransactor = XTransferAssets;
+	type AssetTransactor = xcm_helper::XTransferAdapter<
+		CurrencyTransactor,
+		FungiblesTransactor,
+		xcm_helper::NativeAssetFilter<ParachainInfo>,
+	>;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;
 	type IsTeleporter = ();
@@ -224,13 +289,10 @@ impl pallet_xcm_transfer::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type LocationInverter = LocationInverter<Ancestry>;
+	type ParachainInfo = ParachainInfo;
 }
 
-impl pallet_xtransfer_assets::Config for Runtime {
+impl pallet_assets_wrapper::Config for Runtime {
 	type Event = Event;
-	type Currency = Balances;
-	type XTransferCommitteeOrigin = EnsureRoot<AccountId>;
-	type FungibleMatcher = xcm_helper::IsSiblingParachainsConcrete<XTransferAssets>;
-	type AccountIdConverter = LocationToAccountId;
-	type ParachainInfo = ParachainInfo;
+	type AssetsCommitteeOrigin = EnsureRoot<AccountId>;
 }

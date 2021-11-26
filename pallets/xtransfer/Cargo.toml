@@ -8,15 +8,18 @@ homepage = "https://phala.network/"
 repository = "https://github.com/Phala-Network/phala-blockchain"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive"] }
-scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
+scale-info = { version = "1.0", default-features = false, features = ["derive", "serde", "decode"] }
 log = { version = "0.4.14", default-features = false }
 
 # Substrate
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
+pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 
 # Polkadot
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.13", default-features = false }
@@ -25,6 +28,9 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "relea
 # Cumulus
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.13", default-features = false }
 cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.13", default-features = false }
+
+# Local
+parachains-common = { path = "../../parachains-common", default-features = false }
 
 [dev-dependencies]
 assert_matches = "1.4.0"
@@ -63,11 +69,12 @@ default = ["std"]
 std = [
 	"codec/std",
 	"scale-info/std",
-    "log/std",
+	"log/std",
 	"sp-std/std",
 	"sp-runtime/std",
 	"sp-io/std",
-	"sp-core/std",
+	"sp-std/std",
+	"sp-core/full_crypto",
 	"frame-support/std",
 	"frame-system/std",
 	"cumulus-primitives-core/std",
@@ -77,4 +84,5 @@ std = [
 	"xcm-executor/std",
 	"xcm-builder/std",
 	"pallet-balances/std",
+	"parachains-common/std",
 ]

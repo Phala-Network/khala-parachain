@@ -62,8 +62,9 @@ decl_test_network! {
 
 pub type RelayBalances = pallet_balances::Pallet<relay::Runtime>;
 pub type ParaBalances = pallet_balances::Pallet<para::Runtime>;
-pub type XTransferAssets = pallet_xtransfer_assets::Pallet<para::Runtime>;
-pub type XcmTransfer = pallet_xcm_transfer::Pallet<para::Runtime>;
+pub type ParaAssets = pallet_assets::Pallet<para::Runtime>;
+pub type XcmTransfer = crate::pallet_xcm_transfer::Pallet<para::Runtime>;
+pub type ParaAssetsWrapper = crate::pallet_assets_wrapper::Pallet<para::Runtime>;
 
 pub fn para_ext(para_id: u32) -> TestExternalities {
 	use para::{Runtime, System};

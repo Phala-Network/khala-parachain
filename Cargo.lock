@@ -5075,6 +5075,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-assets"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.13#7db0768a85dc36a3f2a44d042b32f3715c00a90d"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-aura"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.13#7db0768a85dc36a3f2a44d042b32f3715c00a90d"
@@ -10818,6 +10832,7 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal 0.3.4",
  "log",
+ "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
@@ -10846,6 +10861,7 @@ dependencies = [
  "pallet-treasury",
  "pallet-utility 4.0.0-dev",
  "pallet-vesting",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "phala-pallets",
@@ -11134,7 +11150,7 @@ dependencies = [
  "chrono",
  "lazy_static",
  "matchers",
- "parking_lot 0.11.2",
+ "parking_lot 0.10.2",
  "regex",
  "serde",
  "serde_json",
@@ -12095,6 +12111,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "pallet-assets",
  "pallet-balances",
  "pallet-parachain-info",
  "pallet-xcm",
