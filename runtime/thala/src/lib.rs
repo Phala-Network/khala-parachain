@@ -775,6 +775,7 @@ parameter_types! {
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
     pub const DOTMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: Here };
+    pub PHAMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(ParachainInfo::parachain_id().into())) };
     pub KARMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec())) };
 }
 
@@ -811,8 +812,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<Origin>,
 );
 parameter_types! {
-	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
-	pub UnitWeightCost: Weight = 1_000_000_000;
+	pub UnitWeightCost: Weight = 200_000_000;
 	pub const MaxInstructions: u32 = 100;
 }
 match_type! {
@@ -885,6 +885,7 @@ impl Config for XcmConfig {
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type Trader = (
         UsingComponents<IdentityFee<Balance>, DOTMultiAssetId, AccountId, Balances, ()>,
+        UsingComponents<IdentityFee<Balance>, PHAMultiAssetId, AccountId, Balances, ()>,
         UsingComponents<IdentityFee<Balance>, KARMultiAssetId, AccountId, Balances, ()>,
     );
     type ResponseHandler = PolkadotXcm;
