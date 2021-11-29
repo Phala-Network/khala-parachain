@@ -44,6 +44,16 @@ pub mod pallet {
 		}
 	}
 
+	impl TryFrom<XTransferAsset> for [u8; 32] {
+		type Error = ();
+		fn try_from(x: XTransferAsset) -> result::Result<Self, ()> {
+			match x {
+				XTransferAsset::SolochainAsset(rid) => Ok(rid),
+				_ => Err(()),
+			}
+		}
+	}
+
 	pub type XTransferAssetId = u32;
 
 	#[pallet::pallet]

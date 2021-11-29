@@ -75,8 +75,6 @@ polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot", bran
 
 # Local dependencies
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
-pallet-bridge = { path = "../../pallets/bridge", default-features = false }
-pallet-bridge-transfer = { path = "../../pallets/bridge_transfer", default-features = false }
 phala-pallets = { path = "../../pallets/phala", default-features = false }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }
 
@@ -111,7 +109,7 @@ runtime-benchmarks = [
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-tips/runtime-benchmarks",
 	"phala-pallets/runtime-benchmarks",
-	"pallet-bridge/runtime-benchmarks"
+	"xtransfer-pallets/runtime-benchmarks"
 ]
 std = [
 	"codec/std",
@@ -165,8 +163,6 @@ std = [
 	"pallet-collator-selection/std",
 	"pallet-tips/std",
 	"pallet-parachain-info/std",
-	"pallet-bridge/std",
-	"pallet-bridge-transfer/std",
 	"phala-pallets/std",
 	"pallet-mq-runtime-api/std",
 ]
