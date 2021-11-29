@@ -86,6 +86,8 @@ pub use parachains_common::*;
 
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
 
+pub use xtransfer_pallets::{pallet_bridge, pallet_bridge_transfer};
+
 #[cfg(any(feature = "std", test))]
 pub use frame_system::Call as SystemCall;
 #[cfg(any(feature = "std", test))]
@@ -975,6 +977,7 @@ impl pallet_bridge_transfer::Config for Runtime {
     type Event = Event;
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
+    type Assets = AssetsWrapper;
     type NativeTokenResourceId = NativeTokenResourceId;
     type OnFeePay = Treasury;
 }

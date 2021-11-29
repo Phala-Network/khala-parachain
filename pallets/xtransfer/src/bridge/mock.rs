@@ -11,7 +11,7 @@ use sp_runtime::{
 	Perbill,
 };
 
-use crate::{self as bridge, Config};
+use crate::bridge;
 pub use pallet_balances as balances;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;

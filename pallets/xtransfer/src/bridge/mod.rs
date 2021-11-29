@@ -8,7 +8,7 @@ mod tests;
 
 pub mod hashing;
 
-pub use pallet::*;
+pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use codec::{Decode, Encode, EncodeLike};

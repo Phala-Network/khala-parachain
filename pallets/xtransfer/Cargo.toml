@@ -10,6 +10,7 @@ repository = "https://github.com/Phala-Network/phala-blockchain"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
 scale-info = { version = "1.0", default-features = false, features = ["derive", "serde", "decode"] }
+blake2-rfc = { version = "0.2.18", default-features = false }
 log = { version = "0.4.14", default-features = false }
 
 # Substrate
@@ -19,6 +20,8 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false, optional = true }
+sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 
 # Polkadot
@@ -34,6 +37,8 @@ parachains-common = { path = "../../parachains-common", default-features = false
 
 [dev-dependencies]
 assert_matches = "1.4.0"
+hex-literal = "0.3"
+
 # Substrate
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
@@ -41,6 +46,7 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkad
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
+pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 
 # Polkadot
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.13" }
@@ -66,6 +72,11 @@ pallet-parachain-info = { path = "../../pallets/parachain-info" }
 
 [features]
 default = ["std"]
+runtime-benchmarks = [
+	'frame-benchmarking',
+	'frame-support/runtime-benchmarks',
+	'frame-system/runtime-benchmarks',
+]
 std = [
 	"codec/std",
 	"scale-info/std",
@@ -75,8 +86,10 @@ std = [
 	"sp-io/std",
 	"sp-std/std",
 	"sp-core/full_crypto",
+	"sp-arithmetic/std",
 	"frame-support/std",
 	"frame-system/std",
+	"frame-benchmarking/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",
 	"cumulus-pallet-xcm/std",
