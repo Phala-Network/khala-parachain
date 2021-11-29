@@ -312,10 +312,9 @@ impl Contains<Call> for BaseCallFilter {
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // XCM
-            // Call::XcmpQueue { .. } |
-            // Call::DmpQueue { .. } |
-            // Call::XcmTransfer { .. } |
-            // Call::XTransferAssets { .. } |
+            Call::XcmpQueue { .. } |
+            Call::DmpQueue { .. } |
+            Call::XcmTransfer { .. } |
             // Governance
             Call::Identity { .. } | Call::Treasury { .. } |
             Call::Democracy { .. } | Call::PhragmenElection { .. } |
