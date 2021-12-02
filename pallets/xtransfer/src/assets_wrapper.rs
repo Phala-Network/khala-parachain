@@ -53,8 +53,7 @@ pub mod pallet {
 			}
 		}
 	}
-
-	pub type XTransferAssetId = u32;
+	type XTransferAssetId<T: Config> = <T as pallet_assets::Config>::AssetId;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -69,28 +68,23 @@ pub mod pallet {
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
-	/// The number of total assets
-	#[pallet::storage]
-	#[pallet::getter(fn asset_count)]
-	pub type AssetCount<T> = StorageValue<_, u32, ValueQuery>;
-
 	/// Mapping asset to corresponding asset id
 	#[pallet::storage]
 	#[pallet::getter(fn asset_to_id)]
-	pub type AssetToId<T: Config> = StorageMap<_, Twox64Concat, XTransferAsset, XTransferAssetId>;
+	pub type AssetToId<T: Config> = StorageMap<_, Twox64Concat, XTransferAsset, XTransferAssetId<T>>;
 
 	/// Mapping asset id to corresponding asset
 	#[pallet::storage]
 	#[pallet::getter(fn id_to_asset)]
-	pub type IdToAsset<T: Config> = StorageMap<_, Twox64Concat, XTransferAssetId, XTransferAsset>;
+	pub type IdToAsset<T: Config> = StorageMap<_, Twox64Concat, XTransferAssetId<T>, XTransferAsset>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Asset been registerd. \[id, asset\]
-		ForceAssetRegistered(XTransferAssetId, XTransferAsset),
+		ForceAssetRegistered(XTransferAssetId<T>, XTransferAsset),
 		/// Asset been unregisterd. \[id, asset\]
-		ForceAssetUnregistered(XTransferAssetId, XTransferAsset),
+		ForceAssetUnregistered(XTransferAssetId<T>, XTransferAsset),
 	}
 
 	#[pallet::error]
@@ -101,34 +95,38 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
-		T: pallet_assets::Config<AssetId = XTransferAssetId>,
+		T: pallet_assets::Config,
 	{
 		#[pallet::weight(195_000_000)]
 		pub fn force_register_asset(
 			origin: OriginFor<T>,
 			asset: XTransferAsset,
+			id: XTransferAssetId<T>,
 			owner: <T::Lookup as StaticLookup>::Source,
 			#[pallet::compact] min_balance: T::Balance,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin.clone())?;
+			// ensure location has not been registered
 			ensure!(
 				AssetToId::<T>::get(&asset) == None,
 				Error::<T>::AssetAlreadyExist
 			);
-			let id = AssetCount::<T>::get();
-			let asset_id: XTransferAssetId = id.try_into().unwrap();
+			// ensure id has not been registered
+			ensure!(
+				IdToAsset::<T>::get(&id) == None,
+				Error::<T>::AssetAlreadyExist
+			);
 			pallet_assets::pallet::Pallet::<T>::force_create(
 				origin,
-				asset_id.clone(),
+				id,
 				owner,
 				true,
 				min_balance,
 			)?;
-			AssetToId::<T>::insert(&asset, &id);
-			IdToAsset::<T>::insert(&id, &asset);
-			AssetCount::<T>::put(id + 1);
+			AssetToId::<T>::insert(&asset, id);
+			IdToAsset::<T>::insert(id, &asset);
 
-			Self::deposit_event(Event::ForceAssetRegistered(asset_id, asset));
+			Self::deposit_event(Event::ForceAssetRegistered(id, asset));
 			Ok(())
 		}
 
@@ -139,7 +137,7 @@ pub mod pallet {
 		#[pallet::weight(195_000_000)]
 		pub fn force_unregister_asset(
 			origin: OriginFor<T>,
-			id: XTransferAssetId,
+			id: XTransferAssetId<T>,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
 			if let Some(asset) = IdToAsset::<T>::get(&id) {
@@ -151,17 +149,17 @@ pub mod pallet {
 		}
 	}
 
-	pub trait XTransferAssetInfo {
-		fn id(asset: &XTransferAsset) -> Option<XTransferAssetId>;
-		fn asset(id: &XTransferAssetId) -> Option<XTransferAsset>;
+	pub trait XTransferAssetInfo<T: pallet_assets::Config> {
+		fn id(asset: &XTransferAsset) -> Option<XTransferAssetId<T>>;
+		fn asset(id: &XTransferAssetId<T>) -> Option<XTransferAsset>;
 	}
 
-	impl<T: Config> XTransferAssetInfo for Pallet<T> {
-		fn id(asset: &XTransferAsset) -> Option<XTransferAssetId> {
+	impl<T: Config> XTransferAssetInfo<T> for Pallet<T> {
+		fn id(asset: &XTransferAsset) -> Option<XTransferAssetId<T>> {
 			AssetToId::<T>::get(asset)
 		}
 
-		fn asset(id: &XTransferAssetId) -> Option<XTransferAsset> {
+		fn asset(id: &XTransferAssetId<T>) -> Option<XTransferAsset> {
 			IdToAsset::<T>::get(id)
 		}
 	}

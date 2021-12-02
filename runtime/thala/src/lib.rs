@@ -100,7 +100,6 @@ pub use parachains_common::Index;
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
 
 pub use xtransfer_pallets::{pallet_assets_wrapper, pallet_bridge, pallet_bridge_transfer, pallet_xcm_transfer, xcm_helper};
-pub use pallet_assets_wrapper::XTransferAssetId;
 
 #[cfg(any(feature = "std", test))]
 pub use frame_system::Call as SystemCall;
@@ -615,7 +614,7 @@ parameter_types! {
 impl pallet_assets::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
-    type AssetId = XTransferAssetId;
+    type AssetId = u32;
     type Currency = Balances;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
@@ -845,8 +844,8 @@ pub type CurrencyTransactor = CurrencyAdapter<
 >;
 
 pub struct AssetChecker;
-impl Contains<XTransferAssetId> for AssetChecker {
-    fn contains(_: &XTransferAssetId) -> bool {
+impl Contains<u32> for AssetChecker {
+    fn contains(_: &u32) -> bool {
         false
     }
 }
@@ -856,7 +855,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
     // Use this fungibles implementation:
     Assets,
     // Use this currency when it is a fungible asset matching the given location or name:
-    xcm_helper::ConcreteAssetsMatcher<XTransferAssetId, Balance, AssetsWrapper>,
+    xcm_helper::ConcreteAssetsMatcher<Assets, Balance, AssetsWrapper>,
     // Convert an XCM MultiLocation into a local account id:
     LocationToAccountId,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -1260,8 +1259,9 @@ parameter_types! {
 impl pallet_bridge_transfer::Config for Runtime {
     type Event = Event;
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
-    type Currency = Balances;
-    type Assets = AssetsWrapper;
+    type NativeCurrency = Balances;
+    type Assets = Assets;
+    type AssetsWrapper = AssetsWrapper;
     type NativeTokenResourceId = NativeTokenResourceId;
     type OnFeePay = Treasury;
 }
