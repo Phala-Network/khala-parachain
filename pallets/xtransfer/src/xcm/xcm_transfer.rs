@@ -412,6 +412,7 @@ mod test {
 				ParaAssetsWrapper::force_register_asset(
 					Some(ALICE).into(),
 					para_a_asset.clone().into(),
+					0,
 					ALICE,
 					1
 				),
@@ -421,6 +422,7 @@ mod test {
 			assert_ok!(ParaAssetsWrapper::force_register_asset(
 				para::Origin::root(),
 				para_a_asset.clone().into(),
+				0,
 				ALICE,
 				1
 			));
@@ -441,11 +443,31 @@ mod test {
 			);
 			assert_eq!(ParaAssets::total_supply(0u32.into()), 0);
 
-			// same asset register again, should be failed
+			// same asset location register again, should be failed
 			assert_noop!(
 				ParaAssetsWrapper::force_register_asset(
 					para::Origin::root(),
 					para_a_asset.clone().into(),
+					0,
+					ALICE,
+					1
+				),
+				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
+			);
+
+			let para_b_location: MultiLocation = MultiLocation {
+				parents: 1,
+				interior: X1(Parachain(2)),
+			};
+			let para_b_asset: pallet_assets_wrapper::XTransferAsset =
+			para_b_location.try_into().unwrap();
+
+			// same asset id register again, should be failed
+			assert_noop!(
+				ParaAssetsWrapper::force_register_asset(
+					para::Origin::root(),
+					para_b_asset.clone().into(),
+					0,
 					ALICE,
 					1
 				),
@@ -462,6 +484,7 @@ mod test {
 			assert_ok!(ParaAssetsWrapper::force_register_asset(
 				para::Origin::root(),
 				para_b_asset.clone().into(),
+				0,
 				ALICE,
 				1
 			));
@@ -497,6 +520,7 @@ mod test {
 			assert_ok!(ParaAssetsWrapper::force_register_asset(
 				para::Origin::root(),
 				para_a_asset.clone().into(),
+				0,
 				ALICE,
 				1
 			));
@@ -537,6 +561,7 @@ mod test {
 			assert_ok!(ParaAssetsWrapper::force_register_asset(
 				para::Origin::root(),
 				para_a_asset.clone().into(),
+				0,
 				ALICE,
 				1
 			));
