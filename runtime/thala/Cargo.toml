@@ -97,7 +97,7 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 default = ["std", "include-wasm"]
 include-wasm = []
 runtime-benchmarks = [
-	"frame-benchmarking",
+	"frame-benchmarking/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"frame-system-benchmarking",
 	"frame-support/runtime-benchmarks",
