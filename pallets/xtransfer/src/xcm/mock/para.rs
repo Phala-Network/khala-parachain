@@ -1,6 +1,5 @@
 use super::ParachainXcmRouter;
 use crate::{pallet_assets_wrapper, pallet_xcm_transfer, xcm_helper};
-use pallet_assets_wrapper::XTransferAssetId;
 
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
@@ -124,7 +123,7 @@ parameter_types! {
 impl pallet_assets::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
-	type AssetId = XTransferAssetId;
+	type AssetId = u32;
 	type Currency = Balances;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type AssetDeposit = AssetDeposit;
@@ -200,8 +199,8 @@ pub type CurrencyTransactor = CurrencyAdapter<
 >;
 
 pub struct AssetChecker;
-impl Contains<XTransferAssetId> for AssetChecker {
-	fn contains(_: &XTransferAssetId) -> bool {
+impl Contains<u32> for AssetChecker {
+	fn contains(_: &u32) -> bool {
 		false
 	}
 }
@@ -211,7 +210,11 @@ pub type FungiblesTransactor = FungiblesAdapter<
 	// Use this fungibles implementation:
 	Assets,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	xcm_helper::ConcreteAssetsMatcher<XTransferAssetId, Balance, AssetsWrapper>,
+	xcm_helper::ConcreteAssetsMatcher<
+		<Runtime as pallet_assets::Config>::AssetId,
+		Balance,
+		AssetsWrapper,
+	>,
 	// Convert an XCM MultiLocation into a local account id:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):

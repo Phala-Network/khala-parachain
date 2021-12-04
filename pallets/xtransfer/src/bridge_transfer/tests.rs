@@ -1,20 +1,22 @@
 #![cfg(test)]
 
-use crate::bridge_transfer::mock::{
-	assert_events, balances, expect_event, new_test_ext, Balances, Bridge, BridgeTransfer, Call,
-	Event, NativeTokenResourceId, Origin, ProposalLifetime, Test, ENDOWED_BALANCE, RELAYER_A,
-	RELAYER_B, RELAYER_C,
-};
+use crate::assets_wrapper::pallet::XTransferAssetInfo;
 use crate::bridge;
-use frame_support::{assert_noop, assert_ok};
-
+use crate::bridge_transfer::mock::{
+	assert_events, balances, expect_event, new_test_ext, Assets, AssetsWrapper, Balances, Bridge,
+	BridgeTransfer, Call, Event, NativeTokenResourceId, Origin, ProposalLifetime, Test, ALICE,
+	ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
+};
+use frame_support::{assert_err, assert_noop, assert_ok};
 use hex_literal::hex;
+use sp_runtime::DispatchError;
+use sp_std::convert::TryInto;
 
 const TEST_THRESHOLD: u32 = 2;
 
 fn make_transfer_proposal(to: u64, amount: u64) -> Call {
 	let resource_id = NativeTokenResourceId::get();
-	Call::BridgeTransfer(crate::Call::transfer {
+	Call::BridgeTransfer(crate::bridge_transfer::Call::transfer {
 		to,
 		amount: amount.into(),
 		rid: resource_id,
@@ -32,30 +34,82 @@ fn constant_equality() {
 #[test]
 fn register_asset() {
 	new_test_ext().execute_with(|| {
-		// let r_id = bridge::derive_resource_id(2, &bridge::hashing::blake2_128(b"an asset"));
+		let r_id = bridge::derive_resource_id(2, &bridge::hashing::blake2_128(b"an asset"));
+		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 
-		// assert_ok!(BridgeTransfer::register_asset(
-		// 	Origin::root(),
-		// 	b"an asset".to_vec(),
-		// 	2
-		// ));
+		// permission denied
+		assert_err!(
+			AssetsWrapper::force_register_asset(
+				Origin::signed(ALICE),
+				bridge_asset.clone().into(),
+				0,
+				ALICE,
+				1
+			),
+			DispatchError::BadOrigin
+		);
 
-		// assert_eq!(BridgeAssets::<Test>::contains_key(r_id), true);
+		assert_ok!(AssetsWrapper::force_register_asset(
+			Origin::root(),
+			bridge_asset.clone().into(),
+			0,
+			ALICE,
+			1
+		));
 
-		// assert_noop!(
-		// 	BridgeTransfer::register_asset(Origin::root(), b"an asset".to_vec(), 2),
-		// 	Error::<Test>::ResourceIdInUse
-		// );
+		// same resource id register again, should be failed
+		assert_noop!(
+			AssetsWrapper::force_register_asset(
+				Origin::root(),
+				bridge_asset.clone().into(),
+				1,
+				ALICE,
+				1
+			),
+			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
+		);
+
+		let r_id_1 = bridge::derive_resource_id(2, &bridge::hashing::blake2_128(b"another asset"));
+		let bridge_asset_1: crate::pallet_assets_wrapper::XTransferAsset =
+			r_id_1.try_into().unwrap();
+
+		// same asset id register again, should be failed
+		assert_noop!(
+			AssetsWrapper::force_register_asset(
+				Origin::root(),
+				bridge_asset_1.clone().into(),
+				0,
+				ALICE,
+				1
+			),
+			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
+		);
+
+		// register another asset, id = 1
+		assert_ok!(AssetsWrapper::force_register_asset(
+			Origin::root(),
+			bridge_asset_1.clone().into(),
+			1,
+			ALICE,
+			1
+		));
+		assert_eq!(AssetsWrapper::id(&bridge_asset_1).unwrap(), 1u32);
+		assert_eq!(AssetsWrapper::asset(&1u32.into()).unwrap(), bridge_asset_1);
+
+		// unregister asset
+		assert_ok!(AssetsWrapper::force_unregister_asset(Origin::root(), 1));
+		assert_eq!(AssetsWrapper::id(&bridge_asset_1), None);
+		assert_eq!(AssetsWrapper::asset(&1u32.into()), None);
 	})
 }
-
 
 #[test]
 fn transfer_assets_not_registered() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
-		let asset =
+		let r_id =
 			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
+		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
@@ -69,49 +123,13 @@ fn transfer_assets_not_registered() {
 
 		assert_noop!(
 			BridgeTransfer::transfer_assets(
-				Origin::signed(RELAYER_A),
-				asset,
-				amount,
-				recipient.clone(),
+				Origin::signed(ALICE),
+				bridge_asset,
 				dest_chain,
-			),
-			Error::<Test>::AssetNotRegistered
-		);
-	})
-}
-
-#[test]
-fn transfer_assets_account_not_exist() {
-	new_test_ext().execute_with(|| {
-		let dest_chain = 2;
-		let asset =
-			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
-		let amount: u64 = 100;
-		let recipient = vec![99];
-
-		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::change_fee(
-			Origin::root(),
-			2,
-			2,
-			dest_chain.clone()
-		));
-
-		assert_ok!(BridgeTransfer::register_asset(
-			Origin::root(),
-			b"an asset".to_vec(),
-			2
-		));
-
-		assert_noop!(
-			BridgeTransfer::transfer_assets(
-				Origin::signed(RELAYER_A),
-				asset,
-				amount,
 				recipient.clone(),
-				dest_chain,
+				amount,
 			),
-			Error::<Test>::AccountNotExist
+			crate::bridge_transfer::Error::<Test>::AssetNotRegistered
 		);
 	})
 }
@@ -120,8 +138,9 @@ fn transfer_assets_account_not_exist() {
 fn transfer_assets_insufficient_balance() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
-		let asset =
+		let r_id =
 			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
+		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
@@ -133,24 +152,25 @@ fn transfer_assets_insufficient_balance() {
 			dest_chain.clone()
 		));
 
-		assert_ok!(BridgeTransfer::register_asset(
+		// register asset, id = 0
+		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
-			b"an asset".to_vec(),
-			2
+			bridge_asset.clone().into(),
+			0,
+			ALICE,
+			1
 		));
 
-		// set some balance for account and less than amount here
-		BridgeBalances::<Test>::insert(asset, RELAYER_A, amount / 2);
-
+		// after registered, free balance of ALICE is 0
 		assert_noop!(
 			BridgeTransfer::transfer_assets(
-				Origin::signed(RELAYER_A),
-				asset,
-				amount,
-				recipient.clone(),
+				Origin::signed(ALICE),
+				bridge_asset,
 				dest_chain,
+				recipient.clone(),
+				amount,
 			),
-			Error::<Test>::InsufficientBalance
+			crate::bridge_transfer::Error::<Test>::InsufficientBalance
 		);
 	})
 }
@@ -159,8 +179,9 @@ fn transfer_assets_insufficient_balance() {
 fn transfer_assets() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
-		let asset =
+		let r_id =
 			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
+		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
@@ -172,28 +193,29 @@ fn transfer_assets() {
 			dest_chain.clone()
 		));
 
-		assert_ok!(BridgeTransfer::register_asset(
+		// register asset, id = 0
+		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
-			b"an asset".to_vec(),
-			2
+			bridge_asset.clone().into(),
+			0,
+			ALICE,
+			1
 		));
 
-		// set some balance for account and more than amount here
-		BridgeBalances::<Test>::insert(asset, RELAYER_A, amount * 2);
+		// mint some token to ALICE
+		assert_ok!(Assets::mint(Origin::signed(ALICE), 0, ALICE, amount * 2));
+		assert_eq!(Assets::balance(0, &ALICE), amount * 2);
 
 		assert_ok!(BridgeTransfer::transfer_assets(
-			Origin::signed(RELAYER_A),
-			asset,
-			amount,
-			recipient.clone(),
+			Origin::signed(ALICE),
+			bridge_asset,
 			dest_chain,
+			recipient.clone(),
+			amount,
 		));
 
-		assert_eq!(BridgeTransfer::asset_balance(&asset, &RELAYER_A), amount);
-		assert_eq!(
-			BridgeTransfer::asset_balance(&asset, &Bridge::account_id()),
-			amount
-		);
+		assert_eq!(Assets::balance(0, &ALICE), amount);
+		assert_eq!(Assets::balance(0, &Bridge::account_id()), amount);
 	})
 }
 
@@ -220,7 +242,7 @@ fn transfer_native() {
 				recipient.clone(),
 				dest_chain,
 			),
-			Error::<Test>::InsufficientBalance
+			crate::bridge_transfer::Error::<Test>::InsufficientBalance
 		);
 
 		assert_ok!(BridgeTransfer::transfer_native(
@@ -266,40 +288,22 @@ fn transfer() {
 }
 
 #[test]
-fn transfer_to_holdingaccount() {
+fn simulate_transfer_from_solochain() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 0;
 		let bridge_id: u64 = Bridge::account_id();
-		let asset =
+		let r_id =
 			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
+		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 
-		// transfer to bridge account is not allowed
-		assert_noop!(
-			BridgeTransfer::transfer(
-				Origin::signed(Bridge::account_id()),
-				bridge_id,
-				amount,
-				asset,
-			),
-			Error::<Test>::InvalidCommand
-		);
-	})
-}
-
-#[test]
-fn transfer_to_regular_account() {
-	new_test_ext().execute_with(|| {
-		let dest_chain = 0;
-		let bridge_id: u64 = Bridge::account_id();
-		let asset =
-			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
-		let amount: u64 = 100;
-
-		assert_ok!(BridgeTransfer::register_asset(
+		// register asset, id = 0
+		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
-			b"an asset".to_vec(),
-			dest_chain
+			bridge_asset.clone().into(),
+			0,
+			ALICE,
+			1
 		));
 
 		assert_noop!(
@@ -307,29 +311,32 @@ fn transfer_to_regular_account() {
 				Origin::signed(Bridge::account_id()),
 				RELAYER_A,
 				amount,
-				asset,
+				r_id,
 			),
-			Error::<Test>::InsufficientBalance
+			crate::bridge_transfer::Error::<Test>::InsufficientBalance
 		);
 
-		// mint some asset to holding account first
-		assert_ok!(BridgeTransfer::mint_asset(
-			Origin::root(),
-			asset,
+		// mint some token to bridge account(note: not ALICE)
+		assert_ok!(Assets::mint(
+			Origin::signed(ALICE),
+			0,
+			Bridge::account_id(),
 			amount * 2
 		));
+		assert_eq!(Assets::balance(0, &Bridge::account_id()), amount * 2);
+		assert_eq!(Assets::balance(0, &ALICE), 0);
 
-		// transfer to regular account, would withdraw from holding account then deposit to
-		// the regular account
+		// transfer to ALICE, would withdraw from bridge account then deposit to
+		// the ALICE
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
-			RELAYER_A,
+			ALICE,
 			amount,
-			asset,
+			r_id,
 		));
 
-		assert_eq!(BridgeTransfer::asset_balance(&asset, &bridge_id), amount);
-		assert_eq!(BridgeTransfer::asset_balance(&asset, &RELAYER_A), amount);
+		assert_eq!(Assets::balance(0, &bridge_id), amount);
+		assert_eq!(Assets::balance(0, &ALICE), amount);
 	})
 }
 

@@ -6,16 +6,21 @@ use hex_literal::hex;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
+	traits::{AccountIdConversion, BlakeTwo256, ConvertInto, IdentityLookup},
 	Perbill,
 };
 
 use crate::bridge_transfer;
-pub use pallet_balances as balances;
+use crate::pallet_assets_wrapper;
 use crate::pallet_bridge as bridge;
+pub use pallet_balances as balances;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+
+pub(crate) type Balance = u64;
+pub const DOLLARS: Balance = 1_000_000_000_000;
+pub const CENTS: Balance = DOLLARS / 100;
 
 frame_support::construct_runtime!(
 	pub enum Test where
@@ -77,7 +82,7 @@ ord_parameter_types! {
 }
 
 impl pallet_balances::Config for Test {
-	type Balance = u64;
+	type Balance = Balance;
 	type DustRemoval = ();
 	type Event = Event;
 	type ExistentialDeposit = ExistentialDeposit;
@@ -106,13 +111,43 @@ parameter_types! {
 	pub const NativeTokenResourceId: [u8; 32] = hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
 }
 
-impl Config for Test {
+impl bridge_transfer::Config for Test {
 	type Event = Event;
+	type AssetsWrapper = AssetsWrapper;
+	type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Test, ConvertInto>;
 	type BridgeOrigin = bridge::EnsureBridge<Test>;
 	type Currency = Balances;
-	type Assets = AssetsWrapper;
 	type NativeTokenResourceId = NativeTokenResourceId;
 	type OnFeePay = ();
+}
+
+parameter_types! {
+	pub const AssetDeposit: Balance = 1 * CENTS; // 1 CENTS deposit to create asset
+	pub const ApprovalDeposit: Balance = 1 * CENTS;
+	pub const AssetsStringLimit: u32 = 50;
+	pub const MetadataDepositBase: Balance = 1 * CENTS;
+	pub const MetadataDepositPerByte: Balance = 1 * CENTS;
+}
+
+impl pallet_assets::Config for Test {
+	type Event = Event;
+	type Balance = Balance;
+	type AssetId = u32;
+	type Currency = Balances;
+	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type AssetDeposit = AssetDeposit;
+	type MetadataDepositBase = MetadataDepositBase;
+	type MetadataDepositPerByte = MetadataDepositPerByte;
+	type ApprovalDeposit = ApprovalDeposit;
+	type StringLimit = AssetsStringLimit;
+	type Freezer = ();
+	type Extra = ();
+	type WeightInfo = ();
+}
+
+impl pallet_assets_wrapper::Config for Test {
+	type Event = Event;
+	type AssetsCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
 }
 
 impl pallet_timestamp::Config for Test {
@@ -122,6 +157,7 @@ impl pallet_timestamp::Config for Test {
 	type WeightInfo = ();
 }
 
+pub const ALICE: u64 = 0x1;
 pub const RELAYER_A: u64 = 0x2;
 pub const RELAYER_B: u64 = 0x3;
 pub const RELAYER_C: u64 = 0x4;
@@ -133,7 +169,11 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		.build_storage::<Test>()
 		.unwrap();
 	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![(bridge_id, ENDOWED_BALANCE), (RELAYER_A, ENDOWED_BALANCE)],
+		balances: vec![
+			(bridge_id, ENDOWED_BALANCE),
+			(RELAYER_A, ENDOWED_BALANCE),
+			(ALICE, ENDOWED_BALANCE),
+		],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
