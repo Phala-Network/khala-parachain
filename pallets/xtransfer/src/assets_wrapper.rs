@@ -9,7 +9,7 @@ pub mod pallet {
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::StaticLookup;
 	use sp_std::{
-		convert::{From, TryFrom, TryInto},
+		convert::{From, TryFrom},
 		result,
 	};
 	use xcm::latest::MultiLocation;
@@ -53,7 +53,7 @@ pub mod pallet {
 			}
 		}
 	}
-	type XTransferAssetId<T: Config> = <T as pallet_assets::Config>::AssetId;
+	// type <T as pallet_assets::Config>::AssetId<T: Config> = <T as pallet_assets::Config>::AssetId;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -71,20 +71,22 @@ pub mod pallet {
 	/// Mapping asset to corresponding asset id
 	#[pallet::storage]
 	#[pallet::getter(fn asset_to_id)]
-	pub type AssetToId<T: Config> = StorageMap<_, Twox64Concat, XTransferAsset, XTransferAssetId<T>>;
+	pub type AssetToId<T: Config> =
+		StorageMap<_, Twox64Concat, XTransferAsset, <T as pallet_assets::Config>::AssetId>;
 
 	/// Mapping asset id to corresponding asset
 	#[pallet::storage]
 	#[pallet::getter(fn id_to_asset)]
-	pub type IdToAsset<T: Config> = StorageMap<_, Twox64Concat, XTransferAssetId<T>, XTransferAsset>;
+	pub type IdToAsset<T: Config> =
+		StorageMap<_, Twox64Concat, <T as pallet_assets::Config>::AssetId, XTransferAsset>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Asset been registerd. \[id, asset\]
-		ForceAssetRegistered(XTransferAssetId<T>, XTransferAsset),
+		ForceAssetRegistered(<T as pallet_assets::Config>::AssetId, XTransferAsset),
 		/// Asset been unregisterd. \[id, asset\]
-		ForceAssetUnregistered(XTransferAssetId<T>, XTransferAsset),
+		ForceAssetUnregistered(<T as pallet_assets::Config>::AssetId, XTransferAsset),
 	}
 
 	#[pallet::error]
@@ -101,7 +103,7 @@ pub mod pallet {
 		pub fn force_register_asset(
 			origin: OriginFor<T>,
 			asset: XTransferAsset,
-			id: XTransferAssetId<T>,
+			id: T::AssetId,
 			owner: <T::Lookup as StaticLookup>::Source,
 			#[pallet::compact] min_balance: T::Balance,
 		) -> DispatchResult {
@@ -116,13 +118,7 @@ pub mod pallet {
 				IdToAsset::<T>::get(&id) == None,
 				Error::<T>::AssetAlreadyExist
 			);
-			pallet_assets::pallet::Pallet::<T>::force_create(
-				origin,
-				id,
-				owner,
-				true,
-				min_balance,
-			)?;
+			pallet_assets::pallet::Pallet::<T>::force_create(origin, id, owner, true, min_balance)?;
 			AssetToId::<T>::insert(&asset, id);
 			IdToAsset::<T>::insert(id, &asset);
 
@@ -135,10 +131,7 @@ pub mod pallet {
 		/// will not success anymore, we should call pallet_assets::destory() manually
 		/// if we want to delete this asset from our chain
 		#[pallet::weight(195_000_000)]
-		pub fn force_unregister_asset(
-			origin: OriginFor<T>,
-			id: XTransferAssetId<T>,
-		) -> DispatchResult {
+		pub fn force_unregister_asset(origin: OriginFor<T>, id: T::AssetId) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
 			if let Some(asset) = IdToAsset::<T>::get(&id) {
 				IdToAsset::<T>::remove(&id);
@@ -149,17 +142,17 @@ pub mod pallet {
 		}
 	}
 
-	pub trait XTransferAssetInfo<T: pallet_assets::Config> {
-		fn id(asset: &XTransferAsset) -> Option<XTransferAssetId<T>>;
-		fn asset(id: &XTransferAssetId<T>) -> Option<XTransferAsset>;
+	pub trait XTransferAssetInfo<AssetId> {
+		fn id(asset: &XTransferAsset) -> Option<AssetId>;
+		fn asset(id: &AssetId) -> Option<XTransferAsset>;
 	}
 
-	impl<T: Config> XTransferAssetInfo<T> for Pallet<T> {
-		fn id(asset: &XTransferAsset) -> Option<XTransferAssetId<T>> {
+	impl<T: Config> XTransferAssetInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
+		fn id(asset: &XTransferAsset) -> Option<<T as pallet_assets::Config>::AssetId> {
 			AssetToId::<T>::get(asset)
 		}
 
-		fn asset(id: &XTransferAssetId<T>) -> Option<XTransferAsset> {
+		fn asset(id: &<T as pallet_assets::Config>::AssetId) -> Option<XTransferAsset> {
 			IdToAsset::<T>::get(id)
 		}
 	}

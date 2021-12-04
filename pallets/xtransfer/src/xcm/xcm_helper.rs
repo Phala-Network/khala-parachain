@@ -41,16 +41,13 @@ pub mod xcm_helper {
 		}
 	}
 
-	pub struct ConcreteAssetsMatcher<Assets, Balance, AssetsInfo>(
-		PhantomData<(Assets, Balance, AssetsInfo)>,
+	pub struct ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>(
+		PhantomData<(AssetId, Balance, AssetsInfo)>,
 	);
-	impl<
-			Assets: pallet_assets::Config,
-			Balance: Clone + From<u128>,
-			AssetsInfo: XTransferAssetInfo<Assets>,
-		> MatchesFungibles<Assets::AssetId, Balance> for ConcreteAssetsMatcher<Assets, Balance, AssetsInfo>
+	impl<AssetId, Balance: Clone + From<u128>, AssetsInfo: XTransferAssetInfo<AssetId>>
+		MatchesFungibles<AssetId, Balance> for ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>
 	{
-		fn matches_fungibles(a: &MultiAsset) -> result::Result<(Assets::AssetId, Balance), MatchError> {
+		fn matches_fungibles(a: &MultiAsset) -> result::Result<(AssetId, Balance), MatchError> {
 			log::trace!(
 				target: LOG_TARGET,
 				"ConcreteAssetsMatcher check fungible {:?}.",
@@ -64,7 +61,7 @@ pub mod xcm_helper {
 				.clone()
 				.try_into()
 				.map_err(|_| MatchError::AssetIdConversionFailed)?;
-			let asset_id: Assets::AssetId =
+			let asset_id: AssetId =
 				AssetsInfo::id(&xtransfer_asset).ok_or(MatchError::AssetNotFound)?;
 			let amount = amount
 				.try_into()

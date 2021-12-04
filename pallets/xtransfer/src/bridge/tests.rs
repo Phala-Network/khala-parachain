@@ -5,8 +5,8 @@ use crate::bridge::mock::{
 	ProposalLifetime, System, Test, TestChainId, ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
 	TEST_THRESHOLD,
 };
-use crate::bridge::*;
 use crate::bridge::Event as PalletEvent;
+use crate::bridge::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system as system;
 

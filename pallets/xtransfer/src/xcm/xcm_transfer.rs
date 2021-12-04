@@ -448,7 +448,7 @@ mod test {
 				ParaAssetsWrapper::force_register_asset(
 					para::Origin::root(),
 					para_a_asset.clone().into(),
-					0,
+					1,
 					ALICE,
 					1
 				),
@@ -460,7 +460,7 @@ mod test {
 				interior: X1(Parachain(2)),
 			};
 			let para_b_asset: pallet_assets_wrapper::XTransferAsset =
-			para_b_location.try_into().unwrap();
+				para_b_location.try_into().unwrap();
 
 			// same asset id register again, should be failed
 			assert_noop!(
@@ -484,7 +484,7 @@ mod test {
 			assert_ok!(ParaAssetsWrapper::force_register_asset(
 				para::Origin::root(),
 				para_b_asset.clone().into(),
-				0,
+				1,
 				ALICE,
 				1
 			));

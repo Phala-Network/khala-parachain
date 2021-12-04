@@ -1,6 +1,3 @@
-// Ensure we're `no_std` when compiling for Wasm.
-#![cfg_attr(not(feature = "std"), no_std)]
-
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -10,26 +7,26 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::pallet_assets_wrapper::{XTransferAsset, XTransferAssetInfo};
-	use codec::{Decode, Encode};
 	use frame_support::{
-		fail,
 		pallet_prelude::*,
-		traits::{Currency, ExistenceRequirement, OnUnbalanced, StorageVersion, tokens::fungibles::{Inspect as FungibleInspect, Transfer as FungibleTransfer}, WithdrawReasons},
+		traits::{
+			tokens::{fungibles::Transfer as FungibleTransfer, BalanceConversion, WithdrawReasons},
+			Currency, ExistenceRequirement, OnUnbalanced, StorageVersion,
+		},
 		transactional,
 	};
 
+	pub use crate::bridge;
 	use frame_system::pallet_prelude::*;
-	pub use crate::bridge as bridge;
-	use scale_info::TypeInfo;
 	use sp_arithmetic::traits::SaturatedConversion;
 	use sp_core::U256;
 	use sp_std::prelude::*;
 
 	type ResourceId = bridge::ResourceId;
 
-	type BalanceOf<T: Config> = <T as pallet_assets::Config>::Balance;
-
-	type NegativeImbalanceOf<T: Config> = <<T as pallet_assets::Config>::Currency as Currency<
+	type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
 		<T as frame_system::Config>::AccountId,
 	>>::NegativeImbalance;
 
@@ -44,12 +41,23 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + bridge::Config + pallet_assets::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
+		/// Assets register wrapper
+		type AssetsWrapper: XTransferAssetInfo<<Self as pallet_assets::Config>::AssetId>;
+
+		/// Convert Balance of Currency to AssetId of pallet_assets
+		type BalanceConverter: BalanceConversion<
+			BalanceOf<Self>,
+			<Self as pallet_assets::Config>::AssetId,
+			<Self as pallet_assets::Config>::Balance,
+		>;
+
 		/// Specifies the origin check provided by the bridge for calls that can only be called by the bridge pallet
 		type BridgeOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 
-		/// Assets register wrapper
-		type AssetsWrapper: XTransferAssetInfo<Self>;
+		/// Currency impl
+		type Currency: Currency<Self::AccountId>;
 
+		/// PHA resource id
 		#[pallet::constant]
 		type NativeTokenResourceId: Get<ResourceId>;
 
@@ -61,7 +69,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// [chainId, min_fee, fee_scale]
-		FeeUpdated(bridge::BridgeChainId, <T as pallet_assets::Config>::Balance, u32),
+		FeeUpdated(bridge::BridgeChainId, BalanceOf<T>, u32),
 	}
 
 	#[pallet::error]
@@ -72,12 +80,13 @@ pub mod pallet {
 		InvalidDestination,
 		InvalidFeeOption,
 		InsufficientBalance,
+		BalanceConversionFailed,
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_fee)]
 	pub type BridgeFee<T: Config> =
-		StorageMap<_, Twox64Concat, bridge::BridgeChainId, (<T as pallet_assets::Config>::Balance, u32), ValueQuery>;
+		StorageMap<_, Twox64Concat, bridge::BridgeChainId, (BalanceOf<T>, u32), ValueQuery>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -85,7 +94,7 @@ pub mod pallet {
 		#[pallet::weight(195_000_000)]
 		pub fn change_fee(
 			origin: OriginFor<T>,
-			min_fee: <T as pallet_assets::Config>::Balance,
+			min_fee: BalanceOf<T>,
 			fee_scale: u32,
 			dest_id: bridge::BridgeChainId,
 		) -> DispatchResult {
@@ -104,7 +113,7 @@ pub mod pallet {
 			asset: XTransferAsset,
 			dest_id: bridge::BridgeChainId,
 			recipient: Vec<u8>,
-			amount: <T as pallet_assets::Config>::Balance,
+			amount: BalanceOf<T>,
 		) -> DispatchResult {
 			let source = ensure_signed(origin)?;
 			ensure!(
@@ -115,22 +124,26 @@ pub mod pallet {
 				BridgeFee::<T>::contains_key(&dest_id),
 				Error::<T>::FeeOptionsMissing
 			);
-			let asset_id: <T as pallet_assets::Config>::AssetId = T::AssetsWrapper::id(&asset).ok_or(Error::<T>::AssetNotRegistered)?;
+			let asset_id: <T as pallet_assets::Config>::AssetId =
+				T::AssetsWrapper::id(&asset).ok_or(Error::<T>::AssetNotRegistered)?;
+			let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
+				.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 			ensure!(
-				<pallet_assets::pallet::Pallet<T>>::balance(asset_id.into(), &source) >= amount,
+				<pallet_assets::pallet::Pallet<T>>::balance(asset_id.into(), &source)
+					>= asset_amount,
 				Error::<T>::InsufficientBalance
 			);
 
 			let rid: bridge::ResourceId = asset
-			.try_into()
-			.map_err(|_| Error::<T>::AssetConversionFailed)?;
+				.try_into()
+				.map_err(|_| Error::<T>::AssetConversionFailed)?;
 			let fee = Self::calculate_fee(dest_id, amount);
 			// check native balance to cover fee
-			let native_free_balance = <T as pallet_assets::Config>::Currency::free_balance(&source);
+			let native_free_balance = <T as Config>::Currency::free_balance(&source);
 			ensure!(native_free_balance >= fee, Error::<T>::InsufficientBalance);
 
 			// pay fee to treasury
-			let imbalance = <T as pallet_assets::Config>::Currency::withdraw(
+			let imbalance = <T as Config>::Currency::withdraw(
 				&source,
 				fee,
 				WithdrawReasons::FEE,
@@ -139,8 +152,16 @@ pub mod pallet {
 			T::OnFeePay::on_unbalanced(imbalance);
 
 			let bridge_id = <bridge::Pallet<T>>::account_id();
+			let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
+				.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 			// lock asset into bridge account
-			<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(asset_id, &source, &bridge_id, amount, true)?;
+			<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
+				asset_id,
+				&source,
+				&bridge_id,
+				asset_amount,
+				true,
+			)?;
 
 			<bridge::Pallet<T>>::transfer_fungible(
 				dest_id,
@@ -155,7 +176,7 @@ pub mod pallet {
 		#[transactional]
 		pub fn transfer_native(
 			origin: OriginFor<T>,
-			amount: <T as pallet_assets::Config>::Balance,
+			amount: BalanceOf<T>,
 			recipient: Vec<u8>,
 			dest_id: bridge::BridgeChainId,
 		) -> DispatchResult {
@@ -170,20 +191,20 @@ pub mod pallet {
 				Error::<T>::FeeOptionsMissing
 			);
 			let fee = Self::calculate_fee(dest_id, amount);
-			let free_balance = <T as pallet_assets::Config>::Currency::free_balance(&source);
+			let free_balance = <T as Config>::Currency::free_balance(&source);
 			ensure!(
 				free_balance >= (amount + fee),
 				Error::<T>::InsufficientBalance
 			);
 
-			let imbalance = <T as pallet_assets::Config>::Currency::withdraw(
+			let imbalance = <T as Config>::Currency::withdraw(
 				&source,
 				fee,
 				WithdrawReasons::FEE,
 				ExistenceRequirement::AllowDeath,
 			)?;
 			T::OnFeePay::on_unbalanced(imbalance);
-			<T as pallet_assets::Config>::Currency::transfer(
+			<T as Config>::Currency::transfer(
 				&source,
 				&bridge_id,
 				amount,
@@ -207,14 +228,14 @@ pub mod pallet {
 		pub fn transfer(
 			origin: OriginFor<T>,
 			to: T::AccountId,
-			amount: <T as pallet_assets::Config>::Balance,
+			amount: BalanceOf<T>,
 			rid: ResourceId,
 		) -> DispatchResult {
 			let source = T::BridgeOrigin::ensure_origin(origin)?;
 
 			if rid == T::NativeTokenResourceId::get() {
 				// ERC20 PHA transfer
-				<T as pallet_assets::Config>::Currency::transfer(
+				<T as Config>::Currency::transfer(
 					&source,
 					&to,
 					amount,
@@ -222,14 +243,28 @@ pub mod pallet {
 				)?;
 			} else {
 				let xtransfer_asset: XTransferAsset = rid
-				.clone()
-				.try_into()
-				.map_err(|_| Error::<T>::AssetConversionFailed)?;
+					.clone()
+					.try_into()
+					.map_err(|_| Error::<T>::AssetConversionFailed)?;
 				let asset_id: <T as pallet_assets::Config>::AssetId =
-				T::AssetsWrapper::id(&xtransfer_asset).ok_or(Error::<T>::AssetNotRegistered)?;
-				let bridge_id = <bridge::Pallet<T>>::account_id();
+					T::AssetsWrapper::id(&xtransfer_asset).ok_or(Error::<T>::AssetNotRegistered)?;
+				let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
+					.map_err(|_| Error::<T>::BalanceConversionFailed)?;
+
+				ensure!(
+					<pallet_assets::pallet::Pallet<T>>::balance(asset_id.into(), &source)
+						>= asset_amount,
+					Error::<T>::InsufficientBalance
+				);
+
 				// release asset from bridge account
-				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(asset_id, &source, &to, amount, true)?;
+				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
+					asset_id,
+					&source,
+					&to,
+					asset_amount,
+					true,
+				)?;
 			}
 
 			Ok(())
@@ -238,7 +273,7 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		// TODO.wf: A more proper way to estimate fee
-		pub fn calculate_fee(dest_id: bridge::BridgeChainId, amount: <T as pallet_assets::Config>::Balance) -> <T as pallet_assets::Config>::Balance {
+		pub fn calculate_fee(dest_id: bridge::BridgeChainId, amount: BalanceOf<T>) -> BalanceOf<T> {
 			let (min_fee, fee_scale) = Self::bridge_fee(dest_id);
 			let fee_estimated = amount * fee_scale.into() / 1000u32.into();
 			if fee_estimated > min_fee {
