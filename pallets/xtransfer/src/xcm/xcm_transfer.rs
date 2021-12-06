@@ -414,7 +414,6 @@ mod test {
 					para_a_asset.clone().into(),
 					0,
 					ALICE,
-					1
 				),
 				DispatchError::BadOrigin
 			);
@@ -424,7 +423,6 @@ mod test {
 				para_a_asset.clone().into(),
 				0,
 				ALICE,
-				1
 			));
 
 			let ev: Vec<para::Event> = para_take_events();
@@ -450,7 +448,6 @@ mod test {
 					para_a_asset.clone().into(),
 					1,
 					ALICE,
-					1
 				),
 				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
 			);
@@ -469,7 +466,6 @@ mod test {
 					para_b_asset.clone().into(),
 					0,
 					ALICE,
-					1
 				),
 				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
 			);
@@ -486,7 +482,6 @@ mod test {
 				para_b_asset.clone().into(),
 				1,
 				ALICE,
-				1
 			));
 			assert_eq!(ParaAssetsWrapper::id(&para_b_asset).unwrap(), 1u32);
 			assert_eq!(
@@ -522,7 +517,6 @@ mod test {
 				para_a_asset.clone().into(),
 				0,
 				ALICE,
-				1
 			));
 		});
 
@@ -563,7 +557,6 @@ mod test {
 				para_a_asset.clone().into(),
 				0,
 				ALICE,
-				1
 			));
 		});
 

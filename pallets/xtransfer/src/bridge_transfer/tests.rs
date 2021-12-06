@@ -44,7 +44,6 @@ fn register_asset() {
 				bridge_asset.clone().into(),
 				0,
 				ALICE,
-				1
 			),
 			DispatchError::BadOrigin
 		);
@@ -54,7 +53,6 @@ fn register_asset() {
 			bridge_asset.clone().into(),
 			0,
 			ALICE,
-			1
 		));
 
 		// same resource id register again, should be failed
@@ -64,7 +62,6 @@ fn register_asset() {
 				bridge_asset.clone().into(),
 				1,
 				ALICE,
-				1
 			),
 			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
 		);
@@ -80,7 +77,6 @@ fn register_asset() {
 				bridge_asset_1.clone().into(),
 				0,
 				ALICE,
-				1
 			),
 			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
 		);
@@ -91,7 +87,6 @@ fn register_asset() {
 			bridge_asset_1.clone().into(),
 			1,
 			ALICE,
-			1
 		));
 		assert_eq!(AssetsWrapper::id(&bridge_asset_1).unwrap(), 1u32);
 		assert_eq!(AssetsWrapper::asset(&1u32.into()).unwrap(), bridge_asset_1);
@@ -158,7 +153,6 @@ fn transfer_assets_insufficient_balance() {
 			bridge_asset.clone().into(),
 			0,
 			ALICE,
-			1
 		));
 
 		// after registered, free balance of ALICE is 0
@@ -199,7 +193,6 @@ fn transfer_assets() {
 			bridge_asset.clone().into(),
 			0,
 			ALICE,
-			1
 		));
 
 		// mint some token to ALICE
@@ -303,7 +296,6 @@ fn simulate_transfer_from_solochain() {
 			bridge_asset.clone().into(),
 			0,
 			ALICE,
-			1
 		));
 
 		assert_noop!(
