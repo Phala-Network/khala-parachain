@@ -104,7 +104,7 @@ impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	type DustRemoval = ();
 	type Event = Event;
-	type ExistentialDeposit = ();
+	type ExistentialDeposit = AssetDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
 	type MaxLocks = ();
@@ -113,11 +113,11 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const AssetDeposit: Balance = 1 * CENTS; // 1 CENTS deposit to create asset
-	pub const ApprovalDeposit: Balance = 1 * CENTS;
+	pub const AssetDeposit: Balance = 1; // 1 Unit deposit to create asset
+	pub const ApprovalDeposit: Balance = 1;
 	pub const AssetsStringLimit: u32 = 50;
-	pub const MetadataDepositBase: Balance = 1 * CENTS;
-	pub const MetadataDepositPerByte: Balance = 1 * CENTS;
+	pub const MetadataDepositBase: Balance = 1;
+	pub const MetadataDepositPerByte: Balance = 1;
 }
 
 impl pallet_assets::Config for Runtime {
@@ -298,4 +298,5 @@ impl pallet_xcm_transfer::Config for Runtime {
 impl pallet_assets_wrapper::Config for Runtime {
 	type Event = Event;
 	type AssetsCommitteeOrigin = EnsureRoot<AccountId>;
+	type MinBalance = AssetDeposit;
 }

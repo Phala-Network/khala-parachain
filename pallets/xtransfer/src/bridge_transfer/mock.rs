@@ -122,11 +122,11 @@ impl bridge_transfer::Config for Test {
 }
 
 parameter_types! {
-	pub const AssetDeposit: Balance = 1 * CENTS; // 1 CENTS deposit to create asset
-	pub const ApprovalDeposit: Balance = 1 * CENTS;
+	pub const AssetDeposit: Balance = 1; // 1 Unit deposit to create asset
+	pub const ApprovalDeposit: Balance = 1;
 	pub const AssetsStringLimit: u32 = 50;
-	pub const MetadataDepositBase: Balance = 1 * CENTS;
-	pub const MetadataDepositPerByte: Balance = 1 * CENTS;
+	pub const MetadataDepositBase: Balance = 1;
+	pub const MetadataDepositPerByte: Balance = 1;
 }
 
 impl pallet_assets::Config for Test {
@@ -148,6 +148,7 @@ impl pallet_assets::Config for Test {
 impl pallet_assets_wrapper::Config for Test {
 	type Event = Event;
 	type AssetsCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type MinBalance = ExistentialDeposit;
 }
 
 impl pallet_timestamp::Config for Test {

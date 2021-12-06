@@ -64,6 +64,8 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + pallet_assets::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type AssetsCommitteeOrigin: EnsureOrigin<Self::Origin>;
+		#[pallet::constant]
+		type MinBalance: Get<<Self as pallet_assets::Config>::Balance>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
@@ -105,7 +107,6 @@ pub mod pallet {
 			asset: XTransferAsset,
 			id: T::AssetId,
 			owner: <T::Lookup as StaticLookup>::Source,
-			#[pallet::compact] min_balance: T::Balance,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin.clone())?;
 			// ensure location has not been registered
@@ -118,7 +119,13 @@ pub mod pallet {
 				IdToAsset::<T>::get(&id) == None,
 				Error::<T>::AssetAlreadyExist
 			);
-			pallet_assets::pallet::Pallet::<T>::force_create(origin, id, owner, true, min_balance)?;
+			pallet_assets::pallet::Pallet::<T>::force_create(
+				origin,
+				id,
+				owner,
+				true,
+				T::MinBalance::get(),
+			)?;
 			AssetToId::<T>::insert(&asset, id);
 			IdToAsset::<T>::insert(id, &asset);
 
