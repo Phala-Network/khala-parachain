@@ -14,6 +14,7 @@ pub mod xcm_helper {
 		prelude::*, AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset,
 		MultiLocation, Result as XcmResult,
 	};
+	use xcm_builder::TakeRevenue;
 	use xcm_executor::{
 		traits::{
 			Error as MatchError, FilterAssetLocation, MatchesFungible, MatchesFungibles,
@@ -186,6 +187,27 @@ pub mod xcm_helper {
 			} else {
 				AssetsAdapter::withdraw_asset(what, who)
 			}
+		}
+	}
+
+	pub struct XTransferTakeRevenue<TransferAdapter, AccountId, Beneficiary>(
+		PhantomData<(TransferAdapter, AccountId, Beneficiary)>,
+	);
+	impl<
+			TransferAdapter: TransactAsset,
+			AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone,
+			Beneficiary: Get<AccountId>,
+		> TakeRevenue for XTransferTakeRevenue<TransferAdapter, AccountId, Beneficiary>
+	{
+		fn take_revenue(revenue: MultiAsset) {
+			let beneficiary = MultiLocation::new(
+				0,
+				X1(AccountId32 {
+					network: NetworkId::Any,
+					id: Beneficiary::get().into(),
+				}),
+			);
+			let _ = TransferAdapter::deposit_asset(&revenue, &beneficiary);
 		}
 	}
 }

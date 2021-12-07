@@ -39,7 +39,7 @@ pub mod defaults;
 
 // Constant values used within the runtime.
 pub mod constants;
-use constants::{currency::*, fee::WeightToFee, parachains};
+use constants::{currency::*, fee::{pha_per_second, WeightToFee}, parachains};
 
 mod msg_routing;
 
@@ -52,7 +52,7 @@ use sp_core::{
 };
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{AccountIdLookup, Block as BlockT, ConvertInto},
+    traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto, Zero},
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
 };
@@ -85,9 +85,9 @@ use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
-    CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, LocationInverter, ParentIsDefault,
-    RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+    CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds, FixedRateOfFungible, FungiblesAdapter, LocationInverter,
+    ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
 use xcm_executor::{
     Config, XcmExecutor,
@@ -773,9 +773,6 @@ parameter_types! {
     pub const RelayNetwork: NetworkId = NetworkId::Kusama;
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
-    pub const DOTMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: Here };
-    pub PHAMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(ParachainInfo::parachain_id().into())) };
-    pub KARMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec())) };
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -813,6 +810,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 parameter_types! {
 	pub UnitWeightCost: Weight = 200_000_000;
 	pub const MaxInstructions: u32 = 100;
+	pub KhalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
 }
 match_type! {
 	pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
@@ -866,6 +864,29 @@ pub type FungiblesTransactor = FungiblesAdapter<
     (),
 >;
 
+parameter_types! {
+    pub ExecutionPriceInKSM: (AssetId, u128) = (
+        MultiLocation::new(1, Here).into(),
+		pha_per_second() / 600
+    );
+    pub ExecutionPriceInPHA: (AssetId, u128) = (
+        MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into()))).into(),
+		pha_per_second()
+    );
+    pub ExecutionPriceInKAR: (AssetId, u128) = (
+        MultiLocation::new(1, X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec()))).into(),
+		pha_per_second() / 8
+    );
+	pub ExecutionPriceInBNC: (AssetId, u128) = (
+        MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::BNC_KEY.to_vec()))).into(),
+		pha_per_second()
+    );
+	pub ExecutionPriceInVKSM: (AssetId, u128) = (
+        MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::VSKSM_KEY.to_vec()))).into(),
+		pha_per_second()
+    );
+}
+
 pub struct XcmConfig;
 impl Config for XcmConfig {
     type Call = Call;
@@ -883,9 +904,26 @@ impl Config for XcmConfig {
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type Trader = (
-        UsingComponents<IdentityFee<Balance>, DOTMultiAssetId, AccountId, Balances, ()>,
-        UsingComponents<IdentityFee<Balance>, PHAMultiAssetId, AccountId, Balances, ()>,
-        UsingComponents<IdentityFee<Balance>, KARMultiAssetId, AccountId, Balances, ()>,
+        FixedRateOfFungible<
+            ExecutionPriceInKSM,
+            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>
+        >,
+        FixedRateOfFungible<
+            ExecutionPriceInPHA,
+            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>
+        >,
+        FixedRateOfFungible<
+            ExecutionPriceInKAR,
+            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>
+        >,
+        FixedRateOfFungible<
+            ExecutionPriceInBNC,
+            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>
+        >,
+        FixedRateOfFungible<
+            ExecutionPriceInVKSM,
+            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>
+        >,
     );
     type ResponseHandler = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
