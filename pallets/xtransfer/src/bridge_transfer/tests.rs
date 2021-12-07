@@ -207,8 +207,8 @@ fn transfer_assets() {
 			amount,
 		));
 
+		// asset has been burned
 		assert_eq!(Assets::balance(0, &ALICE), amount);
-		assert_eq!(Assets::balance(0, &Bridge::account_id()), amount);
 	})
 }
 
@@ -256,7 +256,7 @@ fn transfer_native() {
 }
 
 #[test]
-fn transfer() {
+fn simulate_pha_transfer_from_solochain() {
 	new_test_ext().execute_with(|| {
 		// Check inital state
 		let bridge_id: u64 = Bridge::account_id();
@@ -281,7 +281,7 @@ fn transfer() {
 }
 
 #[test]
-fn simulate_transfer_from_solochain() {
+fn simulate_assets_transfer_from_solochain() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 0;
 		let bridge_id: u64 = Bridge::account_id();
@@ -298,36 +298,14 @@ fn simulate_transfer_from_solochain() {
 			ALICE,
 		));
 
-		assert_noop!(
-			BridgeTransfer::transfer(
-				Origin::signed(Bridge::account_id()),
-				RELAYER_A,
-				amount,
-				r_id,
-			),
-			crate::bridge_transfer::Error::<Test>::InsufficientBalance
-		);
-
-		// mint some token to bridge account(note: not ALICE)
-		assert_ok!(Assets::mint(
-			Origin::signed(ALICE),
-			0,
-			Bridge::account_id(),
-			amount * 2
-		));
-		assert_eq!(Assets::balance(0, &Bridge::account_id()), amount * 2);
 		assert_eq!(Assets::balance(0, &ALICE), 0);
-
-		// transfer to ALICE, would withdraw from bridge account then deposit to
-		// the ALICE
+		// transfer to ALICE, would mint asset into ALICE
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
 			ALICE,
 			amount,
 			r_id,
 		));
-
-		assert_eq!(Assets::balance(0, &bridge_id), amount);
 		assert_eq!(Assets::balance(0, &ALICE), amount);
 	})
 }

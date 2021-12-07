@@ -10,7 +10,7 @@ pub mod pallet {
 	use frame_support::{
 		pallet_prelude::*,
 		traits::{
-			tokens::{fungibles::Transfer as FungibleTransfer, BalanceConversion, WithdrawReasons},
+			tokens::{fungibles::Mutate as FungibleMutate, BalanceConversion, WithdrawReasons},
 			Currency, ExistenceRequirement, OnUnbalanced, StorageVersion,
 		},
 		transactional,
@@ -81,6 +81,7 @@ pub mod pallet {
 		InvalidFeeOption,
 		InsufficientBalance,
 		BalanceConversionFailed,
+		FailedToTransactAsset,
 	}
 
 	#[pallet::storage]
@@ -151,17 +152,15 @@ pub mod pallet {
 			)?;
 			T::OnFeePay::on_unbalanced(imbalance);
 
-			let bridge_id = <bridge::Pallet<T>>::account_id();
 			let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
 				.map_err(|_| Error::<T>::BalanceConversionFailed)?;
-			// lock asset into bridge account
-			<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
+			// burn asset from sender
+			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::burn_from(
 				asset_id,
 				&source,
-				&bridge_id,
 				asset_amount,
-				true,
-			)?;
+			)
+			.map_err(|e| Error::<T>::FailedToTransactAsset)?;
 
 			<bridge::Pallet<T>>::transfer_fungible(
 				dest_id,
@@ -251,20 +250,13 @@ pub mod pallet {
 				let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
 					.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 
-				ensure!(
-					<pallet_assets::pallet::Pallet<T>>::balance(asset_id.into(), &source)
-						>= asset_amount,
-					Error::<T>::InsufficientBalance
-				);
-
-				// release asset from bridge account
-				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
+				// mint asset into recipient
+				<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::mint_into(
 					asset_id,
-					&source,
 					&to,
 					asset_amount,
-					true,
-				)?;
+				)
+				.map_err(|e| Error::<T>::FailedToTransactAsset)?;
 			}
 
 			Ok(())
