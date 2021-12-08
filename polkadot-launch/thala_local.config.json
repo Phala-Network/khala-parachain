@@ -8,9 +8,9 @@
         "wsPort": 19944,
         "rpcPort": 19933,
         "port": 10333,
+        "nodeKey": "807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
         "basePath": "data/relay_alice",
         "flags": [
-          "--node-key=807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
           "--rpc-cors=all"
         ]
       },
@@ -61,9 +61,9 @@
           "wsPort": 9144,
           "rpcPort": 9133,
           "port": 31333,
+          "nodeKey": "81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
           "basePath": "data/para_alice",
           "flags": [
-            "--node-key=81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
             "--rpc-cors=all",
             "--discover-local",
             "--",
@@ -106,7 +106,6 @@
       ]
     }
   ],
-  "simpleParachains": [],
   "hrmpChannels": [],
   "types": {},
   "finalization": false,
