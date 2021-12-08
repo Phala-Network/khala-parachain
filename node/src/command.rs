@@ -26,7 +26,10 @@ use sc_cli::{
     ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
     NetworkParams, Result, RuntimeVersion, SharedParams, SubstrateCli,
 };
-use sc_service::config::{BasePath, PrometheusConfig};
+use sc_service::{
+    config::{BasePath, PrometheusConfig},
+    TaskManager,
+};
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
 use std::{collections::VecDeque, io::Write, net::SocketAddr};
@@ -408,58 +411,33 @@ pub fn run() -> Result<()> {
             }
         }
         Some(Subcommand::Key(cmd)) => Ok(cmd.run(&cli)?),
-        #[cfg(feature = "try-runtime")]
-        Some(Subcommand::TryRuntime(cmd)) => {
-            let runner = cli.create_runner(cmd)?;
+        Some(Subcommand::TryRuntime(cmd)) =>
+            if cfg!(feature = "try-runtime") {
+                // grab the task manager.
+                let runner = cli.create_runner(cmd)?;
+                let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
+                let task_manager =
+                    TaskManager::new(runner.config().tokio_handle.clone(), *registry)
+                        .map_err(|e| format!("Error: {:?}", e))?;
 
-            use sc_service::TaskManager;
-            let registry = &runner
-                .config()
-                .prometheus_config
-                .as_ref()
-                .map(|cfg| &cfg.registry);
-            let task_manager = TaskManager::new(runner.config().tokio_handle.clone(), *registry)
-                .map_err(|e| sc_cli::Error::Service(sc_service::Error::Prometheus(e)))?;
-
-            // TODO: add the dev mode check
-            // ensure_dev(chain_spec).map_err(sc_cli::Error::Input)?;
-
-            if runner.config().chain_spec.is_khala() {
-                runner.async_run(|config| {
-                    Ok((
-                        cmd.run::<khala_parachain_runtime::Block, KhalaParachainRuntimeExecutor>(
-                            config,
-                        ),
-                        task_manager,
-                    ))
-                })
-            } else if runner.config().chain_spec.is_whala() {
-                runner.async_run(|config| {
-                    Ok((
-                        cmd.run::<khala_parachain_runtime::Block, KhalaParachainRuntimeExecutor>(
-                            config,
-                        ),
-                        task_manager,
-                    ))
-                })
-            } else if runner.config().chain_spec.is_thala() {
-                runner.async_run(|config| {
-                    Ok((
-                        cmd.run::<thala_parachain_runtime::Block, ThalaParachainRuntimeExecutor>(
-                            config,
-                        ),
-                        task_manager,
-                    ))
-                })
+                if runner.config().chain_spec.is_khala() {
+                    runner.async_run(|config| {
+                        Ok((cmd.run::<Block, KhalaParachainRuntimeExecutor>(config), task_manager))
+                    })
+                } else if runner.config().chain_spec.is_whala() {
+                    runner.async_run(|config| {
+                        Ok((cmd.run::<Block, KhalaParachainRuntimeExecutor>(config), task_manager))
+                    })
+                } else if runner.config().chain_spec.is_thala() {
+                    runner.async_run(|config| {
+                        Ok((cmd.run::<Block, ThalaParachainRuntimeExecutor>(config), task_manager))
+                    })
+                } else {
+                    Err("Can't determine runtime from chain_spec".into())
+                }
             } else {
-                Err("Chain doesn't support try-runtime".into())
-            }
-        }
-        #[cfg(not(feature = "try-runtime"))]
-        Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
-                You can enable it with `--features try-runtime`."
-            .into())
-        .into(),
+                Err("Try-runtime must be enabled by `--features try-runtime`.".into())
+            },
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
 
@@ -518,7 +496,7 @@ pub fn run() -> Result<()> {
                         .map(|r| r.0)
                         .map_err(Into::into)
                 } else {
-                    Err("Chain doesn't support benchmarking".into())
+                    Err("Can't determine runtime from chain_spec".into())
                 }
             })
         }
