@@ -10,6 +10,7 @@ pub mod pallet {
 		traits::{StorageVersion, UnixTime},
 	};
 	use frame_system::pallet_prelude::*;
+	use scale_info::TypeInfo;
 	use sp_core::H256;
 	use sp_runtime::SaturatedConversion;
 	use sp_std::prelude::*;
@@ -23,13 +24,13 @@ pub mod pallet {
 	use phala_types::{
 		messaging::{
 			self, bind_topic, DecodedMessage, GatekeeperChange, GatekeeperLaunch, MessageOrigin,
-			SignedMessage, SystemEvent, WorkerEvent,
+			SignedMessage, SystemEvent, WorkerEvent, WorkerPinkReport,
 		},
 		ContractPublicKey, EcdhPublicKey, MasterPublicKey, WorkerPublicKey, WorkerRegistrationInfo,
 	};
 
 	bind_topic!(RegistryEvent, b"^phala/registry/event");
-	#[derive(Encode, Decode, Clone, Debug)]
+	#[derive(Encode, Decode, TypeInfo, Clone, Debug)]
 	pub enum RegistryEvent {
 		BenchReport { start_time: u64, iterations: u64 },
 		MasterPubkey { master_pubkey: MasterPublicKey },
@@ -101,7 +102,6 @@ pub mod pallet {
 		StorageValue<_, Vec<H256>, ValueQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event {
 		GatekeeperAdded(WorkerPublicKey),
 	}
@@ -511,6 +511,26 @@ pub mod pallet {
 			Ok(())
 		}
 
+		pub fn on_pink_message_received(
+			message: DecodedMessage<WorkerPinkReport>,
+		) -> DispatchResult {
+			match &message.sender {
+				MessageOrigin::Worker(_) => (),
+				_ => return Err(Error::<T>::InvalidSender.into()),
+			}
+			match message.payload {
+				WorkerPinkReport::PinkInstantiated {
+					id,
+					group_id: _,
+					owner: _,
+					pubkey,
+				} => {
+					ContractKey::<T>::insert(id, pubkey);
+				}
+			}
+			Ok(())
+		}
+
 		#[cfg(test)]
 		pub(crate) fn internal_set_benchmark(worker: &WorkerPublicKey, score: Option<u32>) {
 			Workers::<T>::mutate(worker, |w| {
@@ -632,7 +652,7 @@ pub mod pallet {
 		type Config = T;
 	}
 
-	#[derive(Encode, Decode, Default, Debug, Clone)]
+	#[derive(Encode, Decode, TypeInfo, Default, Debug, Clone)]
 	pub struct WorkerInfo<AccountId> {
 		// identity
 		pubkey: WorkerPublicKey,

@@ -45,8 +45,13 @@ polkadot-launch config.json
 ### Configuration File
 
 The required configuration file defines the properties of the network you want to set up.
+You may use a json or a js file.
 
-You can see an example [here](config.json).
+You can see the examples:
+- [config.json](config.json)
+- [config.js](config.js)
+
+You may find the .js alternative more convenient if you need comments, trailing commas or if you prefer do dedup some portions of the config.
 
 #### `relaychain`
 
@@ -57,6 +62,7 @@ You can see an example [here](config.json).
   - `name`: Must be one of `alice`, `bob`, `charlie`, or `dave`.
   - `wsPort`: The websocket port for this node.
   - `port`: The TCP port for this node.
+  - `nodeKey`: a secret key used for generating libp2p peer identifier. Optional.
   - `basePath`: The directory used for the blockchain db and other outputs. When unspecified, we use
     `--tmp`.
   - `flags`: Any additional command line flags you want to add when starting your node.
@@ -78,20 +84,20 @@ An example of `genesis` is:
 
 ```json
 "genesis": {
-"runtime": {
-"runtime_genesis_config": {
-"configuration": {
-"config": {
-"validation_upgrade_frequency": 1,
-"validation_upgrade_delay": 1
-}
-},
-"palletCollective": {
-"members": ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", "5DbKjhNLpqX3zqZdNBc9BGb4fHU1cRBaDhJUskrvkwfraDi6"]
-}
-},
-"session_length_in_blocks": 10
-}
+  "runtime": {
+    "runtime_genesis_config": {
+      "configuration": {
+        "config": {
+          "validation_upgrade_frequency": 1,
+          "validation_upgrade_delay": 1
+        }
+      },
+      "palletCollective": {
+        "members": ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", "5DbKjhNLpqX3zqZdNBc9BGb4fHU1cRBaDhJUskrvkwfraDi6"]
+      }
+    },
+    "session_length_in_blocks": 10
+  }
 }
 ```
 
@@ -154,12 +160,12 @@ ways you need to open channels in both directions.
 
 ```json
 "hrmpChannels": [
-{
-"sender": "200",
-"recipient": "300",
-"maxCapacity": 8,
-"maxMessageSize": 512
-}
+    {
+        "sender": "200",
+        "recipient": "300",
+        "maxCapacity": 8,
+        "maxMessageSize": 512
+    }
 ]
 ```
 
@@ -170,10 +176,10 @@ interface properly with your runtime.
 
 ```json
 "types": {
-"HrmpChannelId": {
-"sender": "u32",
-"receiver": "u32"
-}
+    "HrmpChannelId": {
+        "sender": "u32",
+        "receiver": "u32"
+    }
 }
 ```
 

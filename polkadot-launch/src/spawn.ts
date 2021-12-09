@@ -5,6 +5,7 @@ import {
 } from "child_process";
 import util from "util";
 import fs from "fs";
+import { CollatorOptions } from "./types";
 
 // This tracks all the processes that we spawn from this file.
 // Used to clean up processes when exiting this program.
@@ -16,6 +17,8 @@ const execFile = util.promisify(ex);
 export async function generateChainSpec(bin: string, chain: string, out: string) {
 	return new Promise<void>(function (resolve, reject) {
 		let args = ["build-spec", "--chain=" + chain, "--disable-default-bootnode"];
+
+		console.log(`Full args "${args}"`);
 
 		p["spec"] = spawn(bin, args);
 		let spec = fs.createWriteStream(out);
@@ -40,7 +43,9 @@ export async function generateChainSpec(bin: string, chain: string, out: string)
 export async function generateChainSpecRaw(bin: string, chain: string, out: string) {
 	console.log(); // Add a newline in output
 	return new Promise<void>(function (resolve, reject) {
-		let args = ["build-spec", "--chain=" + chain, "--raw", "--disable-default-bootnode"];
+		let args = ["build-spec", "--chain=" + chain, "--raw"];
+
+		console.log(`Full args "${args}"`);
 
 		p["spec"] = spawn(bin, args);
 		let spec = fs.createWriteStream(out);
@@ -70,6 +75,8 @@ export async function getParachainIdFromSpec(
 			args.push("--chain=" + chain);
 		}
 
+		console.log(`Full args "${args}"`);
+
 		let data = "";
 
 		p["spec"] = spawn(bin, args);
@@ -98,7 +105,9 @@ export function startNode(
 	bin: string,
 	name: string,
 	wsPort: number,
+	rpcPort: number | undefined,
 	port: number,
+	nodeKey: string,
 	spec: string,
 	flags?: string[],
 	basePath?: string
@@ -108,8 +117,12 @@ export function startNode(
 		"--chain=" + spec,
 		"--ws-port=" + wsPort,
 		"--port=" + port,
+		"--node-key=" + nodeKey,
 		"--" + name.toLowerCase(),
 	];
+	if (rpcPort) {
+		args.push("--rpc-port=" + rpcPort);
+	}
 
 	if (basePath) {
 		args.push("--base-path=" + basePath);
@@ -183,22 +196,28 @@ export function startCollator(
 	bin: string,
 	id: string,
 	wsPort: number,
+	rpcPort: number | undefined,
 	port: number,
-	name?: string,
-	chain?: string,
-	spec?: string,
-	flags?: string[],
-	basePath?: string,
-	skip_id_arg?: boolean
+	options: CollatorOptions
 ) {
 	return new Promise<void>(function (resolve) {
 		// TODO: Make DB directory configurable rather than just `tmp`
-		let args = [
-			"--ws-port=" + wsPort,
-			"--port=" + port,
-			"--collator",
-			// "--force-authoring",
-		];
+		let args = ["--ws-port=" + wsPort, "--port=" + port];
+		const {
+			basePath,
+			name,
+			skip_id_arg,
+			onlyOneParachainNode,
+			chain,
+			flags,
+			spec,
+		} = options;
+
+		if (rpcPort) {
+			args.push("--rpc-port=" + rpcPort);
+			console.log(`Added --rpc-port=" + ${rpcPort}`);
+		}
+		args.push("--collator");
 
 		if (basePath) {
 			args.push("--base-path=" + basePath);
@@ -213,6 +232,10 @@ export function startCollator(
 		if (!skip_id_arg) {
 			args.push("--parachain-id=" + id);
 			console.log(`Added --parachain-id=${id}`);
+		}
+		if (onlyOneParachainNode) {
+			args.push("--force-authoring");
+			console.log(`Added --force-authoring`);
 		}
 		if (chain) {
 			args.push("--chain=" + chain);
@@ -245,7 +268,7 @@ export function startCollator(
 			console.log(`Added ${flags_collator} to collator`);
 		}
 
-		console.log(`Full args ${args}`);
+		console.log(`Full args "${args}"`);
 
 		p[wsPort] = spawn(bin, args);
 
@@ -282,19 +305,16 @@ export function startSimpleCollator(
 			console.log(`Added --parachain-id=${id}`);
 		}
 
-		console.log(`Full args ${args}`);
+		console.log(`Full args "${args}"`);
 
 		p[port] = spawn(bin, args);
 
 		let log = fs.createWriteStream(`${port}.log`);
 
-		p[port].stdout.on("data", function (chunk) {
-			let message = chunk.toString();
-			log.write(message);
-		});
+		p[port].stdout.pipe(log);
 		p[port].stderr.on("data", function (chunk) {
 			let message = chunk.toString();
-			if (message.substring(21, 50) === "Listening for new connections") {
+			if (message.includes("Listening for new connections")) {
 				resolve();
 			}
 			log.write(message);

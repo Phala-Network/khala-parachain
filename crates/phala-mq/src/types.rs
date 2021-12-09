@@ -1,16 +1,19 @@
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::hash::{Hash, Hasher};
-use primitive_types::H256;
 
-use parity_scale_codec::{Decode, Encode};
-use sp_core::crypto::{AccountId32, UncheckedFrom};
 use derive_more::Display;
+use parity_scale_codec::{Decode, Encode};
+use scale_info::TypeInfo;
+use sp_core::crypto::{AccountId32, UncheckedFrom};
 
 pub type Path = Vec<u8>;
 pub type SenderId = MessageOrigin;
-pub type ContractId = H256;
-pub type AccountId = H256;
+pub use sp_core::H256 as ContractId;
+pub use sp_core::H256 as AccountId;
+pub use sp_core::H256 as ContractGroupId;
+
+use crate::MessageSigner;
 
 pub fn contract_id256(id: u32) -> ContractId {
     ContractId::from_low_u64_be(id as u64)
@@ -19,7 +22,7 @@ pub fn contract_id256(id: u32) -> ContractId {
 /// The origin of a Phala message
 // TODO: should we use XCM MultiLocation directly?
 // [Reference](https://github.com/paritytech/xcm-format#multilocation-universal-destination-identifiers)
-#[derive(Encode, Decode, Debug, Clone, Eq, PartialOrd, Ord, Display)]
+#[derive(Encode, Decode, TypeInfo, Debug, Clone, Eq, PartialOrd, Ord, Display)]
 pub enum MessageOrigin {
     /// Runtime pallets (identified by pallet name)
     #[display(fmt = "Pallet(\"{}\")", "String::from_utf8_lossy(_0)")]
@@ -79,9 +82,9 @@ impl MessageOrigin {
     }
 
     /// Returns the account id if the origin is from a user, or `Err(BadOrigin)` otherwise
-    pub fn account(self) -> Result<AccountId32, BadOrigin> {
+    pub fn account(&self) -> Result<AccountId32, BadOrigin> {
         match self {
-            Self::AccountId(account_id) => Ok(AccountId32::unchecked_from(account_id)),
+            Self::AccountId(account_id) => Ok(AccountId32::unchecked_from(account_id.clone())),
             _ => Err(BadOrigin),
         }
     }
@@ -117,7 +120,7 @@ pub struct BadOrigin;
 ///    assert!(a_normal_topic.is_offchain());
 /// ```
 ///
-#[derive(Encode, Decode, Clone, Eq, PartialEq, Hash)]
+#[derive(Encode, Decode, TypeInfo, Clone, Eq, PartialEq, Hash)]
 pub struct Topic(Path);
 
 impl core::fmt::Debug for Topic {
@@ -217,7 +220,7 @@ macro_rules! bind_contract32 {
     }
 }
 
-#[derive(Encode, Decode, Debug, Clone, Eq, PartialEq)]
+#[derive(Encode, Decode, TypeInfo, Debug, Clone, Eq, PartialEq)]
 pub struct Message {
     pub sender: SenderId,
     pub destination: Topic,
@@ -257,7 +260,7 @@ pub struct DecodedMessage<T> {
     pub payload: T,
 }
 
-#[derive(Encode, Decode, Debug, Clone, Eq, PartialEq)]
+#[derive(Encode, Decode, TypeInfo, Debug, Clone, Eq, PartialEq)]
 pub struct SignedMessage {
     pub message: Message,
     pub sequence: u64,
@@ -283,5 +286,26 @@ pub(crate) struct MessageToBeSigned<'a> {
 impl<'a> MessageToBeSigned<'a> {
     pub(crate) fn raw_data(&self) -> Vec<u8> {
         self.encode()
+    }
+}
+
+#[derive(Encode, Decode, Debug, Clone)]
+pub struct SigningMessage<Signer> {
+    pub message: Message,
+    pub signer: Signer,
+}
+
+impl<Signer: MessageSigner> SigningMessage<Signer> {
+    pub fn sign(self, sequence: u64) -> SignedMessage {
+        let data = MessageToBeSigned {
+            message: &self.message,
+            sequence,
+        };
+        let signature = self.signer.sign(&data.raw_data());
+        SignedMessage {
+            message: self.message,
+            sequence,
+            signature,
+        }
     }
 }

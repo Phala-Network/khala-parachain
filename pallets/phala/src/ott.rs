@@ -42,7 +42,6 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	#[pallet::metadata(Vec<T::AccountId> = "Vec<AccountId>")]
 	pub enum Event<T: Config> {
 		AccountsBlacklisted(Vec<T::AccountId>),
 	}
@@ -137,8 +136,12 @@ pub mod pallet {
 				assert_eq!(
 					take_events(),
 					vec![
-						TestEvent::Balances(pallet_balances::Event::Transfer(1, 2, 1 * DOLLARS)),
-						TestEvent::Balances(pallet_balances::Event::Transfer(1, 3, 1 * DOLLARS)),
+						TestEvent::Balances(pallet_balances::Event::Transfer {
+							from: 1, to: 2, amount: 1 * DOLLARS
+						}),
+						TestEvent::Balances(pallet_balances::Event::Transfer {
+							from: 1, to: 3, amount: 1 * DOLLARS
+						}),
 						TestEvent::PhalaOneshotTransfer(Event::AccountsBlacklisted(vec![2, 3, 1]))
 					]
 				);

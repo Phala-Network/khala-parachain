@@ -13,6 +13,7 @@
   },
   "relay_chain": "westend",
   "para_id": 2013,
+  "runtime": "khala",
   "consensusEngine": null,
   "codeSubstitutes": {},
   "genesis": {

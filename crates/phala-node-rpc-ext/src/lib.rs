@@ -1,13 +1,13 @@
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+use codec::Encode;
 use jsonrpc_derive::rpc;
 use mq_seq::Error as MqSeqError;
 use pallet_mq_runtime_api::MqApi;
 use sc_client_api::blockchain::{HeaderBackend, HeaderMetadata};
 use sc_client_api::{backend, Backend, BlockBackend, StorageProvider};
 use sc_transaction_pool_api::{InPoolTransaction, TransactionPool};
-use serde::{Deserialize, Serialize};
 use sp_api::{ApiExt, Core, ProvideRuntimeApi, StateBackend};
 use sp_runtime::traits::Header;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
@@ -33,6 +33,11 @@ pub trait NodeRpcExtApi<BlockHash> {
         from: BlockHash,
         to: BlockHash,
     ) -> Result<GetStorageChangesResponse, StorageChangesError>;
+
+    /// Get storage changes made by given block.
+    /// Returns `hex_encode(scale_encode(StorageChanges))`
+    #[rpc(name = "pha_getStorageChangesAt")]
+    fn get_storage_changes_at(&self, block: BlockHash) -> Result<String, StorageChangesError>;
 
     /// Return the next mq sequence number for given sender which take the ready transactions in count.
     #[rpc(name = "pha_getMqNextSequence")]
@@ -93,6 +98,13 @@ where
                 to,
             )
         }
+    }
+
+    fn get_storage_changes_at(&self, block: Block::Hash) -> Result<String, StorageChangesError> {
+        let changes = self.get_storage_changes(block, block)?;
+        // get_storage_changes never returns empty vec without error.
+        let encoded = changes[0].encode();
+        Ok(impl_serde::serialize::to_hex(&encoded, false))
     }
 
     fn get_mq_seq(&self, sender_hex: String) -> Result<u64, MqSeqError> {

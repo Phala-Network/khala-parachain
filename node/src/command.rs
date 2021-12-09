@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// 	http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,69 +26,152 @@ use sc_cli::{
     ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
     NetworkParams, Result, RuntimeVersion, SharedParams, SubstrateCli,
 };
-use sc_service::config::{BasePath, PrometheusConfig};
+use sc_service::{
+    config::{BasePath, PrometheusConfig},
+    TaskManager,
+};
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
-use std::{io::Write, net::SocketAddr};
+use std::{collections::VecDeque, io::Write, net::SocketAddr};
 
-use crate::service::Block;
+use crate::service::{
+    Block, new_partial,
+    KhalaParachainRuntimeExecutor, ThalaParachainRuntimeExecutor
+};
 
-fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-    let (norm_id, para_id) = extract_parachain_id(id);
-    info!(
-        "Loading spec: {}, custom parachain-id = {:?}",
-        norm_id,
-        para_id.unwrap_or(ParaId::new(0)).to_string()
-    );
-    Ok(match norm_id {
-        "khala-dev" => Box::new(chain_spec::khala_development_config(
-            para_id.expect("Must specify parachain id"),
-        )),
-        "khala-local" => Box::new(chain_spec::khala_local_config(
-            para_id.expect("Must specify parachain id"),
-        )),
-        "whala-local" => Box::new(chain_spec::whala_local_config(
-            para_id.expect("Must specify parachain id"),
-        )),
-        "whala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
-            &include_bytes!("../res/whala.json")[..],
-        )?),
-        "khala-staging" => Box::new(chain_spec::khala_staging_config()),
-        "khala" => Box::new(chain_spec::ChainSpec::from_json_bytes(
-            &include_bytes!("../res/khala.json")[..],
-        )?),
-        path => Box::new(chain_spec::ChainSpec::from_json_file(
-            std::path::PathBuf::from(path),
-        )?),
-    })
+trait IdentifyChain {
+    fn runtime_name(&self) -> String;
+    fn is_khala(&self) -> bool;
+    fn is_whala(&self) -> bool;
+    fn is_thala(&self) -> bool;
 }
 
-/// Extracts the normalized chain id and parachain id from the input chain id
-///
-/// E.g. "khala-dev-2004" yields ("khala-dev", Some(2004))
-fn extract_parachain_id(id: &str) -> (&str, Option<ParaId>) {
-    const DEV_PARAM_PREFIX: &str = "khala-dev-";
-    const LOCAL_PARAM_PREFIX: &str = "khala-local-";
-    const WHALA_PARAM_PREFIX: &str = "whala-local-";
+impl IdentifyChain for dyn sc_service::ChainSpec {
+    fn runtime_name(&self) -> String {
+        chain_spec::Extensions::try_get(self)
+            .map(|e| e.runtime.clone())
+            .expect("Could not find parachain extension for chain-spec.")
+    }
+    fn is_khala(&self) -> bool {
+        self.runtime_name() == "khala"
+    }
+    fn is_whala(&self) -> bool {
+        self.runtime_name() == "whala"
+    }
+    fn is_thala(&self) -> bool {
+        self.runtime_name() == "thala"
+    }
+}
 
-    let (norm_id, para) = if id.starts_with(DEV_PARAM_PREFIX) {
-        let suffix = &id[DEV_PARAM_PREFIX.len()..];
-        let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
-        (&id[..DEV_PARAM_PREFIX.len() - 1], Some(para_id))
-    } else if id.starts_with(LOCAL_PARAM_PREFIX) {
-        let suffix = &id[LOCAL_PARAM_PREFIX.len()..];
-        let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
-        (&id[..LOCAL_PARAM_PREFIX.len() - 1], Some(para_id))
-    } else if id.starts_with(WHALA_PARAM_PREFIX) {
-        let suffix = &id[WHALA_PARAM_PREFIX.len()..];
-        let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
-        (&id[..WHALA_PARAM_PREFIX.len() - 1], Some(para_id))
-    } else if id == "khala-dev" || id == "khala-local" {
-        (id, Some(2004u32))
-    } else {
-        (id, None)
-    };
-    (norm_id, para.map(Into::into))
+impl<T: sc_service::ChainSpec + 'static> IdentifyChain for T {
+    fn runtime_name(&self) -> String {
+        <dyn sc_service::ChainSpec>::runtime_name(self)
+    }
+    fn is_khala(&self) -> bool {
+        <dyn sc_service::ChainSpec>::is_khala(self)
+    }
+    fn is_whala(&self) -> bool {
+        <dyn sc_service::ChainSpec>::is_whala(self)
+    }
+    fn is_thala(&self) -> bool {
+        <dyn sc_service::ChainSpec>::is_thala(self)
+    }
+}
+
+fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
+    let path = std::path::PathBuf::from(id);
+    if id.to_lowercase().ends_with(".json") && path.exists() {
+        info!("Load chain spec {}", path.to_str().unwrap());
+        let chain_spec =
+            chain_spec::ChainSpec::from_json_file(path.clone().into())?;
+        return if chain_spec.is_khala() {
+            Ok(
+                Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?)
+            )
+        } else if chain_spec.is_whala() {
+            // Historical reason, Whala shares the same runtime with Khala
+            Ok(
+                Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?)
+            )
+        } else if chain_spec.is_thala() {
+            Ok(
+                Box::new(chain_spec::thala::ChainSpec::from_json_file(path.into())?)
+            )
+        } else {
+            Err(
+                "`id` must starts with a known runtime name!".to_string()
+            )
+        }
+    }
+
+    let mut normalized_id: VecDeque<&str> = id.split("-").collect();
+    if normalized_id.len() > 3 {
+        return Err(
+            "ParaId pattern must be runtime_name-environment-para_id or runtime_name-para_id"
+                .into(),
+        );
+    }
+
+    let runtime_name = normalized_id.pop_front().expect("Never empty");
+
+    let para_id = normalized_id
+        .pop_back()
+        .map(|id| id.parse::<u32>().or(Err("Invalid parachain id")))
+        .transpose()?
+        .ok_or("Must specify parachain id");
+
+    let environment = normalized_id.pop_back().ok_or("Must specify environment");
+
+    drop(normalized_id);
+
+    if runtime_name == "khala" {
+        if para_id.is_err() {
+            return Ok(Box::new(chain_spec::khala::ChainSpec::from_json_bytes(
+                &include_bytes!("../res/khala.json")[..],
+            )?));
+        }
+
+        return match environment? {
+            "dev" => Ok(Box::new(chain_spec::khala::khala_development_config(
+                para_id?.into(),
+            ))),
+            "local" => Ok(Box::new(chain_spec::khala::khala_local_config(
+                para_id?.into(),
+            ))),
+            "staging" => Ok(Box::new(chain_spec::khala::khala_staging_config())),
+            other => Err(format!("Unsupported environment {} for Khala", other)),
+        };
+    }
+
+    if runtime_name == "whala" {
+        if para_id.is_err() {
+            return Ok(Box::new(chain_spec::khala::ChainSpec::from_json_bytes(
+                &include_bytes!("../res/whala.json")[..],
+            )?));
+        }
+
+        return match environment? {
+            "local" => Ok(Box::new(chain_spec::khala::whala_local_config(
+                para_id?.into(),
+            ))),
+            other => Err(format!("Unsupported environment {} for Whala", other)),
+        };
+    }
+
+    if runtime_name == "thala" {
+        return match environment? {
+            "dev" => Ok(Box::new(chain_spec::thala::development_config(
+                para_id?.into(),
+            ))),
+            "local" => Ok(Box::new(chain_spec::thala::local_config(para_id?.into()))),
+            other => Err(format!("Unsupported environment {} for Thala", other)),
+        };
+    }
+
+    Err(format!(
+        "Invalid `--chain` arg. \
+            give exported chain-spec or follow pattern: runtime-environment-para_id"
+    ))
 }
 
 impl SubstrateCli for Cli {
@@ -179,19 +262,39 @@ fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<V
         .ok_or_else(|| "Could not find wasm file in genesis state!".into())
 }
 
-use crate::service::{new_partial, KhalaParachainRuntimeExecutor};
-
 macro_rules! construct_async_run {
     (|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
         let runner = $cli.create_runner($cmd)?;
-        runner.async_run(|$config| {
-            let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
-                &$config,
-                crate::service::khala_parachain_build_import_queue,
-            )?;
-            let task_manager = $components.task_manager;
-            { $( $code )* }.map(|v| (v, task_manager))
-        })
+        if runner.config().chain_spec.is_khala() {
+            runner.async_run(|$config| {
+                let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
+                    &$config,
+                    crate::service::khala_parachain_build_import_queue,
+                )?;
+                let task_manager = $components.task_manager;
+                { $( $code )* }.map(|v| (v, task_manager))
+            })
+        } else if runner.config().chain_spec.is_whala() {
+            runner.async_run(|$config| {
+                let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
+                    &$config,
+                    crate::service::khala_parachain_build_import_queue,
+                )?;
+                let task_manager = $components.task_manager;
+                { $( $code )* }.map(|v| (v, task_manager))
+            })
+        } else if runner.config().chain_spec.is_thala() {
+            runner.async_run(|$config| {
+                let $components = new_partial::<thala_parachain_runtime::RuntimeApi, ThalaParachainRuntimeExecutor, _>(
+                    &$config,
+                    crate::service::thala_parachain_build_import_queue,
+                )?;
+                let task_manager = $components.task_manager;
+                { $( $code )* }.map(|v| (v, task_manager))
+            })
+        } else {
+            panic!("Can not determine runtime")
+        }
     }}
 }
 
@@ -238,7 +341,7 @@ pub fn run() -> Result<()> {
                 let polkadot_config = SubstrateCli::create_configuration(
                     &polkadot_cli,
                     &polkadot_cli,
-                    config.task_executor.clone(),
+                    config.tokio_handle.clone(),
                 )
                 .map_err(|err| format!("Relay chain argument error: {}", err))?;
 
@@ -294,46 +397,55 @@ pub fn run() -> Result<()> {
         Some(Subcommand::Benchmark(cmd)) => {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
-                runner.sync_run(|config| cmd.run::<Block, KhalaParachainRuntimeExecutor>(config))
+                if runner.config().chain_spec.is_khala() {
+                    runner.sync_run(|config| cmd.run::<Block, KhalaParachainRuntimeExecutor>(config))
+                } else if runner.config().chain_spec.is_thala() {
+                    runner.sync_run(|config| cmd.run::<Block, ThalaParachainRuntimeExecutor>(config))
+                } else {
+                    Err("Chain doesn't support benchmarking".into())
+                }
             } else {
                 Err("Benchmarking wasn't enabled when building the node. \
-                You can enable it with `--features runtime-benchmarks`."
+                    You can enable it with `--features runtime-benchmarks`."
                     .into())
             }
         }
-        #[cfg(feature = "try-runtime")]
-        Some(Subcommand::TryRuntime(cmd)) => {
-            let runner = cli.create_runner(cmd)?;
-            use sc_service::TaskManager;
-            let registry = &runner
-                .config()
-                .prometheus_config
-                .as_ref()
-                .map(|cfg| &cfg.registry);
-            let task_manager =
-                TaskManager::new(runner.config().task_executor.clone(), *registry)
-                    .map_err(|e| sc_cli::Error::Service(sc_service::Error::Prometheus(e)))?;
+        Some(Subcommand::Key(cmd)) => Ok(cmd.run(&cli)?),
+        Some(Subcommand::TryRuntime(cmd)) =>
+            if cfg!(feature = "try-runtime") {
+                // grab the task manager.
+                let runner = cli.create_runner(cmd)?;
+                let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
+                let task_manager =
+                    TaskManager::new(runner.config().tokio_handle.clone(), *registry)
+                        .map_err(|e| format!("Error: {:?}", e))?;
 
-            runner.async_run(|config| {
-                Ok((
-                    cmd.run::<khala_parachain_runtime::Block, KhalaParachainRuntimeExecutor>(
-                        config,
-                    ),
-                    task_manager,
-                ))
-            })
-        }
-        #[cfg(not(feature = "try-runtime"))]
-        Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
-				You can enable it with `--features try-runtime`."
-            .into())
-        .into(),
+                if runner.config().chain_spec.is_khala() {
+                    runner.async_run(|config| {
+                        Ok((cmd.run::<Block, KhalaParachainRuntimeExecutor>(config), task_manager))
+                    })
+                } else if runner.config().chain_spec.is_whala() {
+                    runner.async_run(|config| {
+                        Ok((cmd.run::<Block, KhalaParachainRuntimeExecutor>(config), task_manager))
+                    })
+                } else if runner.config().chain_spec.is_thala() {
+                    runner.async_run(|config| {
+                        Ok((cmd.run::<Block, ThalaParachainRuntimeExecutor>(config), task_manager))
+                    })
+                } else {
+                    Err("Can't determine runtime from chain_spec".into())
+                }
+            } else {
+                Err("Try-runtime must be enabled by `--features try-runtime`.".into())
+            },
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
 
             runner.run_node_until_exit(|config| async move {
                 let para_id =
-                    chain_spec::Extensions::try_get(&*config.chain_spec).map(|e| e.para_id);
+                    chain_spec::Extensions::try_get(&*config.chain_spec)
+                        .map(|e| e.para_id)
+                        .ok_or_else(|| "Could not find parachain extension for chain-spec.")?;
 
                 let polkadot_cli = RelayChainCli::new(
                     &config,
@@ -342,12 +454,7 @@ pub fn run() -> Result<()> {
                         .chain(cli.relaychain_args.iter()),
                 );
 
-                let id = ParaId::from(
-                    cli.run
-                        .parachain_id
-                        .or(para_id)
-                        .expect("Unable to determine parachain id"),
-                );
+                let id = ParaId::from(para_id);
 
                 let parachain_account =
                     AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
@@ -356,7 +463,7 @@ pub fn run() -> Result<()> {
                     generate_genesis_block(&config.chain_spec).map_err(|e| format!("{:?}", e))?;
                 let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
-                let task_executor = config.task_executor.clone();
+                let task_executor = config.tokio_handle.clone();
                 let polkadot_config =
                     SubstrateCli::create_configuration(&polkadot_cli, &polkadot_cli, task_executor)
                         .map_err(|err| format!("Relay chain argument error: {}", err))?;
@@ -373,10 +480,24 @@ pub fn run() -> Result<()> {
                     }
                 );
 
-                crate::service::start_khala_parachain_node(config, polkadot_config, id)
-                    .await
-                    .map(|r| r.0)
-                    .map_err(Into::into)
+                if config.chain_spec.is_khala() {
+                    crate::service::start_khala_parachain_node(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                } else if config.chain_spec.is_whala() {
+                    crate::service::start_khala_parachain_node(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                } else if config.chain_spec.is_thala() {
+                    crate::service::start_thala_parachain_node(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                } else {
+                    Err("Can't determine runtime from chain_spec".into())
+                }
             })
         }
     }
@@ -474,16 +595,8 @@ impl CliConfiguration<Self> for RelayChainCli {
         self.base.base.rpc_ws_max_connections()
     }
 
-    fn rpc_http_threads(&self) -> Result<Option<usize>> {
-        self.base.base.rpc_http_threads()
-    }
-
     fn rpc_cors(&self, is_dev: bool) -> Result<Option<Vec<String>>> {
         self.base.base.rpc_cors(is_dev)
-    }
-
-    fn telemetry_external_transport(&self) -> Result<Option<sc_service::config::ExtTransport>> {
-        self.base.base.telemetry_external_transport()
     }
 
     fn default_heap_pages(&self) -> Result<Option<u64>> {

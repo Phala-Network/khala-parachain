@@ -18,7 +18,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
-
 #![allow(clippy::identity_op)]
 
 // Make the WASM binary available.
@@ -40,7 +39,7 @@ pub mod defaults;
 
 // Constant values used within the runtime.
 pub mod constants;
-use constants::{currency::*, fee::WeightToFee, parachains};
+use constants::{currency::*, fee::WeightToFee};
 
 mod msg_routing;
 
@@ -53,7 +52,7 @@ use sp_core::{
 };
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{AccountIdLookup, Block as BlockT, ConvertInto, Zero},
+    traits::{AccountIdLookup, Block as BlockT, ConvertInto},
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
 };
@@ -67,8 +66,8 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
-        Currency, Imbalance, Contains, Everything, fungibles, Get, InstanceFilter, IsInVec, KeyOwnerProofSystem, LockIdentifier,
-        OnUnbalanced, Randomness, U128CurrencyToVote,
+        Contains, Currency, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
+        KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, Randomness, U128CurrencyToVote,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -82,39 +81,17 @@ use frame_system::{
     EnsureOneOf, EnsureRoot,
 };
 
-use xcm::{v1::prelude::*, Version as XcmVersion};
-use polkadot_parachain::primitives::Sibling;
-use xcm_builder::{
-    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
-    AsPrefixedGeneralIndex, ConvertedConcreteAssetId, CurrencyAdapter, EnsureXcmOrigin,
-    FixedWeightBounds, FungiblesAdapter, IsConcrete, LocationInverter, ParentAsSuperuser,
-    ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-    UsingComponents,
-};
-use xcm_executor::{traits::{JustTry, FilterAssetLocation}, Config, XcmExecutor};
-
-pub use frame_system::Call as SystemCall;
-pub use pallet_balances::Call as BalancesCall;
-pub use pallet_timestamp::Call as TimestampCall;
-
-pub use parachains_common::*;
 pub use parachains_common::Index;
+pub use parachains_common::*;
 
-pub use phala_pallets::{
-    pallet_mq,
-    pallet_registry,
-    pallet_mining,
-    pallet_stakepool,
-};
+pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
 
-pub use xtransfer_pallets::{
-    pallet_xtransfer_assets,
-    pallet_xcm_transfer,
-    xcm_helper,
-};
-
-
+#[cfg(any(feature = "std", test))]
+pub use frame_system::Call as SystemCall;
+#[cfg(any(feature = "std", test))]
+pub use pallet_balances::Call as BalancesCall;
+#[cfg(any(feature = "std", test))]
+pub use pallet_timestamp::Call as TimestampCall;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
@@ -146,7 +123,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 1070,
+    spec_version: 1080,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -213,11 +190,6 @@ construct_runtime! {
         ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config} = 20,
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 21,
 
-        // XCM helpers
-        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
-        CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 31,
-        DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 32,
-
         // Monetary stuff
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 40,
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 41,
@@ -246,8 +218,6 @@ construct_runtime! {
         // ChainBridge
         ChainBridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 80,
         BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
-        XcmTransfer: pallet_xcm_transfer::{Pallet, Call, Event<T>, Storage} = 82,
-        XTransferAssets: pallet_xtransfer_assets::{Pallet, Call, Event<T>, Storage} = 83,
 
         // Phala
         PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
@@ -267,34 +237,26 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // `sudo` has been removed on production
-            // Call::Sudo(_) |
             // System
-            Call::System(_) | Call::Timestamp(_) | Call::Utility(_) |
-            Call::Multisig(_) | Call::Proxy(_) | Call::Scheduler(_) |
-            Call::Vesting(_) |
+            Call::System { .. } | Call::Timestamp { .. } | Call::Utility { .. } |
+            Call::Multisig { .. } | Call::Proxy { .. } | Call::Scheduler { .. } |
+            Call::Vesting { .. } |
             // Parachain
-            Call::ParachainSystem(_) |
+            Call::ParachainSystem { .. } |
             // Monetary
-            Call::Balances(_) |
-            Call::ChainBridge(_) |
-            Call::BridgeTransfer(_) |
+            Call::Balances { .. }  |
+            Call::ChainBridge { .. } |
+            Call::BridgeTransfer { .. } |
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
-            // XCM
-            Call::XcmpQueue(_) |
-            Call::DmpQueue(_) |
-            Call::XcmTransfer(_) |
-            Call::XTransferAssets(_) |
-
             // Governance
-            Call::Identity(_) | Call::Treasury(_) |
-            Call::Democracy(_) | Call::PhragmenElection(..) |
-            Call::Council(_) | Call::TechnicalCommittee(_) | Call::TechnicalMembership(_) |
-            Call::Bounties(_) | Call::Lottery(_) | Call::Tips(..) |
+            Call::Identity { .. } | Call::Treasury { .. } |
+            Call::Democracy { .. } | Call::PhragmenElection { .. } |
+            Call::Council { .. } | Call::TechnicalCommittee { .. } | Call::TechnicalMembership { .. } |
+            Call::Bounties { .. } | Call::Lottery { .. } | Call::Tips { .. } |
             // Phala
-            Call::PhalaMq(_) | Call::PhalaRegistry(_) |
-            Call::PhalaMining(_) | Call::PhalaStakePool(_)
+            Call::PhalaMq { .. } | Call::PhalaRegistry { .. } |
+            Call::PhalaMining { .. } | Call::PhalaStakePool { .. }
         )
     }
 }
@@ -369,6 +331,7 @@ impl pallet_randomness_collective_flip::Config for Runtime {}
 impl pallet_utility::Config for Runtime {
     type Event = Event;
     type Call = Call;
+    type PalletsOrigin = OriginCaller;
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
 }
 
@@ -403,7 +366,19 @@ parameter_types! {
 }
 
 /// The type used to represent the kinds of proxying allowed.
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+#[derive(
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Encode,
+    Decode,
+    RuntimeDebug,
+    MaxEncodedLen,
+    scale_info::TypeInfo,
+)]
 pub enum ProxyType {
     /// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
     Any,
@@ -416,7 +391,7 @@ pub enum ProxyType {
     /// Collator selection proxy. Can execute calls related to collator selection mechanism.
     Collator,
     /// Stake pool manager
-    StakePoolManager
+    StakePoolManager,
 }
 
 impl Default for ProxyType {
@@ -430,60 +405,58 @@ impl InstanceFilter<Call> for ProxyType {
             ProxyType::Any => true,
             ProxyType::NonTransfer => matches!(
                 c,
-                Call::System(..) |
-                Call::Timestamp(..) |
-                Call::Session(..) |
-                Call::Democracy(..) |
-                Call::Council(..) |
-                Call::PhragmenElection(..) |
-                Call::TechnicalCommittee(..) |
-                Call::TechnicalMembership(..) |
-                Call::Treasury(..) |
-                Call::Bounties(..) |
-                Call::Tips(..) |
-                Call::Utility(..) |
-                Call::Identity(..) |
-                Call::Vesting(pallet_vesting::Call::vest(..)) |
-                Call::Vesting(pallet_vesting::Call::vest_other(..)) |
-                Call::Scheduler(..) |
-                Call::Proxy(..) |
-                Call::Multisig(..)
+                Call::System { .. }
+                    | Call::Timestamp { .. }
+                    | Call::Session { .. }
+                    | Call::Democracy { .. }
+                    | Call::Council { .. }
+                    | Call::PhragmenElection { .. }
+                    | Call::TechnicalCommittee { .. }
+                    | Call::TechnicalMembership { .. }
+                    | Call::Treasury { .. }
+                    | Call::Bounties { .. }
+                    | Call::Tips { .. }
+                    | Call::Utility { .. }
+                    | Call::Identity { .. }
+                    | Call::Vesting(pallet_vesting::Call::vest { .. })
+                    | Call::Vesting(pallet_vesting::Call::vest_other { .. })
+                    | Call::Scheduler { .. }
+                    | Call::Proxy { .. }
+                    | Call::Multisig { .. }
             ),
             ProxyType::CancelProxy => matches!(
                 c,
-                Call::Proxy(pallet_proxy::Call::reject_announcement(..)) |
-                Call::Utility(..) |
-                Call::Multisig(..)
+                Call::Proxy(pallet_proxy::Call::reject_announcement { .. })
+                    | Call::Utility { .. }
+                    | Call::Multisig { .. }
             ),
             ProxyType::Governance => matches!(
                 c,
-                Call::Democracy(..) |
-                Call::PhragmenElection(..) |
-                Call::Council(..) |
-                Call::TechnicalCommittee(..) |
-                Call::Treasury(..) |
-                Call::Utility(..) |
-                Call::Bounties(..) |
-                Call::Tips(..) |
-                Call::Lottery(..)
+                Call::Democracy { .. }
+                    | Call::PhragmenElection { .. }
+                    | Call::Council { .. }
+                    | Call::TechnicalCommittee { .. }
+                    | Call::Treasury { .. }
+                    | Call::Utility { .. }
+                    | Call::Bounties { .. }
+                    | Call::Tips { .. }
+                    | Call::Lottery { .. }
             ),
             ProxyType::Collator => matches!(
                 c,
-                Call::CollatorSelection(..) |
-                Call::Utility(..) |
-                Call::Multisig(..)
+                Call::CollatorSelection { .. } | Call::Utility { .. } | Call::Multisig { .. }
             ),
             ProxyType::StakePoolManager => matches!(
                 c,
-                Call::Utility(..) |
-                Call::PhalaStakePool(pallet_stakepool::Call::add_worker(..)) |
-                Call::PhalaStakePool(pallet_stakepool::Call::remove_worker(..)) |
-                Call::PhalaStakePool(pallet_stakepool::Call::start_mining(..)) |
-                Call::PhalaStakePool(pallet_stakepool::Call::stop_mining(..)) |
-                Call::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker(..)) |
-                Call::PhalaStakePool(pallet_stakepool::Call::create(..)) |
-                Call::PhalaRegistry(pallet_registry::Call::register_worker(..)) |
-                Call::PhalaMq(pallet_mq::Call::sync_offchain_message(..))
+                Call::Utility { .. }
+                    | Call::PhalaStakePool(pallet_stakepool::Call::add_worker { .. })
+                    | Call::PhalaStakePool(pallet_stakepool::Call::remove_worker { .. })
+                    | Call::PhalaStakePool(pallet_stakepool::Call::start_mining { .. })
+                    | Call::PhalaStakePool(pallet_stakepool::Call::stop_mining { .. })
+                    | Call::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker { .. })
+                    | Call::PhalaStakePool(pallet_stakepool::Call::create { .. })
+                    | Call::PhalaRegistry(pallet_registry::Call::register_worker { .. })
+                    | Call::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })
             ),
         }
     }
@@ -528,6 +501,7 @@ impl pallet_scheduler::Config for Runtime {
     type ScheduleOrigin = EnsureRootOrHalfCouncil;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+    type OriginPrivilegeCmp = EqualPrivilegeOnly;
 }
 
 parameter_types! {
@@ -565,6 +539,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
     pub const TransactionByteFee: Balance = 1 * MILLICENTS;
     pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
+    pub const OperationalFeeMultiplier: u8 = 5;
     pub AdjustmentVariable: pallet_transaction_payment::Multiplier =
         pallet_transaction_payment::Multiplier::saturating_from_rational(1, 100_000);
     pub MinimumMultiplier: pallet_transaction_payment::Multiplier =
@@ -595,6 +570,7 @@ impl pallet_transaction_payment::Config for Runtime {
         AdjustmentVariable,
         MinimumMultiplier,
     >;
+    type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
 
 impl pallet_bounties::Config for Runtime {
@@ -654,6 +630,7 @@ impl pallet_vesting::Config for Runtime {
     type BlockNumberToBalance = ConvertInto;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+    const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
 parameter_types! {
@@ -675,12 +652,6 @@ impl pallet_lottery::Config for Runtime {
     type WeightInfo = pallet_lottery::weights::SubstrateWeight<Runtime>;
 }
 
-// `sudo` has been removed on production
-// impl pallet_sudo::Config for Runtime {
-//     type Call = Call;
-//     type Event = Event;
-// }
-
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
     pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
@@ -690,149 +661,16 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type Event = Event;
     type OnValidationData = ();
     type SelfParaId = pallet_parachain_info::Pallet<Runtime>;
-    type DmpMessageHandler = DmpQueue;
+    type DmpMessageHandler = ();
     type ReservedDmpWeight = ReservedDmpWeight;
-    type OutboundXcmpMessageSource = XcmpQueue;
-    type XcmpMessageHandler = XcmpQueue;
+    type OutboundXcmpMessageSource = ();
+    type XcmpMessageHandler = ();
     type ReservedXcmpWeight = ReservedXcmpWeight;
 }
 
 impl pallet_parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
-
-parameter_types! {
-    pub const KsmLocation: MultiLocation = MultiLocation::parent();
-    pub const RelayNetwork: NetworkId = NetworkId::Kusama;
-    pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
-    pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
-    pub const DOTMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: Here };
-    pub KARMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec())) };
-    // TODO: would be removed when ready to release
-    pub const PHA2004MultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2004)) };
-    pub const PHA2005MultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2005)) };
-}
-
-/// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
-/// when determining ownership of accounts for asset transacting and when attempting to use XCM
-/// `Transact` in order to determine the dispatch Origin.
-pub type LocationToAccountId = (
-	// The parent (Relay-chain) origin converts to the default `AccountId`.
-	ParentIsDefault<AccountId>,
-	// Sibling parachain origins convert to AccountId via the `ParaId::into`.
-	SiblingParachainConvertsVia<Sibling, AccountId>,
-	// Straight up local `AccountId32` origins just alias directly to `AccountId`.
-	AccountId32Aliases<RelayNetwork, AccountId>,
-);
-
-/// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
-/// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
-/// biases the kind of local `Origin` it will become.
-pub type XcmOriginToTransactDispatchOrigin = (
-	// Sovereign account converter; this attempts to derive an `AccountId` from the origin location
-	// using `LocationToAccountId` and then turn that into the usual `Signed` origin. Useful for
-	// foreign chains who want to have a local sovereign account on this chain which they control.
-	SovereignSignedViaLocation<LocationToAccountId, Origin>,
-	// Native converter for Relay-chain (Parent) location; will converts to a `Relay` origin when
-	// recognised.
-	RelayChainAsNative<RelayChainOrigin, Origin>,
-	// Native converter for sibling Parachains; will convert to a `SiblingPara` origin when
-	// recognised.
-	SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
-	// Native signed account converter; this just converts an `AccountId32` origin into a normal
-	// `Origin::Signed` origin of the same 32-byte value.
-	SignedAccountId32AsNative<RelayNetwork, Origin>,
-);
-parameter_types! {
-	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
-	pub UnitWeightCost: Weight = 1_000_000_000;
-	// pub const MaxInstructions: u32 = 100;
-}
-match_type! {
-	pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 1, interior: Here } |
-		MultiLocation { parents: 1, interior: X1(Plurality { id: BodyId::Executive, .. }) }
-	};
-}
-pub type Barrier = (
-	TakeWeightCredit,
-	AllowTopLevelPaidExecutionFrom<Everything>,
-    // TODO: would be removed when we ready to release, it's unreasonable to let Everything execute without pay.
-	AllowUnpaidExecutionFrom<Everything>,
-	// ^^^ Parent and its exec plurality get free execution
-);
-
-pub struct XcmConfig;
-impl Config for XcmConfig {
-	type Call = Call;
-	type XcmSender = XcmRouter;
-	// How to withdraw and deposit an asset.
-	type AssetTransactor = XTransferAssets;
-	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = xcm_helper::AssetOriginFilter;
-	type IsTeleporter = (); // <- should be enough to allow teleportation of KSM
-	type LocationInverter = LocationInverter<Ancestry>;
-	type Barrier = Barrier;
-	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
-	type Trader = (
-        UsingComponents<IdentityFee<Balance>, DOTMultiAssetId, AccountId, Balances, ()>,
-        UsingComponents<IdentityFee<Balance>, KARMultiAssetId, AccountId, Balances, ()>,
-        UsingComponents<IdentityFee<Balance>, PHA2004MultiAssetId, AccountId, Balances, ()>,
-        UsingComponents<IdentityFee<Balance>, PHA2005MultiAssetId, AccountId, Balances, ()>,
-    );
-	type ResponseHandler = ();
-	type SubscriptionService = ();
-}
-parameter_types! {
-	pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
-}
-/// No local origins on this chain are allowed to dispatch XCM sends/executions.
-pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
-
-/// The means for routing XCM messages which are not for local execution into the right message
-/// queues.
-pub type XcmRouter = (
-	// Two routers - use UMP to communicate with the relay chain:
-	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, ()>,
-	// ..and XCMP to communicate with the sibling chains.
-	XcmpQueue,
-);
-
-impl cumulus_pallet_xcm::Config for Runtime {
-	type Event = Event;
-	type XcmExecutor = XcmExecutor<XcmConfig>;
-}
-impl cumulus_pallet_xcmp_queue::Config for Runtime {
-	type Event = Event;
-	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type ChannelInfo = ParachainSystem;
-	type VersionWrapper = ();
-}
-impl cumulus_pallet_dmp_queue::Config for Runtime {
-	type Event = Event;
-	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
-}
-
-impl pallet_xcm_transfer::Config for Runtime {
-    type Event = Event;
-    type Currency = Balances;
-    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-    type XcmRouter = XcmRouter;
-    type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-    type XcmExecutor = XcmExecutor<XcmConfig>;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
-    type LocationInverter = LocationInverter<Ancestry>;
-}
-
-impl pallet_xtransfer_assets::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-    type XTransferCommitteeOrigin = EnsureRootOrHalfCouncil;
-    type FungibleMatcher = xcm_helper::IsSiblingParachainsConcrete<XTransferAssets>;
-    type AccountIdConverter = LocationToAccountId;
-    type ParachainInfo = ParachainInfo;
-}
 
 parameter_types! {
     pub const CouncilMotionDuration: BlockNumber = 3 * DAYS;
@@ -987,52 +825,47 @@ impl pallet_democracy::Config for Runtime {
     type EnactmentPeriod = EnactmentPeriod;
     type LaunchPeriod = LaunchPeriod;
     type VotingPeriod = VotingPeriod;
+    type VoteLockingPeriod = EnactmentPeriod; // Same as EnactmentPeriod
     type MinimumDeposit = MinimumDeposit;
     /// A straight majority of the council can decide what their next motion is.
-    type ExternalOrigin =
-        frame_system::EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
-            frame_system::EnsureRoot<AccountId>,
-        >;
+    type ExternalOrigin = frame_system::EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
+        frame_system::EnsureRoot<AccountId>,
+    >;
     /// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
-    type ExternalMajorityOrigin =
-        frame_system::EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>,
-            frame_system::EnsureRoot<AccountId>,
-        >;
+    type ExternalMajorityOrigin = frame_system::EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>,
+        frame_system::EnsureRoot<AccountId>,
+    >;
     /// A unanimous council can have the next scheduled referendum be a straight default-carries
     /// (NTB) vote.
-    type ExternalDefaultOrigin =
-        frame_system::EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
-            frame_system::EnsureRoot<AccountId>,
-        >;
+    type ExternalDefaultOrigin = frame_system::EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
+        frame_system::EnsureRoot<AccountId>,
+    >;
     /// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
     /// be tabled immediately and with a shorter voting/enactment period.
-    type FastTrackOrigin =
-        frame_system::EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, TechnicalCollective>,
-            frame_system::EnsureRoot<AccountId>,
-        >;
-    type InstantOrigin =
-        frame_system::EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
-            frame_system::EnsureRoot<AccountId>,
-        >;
+    type FastTrackOrigin = frame_system::EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, TechnicalCollective>,
+        frame_system::EnsureRoot<AccountId>,
+    >;
+    type InstantOrigin = frame_system::EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
+        frame_system::EnsureRoot<AccountId>,
+    >;
     type InstantAllowed = InstantAllowed;
     type FastTrackVotingPeriod = FastTrackVotingPeriod;
     // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
-    type CancellationOrigin =
-        EnsureOneOf<
-            AccountId,
-            pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>,
-            EnsureRoot<AccountId>,
-        >;
+    type CancellationOrigin = EnsureOneOf<
+        AccountId,
+        pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>,
+        EnsureRoot<AccountId>,
+    >;
     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
     // Root must agree.
     type CancelProposalOrigin = EnsureOneOf<
@@ -1055,9 +888,14 @@ impl pallet_democracy::Config for Runtime {
     type MaxProposals = MaxProposals;
 }
 
+parameter_types! {
+    pub const MaxAuthorities: u32 = 100;
+}
+
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
     type DisabledValidators = ();
+    type MaxAuthorities = MaxAuthorities;
 }
 
 parameter_types! {
@@ -1072,7 +910,6 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(33);
     pub const Period: u32 = 6 * HOURS;
     pub const Offset: u32 = 0;
 }
@@ -1089,7 +926,6 @@ impl pallet_session::Config for Runtime {
     type SessionHandler =
         <opaque::SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
     type Keys = opaque::SessionKeys;
-    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1208,7 +1044,7 @@ impl_runtime_apis! {
         }
 
         fn authorities() -> Vec<AuraId> {
-            Aura::authorities()
+            Aura::authorities().into_inner()
         }
     }
 
@@ -1228,7 +1064,7 @@ impl_runtime_apis! {
 
     impl sp_api::Metadata<Block> for Runtime {
         fn metadata() -> OpaqueMetadata {
-            Runtime::metadata().into()
+            OpaqueMetadata::new(Runtime::metadata().into())
         }
     }
 
@@ -1312,10 +1148,17 @@ impl_runtime_apis! {
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade() -> Result<(Weight, Weight), sp_runtime::RuntimeString> {
+        fn on_runtime_upgrade() -> (Weight, Weight) {
             log::info!("try-runtime::on_runtime_upgrade khala.");
-            let weight = Executive::try_runtime_upgrade()?;
-            Ok((weight, RuntimeBlockWeights::get().max_block))
+            // NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
+            // have a backtrace here. If any of the pre/post migration checks fail, we shall stop
+            // right here and right now.
+            let weight = Executive::try_runtime_upgrade().unwrap();
+            (weight, RuntimeBlockWeights::get().max_block)
+        }
+
+        fn execute_block_no_check(block: Block) -> Weight {
+            Executive::execute_block_no_check(block)
         }
     }
 
@@ -1435,8 +1278,8 @@ impl cumulus_pallet_parachain_system::CheckInherents<Block> for CheckInherents {
                 relay_chain_slot,
                 sp_std::time::Duration::from_secs(6),
             )
-                .create_inherent_data()
-                .expect("Could not create the timestamp inherent data");
+            .create_inherent_data()
+            .expect("Could not create the timestamp inherent data");
 
         inherent_data.check_extrinsics(&block)
     }

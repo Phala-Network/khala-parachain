@@ -2,16 +2,16 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 import { Keyring } from "@polkadot/api";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 
-const filterConsole = require("filter-console");
-
-// Hide some warning messages that are coming from Polkadot JS API.
-// TODO: Make configurable.
-filterConsole([
-	`code: '1006' reason: 'connection failed'`,
-	`Unhandled promise rejections`,
-	`UnhandledPromiseRejectionWarning:`,
-	`Unknown types found`,
-]);
+// const filterConsole = require("filter-console");
+//
+// // Hide some warning messages that are coming from Polkadot JS API.
+// // TODO: Make configurable.
+// filterConsole([
+// 	`code: '1006' reason: 'connection failed'`,
+// 	`Unhandled promise rejections`,
+// 	`UnhandledPromiseRejectionWarning:`,
+// 	`Unknown types found`,
+// ]);
 
 // Connect to a local Substrate node. This function wont resolve until connected.
 // TODO: Add a timeout where we know something went wrong so we don't wait forever.
@@ -54,12 +54,14 @@ export async function registerParachain(
 		};
 		let genesis = api.createType("ParaGenesisArgs", paraGenesisArgs);
 
+		const nonce = Number((await api.query.system.account(alice.address)).nonce);
+
 		console.log(
-			`--- Submitting extrinsic to register parachain ${id}.---`
+			`--- Submitting extrinsic to register parachain ${id}. (nonce: ${nonce}) ---`
 		);
 		const unsub = await api.tx.sudo
 			.sudo(api.tx.parasSudoWrapper.sudoScheduleParaInitialize(id, genesis))
-			.signAndSend(alice, (result) => {
+			.signAndSend(alice, { nonce: nonce, era: 0 }, (result) => {
 				console.log(`Current status is ${result.status}`);
 				if (result.status.isInBlock) {
 					console.log(
@@ -105,12 +107,14 @@ export async function extendLeasePeriod(
 		const keyring = new Keyring({ type: "sr25519" });
 		const alice = keyring.addFromUri("//Alice");
 
+		const nonce = Number((await api.query.system.account(alice.address)).nonce);
+
 		console.log(
-			`--- Submitting extrinsic to extend parachain ${id} lease period to ${period_count} days. ---`
+			`--- Submitting extrinsic to extend parachain ${id} lease period to ${period_count} days. (nonce: ${nonce}) ---`
 		);
 		const unsub = await api.tx.sudo
 			.sudo(api.tx.slots.forceLease(id, alice.address, 1, 1, period_count))
-			.signAndSend(alice, (result) => {
+			.signAndSend(alice, { nonce: nonce, era: 0 }, (result) => {
 				console.log(`Current status is ${result.status}`);
 				if (result.status.isInBlock) {
 					console.log(
@@ -149,12 +153,14 @@ export async function setBalance(
 		const keyring = new Keyring({ type: "sr25519" });
 		const alice = keyring.addFromUri("//Alice");
 
+		const nonce = Number((await api.query.system.account(alice.address)).nonce);
+
 		console.log(
-			`--- Submitting extrinsic to set balance of ${who} to ${value}. ---`
+			`--- Submitting extrinsic to set balance of ${who} to ${value}. (nonce: ${nonce}) ---`
 		);
 		const unsub = await api.tx.sudo
 			.sudo(api.tx.balances.setBalance(who, value, 0))
-			.signAndSend(alice, (result) => {
+			.signAndSend(alice, { nonce: nonce, era: 0 }, (result) => {
 				console.log(`Current status is ${result.status}`);
 				if (result.status.isInBlock) {
 					console.log(
@@ -192,16 +198,18 @@ export async function sendHrmpMessage(
 		const keyring = new Keyring({ type: "sr25519" });
 		const alice = keyring.addFromUri("//Alice");
 
+		const nonce = Number((await api.query.system.account(alice.address)).nonce);
+
 		let hrmpMessage = {
 			recipient: recipient,
 			data: data,
 		};
 		let message = api.createType("OutboundHrmpMessage", hrmpMessage);
 
-		console.log(`--- Sending a message to ${recipient}. ---`);
+		console.log(`--- Sending a message to ${recipient}. (nonce: ${nonce}) ---`);
 		const unsub = await api.tx.sudo
 			.sudo(api.tx.messageBroker.sudoSendHrmpMessage(message))
-			.signAndSend(alice, (result) => {
+			.signAndSend(alice, { nonce: nonce, era: 0 }, (result) => {
 				console.log(`Current status is ${result.status}`);
 				if (result.status.isInBlock) {
 					console.log(

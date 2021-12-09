@@ -5,8 +5,8 @@ pub mod contract;
 
 use alloc::vec::Vec;
 use codec::{Decode, Encode};
-use core::convert::{TryFrom, TryInto};
 use core::fmt::Debug;
+use scale_info::TypeInfo;
 use sp_core::H256;
 
 // Messages: Phase Wallet
@@ -16,6 +16,7 @@ pub mod messaging {
     use alloc::vec::Vec;
     use codec::{Decode, Encode};
     use core::fmt::Debug;
+    use scale_info::TypeInfo;
     use sp_core::U256;
 
     #[cfg(feature = "enable_serde")]
@@ -27,7 +28,7 @@ pub mod messaging {
     pub use phala_mq::{bind_contract32, bind_topic};
 
     // TODO.kevin: reuse the Payload in secret_channel.rs.
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, TypeInfo)]
     pub enum CommandPayload<T> {
         Plain(T),
     }
@@ -38,7 +39,7 @@ pub mod messaging {
     // Messages: Lottery
 
     bind_topic!(Lottery, b"^phala/BridgeTransfer");
-    #[derive(Encode, Decode, Clone, Debug)]
+    #[derive(Encode, Decode, Clone, Debug, TypeInfo)]
     pub enum Lottery {
         SignedTx {
             round_id: u32,
@@ -50,7 +51,7 @@ pub mod messaging {
         },
     }
 
-    #[derive(Encode, Decode, Debug, Clone)]
+    #[derive(Encode, Decode, Debug, Clone, TypeInfo)]
     pub enum LotteryPalletCommand {
         NewRound {
             round_id: u32,
@@ -64,7 +65,7 @@ pub mod messaging {
         },
     }
 
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, TypeInfo)]
     pub enum LotteryUserCommand {
         SubmitUtxo {
             round_id: u32,
@@ -77,7 +78,7 @@ pub mod messaging {
     }
 
     bind_contract32!(LotteryCommand, contract::BTC_LOTTERY);
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, TypeInfo)]
     pub enum LotteryCommand {
         UserCommand(LotteryUserCommand),
         PalletCommand(LotteryPalletCommand),
@@ -106,7 +107,7 @@ pub mod messaging {
     // Messages for Balances
 
     bind_contract32!(BalancesCommand<AccountId, Balance>, contract::BALANCES);
-    #[derive(Debug, Clone, Encode, Decode)]
+    #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
     pub enum BalancesCommand<AccountId, Balance> {
         Transfer { dest: AccountId, value: Balance },
         TransferToChain { dest: AccountId, value: Balance },
@@ -124,7 +125,7 @@ pub mod messaging {
     }
 
     bind_topic!(BalancesTransfer<AccountId, Balance>, b"^phala/balances/transfer");
-    #[derive(Encode, Decode)]
+    #[derive(Encode, Decode, TypeInfo)]
     pub struct BalancesTransfer<AccountId, Balance> {
         pub dest: AccountId,
         pub amount: Balance,
@@ -133,7 +134,7 @@ pub mod messaging {
     // Messages for Assets
 
     bind_contract32!(AssetCommand<AccountId, Balance>, contract::ASSETS);
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, TypeInfo)]
     pub enum AssetCommand<AccountId, Balance> {
         Issue {
             symbol: String,
@@ -155,7 +156,7 @@ pub mod messaging {
     // Messages for Web3Analytics
 
     bind_contract32!(Web3AnalyticsCommand, contract::WEB3_ANALYTICS);
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, TypeInfo)]
     pub enum Web3AnalyticsCommand {
         SetConfiguration { skip_stat: bool },
     }
@@ -163,7 +164,7 @@ pub mod messaging {
     // Messages for diem
 
     bind_contract32!(DiemCommand, contract::DIEM);
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, TypeInfo)]
     pub enum DiemCommand {
         /// Sets the whitelisted accounts, in bcs encoded base64
         AccountInfo {
@@ -197,7 +198,7 @@ pub mod messaging {
     // Messages for Kitties
 
     bind_contract32!(KittiesCommand<AccountId, Hash>, contract::SUBSTRATE_KITTIES);
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, TypeInfo)]
     pub enum KittiesCommand<AccountId, Hash> {
         /// Pack the kitties into the corresponding blind boxes
         Pack {},
@@ -210,14 +211,14 @@ pub mod messaging {
     }
 
     bind_topic!(KittyTransfer<AccountId>, b"^phala/kitties/transfer");
-    #[derive(Debug, Clone, Encode, Decode, PartialEq)]
+    #[derive(Debug, Clone, Encode, Decode, PartialEq, TypeInfo)]
     pub struct KittyTransfer<AccountId> {
         pub dest: AccountId,
         pub kitty_id: Vec<u8>,
     }
 
     // Messages for Geo Location
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub struct Geocoding {
         pub latitude: i32,
         pub longitude: i32,
@@ -225,7 +226,7 @@ pub mod messaging {
     }
 
     bind_contract32!(GeolocationCommand, contract::GEOLOCATION);
-    #[derive(Debug, Clone, Encode, Decode)]
+    #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
     pub enum GeolocationCommand {
         UpdateGeolocation { geocoding: Option<Geocoding> },
     }
@@ -240,7 +241,7 @@ pub mod messaging {
     pub type U64F64Bits = u128;
 
     // Messages: System
-    #[derive(Encode, Decode)]
+    #[derive(Encode, Decode, TypeInfo)]
     pub struct WorkerEventWithKey {
         pub pubkey: WorkerPublicKey,
         pub event: WorkerEvent,
@@ -256,12 +257,12 @@ pub mod messaging {
         }
     }
 
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, TypeInfo)]
     pub struct WorkerInfo {
         pub confidence_level: u8,
     }
 
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, TypeInfo)]
     pub enum WorkerEvent {
         /// pallet-registry --> worker
         ///  Indicate a worker register succeeded.
@@ -296,7 +297,7 @@ pub mod messaging {
     }
 
     bind_topic!(SystemEvent, b"phala/system/event");
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, TypeInfo)]
     pub enum SystemEvent {
         WorkerEvent(WorkerEventWithKey),
         HeartbeatChallenge(HeartbeatChallenge),
@@ -308,14 +309,14 @@ pub mod messaging {
         }
     }
 
-    #[derive(Encode, Decode, Debug, Default, Clone, PartialEq, Eq)]
+    #[derive(Encode, Decode, Debug, Default, Clone, PartialEq, Eq, TypeInfo)]
     pub struct HeartbeatChallenge {
         pub seed: U256,
         pub online_target: U256,
     }
 
     bind_topic!(MiningReportEvent, b"phala/mining/report");
-    #[derive(Encode, Decode, Clone, Debug)]
+    #[derive(Encode, Decode, Clone, Debug, TypeInfo)]
     pub enum MiningReportEvent {
         Heartbeat {
             /// The mining session id.
@@ -330,7 +331,7 @@ pub mod messaging {
     }
 
     bind_topic!(MiningInfoUpdateEvent<BlockNumber>, b"^phala/mining/update");
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub struct MiningInfoUpdateEvent<BlockNumber> {
         /// The block emiting this message.
         pub block_number: BlockNumber,
@@ -361,7 +362,7 @@ pub mod messaging {
         }
     }
 
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub struct SettleInfo {
         pub pubkey: WorkerPublicKey,
         pub v: U64F64Bits,
@@ -371,7 +372,7 @@ pub mod messaging {
 
     // Messages: Gatekeeper launch
     bind_topic!(GatekeeperLaunch, b"phala/gatekeeper/launch");
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub enum GatekeeperLaunch {
         FirstGatekeeper(NewGatekeeperEvent),
         MasterPubkeyOnChain(MasterPubkeyEvent),
@@ -393,7 +394,7 @@ pub mod messaging {
         }
     }
 
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub struct NewGatekeeperEvent {
         /// The public key of registered gatekeeper
         pub pubkey: WorkerPublicKey,
@@ -401,14 +402,14 @@ pub mod messaging {
         pub ecdh_pubkey: EcdhPublicKey,
     }
 
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub struct MasterPubkeyEvent {
         pub master_pubkey: MasterPublicKey,
     }
 
     // Messages: Gatekeeper change
     bind_topic!(GatekeeperChange, b"phala/gatekeeper/change");
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub enum GatekeeperChange {
         GatekeeperRegistered(NewGatekeeperEvent),
     }
@@ -427,7 +428,7 @@ pub mod messaging {
 
     // Messages: Distribution of master key and contract keys
     bind_topic!(KeyDistribution, b"phala/gatekeeper/key");
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub enum KeyDistribution {
         MasterKeyDistribution(DispatchMasterKeyEvent),
     }
@@ -449,7 +450,7 @@ pub mod messaging {
     }
 
     type AeadIV = [u8; 12];
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub struct DispatchMasterKeyEvent {
         /// The target to dispatch master key
         pub dest: WorkerPublicKey,
@@ -463,7 +464,7 @@ pub mod messaging {
 
     // Messages: Gatekeeper
     bind_topic!(GatekeeperEvent, b"phala/gatekeeper/event");
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub enum GatekeeperEvent {
         NewRandomNumber(RandomNumberEvent),
         TokenomicParametersChanged(TokenomicParameters),
@@ -485,7 +486,7 @@ pub mod messaging {
     }
 
     pub type RandomNumber = [u8; 32];
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub struct RandomNumberEvent {
         pub block_number: u32,
         pub random_number: RandomNumber,
@@ -493,7 +494,7 @@ pub mod messaging {
     }
 
     #[cfg_attr(feature = "enable_serde", derive(Serialize, Deserialize))]
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
     pub struct TokenomicParameters {
         // V calculation
         pub pha_rate: U64F64Bits,
@@ -514,11 +515,24 @@ pub mod messaging {
         // Slash calculation
         pub kappa: U64F64Bits,
     }
+
+    // Pink messages
+
+    bind_topic!(WorkerPinkReport, b"phala/pink/worker/report");
+    #[derive(Encode, Decode, Debug, TypeInfo)]
+    pub enum WorkerPinkReport {
+        PinkInstantiated {
+            id: ContractId,
+            group_id: ContractGroupId,
+            owner: AccountId,
+            pubkey: EcdhPublicKey,
+        },
+    }
 }
 
 // Types used in storage
 
-#[derive(Encode, Decode, PartialEq, Eq, Debug, Clone)]
+#[derive(Encode, Decode, PartialEq, Eq, Debug, Clone, TypeInfo)]
 pub enum WorkerStateEnum<BlockNumber> {
     Empty,
     Free,
@@ -534,7 +548,7 @@ impl<BlockNumber> Default for WorkerStateEnum<BlockNumber> {
     }
 }
 
-#[derive(Encode, Decode, Debug, Default, Clone)]
+#[derive(Encode, Decode, Debug, Default, Clone, TypeInfo)]
 pub struct WorkerInfo<BlockNumber> {
     // identity
     pub machine_id: Vec<u8>,
@@ -550,48 +564,33 @@ pub struct WorkerInfo<BlockNumber> {
     pub runtime_version: u32,
 }
 
-#[derive(Encode, Decode, Default)]
+#[derive(Encode, Decode, Default, TypeInfo)]
 pub struct StashInfo<AccountId: Default> {
     pub controller: AccountId,
     pub payout_prefs: PayoutPrefs<AccountId>,
 }
 
-#[derive(Encode, Decode, Default)]
+#[derive(Encode, Decode, Default, TypeInfo)]
 pub struct PayoutPrefs<AccountId: Default> {
     pub commission: u32,
     pub target: AccountId,
 }
 
-#[derive(Encode, Decode, Debug, Default, Clone)]
+#[derive(Encode, Decode, Debug, Default, Clone, TypeInfo)]
 pub struct Score {
     pub overall_score: u32,
     pub features: Vec<u32>,
 }
 
 type MachineId = Vec<u8>;
-pub type Sr25519Signature = sp_core::sr25519::Signature;
+pub use sp_core::sr25519::Signature as Sr25519Signature;
 pub use sp_core::sr25519::Public as WorkerPublicKey;
-pub type ContractPublicKey = sp_core::sr25519::Public;
-pub type MasterPublicKey = sp_core::sr25519::Public;
-#[derive(Encode, Decode, Clone, Debug, Eq, PartialEq)]
-/// Sr25519 public key
-pub struct EcdhPublicKey(pub [u8; 32]);
+pub use sp_core::sr25519::Public as ContractPublicKey;
+pub use sp_core::sr25519::Public as MasterPublicKey;
+pub use sp_core::sr25519::Public as EcdhPublicKey;
 
-impl Default for EcdhPublicKey {
-    fn default() -> Self {
-        EcdhPublicKey([0_u8; 32])
-    }
-}
 
-impl TryFrom<&[u8]> for EcdhPublicKey {
-    type Error = ();
-    fn try_from(raw: &[u8]) -> Result<Self, ()> {
-        let raw: [u8; 32] = raw.try_into().map_err(|_| ())?;
-        Ok(EcdhPublicKey(raw))
-    }
-}
-
-#[derive(Encode, Decode, Debug, Clone, PartialEq, Eq)]
+#[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, TypeInfo)]
 pub struct WorkerRegistrationInfo<AccountId> {
     pub version: u32,
     pub machine_id: MachineId,
@@ -602,20 +601,20 @@ pub struct WorkerRegistrationInfo<AccountId> {
     pub operator: Option<AccountId>,
 }
 
-#[derive(Encode, Decode, Debug, Default)]
+#[derive(Encode, Decode, Debug, Default, TypeInfo)]
 pub struct RoundInfo<BlockNumber> {
     pub round: u32,
     pub start_block: BlockNumber,
 }
 
-#[derive(Encode, Decode, Debug, Default)]
+#[derive(Encode, Decode, Debug, Default, TypeInfo)]
 pub struct StashWorkerStats<Balance> {
     pub slash: Balance,
     pub compute_received: Balance,
     pub online_received: Balance,
 }
 
-#[derive(Encode, Decode, Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Encode, Decode, Debug, Default, Clone, PartialEq, Eq, TypeInfo)]
 pub struct RoundStats {
     pub round: u32,
     pub online_workers: u32,
@@ -627,13 +626,13 @@ pub struct RoundStats {
     pub frac_target_compute_reward: u32,
 }
 
-#[derive(Encode, Decode, Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Encode, Decode, Debug, Default, Clone, PartialEq, Eq, TypeInfo)]
 pub struct MinerStatsDelta {
     pub num_worker: i32,
     pub num_power: i32,
 }
 
-#[derive(Encode, Decode, Debug, Clone, PartialEq, Eq)]
+#[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, TypeInfo)]
 pub enum PayoutReason {
     OnlineReward,
     ComputeReward,

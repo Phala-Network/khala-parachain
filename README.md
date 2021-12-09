@@ -18,7 +18,7 @@ Khala parachain repo.
 
     ```bash
     cp <path-to-polkadot> ./polkadot-launch/bin/
-    cp ./target/release/khala-node ./polkadot-launch/bin/
+    cp ./target/release/khala ./polkadot-launch/bin/
     ```
 
 3. Start a local cluster

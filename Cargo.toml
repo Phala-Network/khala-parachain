@@ -16,6 +16,7 @@ members = [
 	"crates/phala-types",
 	"crates/phala-mq",
 	"crates/phala-node-rpc-ext",
+	"crates/phala-node-rpc-ext/types",
 	"crates/prpc",
 	"crates/phala-trie-storage",
 	"substrate/frame/utility",
@@ -25,6 +26,7 @@ members = [
 	"pallets/bridge_transfer",
 	"pallets/parachain-info",
 	"runtime/khala",
+	"runtime/thala",
 ]
 
 [patch."https://github.com/paritytech/polkadot"]

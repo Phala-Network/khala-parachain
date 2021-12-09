@@ -1,4 +1,5 @@
 use super::*;
+pub use ext_types::*;
 
 /// State RPC errors.
 #[derive(Debug, thiserror::Error)]
@@ -41,31 +42,6 @@ impl From<Error> for jsonrpc_core::Error {
     }
 }
 
-/// Storage key.
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct StorageKey(#[serde(with = "impl_serde::serialize")] Vec<u8>);
-
-/// Storage value.
-pub type StorageValue = StorageKey;
-
-/// In memory array of storage values.
-pub type StorageCollection<K, V> = Vec<(K, Option<V>)>;
-
-/// In memory arrays of storage values for multiple child tries.
-pub type ChildStorageCollection<K, V> = Vec<(K, StorageCollection<K, V>)>;
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct StorageChanges {
-    /// A value of `None` means that it was deleted.
-    pub main_storage_changes: StorageCollection<StorageKey, StorageValue>,
-    /// All changes to the child storages.
-    pub child_storage_changes: ChildStorageCollection<StorageKey, StorageValue>,
-}
-
-/// Response for the `pha_getStorageChanges` RPC.
-pub type GetStorageChangesResponse = Vec<StorageChanges>;
-
 pub(super) fn get_storage_changes<Client, BE, Block>(
     client: &Client,
     backend: &BE,
@@ -80,8 +56,8 @@ where
         + HeaderMetadata<Block, Error = sp_blockchain::Error>
         + ProvideRuntimeApi<Block>,
     Block: BlockT + 'static,
-    Client::Api: sp_api::Metadata<Block>
-        + ApiExt<Block, StateBackend = backend::StateBackendFor<BE, Block>>,
+    Client::Api:
+        sp_api::Metadata<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<BE, Block>>,
     <<Block as BlockT>::Header as Header>::Number: Into<u64>,
 {
     fn header<Client: HeaderBackend<Block>, Block: BlockT>(
@@ -152,7 +128,7 @@ where
             .map_err(|e| Error::invalid_block(parent_id, e))?;
 
         let storage_changes = api
-            .into_storage_changes(&state, None, parent_hash)
+            .into_storage_changes(&state, parent_hash)
             .map_err(|e| Error::invalid_block(parent_id, e))?;
 
         changes.push(StorageChanges {

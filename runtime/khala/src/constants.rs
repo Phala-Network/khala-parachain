@@ -33,11 +33,11 @@ pub mod currency {
 
 /// Fee-related.
 pub mod fee {
-    use parachains_common::Balance;
     use frame_support::weights::{
         constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
         WeightToFeePolynomial,
     };
+    use parachains_common::Balance;
     use smallvec::smallvec;
     use sp_runtime::Perbill;
 
@@ -68,12 +68,5 @@ pub mod fee {
                 coeff_integer: p / q,
             }]
         }
-    }
-}
-
-pub mod parachains {
-    pub mod karura {
-        pub const ID: u32 = 2000;
-        pub const KAR_KEY: [u8; 2] = [0, 128];
     }
 }
