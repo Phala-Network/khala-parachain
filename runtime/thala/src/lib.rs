@@ -769,7 +769,6 @@ impl pallet_parachain_info::Config for Runtime {}
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
-    pub const KsmLocation: MultiLocation = MultiLocation::parent();
     pub const RelayNetwork: NetworkId = NetworkId::Kusama;
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
@@ -865,26 +864,42 @@ pub type FungiblesTransactor = FungiblesAdapter<
 >;
 
 parameter_types! {
+    pub KSMAssetId: AssetId = MultiLocation::new(1, Here).into();
+    pub PHAAssetId: AssetId = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into()))).into();
+    pub KARAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec()))).into();
+    pub BNCAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::BNC_KEY.to_vec()))).into();
+    pub VSKSMAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::VSKSM_KEY.to_vec()))).into();
+
     pub ExecutionPriceInKSM: (AssetId, u128) = (
-        MultiLocation::new(1, Here).into(),
+        KSMAssetId::get(),
 		pha_per_second() / 600
     );
     pub ExecutionPriceInPHA: (AssetId, u128) = (
-        MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into()))).into(),
+        PHAAssetId::get(),
 		pha_per_second()
     );
     pub ExecutionPriceInKAR: (AssetId, u128) = (
-        MultiLocation::new(1, X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec()))).into(),
+        KARAssetId::get(),
 		pha_per_second() / 8
     );
 	pub ExecutionPriceInBNC: (AssetId, u128) = (
-        MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::BNC_KEY.to_vec()))).into(),
+        BNCAssetId::get(),
 		pha_per_second()
     );
 	pub ExecutionPriceInVKSM: (AssetId, u128) = (
-        MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::VSKSM_KEY.to_vec()))).into(),
+        VSKSMAssetId::get(),
 		pha_per_second()
     );
+
+    pub FeeAssets: MultiAssets = [
+        KSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+        PHAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+        KARAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+        BNCAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+        VSKSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+    ].to_vec().into();
+
+    pub const DefaultDestChainXcmFee: Balance = 1 * CENTS;
 }
 
 pub struct XcmConfig;
@@ -988,6 +1003,8 @@ impl pallet_xcm_transfer::Config for Runtime {
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type LocationInverter = LocationInverter<Ancestry>;
     type ParachainInfo = ParachainInfo;
+    type FeeAssets = FeeAssets;
+    type DefaultFee = DefaultDestChainXcmFee;
 }
 
 impl pallet_assets_wrapper::Config for Runtime {

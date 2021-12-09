@@ -144,15 +144,28 @@ parameter_types! {
 impl pallet_parachain_info::Config for Runtime {}
 
 parameter_types! {
-	pub const KsmLocation: MultiLocation = MultiLocation::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
-	pub const LocalLocation: MultiLocation = Here.into();
-	pub const DOTMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: Here };
-	pub const ParaAMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(1)) };
-	pub const ParaBMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2)) };
-	pub const ParaCMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(3)) };
+
+	pub KSMLocation: MultiLocation = MultiLocation::new(1, Here);
+	pub ParaALocation: MultiLocation = MultiLocation::new(1, X1(Parachain(1)));
+	pub ParaBLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(2)));
+	pub ParaCLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(3)));
+
+	pub KSMAssetId: AssetId = KSMLocation::get().into();
+	pub ParaAAssetId: AssetId = ParaALocation::get().into();
+	pub ParaBAssetId: AssetId = ParaBLocation::get().into();
+	pub ParaCAssetId: AssetId = ParaCLocation::get().into();
+
+	pub FeeAssets: MultiAssets = [
+		KSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+		ParaAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+		ParaBAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+		ParaCAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+	].to_vec().into();
+
+	pub const DefaultDestChainXcmFee: Balance = 10;
 }
 
 pub type LocationToAccountId = (
@@ -241,10 +254,10 @@ impl Config for XcmConfig {
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type Trader = (
-		UsingComponents<IdentityFee<Balance>, DOTMultiAssetId, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, ParaAMultiAssetId, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, ParaBMultiAssetId, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, ParaCMultiAssetId, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, KSMLocation, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, ParaALocation, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, ParaBLocation, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, ParaCLocation, AccountId, Balances, ()>,
 	);
 	type ResponseHandler = ();
 	type AssetTrap = ();
@@ -293,6 +306,8 @@ impl pallet_xcm_transfer::Config for Runtime {
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type LocationInverter = LocationInverter<Ancestry>;
 	type ParachainInfo = ParachainInfo;
+	type FeeAssets = FeeAssets;
+	type DefaultFee = DefaultDestChainXcmFee;
 }
 
 impl pallet_assets_wrapper::Config for Runtime {
