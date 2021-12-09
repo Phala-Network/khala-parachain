@@ -65,6 +65,12 @@ pub mod pallet {
 		/// ParachainID
 		#[pallet::constant]
 		type ParachainInfo: Get<ParaId>;
+
+		/// Assets that can be used to pay xcm execution
+		type FeeAssets: Get<MultiAssets>;
+
+		/// Default xcm fee(PHA) used to buy execution on dest parachain
+		type DefaultFee: Get<u128>;
 	}
 
 	/// Mapping asset name to corresponding MultiAsset
@@ -236,17 +242,29 @@ pub mod pallet {
 		) -> Result<Instruction<()>, DispatchError> {
 			let inv_dest = T::LocationInverter::invert_location(location)
 				.map_err(|()| Error::<T>::LocationInvertFailed)?;
-			let fee_asset: MultiAsset = match self.asset.fun {
-				// so far only half of amount are allowed to be used as fee
-				Fungible(amount) => MultiAsset {
-					fun: Fungible(amount / 2),
-					id: self.asset.id.clone(),
-				},
-				_ => MultiAsset {
-					fun: Fungible(Zero::zero()),
-					id: self.asset.id.clone(),
-				},
-			};
+
+			let fee_asset: MultiAsset;
+			if T::FeeAssets::get().contains(&self.asset) {
+				fee_asset = match self.asset.fun {
+					// so far only half of amount are allowed to be used as fee
+					Fungible(amount) => MultiAsset {
+						fun: Fungible(amount / 2),
+						id: self.asset.id.clone(),
+					},
+					_ => MultiAsset {
+						fun: Fungible(Zero::zero()),
+						id: self.asset.id.clone(),
+					},
+				};
+			} else {
+				// Basiclly, if the asset is supported as fee in our system, it should be also supported in the dest
+				// parachain, so if we are not support use this asset as fee, try use PHA as fee asset instead
+				fee_asset = MultiAsset {
+					fun: Fungible(T::DefaultFee::get()),
+					id: MultiLocation::here().into(),
+				}
+			}
+
 			let fees = fee_asset
 				.reanchored(&inv_dest)
 				.map_err(|_| Error::<T>::CannotReanchor)?;
