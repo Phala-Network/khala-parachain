@@ -145,6 +145,7 @@ pub mod pallet {
 			// we treat nonreserve xcm transfer cost the most weight
 			let nonreserve_xcm_transfer_session = XCMSession::<T> {
 				asset: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
+				fee: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
 				origin_location: MultiLocation::new(1, X1(Parachain(1u32))),
 				dest_location: MultiLocation::new(1, X1(Parachain(2u32))),
 				sender: PalletId(*b"phala/bg").into_account(),
@@ -169,8 +170,31 @@ pub mod pallet {
 			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
 			let dest_location = (1, X1(Parachain(para_id.into()))).into();
 
+			let fee: MultiAsset;
+			if T::FeeAssets::get().contains(&asset) || (asset.id == (0, Here).into()) {
+				fee = match asset.fun {
+					// so far only half of amount are allowed to be used as fee
+					Fungible(amount) => MultiAsset {
+						fun: Fungible(amount / 2),
+						id: asset.id.clone(),
+					},
+					_ => MultiAsset {
+						fun: Fungible(Zero::zero()),
+						id: asset.id.clone(),
+					},
+				};
+			} else {
+				// Basiclly, if the asset is supported as fee in our system, it should be also supported in the dest
+				// parachain, so if we are not support use this asset as fee, try use PHA as fee asset instead
+				fee = MultiAsset {
+					fun: Fungible(T::DefaultFee::get()),
+					id: (1, X1(Parachain(T::ParachainInfo::get().into()))).into(),
+				}
+			}
+
 			let xcm_session = XCMSession::<T> {
 				asset,
+				fee,
 				origin_location,
 				dest_location,
 				sender: sender.clone(),
@@ -178,7 +202,7 @@ pub mod pallet {
 				dest_weight,
 			};
 			let mut msg = xcm_session.message()?;
-			log::trace!(
+			log::error!(
 				target: LOG_TARGET,
 				"Trying to exectute xcm message {:?}.",
 				msg.clone(),
@@ -210,6 +234,7 @@ pub mod pallet {
 	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 	struct XCMSession<T: Config> {
 		asset: MultiAsset,
+		fee: MultiAsset,
 		origin_location: MultiLocation,
 		dest_location: MultiLocation,
 		sender: T::AccountId,
@@ -243,29 +268,9 @@ pub mod pallet {
 			let inv_dest = T::LocationInverter::invert_location(location)
 				.map_err(|()| Error::<T>::LocationInvertFailed)?;
 
-			let fee_asset: MultiAsset;
-			if T::FeeAssets::get().contains(&self.asset) {
-				fee_asset = match self.asset.fun {
-					// so far only half of amount are allowed to be used as fee
-					Fungible(amount) => MultiAsset {
-						fun: Fungible(amount / 2),
-						id: self.asset.id.clone(),
-					},
-					_ => MultiAsset {
-						fun: Fungible(Zero::zero()),
-						id: self.asset.id.clone(),
-					},
-				};
-			} else {
-				// Basiclly, if the asset is supported as fee in our system, it should be also supported in the dest
-				// parachain, so if we are not support use this asset as fee, try use PHA as fee asset instead
-				fee_asset = MultiAsset {
-					fun: Fungible(T::DefaultFee::get()),
-					id: MultiLocation::here().into(),
-				}
-			}
-
-			let fees = fee_asset
+			let fees = self
+				.fee
+				.clone()
 				.reanchored(&inv_dest)
 				.map_err(|_| Error::<T>::CannotReanchor)?;
 
@@ -313,6 +318,14 @@ pub mod pallet {
 			}
 			.into();
 
+			// if self.asset.id == self.fee.id, self.asset must contains self.fee
+			let withdraw_asset = if self.asset.contains(&self.fee) {
+				// merge
+				WithdrawAsset(self.asset.clone().into())
+			} else {
+				WithdrawAsset(vec![self.asset.clone(), self.fee.clone()].into())
+			};
+
 			let deposit_asset = DepositAsset {
 				assets: Wild(All),
 				max_assets: 1u32,
@@ -322,18 +335,22 @@ pub mod pallet {
 			let kind = self.kind().ok_or(Error::<T>::UnknownTransfer)?;
 			log::trace!(target: LOG_TARGET, "Transfer type is {:?}.", kind.clone(),);
 			let message = match kind {
-				TransferType::FromNative => Xcm(vec![TransferReserveAsset {
-					assets: self.asset.clone().into(),
-					dest: self.dest_location.clone(),
-					xcm: Xcm(vec![
-						self.buy_execution_on(&self.dest_location)?,
-						deposit_asset,
-					]),
-				}]),
+				TransferType::FromNative => Xcm(vec![
+					withdraw_asset,
+					DepositReserveAsset {
+						assets: Wild(All),
+						max_assets: 1u32,
+						dest: self.dest_location.clone(),
+						xcm: Xcm(vec![
+							self.buy_execution_on(&self.dest_location)?,
+							deposit_asset,
+						]),
+					},
+				]),
 				TransferType::ToReserve => {
 					let asset_reserve_location = self.dest_location.clone();
 					Xcm(vec![
-						WithdrawAsset(self.asset.clone().into()),
+						withdraw_asset,
 						InitiateReserveWithdraw {
 							assets: Wild(All),
 							reserve: asset_reserve_location,
@@ -347,7 +364,7 @@ pub mod pallet {
 				TransferType::ToNonReserve => {
 					let asset_reserve_location = ConcrateAsset::origin(&self.asset).unwrap();
 					Xcm(vec![
-						WithdrawAsset(self.asset.clone().into()),
+						withdraw_asset,
 						InitiateReserveWithdraw {
 							assets: Wild(All),
 							reserve: asset_reserve_location.clone(),
