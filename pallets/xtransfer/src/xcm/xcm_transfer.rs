@@ -171,7 +171,10 @@ pub mod pallet {
 			let dest_location = (1, X1(Parachain(para_id.into()))).into();
 
 			let fee: MultiAsset;
-			if T::FeeAssets::get().contains(&asset) || (asset.id == (0, Here).into()) {
+			if T::FeeAssets::get().contains(&asset)
+				|| (asset.id == (0, Here).into())
+				|| (asset.id == (1, X1(Parachain(T::ParachainInfo::get().into()))).into())
+			{
 				fee = match asset.fun {
 					// so far only half of amount are allowed to be used as fee
 					Fungible(amount) => MultiAsset {
@@ -321,14 +324,17 @@ pub mod pallet {
 			// if self.asset.id == self.fee.id, self.asset must contains self.fee
 			let withdraw_asset = if self.asset.contains(&self.fee) {
 				// merge
-				WithdrawAsset(self.asset.clone().into())
+				(WithdrawAsset(self.asset.clone().into()), 1)
 			} else {
-				WithdrawAsset(vec![self.asset.clone(), self.fee.clone()].into())
+				(
+					WithdrawAsset(vec![self.asset.clone(), self.fee.clone()].into()),
+					2,
+				)
 			};
 
 			let deposit_asset = DepositAsset {
 				assets: Wild(All),
-				max_assets: 1u32,
+				max_assets: withdraw_asset.1,
 				beneficiary: beneficiary.into(),
 			};
 
@@ -336,10 +342,10 @@ pub mod pallet {
 			log::trace!(target: LOG_TARGET, "Transfer type is {:?}.", kind.clone(),);
 			let message = match kind {
 				TransferType::FromNative => Xcm(vec![
-					withdraw_asset,
+					withdraw_asset.0,
 					DepositReserveAsset {
 						assets: Wild(All),
-						max_assets: 1u32,
+						max_assets: withdraw_asset.1,
 						dest: self.dest_location.clone(),
 						xcm: Xcm(vec![
 							self.buy_execution_on(&self.dest_location)?,
@@ -350,7 +356,7 @@ pub mod pallet {
 				TransferType::ToReserve => {
 					let asset_reserve_location = self.dest_location.clone();
 					Xcm(vec![
-						withdraw_asset,
+						withdraw_asset.0,
 						InitiateReserveWithdraw {
 							assets: Wild(All),
 							reserve: asset_reserve_location,
@@ -364,7 +370,7 @@ pub mod pallet {
 				TransferType::ToNonReserve => {
 					let asset_reserve_location = ConcrateAsset::origin(&self.asset).unwrap();
 					Xcm(vec![
-						withdraw_asset,
+						withdraw_asset.0,
 						InitiateReserveWithdraw {
 							assets: Wild(All),
 							reserve: asset_reserve_location.clone(),
@@ -372,7 +378,7 @@ pub mod pallet {
 								self.buy_execution_on(&asset_reserve_location)?,
 								DepositReserveAsset {
 									assets: Wild(All),
-									max_assets: 1u32,
+									max_assets: withdraw_asset.1,
 									dest: self.invert_based_reserve(
 										asset_reserve_location.clone(),
 										self.dest_location.clone(),

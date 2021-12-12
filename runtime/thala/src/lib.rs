@@ -899,7 +899,7 @@ parameter_types! {
         VSKSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
     ].to_vec().into();
 
-    pub const DefaultDestChainXcmFee: Balance = 1 * CENTS;
+    pub const DefaultDestChainXcmFee: Balance = 10 * CENTS;
 }
 
 pub struct XcmConfig;
