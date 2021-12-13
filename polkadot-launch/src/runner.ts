@@ -166,12 +166,12 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 		let account = parachainAccount(resolvedId);
 
 		for (const node of parachain.nodes) {
-			const { wsPort, port, flags, name, basePath, rpcPort } = node;
+			const { wsPort, port, flags, name, basePath, rpcPort, nodeKey } = node;
 			console.log(
-				`Starting a Collator for parachain ${resolvedId}: ${account}, Collator port : ${port} wsPort : ${wsPort} rpcPort : ${rpcPort}`
+				`Starting a Collator for parachain ${resolvedId}: ${account}, Collator port : ${port} wsPort : ${wsPort} rpcPort : ${rpcPort} nodeKey: ${nodeKey}`
 			);
 			const skip_id_arg = !id;
-			await startCollator(bin, resolvedId, wsPort, rpcPort, port, {
+			await startCollator(bin, resolvedId, wsPort, rpcPort, port, nodeKey!, {
 				name,
 				chain,
 				flags,

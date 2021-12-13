@@ -19,6 +19,7 @@
         "wsPort": 19244,
         "rpcPort": 19233,
         "port": 12333,
+        "nodeKey": "7b111f101e0e606c3a745f25a8b166de2e557660b2a6e2984a30229553c37252",
         "basePath": "data/relay_bob"
       },
       {
@@ -26,6 +27,7 @@
         "wsPort": 19344,
         "rpcPort": 19333,
         "port": 13333,
+        "nodeKey": "9ccd6ab34e54926e5182e7c1cab70aab5fe2ea5d47705d4edde10ba49017cef9",
         "basePath": "data/relay_charlie"
       },
       {
@@ -33,6 +35,7 @@
         "wsPort": 19444,
         "rpcPort": 19433,
         "port": 14333,
+        "nodeKey": "6e15793131000ba9c880eebb031a36fa04275b2ec03b6a974c6d38144584ae0e",
         "basePath": "data/relay_dave"
       }
     ],
@@ -77,6 +80,7 @@
           "wsPort": 9244,
           "rpcPort": 9233,
           "port": 32333,
+          "nodeKey": "49a38e23145509ce5e19d6399383a4fb51395a60c89b22a43c693c395acfb7c8",
           "basePath": "data/para_bob",
           "flags": [
             "--rpc-cors=all",
@@ -91,6 +95,7 @@
           "wsPort": 9344,
           "rpcPort": 9333,
           "port": 33333,
+          "nodeKey": "90bd630dcb5a81ed521c8091fa65ca320e7ed42a60f24e6ebeb19debeb60512c",
           "basePath": "data/para_charlie",
           "flags": [
             "--rpc-cors=all",
