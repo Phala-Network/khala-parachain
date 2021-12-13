@@ -17,9 +17,19 @@ export interface LaunchConfig {
 	finalization: boolean;
 	reuseChainSpec: boolean;
 }
+export interface RelayChainNodeConfig {
+	name: string;
+	basePath?: string;
+	wsPort: number;
+	rpcPort?: number;
+	nodeKey?: string;
+	port: number;
+	flags?: string[];
+}
 export interface ParachainNodeConfig {
 	rpcPort?: number;
 	wsPort: number;
+	nodeKey?: string;
 	port: number;
 	basePath?: string;
 	name?: string;
@@ -50,15 +60,7 @@ interface ObjectJSON {
 export interface RelayChainConfig {
 	bin: string;
 	chain: string;
-	nodes: {
-		name: string;
-		basePath?: string;
-		wsPort: number;
-		rpcPort?: number;
-		nodeKey?: string;
-		port: number;
-		flags?: string[];
-	}[];
+	nodes: RelayChainNodeConfig[];
 	genesis?: JSON | ObjectJSON;
 }
 

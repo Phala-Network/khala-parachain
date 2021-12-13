@@ -32,6 +32,7 @@ import type {
 	ResolvedSimpleParachainConfig,
 	HrmpChannelsConfig,
 	ResolvedLaunchConfig,
+	RelayChainNodeConfig, ParachainNodeConfig
 } from "./types";
 import { keys as libp2pKeys } from "libp2p-crypto";
 import { hexAddPrefix, hexStripPrefix, hexToU8a } from "@polkadot/util";
@@ -63,7 +64,6 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 		return;
 	}
 	const config = await resolveParachainId(config_dir, rawConfig);
-	var bootnodes = await generateNodeKeys(config);
 
 	const relayChainBin = resolve(config_dir, config.relaychain.bin);
 	if (!fs.existsSync(relayChainBin)) {
@@ -94,7 +94,9 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 		if (config.hrmpChannels) {
 			await addHrmpChannelsToGenesis(relayChainSpec, config.hrmpChannels);
 		}
-		addBootNodes(relayChainSpec, bootnodes);
+		const bootNodes = await generateNodeKeys(config.relaychain.nodes);
+		await addBootNodes(relayChainSpec, bootNodes);
+
 		// -- End Chain Spec Modify --
 		await generateChainSpecRaw(relayChainBin, resolve(`${relayChain}.chain_spec.json`), `${relayChain}-raw.chain_spec.json`);
 	} else {
@@ -140,14 +142,19 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 		let chain = parachain.chain;
 		if (chain) {
 			const fullChainName = id ? `${chain}-${id}` : `${chain}`;
+			const chainSpec = `${fullChainName}.chain_spec.json`;
+			const rawChainSpec = `${fullChainName}-raw.chain_spec.json`;
 
-			const chainSpecExists = fs.existsSync(`${fullChainName}-raw.chain_spec.json`);
+			const chainSpecExists = fs.existsSync(rawChainSpec);
 			if ((!config.reuseChainSpec && chainSpecExists) || !chainSpecExists) {
-				await generateChainSpec(bin, chain, `${fullChainName}.chain_spec.json`);
+				await generateChainSpec(bin, chain, chainSpec);
 				chain = resolve(`${fullChainName}.chain_spec.json`);
 
-				await generateChainSpecRaw(bin, chain, `${fullChainName}-raw.chain_spec.json`);
-				chain = resolve(`${fullChainName}-raw.chain_spec.json`);
+				await generateChainSpecRaw(bin, chain, rawChainSpec);
+				chain = resolve(rawChainSpec);
+
+				const bootNodes = await generateNodeKeys(parachain.nodes);
+				await addBootNodes(rawChainSpec, bootNodes);
 			} else {
 				console.log(`\`reuseChainSpec\` flag enabled, will use existing \`${fullChainName}-raw.chain_spec.json\`, delete it if you don't want to reuse`);
 				chain = resolve(`${fullChainName}-raw.chain_spec.json`);
@@ -171,7 +178,7 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 				basePath,
 				skip_id_arg,
 				spec: relayChainRawSpec,
-				onlyOneParachainNode: config.parachains.length === 1,
+				onlyOneParachainNode: parachain.nodes.length === 1,
 			});
 		}
 
@@ -316,10 +323,10 @@ async function resolveParachainId(
 }
 
 async function generateNodeKeys(
-	config: ResolvedLaunchConfig
+	nodes: RelayChainNodeConfig[] | ParachainNodeConfig[]
 ): Promise<string[]> {
-	var bootnodes = [];
-	for (const node of config.relaychain.nodes) {
+	let bootNodes = [];
+	for (const node of nodes) {
 		if (!node.nodeKey) {
 			node.nodeKey = hexStripPrefix(randomAsHex(32));
 		}
@@ -330,10 +337,10 @@ async function generateNodeKeys(
 			1024
 		);
 		let peerId: PeerId = await PeerId.createFromPrivKey(pair.bytes);
-		bootnodes.push(
+		bootNodes.push(
 			`/ip4/127.0.0.1/tcp/${node.port}/p2p/${peerId.toB58String()}`
 		);
 	}
 
-	return bootnodes;
+	return bootNodes;
 }
