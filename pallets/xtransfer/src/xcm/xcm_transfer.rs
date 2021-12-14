@@ -205,7 +205,7 @@ pub mod pallet {
 				dest_weight,
 			};
 			let mut msg = xcm_session.message()?;
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"Trying to exectute xcm message {:?}.",
 				msg.clone(),
