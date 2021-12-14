@@ -73,7 +73,7 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 	const relayChain = config.relaychain.chain;
 	const relayChainRawSpec = resolve(`${relayChain}-raw.chain_spec.json`);
 	const chainRawSpecExists = fs.existsSync(relayChainRawSpec);
-	if ((!config.reuseChainSpec && chainRawSpecExists) || !chainRawSpecExists) {
+	if ((config.reuseChainSpec && !chainRawSpecExists) || chainRawSpecExists) {
 		const relayChainSpec = `${relayChain}.chain_spec.json`;
 
 		await generateChainSpec(relayChainBin, relayChain, `${relayChain}.chain_spec.json`);

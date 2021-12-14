@@ -7,8 +7,8 @@
         "name": "alice",
         "wsPort": 19944,
         "port": 10333,
+        "nodeKey": "807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
         "flags": [
-          "--node-key=807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
           "--rpc-cors=all"
         ]
       },
@@ -51,8 +51,8 @@
           "name": "alice",
           "wsPort": 9944,
           "port": 30333,
+          "nodeKey": "81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
           "flags": [
-            "--node-key=81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
             "--ws-external",
             "--rpc-external",
             "--rpc-cors=all",
@@ -85,8 +85,8 @@
             "name": "alice",
             "wsPort": 9955,
             "port": 30555,
+            "nodeKey": "03cf579968894332f07ac78990f418742a47888c56c9721d84250d349618ada5",
             "flags": [
-              "--node-key=03cf579968894332f07ac78990f418742a47888c56c9721d84250d349618ada5",
               "--ws-external",
               "--rpc-external",
               "--rpc-cors=all",
