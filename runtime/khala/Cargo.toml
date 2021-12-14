@@ -78,6 +78,7 @@ polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot", bran
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
 phala-pallets = { path = "../../pallets/phala", default-features = false }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }
+xtransfer-pallets = { path = "../../pallets/xtransfer", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
@@ -110,7 +111,6 @@ runtime-benchmarks = [
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-tips/runtime-benchmarks",
 	"phala-pallets/runtime-benchmarks",
-	"xtransfer-pallets/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks"
 ]
 std = [
@@ -168,6 +168,7 @@ std = [
 	"pallet-parachain-info/std",
 	"phala-pallets/std",
 	"pallet-mq-runtime-api/std",
+	"xtransfer-pallets/std",
 ]
 
 try-runtime = [

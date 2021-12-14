@@ -3633,6 +3633,7 @@ dependencies = [
  "sp-version",
  "static_assertions",
  "substrate-wasm-builder",
+ "xtransfer-pallets",
 ]
 
 [[package]]
