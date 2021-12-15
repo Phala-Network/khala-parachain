@@ -9,7 +9,7 @@ pub mod pallet {
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::StaticLookup;
 	use sp_std::{
-		convert::{From, TryFrom},
+		convert::{From, TryFrom, TryInto},
 		result,
 	};
 	use xcm::latest::MultiLocation;
@@ -53,7 +53,6 @@ pub mod pallet {
 			}
 		}
 	}
-	// type <T as pallet_assets::Config>::AssetId<T: Config> = <T as pallet_assets::Config>::AssetId;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -152,6 +151,7 @@ pub mod pallet {
 	pub trait XTransferAssetInfo<AssetId> {
 		fn id(asset: &XTransferAsset) -> Option<AssetId>;
 		fn asset(id: &AssetId) -> Option<XTransferAsset>;
+		fn resource_id(id: &AssetId) -> Option<[u8; 32]>;
 	}
 
 	impl<T: Config> XTransferAssetInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
@@ -161,6 +161,20 @@ pub mod pallet {
 
 		fn asset(id: &<T as pallet_assets::Config>::AssetId) -> Option<XTransferAsset> {
 			IdToAsset::<T>::get(id)
+		}
+
+		fn resource_id(id: &<T as pallet_assets::Config>::AssetId) -> Option<[u8; 32]> {
+			let asset = IdToAsset::<T>::get(id);
+			if asset.is_none() {
+				// asset not found
+				None
+			} else {
+				let location: MultiLocation = asset
+					.unwrap()
+					.try_into()
+					.expect("XTransferAsset must have location; qed.");
+				Some(sp_io::hashing::keccak_256(&location.encode()))
+			}
 		}
 	}
 }

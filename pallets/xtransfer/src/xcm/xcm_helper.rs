@@ -1,9 +1,11 @@
 pub use self::xcm_helper::*;
 
 pub mod xcm_helper {
+	use crate::bridge::pallet::{BridgeChainId, BridgeTransact};
 	use crate::pallet_assets_wrapper::{XTransferAsset, XTransferAssetInfo};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::pallet_prelude::*;
+	use sp_core::U256;
 	use sp_runtime::traits::CheckedConversion;
 	use sp_std::{
 		convert::{Into, TryFrom, TryInto},
@@ -28,7 +30,7 @@ pub mod xcm_helper {
 	pub struct NativeAssetMatcher<C>(PhantomData<C>);
 	impl<C: NativeAssetChecker, B: TryFrom<u128>> MatchesFungible<B> for NativeAssetMatcher<C> {
 		fn matches_fungible(a: &MultiAsset) -> Option<B> {
-			log::trace!(
+			log::error!(
 				target: LOG_TARGET,
 				"NativeAssetMatcher check fungible {:?}.",
 				a.clone(),
@@ -49,7 +51,7 @@ pub mod xcm_helper {
 		MatchesFungibles<AssetId, Balance> for ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>
 	{
 		fn matches_fungibles(a: &MultiAsset) -> result::Result<(AssetId, Balance), MatchError> {
-			log::trace!(
+			log::error!(
 				target: LOG_TARGET,
 				"ConcreteAssetsMatcher check fungible {:?}.",
 				a.clone(),
@@ -136,15 +138,40 @@ pub mod xcm_helper {
 		}
 	}
 
-	pub struct XTransferAdapter<NativeAdapter, AssetsAdapter, NativeChecker>(
-		PhantomData<(NativeAdapter, AssetsAdapter, NativeChecker)>,
+	pub struct XTransferAdapter<
+		NativeAdapter,
+		AssetsAdapter,
+		NativeChecker,
+		BridgeTransactor,
+		AssetId,
+		AssetsInfo,
+	>(
+		PhantomData<(
+			NativeAdapter,
+			AssetsAdapter,
+			NativeChecker,
+			BridgeTransactor,
+			AssetId,
+			AssetsInfo,
+		)>,
 	);
 
 	impl<
 			NativeAdapter: TransactAsset,
 			AssetsAdapter: TransactAsset,
 			NativeChecker: NativeAssetChecker,
-		> TransactAsset for XTransferAdapter<NativeAdapter, AssetsAdapter, NativeChecker>
+			BridgeTransactor: BridgeTransact,
+			AssetId,
+			AssetsInfo: XTransferAssetInfo<AssetId>,
+		> TransactAsset
+		for XTransferAdapter<
+			NativeAdapter,
+			AssetsAdapter,
+			NativeChecker,
+			BridgeTransactor,
+			AssetId,
+			AssetsInfo,
+		>
 	{
 		fn can_check_in(_origin: &MultiLocation, what: &MultiAsset) -> XcmResult {
 			if NativeChecker::is_native_asset(what) {
@@ -171,10 +198,50 @@ pub mod xcm_helper {
 		}
 
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult {
-			if NativeChecker::is_native_asset(what) {
-				NativeAdapter::deposit_asset(what, who)
-			} else {
-				AssetsAdapter::deposit_asset(what, who)
+			log::error!(
+				target: LOG_TARGET,
+				"XTransferAdapter deposit_asset, what: {:?}, who: {:?}.",
+				&what,
+				&who,
+			);
+
+			match &who.interior {
+				// destnation is foreign chain, forward it through bridge
+				Junctions::X2(GeneralIndex(dest_id), GeneralKey(recipient)) => {
+					let (&amount, location) = match (&what.fun, &what.id) {
+						(Fungible(amount), Concrete(id)) => (amount, id),
+						_ => return Err(XcmError::Unimplemented),
+					};
+					let xtransfer_asset: XTransferAsset = location
+						.clone()
+						.try_into()
+						.map_err(|_| XcmError::FailedToDecode)?;
+					let asset_id: AssetId =
+						AssetsInfo::id(&xtransfer_asset).ok_or(XcmError::AssetNotFound)?;
+					let resource_id =
+						AssetsInfo::resource_id(&asset_id).ok_or(XcmError::AssetNotFound)?;
+					let dest_id: BridgeChainId = dest_id
+						.clone()
+						.try_into()
+						.expect("Convert from u128 to dest_id must be ok; qed.");
+					BridgeTransactor::transfer_fungible(
+						dest_id,
+						resource_id,
+						recipient.to_vec(),
+						U256::from(amount),
+					)
+					.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+
+					Ok(())
+				}
+				// try handle it with transfer adapter
+				_ => {
+					if NativeChecker::is_native_asset(what) {
+						NativeAdapter::deposit_asset(what, who)
+					} else {
+						AssetsAdapter::deposit_asset(what, who)
+					}
+				}
 			}
 		}
 
@@ -182,6 +249,12 @@ pub mod xcm_helper {
 			what: &MultiAsset,
 			who: &MultiLocation,
 		) -> result::Result<Assets, XcmError> {
+			log::error!(
+				target: LOG_TARGET,
+				"XTransferAdapter withdraw_asset, what: {:?}, who: {:?}.",
+				&what,
+				&who,
+			);
 			if NativeChecker::is_native_asset(what) {
 				NativeAdapter::withdraw_asset(what, who)
 			} else {
@@ -206,6 +279,12 @@ pub mod xcm_helper {
 					network: NetworkId::Any,
 					id: Beneficiary::get().into(),
 				}),
+			);
+			log::error!(
+				target: LOG_TARGET,
+				"XTransferTakeRevenue take_revenue, revenue: {:?}, beneficiary: {:?}.",
+				&revenue,
+				&beneficiary,
 			);
 			let _ = TransferAdapter::deposit_asset(&revenue, &beneficiary);
 		}
