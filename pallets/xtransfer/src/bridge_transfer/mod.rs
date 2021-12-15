@@ -16,7 +16,8 @@ pub mod pallet {
 		transactional,
 	};
 
-	pub use crate::bridge;
+	use crate::bridge;
+	use crate::bridge::pallet::BridgeTransact;
 	use frame_system::pallet_prelude::*;
 	use sp_arithmetic::traits::SaturatedConversion;
 	use sp_core::U256;
@@ -160,7 +161,7 @@ pub mod pallet {
 				&source,
 				asset_amount,
 			)
-			.map_err(|e| Error::<T>::FailedToTransactAsset)?;
+			.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 
 			<bridge::Pallet<T>>::transfer_fungible(
 				dest_id,
@@ -256,7 +257,7 @@ pub mod pallet {
 					&to,
 					asset_amount,
 				)
-				.map_err(|e| Error::<T>::FailedToTransactAsset)?;
+				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 			}
 
 			Ok(())

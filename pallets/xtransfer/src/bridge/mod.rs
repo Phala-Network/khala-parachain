@@ -111,6 +111,29 @@ pub mod pallet {
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
+	pub trait BridgeTransact {
+		fn transfer_fungible(
+			dest_id: BridgeChainId,
+			resource_id: ResourceId,
+			to: Vec<u8>,
+			amount: U256,
+		) -> DispatchResult;
+
+		fn transfer_nonfungible(
+			dest_id: BridgeChainId,
+			resource_id: ResourceId,
+			token_id: Vec<u8>,
+			to: Vec<u8>,
+			metadata: Vec<u8>,
+		) -> DispatchResult;
+
+		fn transfer_generic(
+			dest_id: BridgeChainId,
+			resource_id: ResourceId,
+			metadata: Vec<u8>,
+		) -> DispatchResult;
+	}
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
@@ -612,9 +635,11 @@ pub mod pallet {
 			Self::deposit_event(Event::ProposalRejected(src_id, nonce));
 			Ok(())
 		}
+	}
 
+	impl<T: Config> BridgeTransact for Pallet<T> {
 		/// Initiates a transfer of a fungible asset out of the chain. This should be called by another pallet.
-		pub fn transfer_fungible(
+		fn transfer_fungible(
 			dest_id: BridgeChainId,
 			resource_id: ResourceId,
 			to: Vec<u8>,
@@ -643,7 +668,7 @@ pub mod pallet {
 		}
 
 		/// Initiates a transfer of a nonfungible asset out of the chain. This should be called by another pallet.
-		pub fn transfer_nonfungible(
+		fn transfer_nonfungible(
 			dest_id: BridgeChainId,
 			resource_id: ResourceId,
 			token_id: Vec<u8>,
@@ -675,7 +700,7 @@ pub mod pallet {
 		}
 
 		/// Initiates a transfer of generic data out of the chain. This should be called by another pallet.
-		pub fn transfer_generic(
+		fn transfer_generic(
 			dest_id: BridgeChainId,
 			resource_id: ResourceId,
 			metadata: Vec<u8>,
