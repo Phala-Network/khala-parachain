@@ -15,42 +15,23 @@ pub mod pallet {
 	use xcm::latest::MultiLocation;
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
-	pub enum XTransferAsset {
-		ParachainAsset(MultiLocation),
-		SolochainAsset([u8; 32]),
-	}
+	pub struct XTransferAsset(MultiLocation);
 
-	impl TryFrom<MultiLocation> for XTransferAsset {
-		type Error = ();
-		fn try_from(x: MultiLocation) -> result::Result<Self, ()> {
-			Ok(XTransferAsset::ParachainAsset(x))
+	impl From<MultiLocation> for XTransferAsset {
+		fn from(x: MultiLocation) -> Self {
+			XTransferAsset(x)
 		}
 	}
 
-	impl TryFrom<XTransferAsset> for MultiLocation {
-		type Error = ();
-		fn try_from(x: XTransferAsset) -> result::Result<Self, ()> {
-			match x {
-				XTransferAsset::ParachainAsset(location) => Ok(location),
-				_ => Err(()),
-			}
+	impl From<XTransferAsset> for MultiLocation {
+		fn from(x: XTransferAsset) -> Self {
+			x.0
 		}
 	}
 
-	impl TryFrom<[u8; 32]> for XTransferAsset {
-		type Error = ();
-		fn try_from(x: [u8; 32]) -> result::Result<Self, ()> {
-			Ok(XTransferAsset::SolochainAsset(x))
-		}
-	}
-
-	impl TryFrom<XTransferAsset> for [u8; 32] {
-		type Error = ();
-		fn try_from(x: XTransferAsset) -> result::Result<Self, ()> {
-			match x {
-				XTransferAsset::SolochainAsset(rid) => Ok(rid),
-				_ => Err(()),
-			}
+	impl From<XTransferAsset> for [u8; 32] {
+		fn from(x: XTransferAsset) -> Self {
+			sp_io::hashing::keccak_256(&x.0.encode())
 		}
 	}
 
@@ -80,6 +61,11 @@ pub mod pallet {
 	#[pallet::getter(fn id_to_asset)]
 	pub type IdToAsset<T: Config> =
 		StorageMap<_, Twox64Concat, <T as pallet_assets::Config>::AssetId, XTransferAsset>;
+
+	/// Mapping resource id to corresponding asset
+	#[pallet::storage]
+	#[pallet::getter(fn resource_id_to_asset)]
+	pub type ResourceIdToAsset<T: Config> = StorageMap<_, Twox64Concat, [u8; 32], XTransferAsset>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -125,8 +111,10 @@ pub mod pallet {
 				true,
 				T::MinBalance::get(),
 			)?;
+			let resource_id: [u8; 32] = asset.clone().into();
 			AssetToId::<T>::insert(&asset, id);
 			IdToAsset::<T>::insert(id, &asset);
+			ResourceIdToAsset::<T>::insert(&resource_id, &asset);
 
 			Self::deposit_event(Event::ForceAssetRegistered(id, asset));
 			Ok(())
@@ -140,8 +128,11 @@ pub mod pallet {
 		pub fn force_unregister_asset(origin: OriginFor<T>, id: T::AssetId) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
 			if let Some(asset) = IdToAsset::<T>::get(&id) {
+				let resource_id: [u8; 32] = asset.clone().into();
 				IdToAsset::<T>::remove(&id);
 				AssetToId::<T>::remove(&asset);
+				ResourceIdToAsset::<T>::remove(&resource_id);
+
 				Self::deposit_event(Event::ForceAssetUnregistered(id, asset));
 			}
 			Ok(())
@@ -151,7 +142,8 @@ pub mod pallet {
 	pub trait XTransferAssetInfo<AssetId> {
 		fn id(asset: &XTransferAsset) -> Option<AssetId>;
 		fn asset(id: &AssetId) -> Option<XTransferAsset>;
-		fn resource_id(id: &AssetId) -> Option<[u8; 32]>;
+		// expect a better name
+		fn from_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset>;
 	}
 
 	impl<T: Config> XTransferAssetInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
@@ -163,18 +155,8 @@ pub mod pallet {
 			IdToAsset::<T>::get(id)
 		}
 
-		fn resource_id(id: &<T as pallet_assets::Config>::AssetId) -> Option<[u8; 32]> {
-			let asset = IdToAsset::<T>::get(id);
-			if asset.is_none() {
-				// asset not found
-				None
-			} else {
-				let location: MultiLocation = asset
-					.unwrap()
-					.try_into()
-					.expect("XTransferAsset must have location; qed.");
-				Some(sp_io::hashing::keccak_256(&location.encode()))
-			}
+		fn from_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset> {
+			ResourceIdToAsset::<T>::get(resource_id)
 		}
 	}
 }

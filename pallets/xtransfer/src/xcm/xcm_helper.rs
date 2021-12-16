@@ -60,10 +60,7 @@ pub mod xcm_helper {
 				(Fungible(ref amount), Concrete(ref id)) => (amount, id),
 				_ => return Err(MatchError::AssetNotFound),
 			};
-			let xtransfer_asset: XTransferAsset = location
-				.clone()
-				.try_into()
-				.map_err(|_| MatchError::AssetIdConversionFailed)?;
+			let xtransfer_asset: XTransferAsset = location.clone().into();
 			let asset_id: AssetId =
 				AssetsInfo::id(&xtransfer_asset).ok_or(MatchError::AssetNotFound)?;
 			let amount = amount
@@ -138,21 +135,12 @@ pub mod xcm_helper {
 		}
 	}
 
-	pub struct XTransferAdapter<
-		NativeAdapter,
-		AssetsAdapter,
-		NativeChecker,
-		BridgeTransactor,
-		AssetId,
-		AssetsInfo,
-	>(
+	pub struct XTransferAdapter<NativeAdapter, AssetsAdapter, NativeChecker, BridgeTransactor>(
 		PhantomData<(
 			NativeAdapter,
 			AssetsAdapter,
 			NativeChecker,
 			BridgeTransactor,
-			AssetId,
-			AssetsInfo,
 		)>,
 	);
 
@@ -161,17 +149,8 @@ pub mod xcm_helper {
 			AssetsAdapter: TransactAsset,
 			NativeChecker: NativeAssetChecker,
 			BridgeTransactor: BridgeTransact,
-			AssetId,
-			AssetsInfo: XTransferAssetInfo<AssetId>,
 		> TransactAsset
-		for XTransferAdapter<
-			NativeAdapter,
-			AssetsAdapter,
-			NativeChecker,
-			BridgeTransactor,
-			AssetId,
-			AssetsInfo,
-		>
+		for XTransferAdapter<NativeAdapter, AssetsAdapter, NativeChecker, BridgeTransactor>
 	{
 		fn can_check_in(_origin: &MultiLocation, what: &MultiAsset) -> XcmResult {
 			if NativeChecker::is_native_asset(what) {
@@ -212,21 +191,14 @@ pub mod xcm_helper {
 						(Fungible(amount), Concrete(id)) => (amount, id),
 						_ => return Err(XcmError::Unimplemented),
 					};
-					let xtransfer_asset: XTransferAsset = location
-						.clone()
-						.try_into()
-						.map_err(|_| XcmError::FailedToDecode)?;
-					let asset_id: AssetId =
-						AssetsInfo::id(&xtransfer_asset).ok_or(XcmError::AssetNotFound)?;
-					let resource_id =
-						AssetsInfo::resource_id(&asset_id).ok_or(XcmError::AssetNotFound)?;
+					let xtransfer_asset: XTransferAsset = location.clone().into();
 					let dest_id: BridgeChainId = dest_id
 						.clone()
 						.try_into()
 						.expect("Convert from u128 to dest_id must be ok; qed.");
 					BridgeTransactor::transfer_fungible(
 						dest_id,
-						resource_id,
+						xtransfer_asset.into(),
 						recipient.to_vec(),
 						U256::from(amount),
 					)

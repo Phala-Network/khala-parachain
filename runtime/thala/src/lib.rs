@@ -912,8 +912,6 @@ impl Config for XcmConfig {
         FungiblesTransactor,
         xcm_helper::NativeAssetFilter<ParachainInfo>,
         ChainBridge,
-        <Runtime as pallet_assets::Config>::AssetId,
-        AssetsWrapper,
     >;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = xcm_helper::AssetOriginFilter;

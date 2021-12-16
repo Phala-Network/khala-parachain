@@ -242,10 +242,8 @@ pub mod pallet {
 					ExistenceRequirement::AllowDeath,
 				)?;
 			} else {
-				let xtransfer_asset: XTransferAsset = rid
-					.clone()
-					.try_into()
-					.map_err(|_| Error::<T>::AssetConversionFailed)?;
+				let xtransfer_asset: XTransferAsset = T::AssetsWrapper::from_resource_id(&rid)
+					.ok_or(Error::<T>::AssetConversionFailed)?;
 				let asset_id: <T as pallet_assets::Config>::AssetId =
 					T::AssetsWrapper::id(&xtransfer_asset).ok_or(Error::<T>::AssetNotRegistered)?;
 				let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
