@@ -10,7 +10,7 @@ use crate::bridge_transfer::mock::{
 use frame_support::{assert_err, assert_noop, assert_ok};
 use hex_literal::hex;
 use sp_runtime::DispatchError;
-use sp_std::convert::TryInto;
+use xcm::latest::prelude::*;
 
 const TEST_THRESHOLD: u32 = 2;
 
@@ -34,14 +34,20 @@ fn constant_equality() {
 #[test]
 fn register_asset() {
 	new_test_ext().execute_with(|| {
-		let r_id = bridge::derive_resource_id(2, &bridge::hashing::blake2_128(b"an asset"));
-		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
+		let bridge_asset_location = MultiLocation::new(
+			1,
+			X3(
+				Parachain(2004),
+				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"an asset".to_vec()),
+			),
+		);
 
 		// permission denied
 		assert_err!(
 			AssetsWrapper::force_register_asset(
 				Origin::signed(ALICE),
-				bridge_asset.clone().into(),
+				bridge_asset_location.clone().into(),
 				0,
 				ALICE,
 			),
@@ -50,31 +56,36 @@ fn register_asset() {
 
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
-			bridge_asset.clone().into(),
+			bridge_asset_location.clone().into(),
 			0,
 			ALICE,
 		));
 
-		// same resource id register again, should be failed
+		// same location register again, should be failed
 		assert_noop!(
 			AssetsWrapper::force_register_asset(
 				Origin::root(),
-				bridge_asset.clone().into(),
+				bridge_asset_location.clone().into(),
 				1,
 				ALICE,
 			),
 			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
 		);
 
-		let r_id_1 = bridge::derive_resource_id(2, &bridge::hashing::blake2_128(b"another asset"));
-		let bridge_asset_1: crate::pallet_assets_wrapper::XTransferAsset =
-			r_id_1.try_into().unwrap();
+		let another_bridge_asset_location = MultiLocation::new(
+			1,
+			X3(
+				Parachain(2004),
+				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"another asset".to_vec()),
+			),
+		);
 
 		// same asset id register again, should be failed
 		assert_noop!(
 			AssetsWrapper::force_register_asset(
 				Origin::root(),
-				bridge_asset_1.clone().into(),
+				another_bridge_asset_location.clone().into(),
 				0,
 				ALICE,
 			),
@@ -84,16 +95,25 @@ fn register_asset() {
 		// register another asset, id = 1
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
-			bridge_asset_1.clone().into(),
+			another_bridge_asset_location.clone().into(),
 			1,
 			ALICE,
 		));
-		assert_eq!(AssetsWrapper::id(&bridge_asset_1).unwrap(), 1u32);
-		assert_eq!(AssetsWrapper::asset(&1u32.into()).unwrap(), bridge_asset_1);
+		assert_eq!(
+			AssetsWrapper::id(&another_bridge_asset_location.clone().into()).unwrap(),
+			1u32
+		);
+		assert_eq!(
+			AssetsWrapper::asset(&1u32.into()).unwrap(),
+			another_bridge_asset_location.clone().into()
+		);
 
 		// unregister asset
 		assert_ok!(AssetsWrapper::force_unregister_asset(Origin::root(), 1));
-		assert_eq!(AssetsWrapper::id(&bridge_asset_1), None);
+		assert_eq!(
+			AssetsWrapper::id(&another_bridge_asset_location.into()),
+			None
+		);
 		assert_eq!(AssetsWrapper::asset(&1u32.into()), None);
 	})
 }
@@ -102,9 +122,14 @@ fn register_asset() {
 fn transfer_assets_not_registered() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
-		let r_id =
-			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
-		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
+		let bridge_asset_location = MultiLocation::new(
+			1,
+			X3(
+				Parachain(2004),
+				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"an asset".to_vec()),
+			),
+		);
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
@@ -119,7 +144,7 @@ fn transfer_assets_not_registered() {
 		assert_noop!(
 			BridgeTransfer::transfer_assets(
 				Origin::signed(ALICE),
-				bridge_asset,
+				bridge_asset_location.into(),
 				dest_chain,
 				recipient.clone(),
 				amount,
@@ -133,9 +158,14 @@ fn transfer_assets_not_registered() {
 fn transfer_assets_insufficient_balance() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
-		let r_id =
-			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
-		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
+		let bridge_asset_location = MultiLocation::new(
+			1,
+			X3(
+				Parachain(2004),
+				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"an asset".to_vec()),
+			),
+		);
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
@@ -150,7 +180,7 @@ fn transfer_assets_insufficient_balance() {
 		// register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
-			bridge_asset.clone().into(),
+			bridge_asset_location.clone().into(),
 			0,
 			ALICE,
 		));
@@ -159,7 +189,7 @@ fn transfer_assets_insufficient_balance() {
 		assert_noop!(
 			BridgeTransfer::transfer_assets(
 				Origin::signed(ALICE),
-				bridge_asset,
+				bridge_asset_location.into(),
 				dest_chain,
 				recipient.clone(),
 				amount,
@@ -173,9 +203,14 @@ fn transfer_assets_insufficient_balance() {
 fn transfer_assets() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
-		let r_id =
-			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
-		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
+		let bridge_asset_location = MultiLocation::new(
+			1,
+			X3(
+				Parachain(2004),
+				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"an asset".to_vec()),
+			),
+		);
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
@@ -190,7 +225,7 @@ fn transfer_assets() {
 		// register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
-			bridge_asset.clone().into(),
+			bridge_asset_location.clone().into(),
 			0,
 			ALICE,
 		));
@@ -201,7 +236,7 @@ fn transfer_assets() {
 
 		assert_ok!(BridgeTransfer::transfer_assets(
 			Origin::signed(ALICE),
-			bridge_asset,
+			bridge_asset_location.into(),
 			dest_chain,
 			recipient.clone(),
 			amount,
@@ -283,17 +318,23 @@ fn simulate_pha_transfer_from_solochain() {
 #[test]
 fn simulate_assets_transfer_from_solochain() {
 	new_test_ext().execute_with(|| {
-		let dest_chain = 0;
-		let bridge_id: u64 = Bridge::account_id();
-		let r_id =
-			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
-		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
+		let bridge_asset_location = MultiLocation::new(
+			1,
+			X3(
+				Parachain(2004),
+				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"an asset".to_vec()),
+			),
+		);
+		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset =
+			bridge_asset_location.clone().into();
+		let r_id: [u8; 32] = bridge_asset.clone().into();
 		let amount: u64 = 100;
 
 		// register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
-			bridge_asset.clone().into(),
+			bridge_asset,
 			0,
 			ALICE,
 		));
