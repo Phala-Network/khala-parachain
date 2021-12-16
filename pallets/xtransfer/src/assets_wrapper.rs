@@ -8,10 +8,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::StaticLookup;
-	use sp_std::{
-		convert::{From, TryFrom, TryInto},
-		result,
-	};
+	use sp_std::convert::From;
 	use xcm::latest::MultiLocation;
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
