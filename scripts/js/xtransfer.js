@@ -307,7 +307,7 @@ async function main() {
 
     // transfer 10 PHA from rinkeby testnet to karura network
     // note: should confirm with maintainer whether the testnet relayer is running before run
-    await transferPhaFromEvmToKhala(khalaApi, bridge, evmSender, karuraAccount, bn1e18.mul(new BN(10)));
+    await transferPhaFromEvmToKarura(khalaApi, bridge, evmSender, karuraAccount, bn1e18.mul(new BN(10)));
 }
 
 main().catch(console.error).finally(() => process.exit());
