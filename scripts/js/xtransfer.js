@@ -10,8 +10,26 @@ const karuraParaId = 2000;
 async function transferPHAFromKhalaToKarura(khalaApi, sender, recipient, amount) {
     console.log(`Transfer PHA from Khala to Karura...`);
     return new Promise(async (resolve) => {
-        const unsub = await khalaApi.tx.xcmTransfer.transferNative(karuraParaId, recipient.address, amount, 6000000000)
-        .signAndSend(sender, (result) => {
+        const unsub = await khalaApi.tx.xcmTransfer.transferNative(
+            khalaApi.createType('XcmV1MultiLocation', {
+                parents: 1,
+                interior: khalaApi.createType('Junctions', {
+                    X2: [
+                        khalaApi.createType('XcmV1Junction', {
+                            Parachain: khalaApi.createType('Compact<U32>', karuraParaId)
+                        }),
+                        khalaApi.createType('XcmV1Junction', {
+                            AccountId32: {
+                                network: khalaApi.createType('XcmV0JunctionNetworkId', 'Any'),
+                                id: '0x' + Buffer.from(recipient.publicKey).toString('hex'),
+                            }
+                        }),
+                    ]
+                })
+            }),
+            amount,
+            6000000000
+        ).signAndSend(sender, (result) => {
             if (result.status.isInBlock) {
                 console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
             } else if (result.status.isFinalized) {
@@ -107,8 +125,8 @@ async function transferKARFromKhalaToKarura(khalaApi, sender, recipient, amount)
     console.log(`Transfer KAR from Khala to Karura...`);
     return new Promise(async (resolve) => {
         const unsub = await khalaApi.tx.xcmTransfer.transferAsset(
-            khalaApi.createType('XtransferPalletsAssetsWrapperPalletXTransferAsset', {
-                ParachainAsset: khalaApi.createType('XcmV1MultiLocation', {
+            khalaApi.createType('XtransferPalletsAssetsWrapperPalletXTransferAsset',
+                khalaApi.createType('XcmV1MultiLocation', {
                     parents: 1,
                     interior: khalaApi.createType('Junctions', {
                         X2: [
@@ -122,9 +140,23 @@ async function transferKARFromKhalaToKarura(khalaApi, sender, recipient, amount)
                         ]
                     })
                 })
+            ),
+            khalaApi.createType('XcmV1MultiLocation', {
+                parents: 1,
+                interior: khalaApi.createType('Junctions', {
+                    X2: [
+                        khalaApi.createType('XcmV1Junction', {
+                            Parachain: khalaApi.createType('Compact<U32>', karuraParaId)
+                        }),
+                        khalaApi.createType('XcmV1Junction', {
+                            AccountId32: {
+                                network: khalaApi.createType('XcmV0JunctionNetworkId', 'Any'),
+                                id: '0x' + Buffer.from(recipient.publicKey).toString('hex'),
+                            }
+                        }),
+                    ]
+                })
             }),
-            karuraParaId,
-            recipient.address,
             amount,
             6000000000
         ).signAndSend(sender, (result) => {
