@@ -7,6 +7,7 @@ use crate::bridge_transfer::mock::{
 	BridgeTransfer, Call, Event, NativeTokenResourceId, Origin, ProposalLifetime, Test, ALICE,
 	ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
 };
+use codec::Encode;
 use frame_support::{assert_err, assert_noop, assert_ok};
 use hex_literal::hex;
 use sp_runtime::DispatchError;
@@ -14,10 +15,10 @@ use xcm::latest::prelude::*;
 
 const TEST_THRESHOLD: u32 = 2;
 
-fn make_transfer_proposal(to: u64, amount: u64) -> Call {
+fn make_transfer_proposal(dest: Vec<u8>, amount: u64) -> Call {
 	let resource_id = NativeTokenResourceId::get();
 	Call::BridgeTransfer(crate::bridge_transfer::Call::transfer {
-		to,
+		dest,
 		amount: amount.into(),
 		rid: resource_id,
 	})
@@ -294,13 +295,21 @@ fn transfer_native() {
 fn simulate_pha_transfer_from_solochain() {
 	new_test_ext().execute_with(|| {
 		// Check inital state
-		let bridge_id: u64 = Bridge::account_id();
+		let bridge_id = Bridge::account_id();
 		let resource_id = NativeTokenResourceId::get();
 		assert_eq!(Balances::free_balance(&bridge_id), ENDOWED_BALANCE);
+		let relayer_location = MultiLocation::new(
+			0,
+			X1(AccountId32 {
+				network: NetworkId::Any,
+				id: RELAYER_A.into(),
+			}),
+		);
+
 		// Transfer and check result
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
-			RELAYER_A,
+			relayer_location.encode(),
 			10,
 			resource_id,
 		));
@@ -330,6 +339,13 @@ fn simulate_assets_transfer_from_solochain() {
 			bridge_asset_location.clone().into();
 		let r_id: [u8; 32] = bridge_asset.clone().into();
 		let amount: u64 = 100;
+		let alice_location = MultiLocation::new(
+			0,
+			X1(AccountId32 {
+				network: NetworkId::Any,
+				id: ALICE.into(),
+			}),
+		);
 
 		// register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
@@ -343,7 +359,7 @@ fn simulate_assets_transfer_from_solochain() {
 		// transfer to ALICE, would mint asset into ALICE
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
-			ALICE,
+			alice_location.encode(),
 			amount,
 			r_id,
 		));
@@ -358,7 +374,14 @@ fn create_successful_transfer_proposal() {
 		let src_id = 1;
 		let r_id = bridge::derive_resource_id(src_id, b"transfer");
 		let resource = b"BridgeTransfer.transfer".to_vec();
-		let proposal = make_transfer_proposal(RELAYER_A, 10);
+		let relayer_location = MultiLocation::new(
+			0,
+			X1(AccountId32 {
+				network: NetworkId::Any,
+				id: RELAYER_A.into(),
+			}),
+		);
+		let proposal = make_transfer_proposal(relayer_location.encode(), 10);
 
 		assert_ok!(Bridge::set_threshold(Origin::root(), TEST_THRESHOLD,));
 		assert_ok!(Bridge::add_relayer(Origin::root(), RELAYER_A));

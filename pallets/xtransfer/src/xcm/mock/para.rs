@@ -3,8 +3,9 @@ use crate::bridge::pallet::{BridgeChainId, BridgeTransact, ResourceId};
 use crate::{pallet_assets_wrapper, pallet_xcm_transfer, xcm_helper};
 
 use frame_support::{
-	construct_runtime, match_type, parameter_types,
-    pallet_prelude::*,
+	construct_runtime, match_type,
+	pallet_prelude::*,
+	parameter_types,
 	traits::{Contains, Everything},
 	weights::{IdentityFee, Weight},
 };

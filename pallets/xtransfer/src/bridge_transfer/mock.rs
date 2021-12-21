@@ -7,7 +7,7 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, ConvertInto, IdentityLookup},
-	Perbill,
+	AccountId32, Perbill,
 };
 
 use crate::bridge_transfer;
@@ -55,7 +55,7 @@ impl frame_system::Config for Test {
 	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type AccountId = u64;
+	type AccountId = AccountId32;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type Event = Event;
@@ -117,6 +117,7 @@ impl bridge_transfer::Config for Test {
 	type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Test, ConvertInto>;
 	type BridgeOrigin = bridge::EnsureBridge<Test>;
 	type Currency = Balances;
+	type XcmTransactor = ();
 	type NativeTokenResourceId = NativeTokenResourceId;
 	type OnFeePay = ();
 }
@@ -158,10 +159,10 @@ impl pallet_timestamp::Config for Test {
 	type WeightInfo = ();
 }
 
-pub const ALICE: u64 = 0x1;
-pub const RELAYER_A: u64 = 0x2;
-pub const RELAYER_B: u64 = 0x3;
-pub const RELAYER_C: u64 = 0x4;
+pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
+pub const RELAYER_A: AccountId32 = AccountId32::new([1u8; 32]);
+pub const RELAYER_B: AccountId32 = AccountId32::new([2u8; 32]);
+pub const RELAYER_C: AccountId32 = AccountId32::new([3u8; 32]);
 pub const ENDOWED_BALANCE: u64 = 100_000_000;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

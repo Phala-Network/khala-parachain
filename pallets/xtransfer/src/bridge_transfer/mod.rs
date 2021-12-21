@@ -18,10 +18,12 @@ pub mod pallet {
 
 	use crate::bridge;
 	use crate::bridge::pallet::BridgeTransact;
+	use crate::xcm::xcm_transfer::pallet::XcmTransact;
 	use frame_system::pallet_prelude::*;
 	use sp_arithmetic::traits::SaturatedConversion;
 	use sp_core::U256;
 	use sp_std::prelude::*;
+	use xcm::latest::{prelude::*, MultiAsset, MultiLocation};
 
 	type ResourceId = bridge::ResourceId;
 
@@ -58,6 +60,9 @@ pub mod pallet {
 		/// Currency impl
 		type Currency: Currency<Self::AccountId>;
 
+		/// XCM transactor
+		type XcmTransactor: XcmTransact<Self>;
+
 		/// PHA resource id
 		#[pallet::constant]
 		type NativeTokenResourceId: Get<ResourceId>;
@@ -83,6 +88,8 @@ pub mod pallet {
 		InsufficientBalance,
 		BalanceConversionFailed,
 		FailedToTransactAsset,
+		DestUnrecognised,
+		Unimplemented,
 	}
 
 	#[pallet::storage]
@@ -91,7 +98,11 @@ pub mod pallet {
 		StorageMap<_, Twox64Concat, bridge::BridgeChainId, (BalanceOf<T>, u32), ValueQuery>;
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {
+	impl<T: Config> Pallet<T>
+	where
+		<T as frame_system::Config>::AccountId: From<[u8; 32]>,
+		BalanceOf<T>: Into<u128>,
+	{
 		/// Change extra bridge transfer fee that user should pay
 		#[pallet::weight(195_000_000)]
 		pub fn change_fee(
@@ -227,37 +238,65 @@ pub mod pallet {
 		#[pallet::weight(195_000_000)]
 		pub fn transfer(
 			origin: OriginFor<T>,
-			to: T::AccountId,
+			dest: Vec<u8>,
 			amount: BalanceOf<T>,
 			rid: ResourceId,
 		) -> DispatchResult {
-			let source = T::BridgeOrigin::ensure_origin(origin)?;
+			let source = T::BridgeOrigin::ensure_origin(origin.clone())?;
+			let dest_location: MultiLocation =
+				Decode::decode(&mut dest.as_slice()).map_err(|_| Error::<T>::DestUnrecognised)?;
 
-			if rid == T::NativeTokenResourceId::get() {
-				// ERC20 PHA transfer
-				<T as Config>::Currency::transfer(
-					&source,
-					&to,
-					amount,
-					ExistenceRequirement::AllowDeath,
-				)?;
-			} else {
-				let xtransfer_asset: XTransferAsset = T::AssetsWrapper::from_resource_id(&rid)
-					.ok_or(Error::<T>::AssetConversionFailed)?;
-				let asset_id: <T as pallet_assets::Config>::AssetId =
-					T::AssetsWrapper::id(&xtransfer_asset).ok_or(Error::<T>::AssetNotRegistered)?;
-				let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
-					.map_err(|_| Error::<T>::BalanceConversionFailed)?;
+			match (
+				dest_location.clone().parents,
+				dest_location.clone().interior,
+			) {
+				// to local account
+				(0, X1(AccountId32 { network: _, id })) => {
+					if rid == T::NativeTokenResourceId::get() {
+						// ERC20 PHA transfer
+						<T as Config>::Currency::transfer(
+							&source,
+							&id.into(),
+							amount,
+							ExistenceRequirement::AllowDeath,
+						)?;
+					} else {
+						let xtransfer_asset: XTransferAsset =
+							T::AssetsWrapper::from_resource_id(&rid)
+								.ok_or(Error::<T>::AssetConversionFailed)?;
+						let asset_id: <T as pallet_assets::Config>::AssetId =
+							T::AssetsWrapper::id(&xtransfer_asset)
+								.ok_or(Error::<T>::AssetNotRegistered)?;
+						let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
+							.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 
-				// mint asset into recipient
-				<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::mint_into(
-					asset_id,
-					&to,
-					asset_amount,
-				)
-				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
+						// mint asset into recipient
+						<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::mint_into(
+                            asset_id,
+                            &id.into(),
+                            asset_amount,
+                        )
+                        .map_err(|_| Error::<T>::FailedToTransactAsset)?;
+					}
+				}
+				// to relaychain or other parachain, forward it by xcm
+				(1, X1(AccountId32 { network: _, id: _ }))
+				| (1, X2(Parachain(_), AccountId32 { network: _, id: _ })) => {
+					let xtransfer_asset: XTransferAsset = T::AssetsWrapper::from_resource_id(&rid)
+						.ok_or(Error::<T>::AssetConversionFailed)?;
+					let asset_location: MultiLocation = xtransfer_asset.clone().into();
+					let multi_asset: MultiAsset = (asset_location, amount.into()).into();
+
+					T::XcmTransactor::transfer_fungible(
+						source,
+						MultiLocation::here(),
+						multi_asset,
+						dest_location,
+						6000000000u64.into(),
+					)?;
+				}
+				_ => return Err(Error::<T>::DestUnrecognised.into()),
 			}
-
 			Ok(())
 		}
 	}

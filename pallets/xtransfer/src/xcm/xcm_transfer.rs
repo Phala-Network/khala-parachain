@@ -82,7 +82,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Assets sent to parachain or relaychain. \[from, paraId, to, amount\]
-		AssetTransfered(T::AccountId, ParaId, T::AccountId, BalanceOf<T>),
+		AssetTransfered(T::AccountId, MultiAsset, MultiLocation),
 	}
 
 	#[pallet::error]
@@ -95,49 +95,51 @@ pub mod pallet {
 		UnknownTransfer,
 		AssetNotFound,
 		LocationInvertFailed,
+		IllegalDestination,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
-		T::AccountId: Into<[u8; 32]>,
+		T::AccountId: Into<[u8; 32]> + From<[u8; 32]>,
 		BalanceOf<T>: Into<u128>,
 	{
 		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
 		pub fn transfer_asset(
 			origin: OriginFor<T>,
 			asset: pallet_assets_wrapper::XTransferAsset,
-			para_id: ParaId,
-			recipient: T::AccountId,
+			dest: MultiLocation,
 			amount: BalanceOf<T>,
 			dest_weight: Weight,
 		) -> DispatchResult {
+			let sender = ensure_signed(origin.clone())?;
+			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
 			// get asset location by asset id
 			let asset_location: MultiLocation =
 				asset.try_into().map_err(|_| Error::<T>::AssetNotFound)?;
 			let multi_asset: MultiAsset = (asset_location, amount.into()).into();
-
-			Self::do_transfer(origin, multi_asset, para_id, recipient, amount, dest_weight)
+			Self::do_transfer_multiasset(sender, origin_location, multi_asset, dest, dest_weight)
 		}
 
 		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
 		pub fn transfer_native(
 			origin: OriginFor<T>,
-			para_id: ParaId,
-			recipient: T::AccountId,
+			dest: MultiLocation,
 			amount: BalanceOf<T>,
 			dest_weight: Weight,
 		) -> DispatchResult {
+			let sender = ensure_signed(origin.clone())?;
+			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
 			let asset_location: MultiLocation = (0, Here).into();
 			let asset: MultiAsset = (asset_location, amount.into()).into();
 
-			Self::do_transfer(origin, asset, para_id, recipient, amount, dest_weight)
+			Self::do_transfer_multiasset(sender, origin_location, asset, dest, dest_weight)
 		}
 	}
 
 	impl<T: Config> Pallet<T>
 	where
-		T::AccountId: Into<[u8; 32]>,
+		T::AccountId: Into<[u8; 32]> + From<[u8; 32]>,
 		BalanceOf<T>: Into<u128>,
 	{
 		/// Returns the estimated max weight for a xcm based on non-reserve xcm transfer cost
@@ -158,17 +160,29 @@ pub mod pallet {
 			T::Weigher::weight(&mut msg).map_or(Weight::max_value(), |w| w)
 		}
 
-		pub fn do_transfer(
-			origin: OriginFor<T>,
+		pub fn do_transfer_multiasset(
+			sender: T::AccountId,
+			origin_location: MultiLocation,
 			asset: MultiAsset,
-			para_id: ParaId,
-			recipient: T::AccountId,
-			amount: BalanceOf<T>,
+			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			let sender = ensure_signed(origin.clone())?;
-			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
-			let dest_location = (1, X1(Parachain(para_id.into()))).into();
+			let mut dest_location = dest.clone();
+			// make sure we are processing crosschain transfer and we got correct path
+			ensure!(
+				!dest_location.is_here() && dest_location.interior.len() >= 2,
+				Error::<T>::IllegalDestination
+			);
+			// FIXME: what if someone give a Parachain junction at the end?
+			// After take_last(), dest only contains reserve location of the recipient.
+			let recipient = match dest_location.take_last() {
+				Some(Junction::AccountId32 {
+					network: _,
+					id: recipient,
+				}) => Some(recipient),
+				_ => None,
+			};
+			ensure!(!recipient.is_none(), Error::<T>::IllegalDestination);
 
 			let fee: MultiAsset;
 			if T::FeeAssets::get().contains(&asset)
@@ -196,12 +210,12 @@ pub mod pallet {
 			}
 
 			let xcm_session = XCMSession::<T> {
-				asset,
+				asset: asset.clone(),
 				fee,
 				origin_location,
 				dest_location,
 				sender: sender.clone(),
-				recipient: recipient.clone(),
+				recipient: recipient.unwrap().into(),
 				dest_weight,
 			};
 			let mut msg = xcm_session.message()?;
@@ -213,9 +227,49 @@ pub mod pallet {
 
 			xcm_session.execute(&mut msg)?;
 
-			Self::deposit_event(Event::AssetTransfered(sender, para_id, recipient, amount));
+			Self::deposit_event(Event::AssetTransfered(sender, asset, dest));
 
 			Ok(())
+		}
+	}
+
+	pub trait XcmTransact<T: frame_system::Config> {
+		fn transfer_fungible(
+			sender: T::AccountId,
+			origin_location: MultiLocation,
+			asset: MultiAsset,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> DispatchResult;
+	}
+
+	// Impl XcmTransact trait for () only for testing purpose, would
+	// be removed when release
+	impl<T: frame_system::Config> XcmTransact<T> for () {
+		fn transfer_fungible(
+			sender: T::AccountId,
+			origin_location: MultiLocation,
+			asset: MultiAsset,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> DispatchResult {
+			Ok(())
+		}
+	}
+
+	impl<T: Config> XcmTransact<T> for Pallet<T>
+	where
+		T::AccountId: From<[u8; 32]> + Into<[u8; 32]>,
+		BalanceOf<T>: Into<u128>,
+	{
+		fn transfer_fungible(
+			sender: T::AccountId,
+			origin_location: MultiLocation,
+			asset: MultiAsset,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> DispatchResult {
+			Self::do_transfer_multiasset(sender, origin_location, asset, dest, dest_weight)
 		}
 	}
 
@@ -565,8 +619,16 @@ mod test {
 			// ParaA send it's own native asset to paraB
 			assert_ok!(XcmTransfer::transfer_native(
 				Some(ALICE).into(),
-				2u32.into(),
-				BOB,
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(2u32.into()),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into()
+						}
+					)
+				),
 				10,
 				1,
 			));
@@ -605,8 +667,16 @@ mod test {
 			// ParaA send it's own native asset to paraB
 			assert_ok!(XcmTransfer::transfer_native(
 				Some(ALICE).into(),
-				2u32.into(),
-				BOB,
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(2u32.into()),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into()
+						}
+					)
+				),
 				10,
 				1,
 			));
@@ -625,8 +695,16 @@ mod test {
 			assert_ok!(XcmTransfer::transfer_asset(
 				Some(BOB).into(),
 				para_a_asset.clone().into(),
-				1u32.into(),
-				ALICE,
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(1u32.into()),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: ALICE.into()
+						}
+					)
+				),
 				5,
 				1,
 			));
