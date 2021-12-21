@@ -25,6 +25,7 @@ members = [
 	"pallets/bridge",
 	"pallets/bridge_transfer",
 	"pallets/parachain-info",
+	"runtime/phala",
 	"runtime/khala",
 	"runtime/thala",
 ]

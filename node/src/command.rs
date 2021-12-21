@@ -36,11 +36,14 @@ use std::{collections::VecDeque, io::Write, net::SocketAddr};
 
 use crate::service::{
     Block, new_partial,
-    KhalaParachainRuntimeExecutor, ThalaParachainRuntimeExecutor
+    phala::RuntimeExecutor as PhalaParachainRuntimeExecutor,
+    khala::RuntimeExecutor as KhalaParachainRuntimeExecutor,
+    thala::RuntimeExecutor as ThalaParachainRuntimeExecutor,
 };
 
 trait IdentifyChain {
     fn runtime_name(&self) -> String;
+    fn is_phala(&self) -> bool;
     fn is_khala(&self) -> bool;
     fn is_whala(&self) -> bool;
     fn is_thala(&self) -> bool;
@@ -51,6 +54,9 @@ impl IdentifyChain for dyn sc_service::ChainSpec {
         chain_spec::Extensions::try_get(self)
             .map(|e| e.runtime.clone())
             .expect("Could not find parachain extension for chain-spec.")
+    }
+    fn is_phala(&self) -> bool {
+        self.runtime_name() == "phala"
     }
     fn is_khala(&self) -> bool {
         self.runtime_name() == "khala"
@@ -66,6 +72,9 @@ impl IdentifyChain for dyn sc_service::ChainSpec {
 impl<T: sc_service::ChainSpec + 'static> IdentifyChain for T {
     fn runtime_name(&self) -> String {
         <dyn sc_service::ChainSpec>::runtime_name(self)
+    }
+    fn is_phala(&self) -> bool {
+        <dyn sc_service::ChainSpec>::is_phala(self)
     }
     fn is_khala(&self) -> bool {
         <dyn sc_service::ChainSpec>::is_khala(self)
@@ -84,7 +93,11 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         info!("Load chain spec {}", path.to_str().unwrap());
         let chain_spec =
             chain_spec::ChainSpec::from_json_file(path.clone().into())?;
-        return if chain_spec.is_khala() {
+        return if chain_spec.is_phala() {
+            Ok(
+                Box::new(chain_spec::phala::ChainSpec::from_json_file(path.into())?)
+            )
+        } else if chain_spec.is_khala() {
             Ok(
                 Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?)
             )
@@ -123,6 +136,26 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     let environment = normalized_id.pop_back().ok_or("Must specify environment");
 
     drop(normalized_id);
+
+    if runtime_name == "phala" {
+        // TODO: Export Phala raw chain spec
+        // if para_id.is_err() {
+        //     return Ok(Box::new(chain_spec::phala::ChainSpec::from_json_bytes(
+        //         &include_bytes!("../res/phala.json")[..],
+        //     )?));
+        // }
+
+        return match environment? {
+            "dev" => Ok(Box::new(chain_spec::phala::phala_development_config(
+                para_id?.into(),
+            ))),
+            "local" => Ok(Box::new(chain_spec::phala::phala_local_config(
+                para_id?.into(),
+            ))),
+            "staging" => Ok(Box::new(chain_spec::phala::phala_staging_config())),
+            other => Err(format!("Unsupported environment {} for Phala", other)),
+        };
+    }
 
     if runtime_name == "khala" {
         if para_id.is_err() {
@@ -265,11 +298,20 @@ fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<V
 macro_rules! construct_async_run {
     (|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
         let runner = $cli.create_runner($cmd)?;
-        if runner.config().chain_spec.is_khala() {
+        if runner.config().chain_spec.is_phala() {
+            runner.async_run(|$config| {
+                let $components = new_partial::<phala_parachain_runtime::RuntimeApi, PhalaParachainRuntimeExecutor, _>(
+                    &$config,
+                    crate::service::phala::build_import_queue,
+                )?;
+                let task_manager = $components.task_manager;
+                { $( $code )* }.map(|v| (v, task_manager))
+            })
+        } else if runner.config().chain_spec.is_khala() {
             runner.async_run(|$config| {
                 let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
                     &$config,
-                    crate::service::khala_parachain_build_import_queue,
+                    crate::service::khala::build_import_queue,
                 )?;
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
@@ -278,7 +320,7 @@ macro_rules! construct_async_run {
             runner.async_run(|$config| {
                 let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
                     &$config,
-                    crate::service::khala_parachain_build_import_queue,
+                    crate::service::khala::build_import_queue,
                 )?;
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
@@ -287,7 +329,7 @@ macro_rules! construct_async_run {
             runner.async_run(|$config| {
                 let $components = new_partial::<thala_parachain_runtime::RuntimeApi, ThalaParachainRuntimeExecutor, _>(
                     &$config,
-                    crate::service::thala_parachain_build_import_queue,
+                    crate::service::thala::build_import_queue,
                 )?;
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
@@ -397,7 +439,9 @@ pub fn run() -> Result<()> {
         Some(Subcommand::Benchmark(cmd)) => {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
-                if runner.config().chain_spec.is_khala() {
+                if runner.config().chain_spec.is_phala() {
+                    runner.sync_run(|config| cmd.run::<Block, PhalaParachainRuntimeExecutor>(config))
+                } else if runner.config().chain_spec.is_khala() {
                     runner.sync_run(|config| cmd.run::<Block, KhalaParachainRuntimeExecutor>(config))
                 } else if runner.config().chain_spec.is_thala() {
                     runner.sync_run(|config| cmd.run::<Block, ThalaParachainRuntimeExecutor>(config))
@@ -420,7 +464,11 @@ pub fn run() -> Result<()> {
                     TaskManager::new(runner.config().tokio_handle.clone(), *registry)
                         .map_err(|e| format!("Error: {:?}", e))?;
 
-                if runner.config().chain_spec.is_khala() {
+                if runner.config().chain_spec.is_phala() {
+                    runner.async_run(|config| {
+                        Ok((cmd.run::<Block, PhalaParachainRuntimeExecutor>(config), task_manager))
+                    })
+                } else if runner.config().chain_spec.is_khala() {
                     runner.async_run(|config| {
                         Ok((cmd.run::<Block, KhalaParachainRuntimeExecutor>(config), task_manager))
                     })
@@ -480,18 +528,23 @@ pub fn run() -> Result<()> {
                     }
                 );
 
-                if config.chain_spec.is_khala() {
-                    crate::service::start_khala_parachain_node(config, polkadot_config, id)
+                if config.chain_spec.is_phala() {
+                    crate::service::phala::start_node(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                } else if config.chain_spec.is_khala() {
+                    crate::service::khala::start_node(config, polkadot_config, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
                 } else if config.chain_spec.is_whala() {
-                    crate::service::start_khala_parachain_node(config, polkadot_config, id)
+                    crate::service::khala::start_node(config, polkadot_config, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
                 } else if config.chain_spec.is_thala() {
-                    crate::service::start_thala_parachain_node(config, polkadot_config, id)
+                    crate::service::thala::start_node(config, polkadot_config, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
