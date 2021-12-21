@@ -171,7 +171,6 @@ fn genesis(
         balances: thala_parachain_runtime::BalancesConfig {
             balances: endowed_accounts,
         },
-        assets: Default::default(),
         sudo: thala_parachain_runtime::SudoConfig { key: root_key },
         parachain_info: thala_parachain_runtime::ParachainInfoConfig { parachain_id: id },
         collator_selection: thala_parachain_runtime::CollatorSelectionConfig {
