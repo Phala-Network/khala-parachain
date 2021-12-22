@@ -100,7 +100,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
-		<T as frame_system::Config>::AccountId: From<[u8; 32]>,
+		<T as frame_system::Config>::AccountId: From<[u8; 32]> + Into<[u8; 32]>,
 		BalanceOf<T>: Into<u128>,
 	{
 		/// Change extra bridge transfer fee that user should pay
@@ -293,8 +293,12 @@ pub mod pallet {
 					};
 
 					T::XcmTransactor::transfer_fungible(
-						source,
-						MultiLocation::here(),
+						source.clone(),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: source.into(),
+						}
+						.into(),
 						multi_asset,
 						dest_location,
 						6000000000u64.into(),
