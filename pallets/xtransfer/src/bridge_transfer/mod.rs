@@ -282,10 +282,15 @@ pub mod pallet {
 				// to relaychain or other parachain, forward it by xcm
 				(1, X1(AccountId32 { network: _, id: _ }))
 				| (1, X2(Parachain(_), AccountId32 { network: _, id: _ })) => {
-					let xtransfer_asset: XTransferAsset = T::AssetsWrapper::from_resource_id(&rid)
-						.ok_or(Error::<T>::AssetConversionFailed)?;
-					let asset_location: MultiLocation = xtransfer_asset.clone().into();
-					let multi_asset: MultiAsset = (asset_location, amount.into()).into();
+					let multi_asset: MultiAsset = if rid == T::NativeTokenResourceId::get() {
+						(MultiLocation::here(), amount.into()).into()
+					} else {
+						let xtransfer_asset: XTransferAsset =
+							T::AssetsWrapper::from_resource_id(&rid)
+								.ok_or(Error::<T>::AssetConversionFailed)?;
+						let asset_location: MultiLocation = xtransfer_asset.clone().into();
+						(asset_location, amount.into()).into()
+					};
 
 					T::XcmTransactor::transfer_fungible(
 						source,
