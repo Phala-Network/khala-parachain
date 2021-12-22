@@ -85,10 +85,16 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Asset been registerd. \[id, asset\]
-		ForceAssetRegistered(<T as pallet_assets::Config>::AssetId, XTransferAsset),
-		/// Asset been unregisterd. \[id, asset\]
-		ForceAssetUnregistered(<T as pallet_assets::Config>::AssetId, XTransferAsset),
+		/// Asset been registerd. \[asset_id, asset\]
+		ForceAssetRegistered {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			asset: XTransferAsset,
+		},
+		/// Asset been unregisterd. \[asset_id, asset\]
+		ForceAssetUnregistered {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			asset: XTransferAsset,
+		},
 	}
 
 	#[pallet::error]
@@ -105,7 +111,7 @@ pub mod pallet {
 		pub fn force_register_asset(
 			origin: OriginFor<T>,
 			asset: XTransferAsset,
-			id: T::AssetId,
+			asset_id: T::AssetId,
 			owner: <T::Lookup as StaticLookup>::Source,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin.clone())?;
@@ -114,22 +120,22 @@ pub mod pallet {
 				AssetToId::<T>::get(&asset) == None,
 				Error::<T>::AssetAlreadyExist
 			);
-			// ensure id has not been registered
+			// ensure asset_id has not been registered
 			ensure!(
-				IdToAsset::<T>::get(&id) == None,
+				IdToAsset::<T>::get(&asset_id) == None,
 				Error::<T>::AssetAlreadyExist
 			);
 			pallet_assets::pallet::Pallet::<T>::force_create(
 				origin,
-				id,
+				asset_id,
 				owner,
 				true,
 				T::MinBalance::get(),
 			)?;
-			AssetToId::<T>::insert(&asset, id);
-			IdToAsset::<T>::insert(id, &asset);
+			AssetToId::<T>::insert(&asset, asset_id);
+			IdToAsset::<T>::insert(asset_id, &asset);
 
-			Self::deposit_event(Event::ForceAssetRegistered(id, asset));
+			Self::deposit_event(Event::ForceAssetRegistered { asset_id, asset });
 			Ok(())
 		}
 
@@ -138,12 +144,15 @@ pub mod pallet {
 		/// will not success anymore, we should call pallet_assets::destory() manually
 		/// if we want to delete this asset from our chain
 		#[pallet::weight(195_000_000)]
-		pub fn force_unregister_asset(origin: OriginFor<T>, id: T::AssetId) -> DispatchResult {
+		pub fn force_unregister_asset(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
-			if let Some(asset) = IdToAsset::<T>::get(&id) {
-				IdToAsset::<T>::remove(&id);
+			if let Some(asset) = IdToAsset::<T>::get(&asset_id) {
+				IdToAsset::<T>::remove(&asset_id);
 				AssetToId::<T>::remove(&asset);
-				Self::deposit_event(Event::ForceAssetUnregistered(id, asset));
+				Self::deposit_event(Event::ForceAssetUnregistered { asset_id, asset });
 			}
 			Ok(())
 		}

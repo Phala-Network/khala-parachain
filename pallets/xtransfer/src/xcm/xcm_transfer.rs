@@ -468,10 +468,10 @@ mod test {
 
 			let ev: Vec<para::Event> = para_take_events();
 			let expected_ev: Vec<para::Event> =
-				[pallet_assets_wrapper::Event::ForceAssetRegistered(
-					0u32.into(),
-					para_a_asset.clone(),
-				)
+				[pallet_assets_wrapper::Event::ForceAssetRegistered {
+					asset_id: 0u32.into(),
+					asset: para_a_asset.clone(),
+				}
 				.into()]
 				.to_vec();
 			assert_matches!(ev, expected_ev);

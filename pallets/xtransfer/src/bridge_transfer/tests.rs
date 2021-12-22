@@ -9,9 +9,9 @@ use crate::bridge_transfer::mock::{
 };
 use frame_support::{assert_err, assert_noop, assert_ok};
 use hex_literal::hex;
+use sp_core::hashing::blake2_128;
 use sp_runtime::DispatchError;
 use sp_std::convert::TryInto;
-use sp_core::hashing::blake2_128;
 
 const TEST_THRESHOLD: u32 = 2;
 
@@ -103,8 +103,7 @@ fn register_asset() {
 fn transfer_assets_not_registered() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
-		let r_id =
-			bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
+		let r_id = bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 		let recipient = vec![99];
@@ -134,8 +133,7 @@ fn transfer_assets_not_registered() {
 fn transfer_assets_insufficient_balance() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
-		let r_id =
-			bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
+		let r_id = bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 		let recipient = vec![99];
@@ -174,8 +172,7 @@ fn transfer_assets_insufficient_balance() {
 fn transfer_assets() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
-		let r_id =
-			bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
+		let r_id = bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 		let recipient = vec![99];
@@ -286,8 +283,7 @@ fn simulate_assets_transfer_from_solochain() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 0;
 		let bridge_id: u64 = Bridge::account_id();
-		let r_id =
-			bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
+		let r_id = bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 
