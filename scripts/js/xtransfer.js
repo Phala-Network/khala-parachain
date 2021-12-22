@@ -200,27 +200,23 @@ async function transferAssetsKhalaAccounts(khalaApi, sender, recipient, amount) 
 // simulate EVM => Khala, call Bridge.Deposit()
 async function transferPhaFromEvmToKhala(khalaApi, bridge, sender, recipient, amount) {
     let khalaChainId = 1;
-    let phaResourceId = '0x00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001';
+    let phaResourceId = '0x41ab283b2b268c9c99ddfe96ed5dfbfa3dcc1a2f5551a30049fea8484186f2eb';
     // dest is not Account public key any more.
     let dest = khalaApi.createType('XcmV1MultiLocation', {
         // parents = 0 means we send to xcm local network(e.g. Khala network here)
         parents: 0,
         interior: khalaApi.createType('Junctions', {
-            X2: [
-                khalaApi.createType('XcmV1Junction', {
-                    Parachain: khalaApi.createType('Compact<U32>', khalaParaId)
-                }),
-                khalaApi.createType('XcmV1Junction', {
+            X1: khalaApi.createType('XcmV1Junction', {
                     AccountId32: {
                         network: khalaApi.createType('XcmV0JunctionNetworkId', 'Any'),
                         id: '0x' + Buffer.from(recipient.publicKey).toString('hex'),
                     }
-                }),
-            ]
+                })
         })
-    });
+    }).toHex();
+
     let data  = '0x' +
-        ethers.utils.hexZeroPad(ethers.utils.bigNumberify(amount).toHexString(), 32).substr(2) + 
+        ethers.utils.hexZeroPad(ethers.BigNumber.from(amount.toString()).toHexString(), 32).substr(2) + 
         ethers.utils.hexZeroPad(ethers.utils.hexlify((dest.length - 2)/2), 32).substr(2) +
         dest.substr(2);
 
@@ -229,6 +225,8 @@ async function transferPhaFromEvmToKhala(khalaApi, bridge, sender, recipient, am
 
 // simulate EVM => Khala => Karura, call Bridge.Deposit()
 async function transferPhaFromEvmToKarura(khalaApi, bridge, sender, recipient, amount) {
+    let khalaChainId = 1;
+    let phaResourceId = '0x41ab283b2b268c9c99ddfe96ed5dfbfa3dcc1a2f5551a30049fea8484186f2eb';
     let dest = khalaApi.createType('XcmV1MultiLocation', {
         // parents = 1 means we wanna send to other parachains or relaychain
         parents: 1,
@@ -247,7 +245,7 @@ async function transferPhaFromEvmToKarura(khalaApi, bridge, sender, recipient, a
         })
     }).toHex();
     let data  = '0x' +
-    ethers.utils.hexZeroPad(ethers.utils.bigNumberify(amount).toHexString(), 32).substr(2) + 
+    ethers.utils.hexZeroPad(ethers.BigNumber.from(amount.toString()).toHexString(), 32).substr(2) + 
     ethers.utils.hexZeroPad(ethers.utils.hexlify((dest.length - 2)/2), 32).substr(2) +
     dest.substr(2);
 
