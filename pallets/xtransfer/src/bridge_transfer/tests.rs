@@ -11,6 +11,7 @@ use frame_support::{assert_err, assert_noop, assert_ok};
 use hex_literal::hex;
 use sp_runtime::DispatchError;
 use sp_std::convert::TryInto;
+use sp_core::hashing::blake2_128;
 
 const TEST_THRESHOLD: u32 = 2;
 
@@ -25,7 +26,7 @@ fn make_transfer_proposal(to: u64, amount: u64) -> Call {
 
 #[test]
 fn constant_equality() {
-	let r_id = bridge::derive_resource_id(1, &bridge::hashing::blake2_128(b"PHA"));
+	let r_id = bridge::derive_resource_id(1, &blake2_128(b"PHA"));
 	let encoded: [u8; 32] =
 		hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
 	assert_eq!(r_id, encoded);
@@ -34,7 +35,7 @@ fn constant_equality() {
 #[test]
 fn register_asset() {
 	new_test_ext().execute_with(|| {
-		let r_id = bridge::derive_resource_id(2, &bridge::hashing::blake2_128(b"an asset"));
+		let r_id = bridge::derive_resource_id(2, &blake2_128(b"an asset"));
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 
 		// permission denied
@@ -66,7 +67,7 @@ fn register_asset() {
 			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
 		);
 
-		let r_id_1 = bridge::derive_resource_id(2, &bridge::hashing::blake2_128(b"another asset"));
+		let r_id_1 = bridge::derive_resource_id(2, &blake2_128(b"another asset"));
 		let bridge_asset_1: crate::pallet_assets_wrapper::XTransferAsset =
 			r_id_1.try_into().unwrap();
 
@@ -103,7 +104,7 @@ fn transfer_assets_not_registered() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
 		let r_id =
-			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
+			bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 		let recipient = vec![99];
@@ -134,7 +135,7 @@ fn transfer_assets_insufficient_balance() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
 		let r_id =
-			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
+			bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 		let recipient = vec![99];
@@ -174,7 +175,7 @@ fn transfer_assets() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 2;
 		let r_id =
-			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
+			bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 		let recipient = vec![99];
@@ -286,7 +287,7 @@ fn simulate_assets_transfer_from_solochain() {
 		let dest_chain = 0;
 		let bridge_id: u64 = Bridge::account_id();
 		let r_id =
-			bridge::derive_resource_id(dest_chain, &bridge::hashing::blake2_128(b"an asset"));
+			bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
 
