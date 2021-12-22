@@ -907,6 +907,9 @@ parameter_types! {
         VSKSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
     ].to_vec().into();
 
+    // This fee is set when we trying to send assets that dest chain not support
+    // it as trade fee, thus we set PHA as the fee asset, and give this default
+    // amount to pay fee.
     pub const DefaultDestChainXcmFee: Balance = 10 * CENTS;
 }
 
@@ -929,23 +932,23 @@ impl Config for XcmConfig {
     type Trader = (
         FixedRateOfFungible<
             ExecutionPriceInKSM,
-            xcm_helper::TakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInPHA,
-            xcm_helper::TakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInKAR,
-            xcm_helper::TakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInBNC,
-            xcm_helper::TakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInVKSM,
-            xcm_helper::TakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
     );
     type ResponseHandler = PolkadotXcm;

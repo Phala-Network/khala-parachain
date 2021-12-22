@@ -10,7 +10,10 @@ pub mod pallet {
 	use frame_support::{
 		pallet_prelude::*,
 		traits::{
-			tokens::{fungibles::Mutate as FungibleMutate, BalanceConversion, WithdrawReasons},
+			tokens::{
+				fungibles::{Inspect, Mutate as FungibleMutate},
+				BalanceConversion, WithdrawReasons,
+			},
 			Currency, ExistenceRequirement, OnUnbalanced, StorageVersion,
 		},
 		transactional,
@@ -93,7 +96,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Change extra bridge transfer fee that user should pay
 		#[pallet::weight(195_000_000)]
-		pub fn change_fee(
+		pub fn update_fee(
 			origin: OriginFor<T>,
 			min_fee: BalanceOf<T>,
 			fee_scale: u32,
@@ -129,9 +132,13 @@ pub mod pallet {
 				T::AssetsWrapper::id(&asset).ok_or(Error::<T>::AssetNotRegistered)?;
 			let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
 				.map_err(|_| Error::<T>::BalanceConversionFailed)?;
+			let reducible_balance = <pallet_assets::pallet::Pallet<T>>::reducible_balance(
+				asset_id.into(),
+				&source,
+				false,
+			);
 			ensure!(
-				<pallet_assets::pallet::Pallet<T>>::balance(asset_id.into(), &source)
-					>= asset_amount,
+				reducible_balance >= asset_amount,
 				Error::<T>::InsufficientBalance
 			);
 
@@ -160,7 +167,7 @@ pub mod pallet {
 				&source,
 				asset_amount,
 			)
-			.map_err(|e| Error::<T>::FailedToTransactAsset)?;
+			.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 
 			<bridge::Pallet<T>>::transfer_fungible(
 				dest_id,
@@ -184,7 +191,7 @@ pub mod pallet {
 				<bridge::Pallet<T>>::chain_whitelisted(dest_id),
 				Error::<T>::InvalidDestination
 			);
-			let bridge_id = <bridge::Pallet<T>>::account_id();
+			let reserve_id = <bridge::Pallet<T>>::account_id();
 			ensure!(
 				BridgeFee::<T>::contains_key(&dest_id),
 				Error::<T>::FeeOptionsMissing
@@ -205,7 +212,7 @@ pub mod pallet {
 			T::OnFeePay::on_unbalanced(imbalance);
 			<T as Config>::Currency::transfer(
 				&source,
-				&bridge_id,
+				&reserve_id,
 				amount,
 				ExistenceRequirement::AllowDeath,
 			)?;
@@ -242,7 +249,6 @@ pub mod pallet {
 				)?;
 			} else {
 				let xtransfer_asset: XTransferAsset = rid
-					.clone()
 					.try_into()
 					.map_err(|_| Error::<T>::AssetConversionFailed)?;
 				let asset_id: <T as pallet_assets::Config>::AssetId =
@@ -256,7 +262,7 @@ pub mod pallet {
 					&to,
 					asset_amount,
 				)
-				.map_err(|e| Error::<T>::FailedToTransactAsset)?;
+				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 			}
 
 			Ok(())

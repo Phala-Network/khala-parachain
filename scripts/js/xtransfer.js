@@ -7,7 +7,7 @@ const bn1e12 = new BN(10).pow(new BN(12));
 const khalaParaId = 2004;
 const karuraParaId = 2000;
 
-async function transferPHAFromKhalaToKarura(khalaApi, sender, recipient, amount) {
+async function transferPhaFromKhalaToKarura(khalaApi, sender, recipient, amount) {
     console.log(`Transfer PHA from Khala to Karura...`);
     return new Promise(async (resolve) => {
         const unsub = await khalaApi.tx.xcmTransfer.transferNative(karuraParaId, recipient.address, amount, 6000000000)
@@ -23,7 +23,7 @@ async function transferPHAFromKhalaToKarura(khalaApi, sender, recipient, amount)
     });
 }
 
-async function transferPHAFromKaruraToKhala(karuraApi, sender, recipient, amount) {
+async function transferPhaFromKaruraToKhala(karuraApi, sender, recipient, amount) {
     console.log(`Transfer PHA from Karura to Khala...`);
     return new Promise(async (resolve) => {
         const unsub = await karuraApi.tx.xTokens.transfer(
@@ -43,7 +43,7 @@ async function transferPHAFromKaruraToKhala(karuraApi, sender, recipient, amount
                             karuraApi.createType('XcmV1Junction', {
                                 AccountId32: {
                                     network: karuraApi.createType('XcmV0JunctionNetworkId', 'Any'),
-                                    id: '0x' + Buffer.from(recipient.publicKey).toString('hex'),
+                                    id: '0x' + recipient.publicKey.toString('hex'),
                                 }
                             }),
                         ]
@@ -63,7 +63,7 @@ async function transferPHAFromKaruraToKhala(karuraApi, sender, recipient, amount
     });
 }
 
-async function transferKARFromKaruraToKhala(karuraApi, sender, recipient, amount) {
+async function transferKarFromKaruraToKhala(karuraApi, sender, recipient, amount) {
     console.log(`Transfer KAR from Karura to Khala...`);
     return new Promise(async (resolve) => {
         const unsub = await karuraApi.tx.xTokens.transfer(
@@ -83,7 +83,7 @@ async function transferKARFromKaruraToKhala(karuraApi, sender, recipient, amount
                             karuraApi.createType('XcmV1Junction', {
                                 AccountId32: {
                                     network: karuraApi.createType('XcmV0JunctionNetworkId', 'Any'),
-                                    id: '0x' + Buffer.from(recipient.publicKey).toString('hex'),
+                                    id: '0x' + recipient.publicKey.toString('hex'),
                                 }
                             }),
                         ]
@@ -103,7 +103,7 @@ async function transferKARFromKaruraToKhala(karuraApi, sender, recipient, amount
     });
 }
 
-async function transferKARFromKhalaToKarura(khalaApi, sender, recipient, amount) {
+async function transferKarFromKhalaToKarura(khalaApi, sender, recipient, amount) {
     console.log(`Transfer KAR from Khala to Karura...`);
     return new Promise(async (resolve) => {
         const unsub = await khalaApi.tx.xcmTransfer.transferAsset(
@@ -160,18 +160,18 @@ async function main() {
     const khalaAccount = keyring.addFromUri('//Bob');
 
     // transfer 100 PHA from khalaAccount on khala network to karuraAccount on karura network
-    await transferPHAFromKhalaToKarura(khalaApi, khalaAccount, karuraAccount, bn1e12.mul(new BN(100)));
+    await transferPhaFromKhalaToKarura(khalaApi, khalaAccount, karuraAccount, bn1e12.mul(new BN(100)));
 
     // now, karuraAccount has reserved 100 PHA on karura network(actually with small fee being deducted, so < 100)
     // transfer 50 PHA back from karuraAccount on khala network to khalaAccount on khala network
-    await transferPHAFromKaruraToKhala(karuraApi, karuraAccount, khalaAccount, bn1e12.mul(new BN(50)));
+    await transferPhaFromKaruraToKhala(karuraApi, karuraAccount, khalaAccount, bn1e12.mul(new BN(50)));
 
     // transfer 100 KAR from karuraAccount on karura network to khalaAccount on khala network
-    await transferKARFromKaruraToKhala(karuraApi, karuraAccount, khalaAccount, bn1e12.mul(new BN(100)));
+    await transferKarFromKaruraToKhala(karuraApi, karuraAccount, khalaAccount, bn1e12.mul(new BN(100)));
 
     // now, khalaAccount has reserved 100 KAR on khala network(actually with small fee being deducted, so < 100)
     // transfer 50 KAR back from khalaAccount on khala network to karuraAccount on karura network
-    await transferKARFromKhalaToKarura(khalaApi, khalaAccount, karuraAccount, bn1e12.mul(new BN(50)));
+    await transferKarFromKhalaToKarura(khalaApi, khalaAccount, karuraAccount, bn1e12.mul(new BN(50)));
 }
 
 main().catch(console.error).finally(() => process.exit());

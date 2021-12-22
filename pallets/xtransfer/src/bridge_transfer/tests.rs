@@ -7,7 +7,7 @@ use crate::bridge_transfer::mock::{
 	BridgeTransfer, Call, Event, NativeTokenResourceId, Origin, ProposalLifetime, Test, ALICE,
 	ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
 };
-use frame_support::{assert_err, assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok};
 use hex_literal::hex;
 use sp_core::hashing::blake2_128;
 use sp_runtime::DispatchError;
@@ -39,7 +39,7 @@ fn register_asset() {
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 
 		// permission denied
-		assert_err!(
+		assert_noop!(
 			AssetsWrapper::force_register_asset(
 				Origin::signed(ALICE),
 				bridge_asset.clone().into(),
@@ -109,7 +109,7 @@ fn transfer_assets_not_registered() {
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::change_fee(
+		assert_ok!(BridgeTransfer::update_fee(
 			Origin::root(),
 			2,
 			2,
@@ -139,7 +139,7 @@ fn transfer_assets_insufficient_balance() {
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::change_fee(
+		assert_ok!(BridgeTransfer::update_fee(
 			Origin::root(),
 			2,
 			2,
@@ -178,7 +178,7 @@ fn transfer_assets() {
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::change_fee(
+		assert_ok!(BridgeTransfer::update_fee(
 			Origin::root(),
 			2,
 			2,
@@ -219,7 +219,7 @@ fn transfer_native() {
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::change_fee(
+		assert_ok!(BridgeTransfer::update_fee(
 			Origin::root(),
 			2,
 			2,
