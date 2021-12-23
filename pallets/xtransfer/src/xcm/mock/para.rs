@@ -268,6 +268,10 @@ impl BridgeTransact for () {
 	) -> DispatchResult {
 		Ok(())
 	}
+
+	fn reserve_id() -> [u8; 32] {
+		[0; 32]
+	}
 }
 
 pub struct XcmConfig;

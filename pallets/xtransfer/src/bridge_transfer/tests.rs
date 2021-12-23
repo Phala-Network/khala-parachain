@@ -243,8 +243,9 @@ fn transfer_assets() {
 			amount,
 		));
 
-		// asset has been burned
+		// asset has been transfered into reserve account
 		assert_eq!(Assets::balance(0, &ALICE), amount);
+		assert_eq!(Assets::balance(0, &Bridge::account_id()), amount);
 	})
 }
 
@@ -288,6 +289,11 @@ fn transfer_native() {
 			amount.into(),
 			recipient,
 		));
+
+		assert_eq!(
+			Balances::free_balance(&Bridge::account_id()),
+			ENDOWED_BALANCE + amount
+		)
 	})
 }
 
@@ -346,6 +352,7 @@ fn simulate_assets_transfer_from_solochain() {
 				id: ALICE.into(),
 			}),
 		);
+		let reserve_id = Bridge::account_id();
 
 		// register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
@@ -356,7 +363,17 @@ fn simulate_assets_transfer_from_solochain() {
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), 0);
-		// transfer to ALICE, would mint asset into ALICE
+
+		// mint some token to reserve account, simulate the reserve pool
+		assert_ok!(Assets::mint(
+			Origin::signed(ALICE),
+			0,
+			reserve_id.clone(),
+			amount * 2
+		));
+		assert_eq!(Assets::balance(0, &reserve_id), amount * 2);
+
+		// transfer to ALICE, would transfer asset from reserve account into ALICE
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
 			alice_location.encode(),
@@ -364,6 +381,7 @@ fn simulate_assets_transfer_from_solochain() {
 			r_id,
 		));
 		assert_eq!(Assets::balance(0, &ALICE), amount);
+		assert_eq!(Assets::balance(0, &reserve_id), amount);
 	})
 }
 
