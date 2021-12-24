@@ -1,23 +1,25 @@
 #![cfg(test)]
 
-use super::*;
-
-use frame_support::{assert_ok, ord_parameter_types, parameter_types, weights::Weight};
+use frame_support::{ord_parameter_types, parameter_types, weights::Weight, PalletId};
 use frame_system::{self as system};
+use hex_literal::hex;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
+	traits::{AccountIdConversion, BlakeTwo256, ConvertInto, IdentityLookup},
 	Perbill,
 };
 
-use crate::{self as bridge, Config};
+use crate::bridge_transfer;
+use crate::pallet_assets_wrapper;
+use crate::pallet_bridge as bridge;
 pub use pallet_balances as balances;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
-// Configure a mock runtime to test the pallet.
+pub(crate) type Balance = u64;
+
 frame_support::construct_runtime!(
 	pub enum Test where
 		Block = Block,
@@ -27,6 +29,10 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Bridge: bridge::{Pallet, Call, Storage, Event<T>},
+		BridgeTransfer: bridge_transfer::{Pallet, Call, Storage, Event<T>},
+		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+		AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -36,6 +42,7 @@ parameter_types! {
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 	pub const MaxLocks: u32 = 100;
+	pub const MinimumPeriod: u64 = 1;
 }
 
 impl frame_system::Config for Test {
@@ -73,7 +80,7 @@ ord_parameter_types! {
 }
 
 impl pallet_balances::Config for Test {
-	type Balance = u64;
+	type Balance = Balance;
 	type DustRemoval = ();
 	type Event = Event;
 	type ExistentialDeposit = ExistentialDeposit;
@@ -86,10 +93,10 @@ impl pallet_balances::Config for Test {
 
 parameter_types! {
 	pub const TestChainId: u8 = 5;
-	pub const ProposalLifetime: u64 = 50;
+	pub const ProposalLifetime: u64 = 100;
 }
 
-impl Config for Test {
+impl bridge::Config for Test {
 	type Event = Event;
 	type BridgeCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type Proposal = Call;
@@ -97,12 +104,62 @@ impl Config for Test {
 	type ProposalLifetime = ProposalLifetime;
 }
 
-// pub const BRIDGE_ID: u64 =
+parameter_types! {
+	pub const NativeTokenResourceId: [u8; 32] = hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
+}
+
+impl bridge_transfer::Config for Test {
+	type Event = Event;
+	type AssetsWrapper = AssetsWrapper;
+	type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Test, ConvertInto>;
+	type BridgeOrigin = bridge::EnsureBridge<Test>;
+	type Currency = Balances;
+	type NativeTokenResourceId = NativeTokenResourceId;
+	type OnFeePay = ();
+}
+
+parameter_types! {
+	pub const AssetDeposit: Balance = 1; // 1 Unit deposit to create asset
+	pub const ApprovalDeposit: Balance = 1;
+	pub const AssetsStringLimit: u32 = 50;
+	pub const MetadataDepositBase: Balance = 1;
+	pub const MetadataDepositPerByte: Balance = 1;
+}
+
+impl pallet_assets::Config for Test {
+	type Event = Event;
+	type Balance = Balance;
+	type AssetId = u32;
+	type Currency = Balances;
+	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type AssetDeposit = AssetDeposit;
+	type MetadataDepositBase = MetadataDepositBase;
+	type MetadataDepositPerByte = MetadataDepositPerByte;
+	type ApprovalDeposit = ApprovalDeposit;
+	type StringLimit = AssetsStringLimit;
+	type Freezer = ();
+	type Extra = ();
+	type WeightInfo = ();
+}
+
+impl pallet_assets_wrapper::Config for Test {
+	type Event = Event;
+	type AssetsCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type MinBalance = ExistentialDeposit;
+}
+
+impl pallet_timestamp::Config for Test {
+	type Moment = u64;
+	type OnTimestampSet = ();
+	type MinimumPeriod = MinimumPeriod;
+	type WeightInfo = ();
+}
+
+pub const ALICE: u64 = 0x1;
 pub const RELAYER_A: u64 = 0x2;
 pub const RELAYER_B: u64 = 0x3;
 pub const RELAYER_C: u64 = 0x4;
 pub const ENDOWED_BALANCE: u64 = 100_000_000;
-pub const TEST_THRESHOLD: u32 = 2;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let bridge_id = PalletId(*b"phala/bg").into_account();
@@ -110,7 +167,11 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		.build_storage::<Test>()
 		.unwrap();
 	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![(bridge_id, ENDOWED_BALANCE)],
+		balances: vec![
+			(bridge_id, ENDOWED_BALANCE),
+			(RELAYER_A, ENDOWED_BALANCE),
+			(ALICE, ENDOWED_BALANCE),
+		],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
@@ -119,27 +180,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	ext
 }
 
-pub fn new_test_ext_initialized(
-	src_id: BridgeChainId,
-	r_id: ResourceId,
-	resource: Vec<u8>,
-) -> sp_io::TestExternalities {
-	let mut t = new_test_ext();
-	t.execute_with(|| {
-		// Set and check threshold
-		assert_ok!(Bridge::set_threshold(Origin::root(), TEST_THRESHOLD));
-		assert_eq!(Bridge::relayer_threshold(), TEST_THRESHOLD);
-		// Add relayers
-		assert_ok!(Bridge::add_relayer(Origin::root(), RELAYER_A));
-		assert_ok!(Bridge::add_relayer(Origin::root(), RELAYER_B));
-		assert_ok!(Bridge::add_relayer(Origin::root(), RELAYER_C));
-		// Whitelist chain
-		assert_ok!(Bridge::whitelist_chain(Origin::root(), src_id));
-		// Set and check resource ID mapped to some junk data
-		assert_ok!(Bridge::set_resource(Origin::root(), r_id, resource));
-		assert_eq!(Bridge::resource_exists(r_id), true);
-	});
-	t
+fn last_event() -> Event {
+	system::Pallet::<Test>::events()
+		.pop()
+		.map(|e| e.event)
+		.expect("Event expected")
+}
+
+pub fn expect_event<E: Into<Event>>(e: E) {
+	assert_eq!(last_event(), e.into());
 }
 
 // Checks events against the latest. A contiguous set of events must be provided. They must
@@ -154,6 +203,6 @@ pub fn assert_events(mut expected: Vec<Event>) {
 
 	for evt in expected {
 		let next = actual.pop().expect("event expected");
-		assert_eq!(next, evt.into(), "Events don't match (actual,expected)");
+		assert_eq!(next, evt.into(), "Events don't match");
 	}
 }

@@ -9,7 +9,7 @@ pub mod pallet {
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::StaticLookup;
 	use sp_std::{
-		convert::{From, TryFrom, TryInto},
+		convert::{From, TryFrom},
 		result,
 	};
 	use xcm::latest::MultiLocation;
@@ -44,7 +44,15 @@ pub mod pallet {
 		}
 	}
 
-	pub type XTransferAssetId = u32;
+	impl TryFrom<XTransferAsset> for [u8; 32] {
+		type Error = ();
+		fn try_from(x: XTransferAsset) -> result::Result<Self, ()> {
+			match x {
+				XTransferAsset::SolochainAsset(rid) => Ok(rid),
+				_ => Err(()),
+			}
+		}
+	}
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -55,32 +63,37 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + pallet_assets::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type AssetsCommitteeOrigin: EnsureOrigin<Self::Origin>;
+		#[pallet::constant]
+		type MinBalance: Get<<Self as pallet_assets::Config>::Balance>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
-	/// The number of total assets
-	#[pallet::storage]
-	#[pallet::getter(fn asset_count)]
-	pub type AssetCount<T> = StorageValue<_, u32, ValueQuery>;
-
 	/// Mapping asset to corresponding asset id
 	#[pallet::storage]
 	#[pallet::getter(fn asset_to_id)]
-	pub type AssetToId<T: Config> = StorageMap<_, Twox64Concat, XTransferAsset, XTransferAssetId>;
+	pub type AssetToId<T: Config> =
+		StorageMap<_, Twox64Concat, XTransferAsset, <T as pallet_assets::Config>::AssetId>;
 
 	/// Mapping asset id to corresponding asset
 	#[pallet::storage]
 	#[pallet::getter(fn id_to_asset)]
-	pub type IdToAsset<T: Config> = StorageMap<_, Twox64Concat, XTransferAssetId, XTransferAsset>;
+	pub type IdToAsset<T: Config> =
+		StorageMap<_, Twox64Concat, <T as pallet_assets::Config>::AssetId, XTransferAsset>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Asset been registerd. \[id, asset\]
-		ForceAssetRegistered(XTransferAssetId, XTransferAsset),
-		/// Asset been unregisterd. \[id, asset\]
-		ForceAssetUnregistered(XTransferAssetId, XTransferAsset),
+		/// Asset is registerd. \[asset_id, asset\]
+		AssetRegistered {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			asset: XTransferAsset,
+		},
+		/// Asset is unregisterd. \[asset_id, asset\]
+		AssetUnRegistered {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			asset: XTransferAsset,
+		},
 	}
 
 	#[pallet::error]
@@ -91,34 +104,37 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
-		T: pallet_assets::Config<AssetId = XTransferAssetId>,
+		T: pallet_assets::Config,
 	{
 		#[pallet::weight(195_000_000)]
 		pub fn force_register_asset(
 			origin: OriginFor<T>,
 			asset: XTransferAsset,
+			asset_id: T::AssetId,
 			owner: <T::Lookup as StaticLookup>::Source,
-			#[pallet::compact] min_balance: T::Balance,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin.clone())?;
+			// ensure location has not been registered
 			ensure!(
 				AssetToId::<T>::get(&asset) == None,
 				Error::<T>::AssetAlreadyExist
 			);
-			let id = AssetCount::<T>::get();
-			let asset_id: XTransferAssetId = id.try_into().unwrap();
+			// ensure asset_id has not been registered
+			ensure!(
+				IdToAsset::<T>::get(&asset_id) == None,
+				Error::<T>::AssetAlreadyExist
+			);
 			pallet_assets::pallet::Pallet::<T>::force_create(
 				origin,
-				asset_id.clone(),
+				asset_id,
 				owner,
 				true,
-				min_balance,
+				T::MinBalance::get(),
 			)?;
-			AssetToId::<T>::insert(&asset, &id);
-			IdToAsset::<T>::insert(&id, &asset);
-			AssetCount::<T>::put(id + 1);
+			AssetToId::<T>::insert(&asset, asset_id);
+			IdToAsset::<T>::insert(asset_id, &asset);
 
-			Self::deposit_event(Event::ForceAssetRegistered(asset_id, asset));
+			Self::deposit_event(Event::AssetRegistered { asset_id, asset });
 			Ok(())
 		}
 
@@ -129,29 +145,29 @@ pub mod pallet {
 		#[pallet::weight(195_000_000)]
 		pub fn force_unregister_asset(
 			origin: OriginFor<T>,
-			id: XTransferAssetId,
+			asset_id: T::AssetId,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
-			if let Some(asset) = IdToAsset::<T>::get(&id) {
-				IdToAsset::<T>::remove(&id);
+			if let Some(asset) = IdToAsset::<T>::get(&asset_id) {
+				IdToAsset::<T>::remove(&asset_id);
 				AssetToId::<T>::remove(&asset);
-				Self::deposit_event(Event::ForceAssetUnregistered(id, asset));
+				Self::deposit_event(Event::AssetUnRegistered { asset_id, asset });
 			}
 			Ok(())
 		}
 	}
 
-	pub trait XTransferAssetInfo {
-		fn id(asset: &XTransferAsset) -> Option<XTransferAssetId>;
-		fn asset(id: &XTransferAssetId) -> Option<XTransferAsset>;
+	pub trait XTransferAssetInfo<AssetId> {
+		fn id(asset: &XTransferAsset) -> Option<AssetId>;
+		fn asset(id: &AssetId) -> Option<XTransferAsset>;
 	}
 
-	impl<T: Config> XTransferAssetInfo for Pallet<T> {
-		fn id(asset: &XTransferAsset) -> Option<XTransferAssetId> {
+	impl<T: Config> XTransferAssetInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
+		fn id(asset: &XTransferAsset) -> Option<<T as pallet_assets::Config>::AssetId> {
 			AssetToId::<T>::get(asset)
 		}
 
-		fn asset(id: &XTransferAssetId) -> Option<XTransferAsset> {
+		fn asset(id: &<T as pallet_assets::Config>::AssetId) -> Option<XTransferAsset> {
 			IdToAsset::<T>::get(id)
 		}
 	}

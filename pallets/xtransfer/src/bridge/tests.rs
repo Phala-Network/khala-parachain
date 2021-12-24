@@ -1,11 +1,12 @@
 #![cfg(test)]
 
-use super::mock::{
+use crate::bridge::mock::{
 	assert_events, new_test_ext, new_test_ext_initialized, Balances, Bridge, Call, Event, Origin,
 	ProposalLifetime, System, Test, TestChainId, ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
 	TEST_THRESHOLD,
 };
-use super::{pallet::Event as PalletEvent, *};
+use crate::bridge::Event as PalletEvent;
+use crate::bridge::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system as system;
 

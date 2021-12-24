@@ -1,7 +1,7 @@
 pub use self::xcm_helper::*;
 
 pub mod xcm_helper {
-	use crate::pallet_assets_wrapper::{XTransferAsset, XTransferAssetId, XTransferAssetInfo};
+	use crate::pallet_assets_wrapper::{XTransferAsset, XTransferAssetInfo};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::pallet_prelude::*;
 	use sp_runtime::traits::CheckedConversion;
@@ -14,6 +14,7 @@ pub mod xcm_helper {
 		prelude::*, AssetId::Concrete, Error as XcmError, Fungibility::Fungible, MultiAsset,
 		MultiLocation, Result as XcmResult,
 	};
+	use xcm_builder::TakeRevenue;
 	use xcm_executor::{
 		traits::{
 			Error as MatchError, FilterAssetLocation, MatchesFungible, MatchesFungibles,
@@ -44,11 +45,8 @@ pub mod xcm_helper {
 	pub struct ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>(
 		PhantomData<(AssetId, Balance, AssetsInfo)>,
 	);
-	impl<
-			AssetId: Clone + From<XTransferAssetId>,
-			Balance: Clone + From<u128>,
-			AssetsInfo: XTransferAssetInfo,
-		> MatchesFungibles<AssetId, Balance> for ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>
+	impl<AssetId, Balance: Clone + From<u128>, AssetsInfo: XTransferAssetInfo<AssetId>>
+		MatchesFungibles<AssetId, Balance> for ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>
 	{
 		fn matches_fungibles(a: &MultiAsset) -> result::Result<(AssetId, Balance), MatchError> {
 			log::trace!(
@@ -64,7 +62,7 @@ pub mod xcm_helper {
 				.clone()
 				.try_into()
 				.map_err(|_| MatchError::AssetIdConversionFailed)?;
-			let asset_id: XTransferAssetId =
+			let asset_id: AssetId =
 				AssetsInfo::id(&xtransfer_asset).ok_or(MatchError::AssetNotFound)?;
 			let amount = amount
 				.try_into()
@@ -87,20 +85,13 @@ pub mod xcm_helper {
 		}
 	}
 
-	pub struct NativeAssetFilter<T>(PhantomData<T>);
-	impl<T: Get<ParaId>> NativeAssetFilter<T> {
-		pub fn is_native_asset_id(id: &MultiLocation) -> bool {
-			let native_locations = [
-				MultiLocation::here(),
-				(1, X1(Parachain(T::get().into()))).into(),
-			];
-			native_locations.contains(id)
-		}
-	}
-
 	pub trait NativeAssetChecker {
 		fn is_native_asset(asset: &MultiAsset) -> bool;
+		fn is_native_asset_id(id: &MultiLocation) -> bool;
+		fn native_asset_id() -> MultiLocation;
 	}
+
+	pub struct NativeAssetFilter<T>(PhantomData<T>);
 	impl<T: Get<ParaId>> NativeAssetChecker for NativeAssetFilter<T> {
 		fn is_native_asset(asset: &MultiAsset) -> bool {
 			match (&asset.id, &asset.fun) {
@@ -108,6 +99,18 @@ pub mod xcm_helper {
 				(Concrete(ref id), Fungible(_)) if Self::is_native_asset_id(id) => true,
 				_ => false,
 			}
+		}
+
+		fn is_native_asset_id(id: &MultiLocation) -> bool {
+			let native_locations = [
+				MultiLocation::here(),
+				(1, X1(Parachain(T::get().into()))).into(),
+			];
+			native_locations.contains(id)
+		}
+
+		fn native_asset_id() -> MultiLocation {
+			(1, X1(Parachain(T::get().into()))).into()
 		}
 	}
 
@@ -189,6 +192,27 @@ pub mod xcm_helper {
 			} else {
 				AssetsAdapter::withdraw_asset(what, who)
 			}
+		}
+	}
+
+	pub struct XTransferTakeRevenue<TransferAdapter, AccountId, Beneficiary>(
+		PhantomData<(TransferAdapter, AccountId, Beneficiary)>,
+	);
+	impl<
+			TransferAdapter: TransactAsset,
+			AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone,
+			Beneficiary: Get<AccountId>,
+		> TakeRevenue for XTransferTakeRevenue<TransferAdapter, AccountId, Beneficiary>
+	{
+		fn take_revenue(revenue: MultiAsset) {
+			let beneficiary = MultiLocation::new(
+				0,
+				X1(AccountId32 {
+					network: NetworkId::Any,
+					id: Beneficiary::get().into(),
+				}),
+			);
+			let _ = TransferAdapter::deposit_asset(&revenue, &beneficiary);
 		}
 	}
 }

@@ -3586,12 +3586,11 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal 0.3.4",
  "log",
+ "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
  "pallet-bounties",
- "pallet-bridge",
- "pallet-bridge-transfer",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-democracy",
@@ -3635,6 +3634,7 @@ dependencies = [
  "sp-version",
  "static_assertions",
  "substrate-wasm-builder",
+ "xtransfer-pallets",
 ]
 
 [[package]]
@@ -5215,23 +5215,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bridge"
-version = "0.0.1"
-dependencies = [
- "blake2-rfc",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "pallet-balances",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-bridge-dispatch"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.13#7d8f00b90cd6d87780123b3e08ca120cfb0c6e50"
@@ -5288,29 +5271,6 @@ dependencies = [
  "scale-info",
  "serde",
  "sp-core",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-bridge-transfer"
-version = "0.0.1"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "hex",
- "hex-literal 0.3.4",
- "pallet-balances",
- "pallet-bridge",
- "pallet-timestamp",
- "parity-scale-codec",
- "phala-pallets",
- "phala-types",
- "scale-info",
- "sp-arithmetic",
- "sp-core",
- "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -10805,8 +10765,6 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-bounties",
- "pallet-bridge",
- "pallet-bridge-transfer",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-democracy",
@@ -12076,12 +12034,15 @@ dependencies = [
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex-literal 0.3.4",
  "log",
  "pallet-assets",
  "pallet-balances",
  "pallet-parachain-info",
+ "pallet-timestamp",
  "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
@@ -12089,6 +12050,7 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
  "scale-info",
+ "sp-arithmetic",
  "sp-core",
  "sp-io",
  "sp-runtime",

@@ -1,14 +1,9 @@
-// Ensure we're `no_std` when compiling for Wasm.
-#![cfg_attr(not(feature = "std"), no_std)]
-
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
 
-pub mod hashing;
-
-pub use pallet::*;
+pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use codec::{Decode, Encode, EncodeLike};

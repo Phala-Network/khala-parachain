@@ -1,6 +1,5 @@
 use super::ParachainXcmRouter;
 use crate::{pallet_assets_wrapper, pallet_xcm_transfer, xcm_helper};
-use pallet_assets_wrapper::XTransferAssetId;
 
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
@@ -39,7 +38,6 @@ pub type AccountId = AccountId32;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
-pub(crate) type BlockNumber = u64;
 
 // Configure a mock runtime to test the pallet.
 construct_runtime!(
@@ -105,7 +103,7 @@ impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	type DustRemoval = ();
 	type Event = Event;
-	type ExistentialDeposit = ();
+	type ExistentialDeposit = AssetDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
 	type MaxLocks = ();
@@ -114,17 +112,17 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const AssetDeposit: Balance = 1 * CENTS; // 1 CENTS deposit to create asset
-	pub const ApprovalDeposit: Balance = 1 * CENTS;
+	pub const AssetDeposit: Balance = 1; // 1 Unit deposit to create asset
+	pub const ApprovalDeposit: Balance = 1;
 	pub const AssetsStringLimit: u32 = 50;
-	pub const MetadataDepositBase: Balance = 1 * CENTS;
-	pub const MetadataDepositPerByte: Balance = 1 * CENTS;
+	pub const MetadataDepositBase: Balance = 1;
+	pub const MetadataDepositPerByte: Balance = 1;
 }
 
 impl pallet_assets::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
-	type AssetId = XTransferAssetId;
+	type AssetId = u32;
 	type Currency = Balances;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type AssetDeposit = AssetDeposit;
@@ -145,15 +143,28 @@ parameter_types! {
 impl pallet_parachain_info::Config for Runtime {}
 
 parameter_types! {
-	pub const KsmLocation: MultiLocation = MultiLocation::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
-	pub const LocalLocation: MultiLocation = Here.into();
-	pub const DOTMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: Here };
-	pub const ParaAMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(1)) };
-	pub const ParaBMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(2)) };
-	pub const ParaCMultiAssetId: MultiLocation = MultiLocation { parents: 1, interior: X1(Parachain(3)) };
+
+	pub KSMLocation: MultiLocation = MultiLocation::new(1, Here);
+	pub ParaALocation: MultiLocation = MultiLocation::new(1, X1(Parachain(1)));
+	pub ParaBLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(2)));
+	pub ParaCLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(3)));
+
+	pub KSMAssetId: AssetId = KSMLocation::get().into();
+	pub ParaAAssetId: AssetId = ParaALocation::get().into();
+	pub ParaBAssetId: AssetId = ParaBLocation::get().into();
+	pub ParaCAssetId: AssetId = ParaCLocation::get().into();
+
+	pub FeeAssets: MultiAssets = [
+		KSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+		ParaAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+		ParaBAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+		ParaCAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+	].to_vec().into();
+
+	pub const DefaultDestChainXcmFee: Balance = 10;
 }
 
 pub type LocationToAccountId = (
@@ -200,8 +211,8 @@ pub type CurrencyTransactor = CurrencyAdapter<
 >;
 
 pub struct AssetChecker;
-impl Contains<XTransferAssetId> for AssetChecker {
-	fn contains(_: &XTransferAssetId) -> bool {
+impl Contains<u32> for AssetChecker {
+	fn contains(_: &u32) -> bool {
 		false
 	}
 }
@@ -211,7 +222,11 @@ pub type FungiblesTransactor = FungiblesAdapter<
 	// Use this fungibles implementation:
 	Assets,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	xcm_helper::ConcreteAssetsMatcher<XTransferAssetId, Balance, AssetsWrapper>,
+	xcm_helper::ConcreteAssetsMatcher<
+		<Runtime as pallet_assets::Config>::AssetId,
+		Balance,
+		AssetsWrapper,
+	>,
 	// Convert an XCM MultiLocation into a local account id:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -238,10 +253,10 @@ impl Config for XcmConfig {
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type Trader = (
-		UsingComponents<IdentityFee<Balance>, DOTMultiAssetId, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, ParaAMultiAssetId, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, ParaBMultiAssetId, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, ParaCMultiAssetId, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, KSMLocation, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, ParaALocation, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, ParaBLocation, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, ParaCLocation, AccountId, Balances, ()>,
 	);
 	type ResponseHandler = ();
 	type AssetTrap = ();
@@ -289,10 +304,13 @@ impl pallet_xcm_transfer::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type LocationInverter = LocationInverter<Ancestry>;
-	type ParachainInfo = ParachainInfo;
+	type NativeAssetChecker = xcm_helper::NativeAssetFilter<ParachainInfo>;
+	type FeeAssets = FeeAssets;
+	type DefaultFee = DefaultDestChainXcmFee;
 }
 
 impl pallet_assets_wrapper::Config for Runtime {
 	type Event = Event;
 	type AssetsCommitteeOrigin = EnsureRoot<AccountId>;
+	type MinBalance = AssetDeposit;
 }

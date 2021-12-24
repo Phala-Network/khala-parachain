@@ -86,6 +86,8 @@ pub use parachains_common::*;
 
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
 
+pub use xtransfer_pallets::{pallet_assets_wrapper, pallet_bridge, pallet_bridge_transfer};
+
 #[cfg(any(feature = "std", test))]
 pub use frame_system::Call as SystemCall;
 #[cfg(any(feature = "std", test))]
@@ -224,6 +226,8 @@ construct_runtime! {
         PhalaRegistry: pallet_registry::{Pallet, Call, Event, Storage, Config<T>} = 86,
         PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
+        AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>} = 90,
 
         // `sudo` has been removed on production
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
@@ -537,6 +541,32 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
+    pub const AssetDeposit: Balance = 1 * CENTS; // 1 CENTS deposit to create asset
+    pub const ApprovalDeposit: Balance = 1 * CENTS;
+    pub const AssetsStringLimit: u32 = 50;
+    /// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
+    // https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
+    pub const MetadataDepositBase: Balance = deposit(1, 68);
+    pub const MetadataDepositPerByte: Balance = deposit(0, 1);
+}
+
+impl pallet_assets::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type AssetId = u32;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = AssetsStringLimit;
+    type Freezer = ();
+    type Extra = ();
+    type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
     pub const TransactionByteFee: Balance = 1 * MILLICENTS;
     pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
     pub const OperationalFeeMultiplier: u8 = 5;
@@ -671,6 +701,12 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 impl pallet_parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
+
+impl pallet_assets_wrapper::Config for Runtime {
+    type Event = Event;
+    type AssetsCommitteeOrigin = EnsureRootOrHalfCouncil;
+    type MinBalance = ExistentialDeposit;
+}
 
 parameter_types! {
     pub const CouncilMotionDuration: BlockNumber = 3 * DAYS;
@@ -973,6 +1009,8 @@ parameter_types! {
 
 impl pallet_bridge_transfer::Config for Runtime {
     type Event = Event;
+    type AssetsWrapper = AssetsWrapper;
+    type BalanceConverter = pallet_assets::BalanceToAssetBalance::<Balances, Runtime, ConvertInto>;
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
     type NativeTokenResourceId = NativeTokenResourceId;

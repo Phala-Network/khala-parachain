@@ -4,7 +4,7 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::pallet_assets_wrapper;
-	use crate::xcm_helper::ConcrateAsset;
+	use crate::xcm_helper::{ConcrateAsset, NativeAssetChecker};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::{
 		dispatch::DispatchResult,
@@ -15,10 +15,7 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
-	use sp_runtime::{
-		traits::{AccountIdConversion, Zero},
-		DispatchError,
-	};
+	use sp_runtime::{traits::AccountIdConversion, DispatchError};
 	use sp_std::{convert::TryInto, prelude::*, vec};
 	use xcm::latest::{prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation};
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
@@ -62,9 +59,14 @@ pub mod pallet {
 		/// Means of inverting a location.
 		type LocationInverter: InvertLocation;
 
-		/// ParachainID
-		#[pallet::constant]
-		type ParachainInfo: Get<ParaId>;
+		/// Filter native asset
+		type NativeAssetChecker: NativeAssetChecker;
+
+		/// Assets that can be used to pay xcm execution
+		type FeeAssets: Get<MultiAssets>;
+
+		/// Default xcm fee(PHA) used to buy execution on dest parachain
+		type DefaultFee: Get<u128>;
 	}
 
 	/// Mapping asset name to corresponding MultiAsset
@@ -139,6 +141,7 @@ pub mod pallet {
 			// we treat nonreserve xcm transfer cost the most weight
 			let nonreserve_xcm_transfer_session = XCMSession::<T> {
 				asset: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
+				fee: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
 				origin_location: MultiLocation::new(1, X1(Parachain(1u32))),
 				dest_location: MultiLocation::new(1, X1(Parachain(2u32))),
 				sender: PalletId(*b"phala/bg").into_account(),
@@ -163,8 +166,30 @@ pub mod pallet {
 			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
 			let dest_location = (1, X1(Parachain(para_id.into()))).into();
 
+			let fee = if T::FeeAssets::get().contains(&asset)
+				|| T::NativeAssetChecker::is_native_asset(&asset)
+			{
+				match asset.fun {
+					// so far only half of amount are allowed to be used as fee
+					Fungible(amount) => MultiAsset {
+						fun: Fungible(amount / 2),
+						id: asset.id.clone(),
+					},
+					// we do not support unfungible asset transfer, nor support it as fee
+					_ => return Err(Error::<T>::AssetNotFound.into()),
+				}
+			} else {
+				// Basiclly, if the asset is supported as fee in our system, it should be also supported in the dest
+				// parachain, so if we are not support use this asset as fee, try use PHA as fee asset instead
+				MultiAsset {
+					fun: Fungible(T::DefaultFee::get()),
+					id: T::NativeAssetChecker::native_asset_id().into(),
+				}
+			};
+
 			let xcm_session = XCMSession::<T> {
 				asset,
+				fee,
 				origin_location,
 				dest_location,
 				sender: sender.clone(),
@@ -204,6 +229,7 @@ pub mod pallet {
 	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 	struct XCMSession<T: Config> {
 		asset: MultiAsset,
+		fee: MultiAsset,
 		origin_location: MultiLocation,
 		dest_location: MultiLocation,
 		sender: T::AccountId,
@@ -213,13 +239,9 @@ pub mod pallet {
 
 	impl<T: Config> XCMSession<T> {
 		fn kind(&self) -> Option<TransferType> {
-			let native_locations = [
-				MultiLocation::here(),
-				(1, X1(Parachain(T::ParachainInfo::get().into()))).into(),
-			];
 			let mut transfer_type = None;
 			ConcrateAsset::origin(&self.asset).map(|asset_reserve_location| {
-				if native_locations.contains(&asset_reserve_location) {
+				if T::NativeAssetChecker::is_native_asset_id(&asset_reserve_location) {
 					transfer_type = Some(TransferType::FromNative);
 				} else if asset_reserve_location == self.dest_location {
 					transfer_type = Some(TransferType::ToReserve);
@@ -230,24 +252,19 @@ pub mod pallet {
 			transfer_type
 		}
 
+		// The buy execution xcm instructions always executed on the relative dest chain,
+		// so when xcm instructions forwarded between different chains, the path should be
+		// inverted.
 		fn buy_execution_on(
 			&self,
 			location: &MultiLocation,
 		) -> Result<Instruction<()>, DispatchError> {
 			let inv_dest = T::LocationInverter::invert_location(location)
 				.map_err(|()| Error::<T>::LocationInvertFailed)?;
-			let fee_asset: MultiAsset = match self.asset.fun {
-				// so far only half of amount are allowed to be used as fee
-				Fungible(amount) => MultiAsset {
-					fun: Fungible(amount / 2),
-					id: self.asset.id.clone(),
-				},
-				_ => MultiAsset {
-					fun: Fungible(Zero::zero()),
-					id: self.asset.id.clone(),
-				},
-			};
-			let fees = fee_asset
+
+			let fees = self
+				.fee
+				.clone()
 				.reanchored(&inv_dest)
 				.map_err(|_| Error::<T>::CannotReanchor)?;
 
@@ -295,27 +312,42 @@ pub mod pallet {
 			}
 			.into();
 
+			// if self.asset.id == self.fee.id, self.asset must contains self.fee
+			let (withdraw_asset, max_assets) = if self.asset.contains(&self.fee) {
+				// The assets to pay the fee is the same as the main assets. Only one withdraw is required.
+				(WithdrawAsset(self.asset.clone().into()), 1)
+			} else {
+				(
+					WithdrawAsset(vec![self.asset.clone(), self.fee.clone()].into()),
+					2,
+				)
+			};
+
 			let deposit_asset = DepositAsset {
 				assets: Wild(All),
-				max_assets: 1u32,
+				max_assets,
 				beneficiary: beneficiary.into(),
 			};
 
 			let kind = self.kind().ok_or(Error::<T>::UnknownTransfer)?;
 			log::trace!(target: LOG_TARGET, "Transfer type is {:?}.", kind.clone(),);
 			let message = match kind {
-				TransferType::FromNative => Xcm(vec![TransferReserveAsset {
-					assets: self.asset.clone().into(),
-					dest: self.dest_location.clone(),
-					xcm: Xcm(vec![
-						self.buy_execution_on(&self.dest_location)?,
-						deposit_asset,
-					]),
-				}]),
+				TransferType::FromNative => Xcm(vec![
+					withdraw_asset,
+					DepositReserveAsset {
+						assets: Wild(All),
+						max_assets,
+						dest: self.dest_location.clone(),
+						xcm: Xcm(vec![
+							self.buy_execution_on(&self.dest_location)?,
+							deposit_asset,
+						]),
+					},
+				]),
 				TransferType::ToReserve => {
 					let asset_reserve_location = self.dest_location.clone();
 					Xcm(vec![
-						WithdrawAsset(self.asset.clone().into()),
+						withdraw_asset,
 						InitiateReserveWithdraw {
 							assets: Wild(All),
 							reserve: asset_reserve_location,
@@ -329,7 +361,7 @@ pub mod pallet {
 				TransferType::ToNonReserve => {
 					let asset_reserve_location = ConcrateAsset::origin(&self.asset).unwrap();
 					Xcm(vec![
-						WithdrawAsset(self.asset.clone().into()),
+						withdraw_asset,
 						InitiateReserveWithdraw {
 							assets: Wild(All),
 							reserve: asset_reserve_location.clone(),
@@ -337,7 +369,7 @@ pub mod pallet {
 								self.buy_execution_on(&asset_reserve_location)?,
 								DepositReserveAsset {
 									assets: Wild(All),
-									max_assets: 1u32,
+									max_assets,
 									dest: self.invert_based_reserve(
 										asset_reserve_location.clone(),
 										self.dest_location.clone(),
@@ -360,7 +392,6 @@ pub mod pallet {
 #[cfg(test)]
 mod test {
 	use crate::xcm::mock::*;
-	use cumulus_primitives_core::ParaId;
 	use frame_support::{assert_err, assert_noop, assert_ok};
 	use polkadot_parachain::primitives::Sibling;
 	use sp_runtime::traits::AccountIdConversion;
@@ -374,25 +405,9 @@ mod test {
 	use crate::pallet_assets_wrapper::XTransferAssetInfo;
 	use assert_matches::assert_matches;
 
-	fn para_a_account() -> AccountId32 {
-		ParaId::from(1).into_account()
-	}
-
-	fn para_b_account() -> AccountId32 {
-		ParaId::from(2).into_account()
-	}
-
-	fn sibling_a_account() -> AccountId32 {
-		Sibling::from(1).into_account()
-	}
-
-	fn sibling_b_account() -> AccountId32 {
-		Sibling::from(2).into_account()
-	}
-
-	fn sibling_c_account() -> AccountId32 {
-		Sibling::from(3).into_account()
-	}
+    fn sibling_account(para_id: u32) -> AccountId32 {
+            Sibling::from(para_id).into_account()
+    }
 
 	#[test]
 	fn test_asset_register() {
@@ -412,8 +427,8 @@ mod test {
 				ParaAssetsWrapper::force_register_asset(
 					Some(ALICE).into(),
 					para_a_asset.clone().into(),
+					0,
 					ALICE,
-					1
 				),
 				DispatchError::BadOrigin
 			);
@@ -421,19 +436,18 @@ mod test {
 			assert_ok!(ParaAssetsWrapper::force_register_asset(
 				para::Origin::root(),
 				para_a_asset.clone().into(),
+				0,
 				ALICE,
-				1
 			));
 
 			let ev: Vec<para::Event> = para_take_events();
-			let expected_ev: Vec<para::Event> =
-				[pallet_assets_wrapper::Event::ForceAssetRegistered(
-					0u32.into(),
-					para_a_asset.clone(),
-				)
-				.into()]
-				.to_vec();
-			assert_matches!(ev, expected_ev);
+			let _expected_ev: Vec<para::Event> = [pallet_assets_wrapper::Event::AssetRegistered {
+				asset_id: 0u32.into(),
+				asset: para_a_asset.clone(),
+			}
+			.into()]
+			.to_vec();
+			assert_matches!(ev, _expected_ev);
 			assert_eq!(ParaAssetsWrapper::id(&para_a_asset).unwrap(), 0u32);
 			assert_eq!(
 				ParaAssetsWrapper::asset(&0u32.into()).unwrap(),
@@ -441,13 +455,31 @@ mod test {
 			);
 			assert_eq!(ParaAssets::total_supply(0u32.into()), 0);
 
-			// same asset register again, should be failed
+			// same asset location register again, should be failed
 			assert_noop!(
 				ParaAssetsWrapper::force_register_asset(
 					para::Origin::root(),
 					para_a_asset.clone().into(),
+					1,
 					ALICE,
-					1
+				),
+				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
+			);
+
+			let para_b_location: MultiLocation = MultiLocation {
+				parents: 1,
+				interior: X1(Parachain(2)),
+			};
+			let para_b_asset: pallet_assets_wrapper::XTransferAsset =
+				para_b_location.try_into().unwrap();
+
+			// same asset id register again, should be failed
+			assert_noop!(
+				ParaAssetsWrapper::force_register_asset(
+					para::Origin::root(),
+					para_b_asset.clone().into(),
+					0,
+					ALICE,
 				),
 				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
 			);
@@ -462,8 +494,8 @@ mod test {
 			assert_ok!(ParaAssetsWrapper::force_register_asset(
 				para::Origin::root(),
 				para_b_asset.clone().into(),
+				1,
 				ALICE,
-				1
 			));
 			assert_eq!(ParaAssetsWrapper::id(&para_b_asset).unwrap(), 1u32);
 			assert_eq!(
@@ -497,8 +529,8 @@ mod test {
 			assert_ok!(ParaAssetsWrapper::force_register_asset(
 				para::Origin::root(),
 				para_a_asset.clone().into(),
+				0,
 				ALICE,
-				1
 			));
 		});
 
@@ -513,7 +545,7 @@ mod test {
 			));
 
 			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10);
-			assert_eq!(ParaBalances::free_balance(&sibling_b_account()), 10);
+			assert_eq!(ParaBalances::free_balance(&sibling_account(2)), 10);
 		});
 
 		ParaB::execute_with(|| {
@@ -537,8 +569,8 @@ mod test {
 			assert_ok!(ParaAssetsWrapper::force_register_asset(
 				para::Origin::root(),
 				para_a_asset.clone().into(),
+				0,
 				ALICE,
-				1
 			));
 		});
 
@@ -553,7 +585,7 @@ mod test {
 			));
 
 			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10);
-			assert_eq!(ParaBalances::free_balance(&sibling_b_account()), 10);
+			assert_eq!(ParaBalances::free_balance(&sibling_account(2)), 10);
 		});
 
 		ParaB::execute_with(|| {
