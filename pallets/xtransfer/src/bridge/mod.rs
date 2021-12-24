@@ -132,6 +132,8 @@ pub mod pallet {
 			resource_id: ResourceId,
 			metadata: Vec<u8>,
 		) -> DispatchResult;
+
+		fn reserve_id() -> [u8; 32];
 	}
 
 	#[pallet::pallet]
@@ -637,7 +639,10 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> BridgeTransact for Pallet<T> {
+	impl<T: Config> BridgeTransact for Pallet<T>
+	where
+		T::AccountId: Into<[u8; 32]>,
+	{
 		/// Initiates a transfer of a fungible asset out of the chain. This should be called by another pallet.
 		fn transfer_fungible(
 			dest_id: BridgeChainId,
@@ -731,6 +736,10 @@ pub mod pallet {
 				metadata,
 			));
 			Ok(())
+		}
+
+		fn reserve_id() -> [u8; 32] {
+			Self::account_id().into()
 		}
 	}
 

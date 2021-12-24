@@ -196,6 +196,29 @@ pub mod xcm_helper {
 						.clone()
 						.try_into()
 						.expect("Convert from u128 to dest_id must be ok; qed.");
+
+					// All bridge transfers must be reservable, so here we should deposit the
+					// withdrawn assets(they already withdrawn from soverign account of source chain)
+					// into reserve account(here is bridge account).
+					let reserve_location = MultiLocation::new(
+						0,
+						X1(AccountId32 {
+							network: NetworkId::Any,
+							id: BridgeTransactor::reserve_id().into(),
+						}),
+					);
+					if NativeChecker::is_native_asset(what) {
+						NativeAdapter::deposit_asset(what, &reserve_location).map_err(|_| {
+							XcmError::FailedToTransactAsset("ReserveTransferFailed")
+						})?;
+					} else {
+						AssetsAdapter::deposit_asset(what, &reserve_location).map_err(|_| {
+							XcmError::FailedToTransactAsset("ReserveTransferFailed")
+						})?;
+					}
+
+					// This operation will not do real transfer, it just emits FungibleTransfer event
+					// to notify relayers submit proposal to our bridge contract that deployed on EVM chains.
 					BridgeTransactor::transfer_fungible(
 						dest_id,
 						xtransfer_asset.into(),
