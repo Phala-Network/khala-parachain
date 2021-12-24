@@ -15,10 +15,7 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
-	use sp_runtime::{
-		traits::{AccountIdConversion, Zero},
-		DispatchError,
-	};
+	use sp_runtime::{traits::AccountIdConversion, DispatchError};
 	use sp_std::{convert::TryInto, prelude::*, vec};
 	use xcm::latest::{prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation};
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
@@ -395,7 +392,6 @@ pub mod pallet {
 #[cfg(test)]
 mod test {
 	use crate::xcm::mock::*;
-	use cumulus_primitives_core::ParaId;
 	use frame_support::{assert_err, assert_noop, assert_ok};
 	use polkadot_parachain::primitives::Sibling;
 	use sp_runtime::traits::AccountIdConversion;
@@ -409,25 +405,9 @@ mod test {
 	use crate::pallet_assets_wrapper::XTransferAssetInfo;
 	use assert_matches::assert_matches;
 
-	fn para_a_account() -> AccountId32 {
-		ParaId::from(1).into_account()
-	}
-
-	fn para_b_account() -> AccountId32 {
-		ParaId::from(2).into_account()
-	}
-
-	fn sibling_a_account() -> AccountId32 {
-		Sibling::from(1).into_account()
-	}
-
-	fn sibling_b_account() -> AccountId32 {
-		Sibling::from(2).into_account()
-	}
-
-	fn sibling_c_account() -> AccountId32 {
-		Sibling::from(3).into_account()
-	}
+    fn sibling_account(para_id: u32) -> AccountId32 {
+            Sibling::from(para_id).into_account()
+    }
 
 	#[test]
 	fn test_asset_register() {
@@ -461,13 +441,13 @@ mod test {
 			));
 
 			let ev: Vec<para::Event> = para_take_events();
-			let expected_ev: Vec<para::Event> = [pallet_assets_wrapper::Event::AssetRegistered {
+			let _expected_ev: Vec<para::Event> = [pallet_assets_wrapper::Event::AssetRegistered {
 				asset_id: 0u32.into(),
 				asset: para_a_asset.clone(),
 			}
 			.into()]
 			.to_vec();
-			assert_matches!(ev, expected_ev);
+			assert_matches!(ev, _expected_ev);
 			assert_eq!(ParaAssetsWrapper::id(&para_a_asset).unwrap(), 0u32);
 			assert_eq!(
 				ParaAssetsWrapper::asset(&0u32.into()).unwrap(),
@@ -565,7 +545,7 @@ mod test {
 			));
 
 			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10);
-			assert_eq!(ParaBalances::free_balance(&sibling_b_account()), 10);
+			assert_eq!(ParaBalances::free_balance(&sibling_account(2)), 10);
 		});
 
 		ParaB::execute_with(|| {
@@ -605,7 +585,7 @@ mod test {
 			));
 
 			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10);
-			assert_eq!(ParaBalances::free_balance(&sibling_b_account()), 10);
+			assert_eq!(ParaBalances::free_balance(&sibling_account(2)), 10);
 		});
 
 		ParaB::execute_with(|| {

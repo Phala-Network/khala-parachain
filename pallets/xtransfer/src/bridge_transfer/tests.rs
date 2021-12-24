@@ -282,7 +282,6 @@ fn simulate_pha_transfer_from_solochain() {
 fn simulate_assets_transfer_from_solochain() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 0;
-		let bridge_id: u64 = Bridge::account_id();
 		let r_id = bridge::derive_resource_id(dest_chain, &blake2_128(b"an asset"));
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset = r_id.try_into().unwrap();
 		let amount: u64 = 100;
