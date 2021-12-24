@@ -158,7 +158,7 @@ pub fn phala_staging_config() -> ChainSpec {
                     .into_iter()
                     .map(|(k, amount)| (k, u128::from_str(&amount).expect("Bad amount; qed.")))
                     .collect(),
-                2004u32.into(),
+                2035u32.into(),
             )
         },
         Vec::new(),
@@ -167,7 +167,7 @@ pub fn phala_staging_config() -> ChainSpec {
         chain_properties(),
         Extensions {
             relay_chain: "kusama".into(),
-            para_id: 2004,
+            para_id: 2035,
             runtime: "phala".to_string(),
         },
     )
