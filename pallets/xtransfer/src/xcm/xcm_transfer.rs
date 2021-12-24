@@ -180,10 +180,8 @@ pub mod pallet {
 						fun: Fungible(amount / 2),
 						id: asset.id.clone(),
 					},
-					_ => MultiAsset {
-						fun: Fungible(Zero::zero()),
-						id: asset.id.clone(),
-					},
+                    // we do not support unfungible asset transfer, nor support it as fee
+					_ => return Err(Error::<T>::AssetNotFound.into()),
 				}
 			} else {
 				// Basiclly, if the asset is supported as fee in our system, it should be also supported in the dest
