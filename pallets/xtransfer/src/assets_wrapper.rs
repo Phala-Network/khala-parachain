@@ -53,7 +53,6 @@ pub mod pallet {
 			}
 		}
 	}
-	// type <T as pallet_assets::Config>::AssetId<T: Config> = <T as pallet_assets::Config>::AssetId;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -85,13 +84,13 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Asset been registerd. \[asset_id, asset\]
-		ForceAssetRegistered {
+		/// Asset is registerd. \[asset_id, asset\]
+		AssetRegistered {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			asset: XTransferAsset,
 		},
-		/// Asset been unregisterd. \[asset_id, asset\]
-		ForceAssetUnregistered {
+		/// Asset is unregisterd. \[asset_id, asset\]
+		AssetUnRegistered {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			asset: XTransferAsset,
 		},
@@ -135,7 +134,7 @@ pub mod pallet {
 			AssetToId::<T>::insert(&asset, asset_id);
 			IdToAsset::<T>::insert(asset_id, &asset);
 
-			Self::deposit_event(Event::ForceAssetRegistered { asset_id, asset });
+			Self::deposit_event(Event::AssetRegistered { asset_id, asset });
 			Ok(())
 		}
 
@@ -152,7 +151,7 @@ pub mod pallet {
 			if let Some(asset) = IdToAsset::<T>::get(&asset_id) {
 				IdToAsset::<T>::remove(&asset_id);
 				AssetToId::<T>::remove(&asset);
-				Self::deposit_event(Event::ForceAssetUnregistered { asset_id, asset });
+				Self::deposit_event(Event::AssetUnRegistered { asset_id, asset });
 			}
 			Ok(())
 		}
