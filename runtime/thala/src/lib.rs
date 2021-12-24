@@ -1013,7 +1013,7 @@ impl pallet_xcm_transfer::Config for Runtime {
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type LocationInverter = LocationInverter<Ancestry>;
-    type ParachainInfo = ParachainInfo;
+    type NativeAssetChecker = xcm_helper::NativeAssetFilter<ParachainInfo>;
     type FeeAssets = FeeAssets;
     type DefaultFee = DefaultDestChainXcmFee;
 }

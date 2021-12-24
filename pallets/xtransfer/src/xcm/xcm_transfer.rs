@@ -4,7 +4,7 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::pallet_assets_wrapper;
-	use crate::xcm_helper::ConcrateAsset;
+	use crate::xcm_helper::{ConcrateAsset, NativeAssetChecker};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::{
 		dispatch::DispatchResult,
@@ -62,9 +62,8 @@ pub mod pallet {
 		/// Means of inverting a location.
 		type LocationInverter: InvertLocation;
 
-		/// ParachainID
-		#[pallet::constant]
-		type ParachainInfo: Get<ParaId>;
+		/// Filter native asset
+		type NativeAssetChecker: NativeAssetChecker;
 
 		/// Assets that can be used to pay xcm execution
 		type FeeAssets: Get<MultiAssets>;
@@ -171,8 +170,7 @@ pub mod pallet {
 			let dest_location = (1, X1(Parachain(para_id.into()))).into();
 
 			let fee = if T::FeeAssets::get().contains(&asset)
-				|| (asset.id == (0, Here).into())
-				|| (asset.id == (1, X1(Parachain(T::ParachainInfo::get().into()))).into())
+				|| T::NativeAssetChecker::is_native_asset(&asset)
 			{
 				match asset.fun {
 					// so far only half of amount are allowed to be used as fee
@@ -180,7 +178,7 @@ pub mod pallet {
 						fun: Fungible(amount / 2),
 						id: asset.id.clone(),
 					},
-                    // we do not support unfungible asset transfer, nor support it as fee
+					// we do not support unfungible asset transfer, nor support it as fee
 					_ => return Err(Error::<T>::AssetNotFound.into()),
 				}
 			} else {
@@ -188,7 +186,7 @@ pub mod pallet {
 				// parachain, so if we are not support use this asset as fee, try use PHA as fee asset instead
 				MultiAsset {
 					fun: Fungible(T::DefaultFee::get()),
-					id: (1, X1(Parachain(T::ParachainInfo::get().into()))).into(),
+					id: T::NativeAssetChecker::native_asset_id().into(),
 				}
 			};
 
@@ -244,13 +242,9 @@ pub mod pallet {
 
 	impl<T: Config> XCMSession<T> {
 		fn kind(&self) -> Option<TransferType> {
-			let native_locations = [
-				MultiLocation::here(),
-				(1, X1(Parachain(T::ParachainInfo::get().into()))).into(),
-			];
 			let mut transfer_type = None;
 			ConcrateAsset::origin(&self.asset).map(|asset_reserve_location| {
-				if native_locations.contains(&asset_reserve_location) {
+				if T::NativeAssetChecker::is_native_asset_id(&asset_reserve_location) {
 					transfer_type = Some(TransferType::FromNative);
 				} else if asset_reserve_location == self.dest_location {
 					transfer_type = Some(TransferType::ToReserve);
