@@ -1,0 +1,36 @@
+{
+  "rootKey": "45YqS1Djs9uT5b7LLpsD5dY1JWvmUzCcJdpVfh5BPwAaPhnv",
+  "initialAuthorities": [
+    [
+      "43nMiQxzqyFfLfVxJL46ENKG8RsffuaGmLmnZLMnvKb2d2i4",
+      "418YXftSKbANK1dzgT4sdJStM4y49kY2u5jeEhyHrqgtpF5h"
+    ],
+    [
+      "467AksWZLDWqcDEHDp9LehTLdP9D1qW497skkAhFyZCcMj4k",
+      "44no9KSEoC5LdNgUL1W7HRXBF2qFfx7Q7RUmCNAhpb6Ybfe2"
+    ],
+    [
+      "44k99uGun5p7NWy3XrZJ1w2LrNAMUiDxcLTJnjQ4xJDxrepX",
+      "46Enau7zLtTsaepCm3RnYBiemsGyuvTvrKb7vVwyAkqSjvJB"
+    ]
+  ],
+  "endowedAccounts": [
+    [
+      "43nMiQxzqyFfLfVxJL46ENKG8RsffuaGmLmnZLMnvKb2d2i4",
+      "1000000000000000"
+    ],
+    [
+      "467AksWZLDWqcDEHDp9LehTLdP9D1qW497skkAhFyZCcMj4k",
+      "1000000000000000"
+    ],
+    [
+      "44k99uGun5p7NWy3XrZJ1w2LrNAMUiDxcLTJnjQ4xJDxrepX",
+      "1000000000000000"
+    ],
+    [
+      "45YqS1Djs9uT5b7LLpsD5dY1JWvmUzCcJdpVfh5BPwAaPhnv",
+      "1000000000000000"
+    ]
+  ],
+  "technicalCommittee": []
+}
