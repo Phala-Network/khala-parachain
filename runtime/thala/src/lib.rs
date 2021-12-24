@@ -892,7 +892,7 @@ parameter_types! {
     );
     pub ExecutionPriceInBNC: (AssetId, u128) = (
         BNCAssetId::get(),
-        pha_per_second()
+        pha_per_second() / 5
     );
     pub ExecutionPriceInVKSM: (AssetId, u128) = (
         VSKSMAssetId::get(),
