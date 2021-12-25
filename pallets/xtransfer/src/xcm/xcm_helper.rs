@@ -30,7 +30,7 @@ pub mod xcm_helper {
 	pub struct NativeAssetMatcher<C>(PhantomData<C>);
 	impl<C: NativeAssetChecker, B: TryFrom<u128>> MatchesFungible<B> for NativeAssetMatcher<C> {
 		fn matches_fungible(a: &MultiAsset) -> Option<B> {
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"NativeAssetMatcher check fungible {:?}.",
 				a.clone(),
@@ -51,7 +51,7 @@ pub mod xcm_helper {
 		MatchesFungibles<AssetId, Balance> for ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>
 	{
 		fn matches_fungibles(a: &MultiAsset) -> result::Result<(AssetId, Balance), MatchError> {
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"ConcreteAssetsMatcher check fungible {:?}.",
 				a.clone(),
@@ -182,7 +182,7 @@ pub mod xcm_helper {
 		}
 
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult {
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"XTransferAdapter deposit_asset, what: {:?}, who: {:?}.",
 				&what,
@@ -249,7 +249,7 @@ pub mod xcm_helper {
 			what: &MultiAsset,
 			who: &MultiLocation,
 		) -> result::Result<Assets, XcmError> {
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"XTransferAdapter withdraw_asset, what: {:?}, who: {:?}.",
 				&what,
@@ -280,7 +280,7 @@ pub mod xcm_helper {
 					id: Beneficiary::get().into(),
 				}),
 			);
-			log::error!(
+			log::trace!(
 				target: LOG_TARGET,
 				"XTransferTakeRevenue take_revenue, revenue: {:?}, beneficiary: {:?}.",
 				&revenue,

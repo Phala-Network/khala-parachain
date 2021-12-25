@@ -648,7 +648,7 @@ pub mod pallet {
 			to: Vec<u8>,
 			amount: U256,
 		) -> DispatchResult {
-			log::error!(
+			log::trace!(
 				target: "Bridge",
 				"Bridge transfer_fungible, dest_id: {:?}, resource_id: {:?}, to: {:?}, amount: {:?}.",
 				dest_id,
