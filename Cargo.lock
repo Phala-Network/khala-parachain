@@ -12028,7 +12028,6 @@ name = "xtransfer-pallets"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
- "blake2-rfc",
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcm",
