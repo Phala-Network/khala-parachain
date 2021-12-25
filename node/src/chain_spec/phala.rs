@@ -166,7 +166,7 @@ pub fn phala_staging_config() -> ChainSpec {
         Some("phala"),
         chain_properties(),
         Extensions {
-            relay_chain: "kusama".into(),
+            relay_chain: "polkadot".into(),
             para_id: 2035,
             runtime: "phala".to_string(),
         },

@@ -93,28 +93,15 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         info!("Load chain spec {}", path.to_str().unwrap());
         let chain_spec =
             chain_spec::ChainSpec::from_json_file(path.clone().into())?;
-        return if chain_spec.is_phala() {
-            Ok(
-                Box::new(chain_spec::phala::ChainSpec::from_json_file(path.into())?)
-            )
-        } else if chain_spec.is_khala() {
-            Ok(
-                Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?)
-            )
-        } else if chain_spec.is_whala() {
+        let parsed: Box<dyn sc_service::ChainSpec> = match chain_spec.runtime_name().as_str() {
+            "phala" => Box::new(chain_spec::phala::ChainSpec::from_json_file(path.into())?),
+            "khala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?),
             // Historical reason, Whala shares the same runtime with Khala
-            Ok(
-                Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?)
-            )
-        } else if chain_spec.is_thala() {
-            Ok(
-                Box::new(chain_spec::thala::ChainSpec::from_json_file(path.into())?)
-            )
-        } else {
-            Err(
-                "`id` must starts with a known runtime name!".to_string()
-            )
-        }
+            "whala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?),
+            "thala" => Box::new(chain_spec::thala::ChainSpec::from_json_file(path.into())?),
+            _ => return Err("`id` must starts with a known runtime name!".to_string()),
+        };
+        return Ok(parsed);
     }
 
     let mut normalized_id: VecDeque<&str> = id.split("-").collect();
@@ -126,24 +113,20 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     }
 
     let runtime_name = normalized_id.pop_front().expect("Never empty");
-
+    let environment = normalized_id.pop_front().ok_or("Environment skipped");
     let para_id = normalized_id
-        .pop_back()
-        .map(|id| id.parse::<u32>().or(Err("Invalid parachain id")))
+        .pop_front()
+        .map(|id| id.parse::<u32>().or(Err("No parachain id")))
         .transpose()?
         .ok_or("Must specify parachain id");
-
-    let environment = normalized_id.pop_back().ok_or("Must specify environment");
-
     drop(normalized_id);
 
     if runtime_name == "phala" {
-        // TODO: Export Phala raw chain spec
-        // if para_id.is_err() {
-        //     return Ok(Box::new(chain_spec::phala::ChainSpec::from_json_bytes(
-        //         &include_bytes!("../res/phala.json")[..],
-        //     )?));
-        // }
+        if para_id.is_err() {
+            return Ok(Box::new(chain_spec::phala::ChainSpec::from_json_bytes(
+                &include_bytes!("../res/phala.json")[..],
+            )?));
+        }
 
         return match environment? {
             "dev" => Ok(Box::new(chain_spec::phala::phala_development_config(
