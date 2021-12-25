@@ -41,7 +41,6 @@ pub type AccountId = AccountId32;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
-pub(crate) type BlockNumber = u64;
 
 // Configure a mock runtime to test the pallet.
 construct_runtime!(
@@ -342,7 +341,7 @@ impl pallet_xcm_transfer::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type LocationInverter = LocationInverter<Ancestry>;
-	type ParachainInfo = ParachainInfo;
+	type NativeAssetChecker = xcm_helper::NativeAssetFilter<ParachainInfo>;
 	type FeeAssets = FeeAssets;
 	type DefaultFee = DefaultDestChainXcmFee;
 }

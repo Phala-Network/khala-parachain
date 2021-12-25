@@ -84,20 +84,13 @@ pub mod xcm_helper {
 		}
 	}
 
-	pub struct NativeAssetFilter<T>(PhantomData<T>);
-	impl<T: Get<ParaId>> NativeAssetFilter<T> {
-		pub fn is_native_asset_id(id: &MultiLocation) -> bool {
-			let native_locations = [
-				MultiLocation::here(),
-				(1, X1(Parachain(T::get().into()))).into(),
-			];
-			native_locations.contains(id)
-		}
-	}
-
 	pub trait NativeAssetChecker {
 		fn is_native_asset(asset: &MultiAsset) -> bool;
+		fn is_native_asset_id(id: &MultiLocation) -> bool;
+		fn native_asset_id() -> MultiLocation;
 	}
+
+	pub struct NativeAssetFilter<T>(PhantomData<T>);
 	impl<T: Get<ParaId>> NativeAssetChecker for NativeAssetFilter<T> {
 		fn is_native_asset(asset: &MultiAsset) -> bool {
 			match (&asset.id, &asset.fun) {
@@ -105,6 +98,18 @@ pub mod xcm_helper {
 				(Concrete(ref id), Fungible(_)) if Self::is_native_asset_id(id) => true,
 				_ => false,
 			}
+		}
+
+		fn is_native_asset_id(id: &MultiLocation) -> bool {
+			let native_locations = [
+				MultiLocation::here(),
+				(1, X1(Parachain(T::get().into()))).into(),
+			];
+			native_locations.contains(id)
+		}
+
+		fn native_asset_id() -> MultiLocation {
+			(1, X1(Parachain(T::get().into()))).into()
 		}
 	}
 

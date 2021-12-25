@@ -10,7 +10,10 @@ pub mod pallet {
 	use frame_support::{
 		pallet_prelude::*,
 		traits::{
-			tokens::{fungibles::Transfer as FungibleTransfer, BalanceConversion, WithdrawReasons},
+			tokens::{
+				fungibles::{Inspect, Transfer as FungibleTransfer},
+				BalanceConversion, WithdrawReasons,
+			},
 			Currency, ExistenceRequirement, OnUnbalanced, StorageVersion,
 		},
 		transactional,
@@ -74,8 +77,12 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// [chainId, min_fee, fee_scale]
-		FeeUpdated(bridge::BridgeChainId, BalanceOf<T>, u32),
+		/// [dest_id, min_fee, fee_scale]
+		FeeUpdated {
+			dest_id: bridge::BridgeChainId,
+			min_fee: BalanceOf<T>,
+			fee_scale: u32,
+		},
 	}
 
 	#[pallet::error]
@@ -105,7 +112,7 @@ pub mod pallet {
 	{
 		/// Change extra bridge transfer fee that user should pay
 		#[pallet::weight(195_000_000)]
-		pub fn change_fee(
+		pub fn update_fee(
 			origin: OriginFor<T>,
 			min_fee: BalanceOf<T>,
 			fee_scale: u32,
@@ -114,7 +121,11 @@ pub mod pallet {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
 			ensure!(fee_scale <= 1000u32, Error::<T>::InvalidFeeOption);
 			BridgeFee::<T>::insert(dest_id, (min_fee, fee_scale));
-			Self::deposit_event(Event::FeeUpdated(dest_id, min_fee, fee_scale));
+			Self::deposit_event(Event::FeeUpdated {
+				dest_id,
+				min_fee,
+				fee_scale,
+			});
 			Ok(())
 		}
 
@@ -143,9 +154,13 @@ pub mod pallet {
 				T::AssetsWrapper::id(&asset).ok_or(Error::<T>::AssetNotRegistered)?;
 			let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
 				.map_err(|_| Error::<T>::BalanceConversionFailed)?;
+			let reducible_balance = <pallet_assets::pallet::Pallet<T>>::reducible_balance(
+				asset_id.into(),
+				&sender,
+				false,
+			);
 			ensure!(
-				<pallet_assets::pallet::Pallet<T>>::balance(asset_id.into(), &sender)
-					>= asset_amount,
+				reducible_balance >= asset_amount,
 				Error::<T>::InsufficientBalance
 			);
 
@@ -197,7 +212,6 @@ pub mod pallet {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			let reserve_id = <bridge::Pallet<T>>::account_id();
-
 			ensure!(
 				<bridge::Pallet<T>>::chain_whitelisted(dest_id),
 				Error::<T>::InvalidDestination

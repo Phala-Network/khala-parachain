@@ -10,6 +10,7 @@ use crate::bridge_transfer::mock::{
 use codec::Encode;
 use frame_support::{assert_err, assert_noop, assert_ok};
 use hex_literal::hex;
+use sp_core::hashing::blake2_128;
 use sp_runtime::DispatchError;
 use xcm::latest::prelude::*;
 
@@ -26,7 +27,7 @@ fn make_transfer_proposal(dest: Vec<u8>, amount: u64) -> Call {
 
 #[test]
 fn constant_equality() {
-	let r_id = bridge::derive_resource_id(1, &bridge::hashing::blake2_128(b"PHA"));
+	let r_id = bridge::derive_resource_id(1, &blake2_128(b"PHA"));
 	let encoded: [u8; 32] =
 		hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
 	assert_eq!(r_id, encoded);
@@ -135,7 +136,7 @@ fn transfer_assets_not_registered() {
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::change_fee(
+		assert_ok!(BridgeTransfer::update_fee(
 			Origin::root(),
 			2,
 			2,
@@ -171,7 +172,7 @@ fn transfer_assets_insufficient_balance() {
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::change_fee(
+		assert_ok!(BridgeTransfer::update_fee(
 			Origin::root(),
 			2,
 			2,
@@ -216,7 +217,7 @@ fn transfer_assets() {
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::change_fee(
+		assert_ok!(BridgeTransfer::update_fee(
 			Origin::root(),
 			2,
 			2,
@@ -258,7 +259,7 @@ fn transfer_native() {
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::change_fee(
+		assert_ok!(BridgeTransfer::update_fee(
 			Origin::root(),
 			2,
 			2,

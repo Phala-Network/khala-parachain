@@ -19,8 +19,6 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
 pub(crate) type Balance = u64;
-pub const DOLLARS: Balance = 1_000_000_000_000;
-pub const CENTS: Balance = DOLLARS / 100;
 
 frame_support::construct_runtime!(
 	pub enum Test where

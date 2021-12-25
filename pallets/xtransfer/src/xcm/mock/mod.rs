@@ -1,7 +1,5 @@
 #![cfg(test)]
 
-use super::*;
-
 use frame_support::traits::GenesisBuild;
 use sp_io::TestExternalities;
 use sp_runtime::AccountId32;
@@ -60,7 +58,6 @@ decl_test_network! {
 	}
 }
 
-pub type RelayBalances = pallet_balances::Pallet<relay::Runtime>;
 pub type ParaBalances = pallet_balances::Pallet<para::Runtime>;
 pub type ParaAssets = pallet_assets::Pallet<para::Runtime>;
 pub type XcmTransfer = crate::pallet_xcm_transfer::Pallet<para::Runtime>;
@@ -109,24 +106,6 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
 	ext
-}
-
-pub fn para_event_exists<E: Into<para::Event>>(e: E) {
-	use para::{Event, Runtime};
-
-	let actual: Vec<Event> = frame_system::Pallet::<Runtime>::events()
-		.iter()
-		.map(|e| e.event.clone())
-		.collect();
-	let e: Event = e.into();
-	let mut exists = false;
-	for evt in actual {
-		if evt == e {
-			exists = true;
-			break;
-		}
-	}
-	assert!(exists);
 }
 
 pub fn para_take_events() -> Vec<para::Event> {

@@ -3,8 +3,6 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub mod hashing;
-
 pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {

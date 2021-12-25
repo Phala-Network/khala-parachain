@@ -98,3 +98,47 @@ where
 
     io
 }
+
+// TODO: Remove when Phala integrated Phala pallets
+pub fn create_phala_full<C, B, P>(deps: FullDeps<C, B, P>) -> RpcExtension
+    where
+        C: ProvideRuntimeApi<Block>
+        + StorageProvider<Block, B>
+        + HeaderBackend<Block>
+        + BlockBackend<Block>
+        + AuxStore
+        + HeaderMetadata<Block, Error = BlockChainError>
+        + Send
+        + Sync
+        + 'static,
+        C::Api: frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
+        C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+        C::Api: BlockBuilder<Block>,
+        C::Api:
+        sp_api::Metadata<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<B, Block>>,
+        B: Backend<Block> + 'static,
+        P: TransactionPool + Sync + Send + 'static,
+{
+    use frame_rpc_system::{FullSystem, SystemApi};
+    use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
+
+    let mut io = jsonrpc_core::IoHandler::default();
+    let FullDeps {
+        client,
+        pool,
+        deny_unsafe,
+        backend: _,
+        enable_archive: _,
+    } = deps;
+
+    io.extend_with(SystemApi::to_delegate(FullSystem::new(
+        client.clone(),
+        pool.clone(),
+        deny_unsafe,
+    )));
+    io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
+        client.clone(),
+    )));
+
+    io
+}

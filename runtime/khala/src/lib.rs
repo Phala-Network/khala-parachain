@@ -85,8 +85,7 @@ pub use parachains_common::Index;
 pub use parachains_common::*;
 
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
-
-pub use xtransfer_pallets::{pallet_assets_wrapper, pallet_bridge, pallet_bridge_transfer, pallet_xcm_transfer::XcmTransact};
+pub use xtransfer_pallets::{pallet_assets_wrapper, pallet_bridge, pallet_bridge_transfer};
 
 #[cfg(any(feature = "std", test))]
 pub use frame_system::Call as SystemCall;
@@ -195,8 +194,6 @@ construct_runtime! {
         // Monetary stuff
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 40,
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 41,
-        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 42,
-        AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>} = 43,
 
         // Collator support. the order of these 5 are important and shall not change.
         Authorship: pallet_authorship::{Pallet, Call, Storage} = 50,
@@ -228,6 +225,8 @@ construct_runtime! {
         PhalaRegistry: pallet_registry::{Pallet, Call, Event, Storage, Config<T>} = 86,
         PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
+        AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>} = 90,
 
         // `sudo` has been removed on production
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,

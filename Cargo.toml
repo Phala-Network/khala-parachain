@@ -24,6 +24,7 @@ members = [
 	"pallets/phala/mq-runtime-api",
 	"pallets/xtransfer",
 	"pallets/parachain-info",
+	"runtime/phala",
 	"runtime/khala",
 	"runtime/thala",
 ]

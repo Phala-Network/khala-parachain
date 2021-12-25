@@ -84,6 +84,7 @@ polkadot-cli = { git = "https://github.com/paritytech/polkadot", branch = "relea
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.13" }
 
 parachains-common = { path = "../parachains-common" }
+phala-parachain-runtime = { path = "../runtime/phala" }
 khala-parachain-runtime = { path = "../runtime/khala" }
 thala-parachain-runtime = { path = "../runtime/thala" }
 

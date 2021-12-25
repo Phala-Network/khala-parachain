@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 use sp_core::{Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
+pub mod phala;
 pub mod khala;
 pub mod thala;
 
