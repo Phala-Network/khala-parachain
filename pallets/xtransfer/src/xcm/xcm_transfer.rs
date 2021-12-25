@@ -76,8 +76,12 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Assets sent to parachain or relaychain. \[from, paraId, to, amount\]
-		AssetTransfered(T::AccountId, MultiAsset, MultiLocation),
+		/// Assets sent to parachain or relaychain. \[sender, asset, dest\]
+		AssetTransfered {
+			sender: T::AccountId,
+			asset: MultiAsset,
+			dest: MultiLocation,
+		},
 	}
 
 	#[pallet::error]
@@ -218,7 +222,11 @@ pub mod pallet {
 
 			xcm_session.execute(&mut msg)?;
 
-			Self::deposit_event(Event::AssetTransfered(sender, asset, dest));
+			Self::deposit_event(Event::AssetTransfered {
+				sender,
+				asset,
+				dest,
+			});
 
 			Ok(())
 		}
