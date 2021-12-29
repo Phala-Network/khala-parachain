@@ -125,7 +125,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 1090,
+    spec_version: 1091,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -170,7 +170,20 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPallets,
+    (
+        CouncilStoragePrefixMigration,
+        TechnicalCommitteeStoragePrefixMigration,
+        TechnicalMembershipStoragePrefixMigration,
+        MigrateTipsPalletPrefix,
+        BountiesPrefixMigration,
+    ),
 >;
+
+mod migrations;
+use migrations::{
+    BountiesPrefixMigration, CouncilStoragePrefixMigration, MigrateTipsPalletPrefix,
+    TechnicalCommitteeStoragePrefixMigration, TechnicalMembershipStoragePrefixMigration,
+};
 
 construct_runtime! {
     pub enum Runtime where
@@ -1010,7 +1023,7 @@ parameter_types! {
 impl pallet_bridge_transfer::Config for Runtime {
     type Event = Event;
     type AssetsWrapper = AssetsWrapper;
-    type BalanceConverter = pallet_assets::BalanceToAssetBalance::<Balances, Runtime, ConvertInto>;
+    type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Runtime, ConvertInto>;
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
     type NativeTokenResourceId = NativeTokenResourceId;
