@@ -125,7 +125,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 1090,
+    spec_version: 1091,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -170,7 +170,23 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPallets,
+    (
+		CouncilStoragePrefixMigration,
+		TechnicalCommitteeStoragePrefixMigration,
+		TechnicalMembershipStoragePrefixMigration,
+		MigrateTipsPalletPrefix,
+		BountiesPrefixMigration,
+    )
 >;
+
+mod migrations;
+use migrations::{
+    CouncilStoragePrefixMigration,
+    TechnicalCommitteeStoragePrefixMigration,
+    TechnicalMembershipStoragePrefixMigration,
+    MigrateTipsPalletPrefix,
+    BountiesPrefixMigration,
+};
 
 construct_runtime! {
     pub enum Runtime where
