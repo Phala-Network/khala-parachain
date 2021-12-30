@@ -279,7 +279,7 @@ pub mod pallet {
 		/// Miner enters unresponsive state. \[miner\]
 		MinerEnterUnresponsive(T::AccountId),
 		/// Miner returns to responsive state \[miner\]
-		MinerExitUnresponive(T::AccountId),
+		MinerExitUnresponsive(T::AccountId),
 		/// Miner settled successfully. \[miner, v, payout\]
 		MinerSettled(T::AccountId, u128, u128),
 		/// Some internal error happened when settling a miner's ledger. \[worker\]
@@ -564,7 +564,7 @@ pub mod pallet {
 						}
 						miner_info.state = MinerState::MiningIdle;
 						Miners::<T>::insert(&account, &miner_info);
-						Self::deposit_event(Event::<T>::MinerExitUnresponive(account));
+						Self::deposit_event(Event::<T>::MinerExitUnresponsive(account));
 						Self::push_message(SystemEvent::new_worker_event(
 							worker,
 							WorkerEvent::MiningExitUnresponsive,
