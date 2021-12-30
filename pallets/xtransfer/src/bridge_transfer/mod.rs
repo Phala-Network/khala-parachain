@@ -312,7 +312,7 @@ pub mod pallet {
 				.resolve()
 				.ok_or(Error::<T>::AssetConversionFailed)?;
 
-			log::error!(
+			log::trace!(
 				target: "BridgeTransfer.transfer",
 				"resolve location of assset ${:?}, resolve location of source: {:?}.",
 				&asset_resolve_location,
@@ -345,7 +345,7 @@ pub mod pallet {
 					.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 					amount
 				};
-				log::error!(
+				log::trace!(
 					target: "BridgeTransfer.transfer",
 					"resolve of asset and src dismatch, burn asset form source resolve location.",
 				);
@@ -382,7 +382,7 @@ pub mod pallet {
 				| (1, X2(Parachain(_), AccountId32 { network: _, id: _ })) => {
 					let dest_resolve_account = dest_resolve_location.clone().into_account();
 					if asset_resolve_location != dest_resolve_location {
-						log::error!(
+						log::trace!(
 							target: "BridgeTransfer.transfer",
 							"resolve of asset and dest dismatch, deposit asset to dest resolve location.",
 						);
