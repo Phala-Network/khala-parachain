@@ -6,12 +6,14 @@ mod tests;
 pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
-	use crate::pallet_assets_wrapper::{XTransferAsset, XTransferAssetInfo};
+	use crate::pallet_assets_wrapper::{
+		AccountId32Conversion, Resolve, XTransferAsset, XTransferAssetInfo,
+	};
 	use frame_support::{
 		pallet_prelude::*,
 		traits::{
 			tokens::{
-				fungibles::{Inspect, Transfer as FungibleTransfer},
+				fungibles::{Inspect, Mutate as FungibleMutate, Transfer as FungibleTransfer},
 				BalanceConversion, WithdrawReasons,
 			},
 			Currency, ExistenceRequirement, OnUnbalanced, StorageVersion,
@@ -26,7 +28,7 @@ pub mod pallet {
 	use sp_arithmetic::traits::SaturatedConversion;
 	use sp_core::U256;
 	use sp_std::prelude::*;
-	use xcm::latest::{prelude::*, MultiAsset, MultiLocation};
+	use xcm::latest::{prelude::*, MultiLocation};
 
 	type ResourceId = bridge::ResourceId;
 
@@ -140,7 +142,19 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-			let reserve_id = <bridge::Pallet<T>>::account_id();
+			let u128_dest_id: u128 = dest_id
+				.clone()
+				.try_into()
+				.expect("Convert from chain id to u128 must be ok; qed.");
+			let dest_resolve_location: MultiLocation = (
+				0,
+				X2(GeneralKey(b"solo".to_vec()), GeneralIndex(u128_dest_id)),
+			)
+				.into();
+			let asset_resolve_location: MultiLocation = asset
+				.clone()
+				.resolve()
+				.ok_or(Error::<T>::AssetConversionFailed)?;
 
 			ensure!(
 				<bridge::Pallet<T>>::chain_whitelisted(dest_id),
@@ -183,16 +197,28 @@ pub mod pallet {
 
 			let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
 				.map_err(|_| Error::<T>::BalanceConversionFailed)?;
-			// transfer asset from sender to reserve account
-			<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
-				asset_id,
-				&sender,
-				&reserve_id,
-				asset_amount,
-				false,
-			)
-			.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 
+			if asset_resolve_location == dest_resolve_location {
+				// burn if transfer back to its resolve location
+				<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::burn_from(
+					asset_id,
+					&sender,
+					asset_amount,
+				)
+				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
+			} else {
+				// transfer asset from sender to reserve account
+				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
+					asset_id,
+					&sender,
+					&dest_resolve_location.into_account().into(),
+					asset_amount,
+					false,
+				)
+				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
+			}
+
+			// send message to evm chains
 			<bridge::Pallet<T>>::transfer_fungible(
 				dest_id,
 				rid,
@@ -261,10 +287,72 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 			rid: ResourceId,
 		) -> DispatchResult {
-			let reserve_id = T::BridgeOrigin::ensure_origin(origin.clone())?;
-			let dest_location: MultiLocation =
-				Decode::decode(&mut dest.as_slice()).map_err(|_| Error::<T>::DestUnrecognised)?;
+			let bridge_id = T::BridgeOrigin::ensure_origin(origin.clone())?;
 
+			let (src_id, dest_location) = dest.split_first().ok_or(Error::<T>::DestUnrecognised)?;
+			let u128_src_id: u128 = (*src_id)
+				.try_into()
+				.expect("Convert from chain id to u128 must be ok; qed.");
+			let src_resolve_location: MultiLocation = (
+				0,
+				X2(GeneralKey(b"solo".to_vec()), GeneralIndex(u128_src_id)),
+			)
+				.into();
+
+			let dest_location: MultiLocation = Decode::decode(&mut dest_location.clone())
+				.map_err(|_| Error::<T>::DestUnrecognised)?;
+			let dest_resolve_location: MultiLocation = dest_location
+				.clone()
+				.resolve()
+				.ok_or(Error::<T>::DestUnrecognised)?;
+
+			let asset_location: MultiLocation = Self::rid_to_location(&rid)?;
+			let asset_resolve_location: MultiLocation = asset_location
+				.clone()
+				.resolve()
+				.ok_or(Error::<T>::AssetConversionFailed)?;
+
+			log::error!(
+				target: "BridgeTransfer.transfer",
+				"resolve location of assset ${:?}, resolve location of source: {:?}.",
+				&asset_resolve_location,
+				&src_resolve_location,
+			);
+			let imbalance = if asset_resolve_location == src_resolve_location {
+				// create
+				amount
+			} else {
+				let imbalance = if rid == T::NativeTokenResourceId::get() {
+					// ERC20 PHA save resolved assets in bridge account
+					let _imbalance = <T as Config>::Currency::withdraw(
+						&bridge_id,
+						amount,
+						WithdrawReasons::TRANSFER,
+						ExistenceRequirement::AllowDeath,
+					)?;
+					amount
+				} else {
+					let asset_id = Self::rid_to_assetid(&rid)?;
+					let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
+						.map_err(|_| Error::<T>::BalanceConversionFailed)?;
+
+					// burn from source resolve account
+					<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::burn_from(
+						asset_id,
+						&src_resolve_location.into_account().into(),
+						asset_amount,
+					)
+					.map_err(|_| Error::<T>::FailedToTransactAsset)?;
+					amount
+				};
+				log::error!(
+					target: "BridgeTransfer.transfer",
+					"resolve of asset and src dismatch, burn asset form source resolve location.",
+				);
+				imbalance
+			};
+
+			// settle to dest
 			match (
 				dest_location.clone().parents,
 				dest_location.clone().interior,
@@ -273,48 +361,46 @@ pub mod pallet {
 				(0, X1(AccountId32 { network: _, id })) => {
 					if rid == T::NativeTokenResourceId::get() {
 						// ERC20 PHA transfer
-						<T as Config>::Currency::transfer(
-							&reserve_id,
-							&id.into(),
-							amount,
-							ExistenceRequirement::AllowDeath,
-						)?;
+						<T as Config>::Currency::deposit_creating(&id.into(), imbalance);
 					} else {
-						let xtransfer_asset: XTransferAsset =
-							T::AssetsWrapper::from_resource_id(&rid)
-								.ok_or(Error::<T>::AssetConversionFailed)?;
-						let asset_id: <T as pallet_assets::Config>::AssetId =
-							T::AssetsWrapper::id(&xtransfer_asset)
-								.ok_or(Error::<T>::AssetNotRegistered)?;
-						let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
-							.map_err(|_| Error::<T>::BalanceConversionFailed)?;
+						let asset_id = Self::rid_to_assetid(&rid)?;
+						let asset_amount =
+							T::BalanceConverter::to_asset_balance(imbalance, asset_id)
+								.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 
-						// transfer asset from reserve account to recipient
-						<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
-                            asset_id,
-							&reserve_id,
-                            &id.into(),
-                            asset_amount,
-							false,
-                        )
-                        .map_err(|_| Error::<T>::FailedToTransactAsset)?;
+						// mint asset into recipient
+						<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::mint_into(
+							asset_id,
+							&id.into(),
+							asset_amount,
+						)
+						.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 					}
 				}
 				// to relaychain or other parachain, forward it by xcm
 				(1, X1(AccountId32 { network: _, id: _ }))
 				| (1, X2(Parachain(_), AccountId32 { network: _, id: _ })) => {
-					let multi_asset: MultiAsset = if rid == T::NativeTokenResourceId::get() {
-						(MultiLocation::here(), amount.into()).into()
-					} else {
-						let xtransfer_asset: XTransferAsset =
-							T::AssetsWrapper::from_resource_id(&rid)
-								.ok_or(Error::<T>::AssetConversionFailed)?;
-						let asset_location: MultiLocation = xtransfer_asset.clone().into();
-						(asset_location, amount.into()).into()
-					};
+					let asset_id = Self::rid_to_assetid(&rid)?;
+					let asset_amount = T::BalanceConverter::to_asset_balance(imbalance, asset_id)
+						.map_err(|_| Error::<T>::BalanceConversionFailed)?;
+
+					let dest_resolve_account = dest_resolve_location.clone().into_account();
+					if asset_resolve_location != dest_resolve_location {
+						log::error!(
+							target: "BridgeTransfer.transfer",
+							"resolve of asset and dest dismatch, deposit asset to dest resolve location.",
+						);
+						// mint asset into dest resolve account
+						<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::mint_into(
+							asset_id,
+							&dest_resolve_account.clone().into(),
+							asset_amount,
+						)
+						.map_err(|_| Error::<T>::FailedToTransactAsset)?;
+					}
 
 					// Two main tasks of transfer_fungible is:
-					// first) withdraw asset from reserve_id, e.g. bridge account here.(BURN OP)
+					// first) withdraw asset from reserve_id
 					// second) deposit asset into sovereign account of dest chain.(MINT OP)
 					//
 					// So if the reserve account does not have enough asset, transaction would fail.
@@ -322,16 +408,28 @@ pub mod pallet {
 					// assets would be deposited into reserve account, in other words, bridge transfer
 					// always based on reserve mode.
 					T::XcmTransactor::transfer_fungible(
-						reserve_id.clone(),
+						dest_resolve_account.clone().into(),
 						Junction::AccountId32 {
 							network: NetworkId::Any,
-							id: reserve_id.into(),
+							id: dest_resolve_account,
 						}
 						.into(),
-						multi_asset,
+						(asset_location, amount.into()).into(),
 						dest_location,
 						6000000000u64.into(),
 					)?;
+				}
+				// to other evm chains
+				(
+					0,
+					X3(
+						GeneralKey(_solo_key),
+						GeneralIndex(_evm_chain_id),
+						GeneralKey(_evm_account),
+					),
+				) => {
+					// TODO
+					return Err(Error::<T>::DestUnrecognised.into());
 				}
 				_ => return Err(Error::<T>::DestUnrecognised.into()),
 			}
@@ -349,6 +447,27 @@ pub mod pallet {
 			} else {
 				min_fee
 			}
+		}
+
+		pub fn rid_to_location(rid: &[u8; 32]) -> Result<MultiLocation, DispatchError> {
+			let asset_location: MultiLocation = if *rid == T::NativeTokenResourceId::get() {
+				MultiLocation::here()
+			} else {
+				let xtransfer_asset: XTransferAsset = T::AssetsWrapper::from_resource_id(&rid)
+					.ok_or(Error::<T>::AssetConversionFailed)?;
+				xtransfer_asset.into()
+			};
+			Ok(asset_location)
+		}
+
+		pub fn rid_to_assetid(
+			rid: &[u8; 32],
+		) -> Result<<T as pallet_assets::Config>::AssetId, DispatchError> {
+			let xtransfer_asset: XTransferAsset = T::AssetsWrapper::from_resource_id(&rid)
+				.ok_or(Error::<T>::AssetConversionFailed)?;
+			let asset_id: <T as pallet_assets::Config>::AssetId =
+				T::AssetsWrapper::id(&xtransfer_asset).ok_or(Error::<T>::AssetNotRegistered)?;
+			Ok(asset_id)
 		}
 	}
 }

@@ -2,7 +2,9 @@ pub use self::xcm_helper::*;
 
 pub mod xcm_helper {
 	use crate::bridge::pallet::{BridgeChainId, BridgeTransact};
-	use crate::pallet_assets_wrapper::{XTransferAsset, XTransferAssetInfo};
+	use crate::pallet_assets_wrapper::{
+		AccountId32Conversion, Resolve, XTransferAsset, XTransferAssetInfo,
+	};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::pallet_prelude::*;
 	use sp_core::U256;
@@ -30,7 +32,7 @@ pub mod xcm_helper {
 	pub struct NativeAssetMatcher<C>(PhantomData<C>);
 	impl<C: NativeAssetChecker, B: TryFrom<u128>> MatchesFungible<B> for NativeAssetMatcher<C> {
 		fn matches_fungible(a: &MultiAsset) -> Option<B> {
-			log::trace!(
+			log::error!(
 				target: LOG_TARGET,
 				"NativeAssetMatcher check fungible {:?}.",
 				a.clone(),
@@ -51,7 +53,7 @@ pub mod xcm_helper {
 		MatchesFungibles<AssetId, Balance> for ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>
 	{
 		fn matches_fungibles(a: &MultiAsset) -> result::Result<(AssetId, Balance), MatchError> {
-			log::trace!(
+			log::error!(
 				target: LOG_TARGET,
 				"ConcreteAssetsMatcher check fungible {:?}.",
 				a.clone(),
@@ -182,7 +184,7 @@ pub mod xcm_helper {
 		}
 
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult {
-			log::trace!(
+			log::error!(
 				target: LOG_TARGET,
 				"XTransferAdapter deposit_asset, what: {:?}, who: {:?}.",
 				&what,
@@ -191,35 +193,56 @@ pub mod xcm_helper {
 
 			match &who.interior {
 				// destnation is foreign chain, forward it through bridge
-				Junctions::X2(GeneralIndex(dest_id), GeneralKey(recipient)) => {
+				Junctions::X3(
+					GeneralKey(solo_key),
+					GeneralIndex(dest_id),
+					GeneralKey(recipient),
+				) => {
+					ensure!(
+						*solo_key == b"solo".to_vec(),
+						XcmError::FailedToTransactAsset("DismatchPath")
+					);
 					let (&amount, location) = match (&what.fun, &what.id) {
 						(Fungible(amount), Concrete(id)) => (amount, id),
 						_ => return Err(XcmError::Unimplemented),
 					};
+					let dest_resolve: MultiLocation =
+						(0, X2(GeneralKey(b"solo".to_vec()), GeneralIndex(*dest_id))).into();
 					let xtransfer_asset: XTransferAsset = location.clone().into();
 					let dest_id: BridgeChainId = dest_id
 						.clone()
 						.try_into()
 						.expect("Convert from u128 to dest_id must be ok; qed.");
+					let asset_resolve_location = location
+						.clone()
+						.resolve()
+						.ok_or(XcmError::FailedToTransactAsset("FailedGetResolve"))?;
 
-					// All bridge transfers must be reservable, so here we should deposit the
-					// withdrawn assets(they already withdrawn from soverign account of source chain)
-					// into reserve account(here is bridge account).
-					let reserve_location = MultiLocation::new(
-						0,
-						X1(AccountId32 {
-							network: NetworkId::Any,
-							id: BridgeTransactor::reserve_id().into(),
-						}),
-					);
-					if NativeChecker::is_native_asset(what) {
-						NativeAdapter::deposit_asset(what, &reserve_location).map_err(|_| {
-							XcmError::FailedToTransactAsset("ReserveTransferFailed")
-						})?;
-					} else {
-						AssetsAdapter::deposit_asset(what, &reserve_location).map_err(|_| {
-							XcmError::FailedToTransactAsset("ReserveTransferFailed")
-						})?;
+					// If we are forwarding asset to its non-resolve destination, deposit assets
+					// to resolve account first
+					if asset_resolve_location != dest_resolve {
+						log::error!(
+							target: LOG_TARGET,
+							"XTransferAdapter, resolve of asset and dest dismatch, deposit asset to resolve account.",
+						);
+						let resolove_account: MultiLocation = (
+							0,
+							X1(AccountId32 {
+								network: NetworkId::Any,
+								id: dest_resolve.into_account().into(),
+							}),
+						)
+							.into();
+
+						if NativeChecker::is_native_asset(what) {
+							NativeAdapter::deposit_asset(what, &resolove_account).map_err(
+								|_| XcmError::FailedToTransactAsset("ReserveTransferFailed"),
+							)?;
+						} else {
+							AssetsAdapter::deposit_asset(what, &resolove_account).map_err(
+								|_| XcmError::FailedToTransactAsset("ReserveTransferFailed"),
+							)?;
+						}
 					}
 
 					// This operation will not do real transfer, it just emits FungibleTransfer event
@@ -249,7 +272,7 @@ pub mod xcm_helper {
 			what: &MultiAsset,
 			who: &MultiLocation,
 		) -> result::Result<Assets, XcmError> {
-			log::trace!(
+			log::error!(
 				target: LOG_TARGET,
 				"XTransferAdapter withdraw_asset, what: {:?}, who: {:?}.",
 				&what,
@@ -280,7 +303,7 @@ pub mod xcm_helper {
 					id: Beneficiary::get().into(),
 				}),
 			);
-			log::trace!(
+			log::error!(
 				target: LOG_TARGET,
 				"XTransferTakeRevenue take_revenue, revenue: {:?}, beneficiary: {:?}.",
 				&revenue,

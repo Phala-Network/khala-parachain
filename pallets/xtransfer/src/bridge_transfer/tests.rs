@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate::assets_wrapper::pallet::XTransferAssetInfo;
+use crate::assets_wrapper::pallet::{AccountId32Conversion, XTransferAssetInfo};
 use crate::bridge;
 use crate::bridge_transfer::mock::{
 	assert_events, balances, expect_event, new_test_ext, Assets, AssetsWrapper, Balances, Bridge,
@@ -38,9 +38,10 @@ fn register_asset() {
 	new_test_ext().execute_with(|| {
 		let bridge_asset_location = MultiLocation::new(
 			1,
-			X3(
+			X4(
 				Parachain(2004),
-				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(0),
 				GeneralKey(b"an asset".to_vec()),
 			),
 		);
@@ -76,9 +77,10 @@ fn register_asset() {
 
 		let another_bridge_asset_location = MultiLocation::new(
 			1,
-			X3(
+			X4(
 				Parachain(2004),
-				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(0),
 				GeneralKey(b"another asset".to_vec()),
 			),
 		);
@@ -126,9 +128,10 @@ fn transfer_assets_not_registered() {
 		let dest_chain = 2;
 		let bridge_asset_location = MultiLocation::new(
 			1,
-			X3(
+			X4(
 				Parachain(2004),
-				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(0),
 				GeneralKey(b"an asset".to_vec()),
 			),
 		);
@@ -162,9 +165,10 @@ fn transfer_assets_insufficient_balance() {
 		let dest_chain = 2;
 		let bridge_asset_location = MultiLocation::new(
 			1,
-			X3(
+			X4(
 				Parachain(2004),
-				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(0),
 				GeneralKey(b"an asset".to_vec()),
 			),
 		);
@@ -202,27 +206,31 @@ fn transfer_assets_insufficient_balance() {
 }
 
 #[test]
-fn transfer_assets() {
+fn transfer_assets_to_nonresolve() {
 	new_test_ext().execute_with(|| {
-		let dest_chain = 2;
+		let dest_chain: u8 = 2;
+		let dest_resolve_location: MultiLocation = (
+			0,
+			X2(
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(dest_chain.into()),
+			),
+		)
+			.into();
 		let bridge_asset_location = MultiLocation::new(
 			1,
-			X3(
+			X4(
 				Parachain(2004),
-				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(0),
 				GeneralKey(b"an asset".to_vec()),
 			),
 		);
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
-		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::update_fee(
-			Origin::root(),
-			2,
-			2,
-			dest_chain.clone()
-		));
+		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
+		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 2, dest_chain));
 
 		// register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
@@ -244,9 +252,70 @@ fn transfer_assets() {
 			amount,
 		));
 
-		// asset has been transfered into reserve account
 		assert_eq!(Assets::balance(0, &ALICE), amount);
-		assert_eq!(Assets::balance(0, &Bridge::account_id()), amount);
+		// the asset's resolve chain is 0, dest chain is 2,
+		// so will save asset into resolve account of dest chain
+		assert_eq!(
+			Assets::balance(0, &dest_resolve_location.into_account().into()),
+			amount
+		);
+	})
+}
+
+#[test]
+fn transfer_assets_to_resolve() {
+	new_test_ext().execute_with(|| {
+		let dest_chain: u8 = 2;
+		let dest_resolve_location: MultiLocation = (
+			0,
+			X2(
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(dest_chain.into()),
+			),
+		)
+			.into();
+		let bridge_asset_location = MultiLocation::new(
+			1,
+			X4(
+				Parachain(2004),
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(dest_chain.into()),
+				GeneralKey(b"an asset".to_vec()),
+			),
+		);
+		let amount: u64 = 100;
+		let recipient = vec![99];
+
+		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
+		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 2, dest_chain));
+
+		// register asset, id = 0
+		assert_ok!(AssetsWrapper::force_register_asset(
+			Origin::root(),
+			bridge_asset_location.clone().into(),
+			0,
+			ALICE,
+		));
+
+		// mint some token to ALICE
+		assert_ok!(Assets::mint(Origin::signed(ALICE), 0, ALICE, amount * 2));
+		assert_eq!(Assets::balance(0, &ALICE), amount * 2);
+
+		assert_ok!(BridgeTransfer::transfer_assets(
+			Origin::signed(ALICE),
+			bridge_asset_location.into(),
+			dest_chain,
+			recipient.clone(),
+			amount,
+		));
+
+		assert_eq!(Assets::balance(0, &ALICE), amount);
+		// the asset's resolve chain is 2, dest chain is 2,
+		// so assets just be burned from sender
+		assert_eq!(
+			Assets::balance(0, &dest_resolve_location.into_account().into()),
+			0
+		);
 	})
 }
 
@@ -299,7 +368,7 @@ fn transfer_native() {
 }
 
 #[test]
-fn simulate_pha_transfer_from_solochain() {
+fn simulate_transfer_pha_from_solochain() {
 	new_test_ext().execute_with(|| {
 		// Check inital state
 		let bridge_id = Bridge::account_id();
@@ -316,29 +385,38 @@ fn simulate_pha_transfer_from_solochain() {
 		// Transfer and check result
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
-			relayer_location.encode(),
+			[&[0], relayer_location.encode().as_slice()].concat(),
 			10,
 			resource_id,
 		));
 		assert_eq!(Balances::free_balance(&bridge_id), ENDOWED_BALANCE - 10);
 		assert_eq!(Balances::free_balance(RELAYER_A), ENDOWED_BALANCE + 10);
 
-		assert_events(vec![Event::Balances(balances::Event::Transfer {
-			from: Bridge::account_id(),
-			to: RELAYER_A,
-			amount: 10,
-		})]);
+		assert_events(vec![
+			// withdraw from resolve account(for PHA, is bridge account)
+			Event::Balances(balances::Event::Withdraw {
+				who: Bridge::account_id(),
+				amount: 10,
+			}),
+			// deposit into recipient
+			Event::Balances(balances::Event::Deposit {
+				who: RELAYER_A,
+				amount: 10,
+			}),
+		]);
 	})
 }
 
 #[test]
-fn simulate_assets_transfer_from_solochain() {
+fn simulate_transfer_solochainassets_from_resolve_to_local() {
 	new_test_ext().execute_with(|| {
+		let src_chainid: u8 = 0;
 		let bridge_asset_location = MultiLocation::new(
 			1,
-			X3(
+			X4(
 				Parachain(2004),
-				GeneralKey(b"solochainasset".to_vec()),
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(src_chainid.into()),
 				GeneralKey(b"an asset".to_vec()),
 			),
 		);
@@ -353,7 +431,83 @@ fn simulate_assets_transfer_from_solochain() {
 				id: ALICE.into(),
 			}),
 		);
-		let reserve_id = Bridge::account_id();
+
+		let src_resolve_location: MultiLocation = (
+			0,
+			X2(
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(src_chainid.into()),
+			),
+		)
+			.into();
+
+		// register asset, id = 0
+		assert_ok!(AssetsWrapper::force_register_asset(
+			Origin::root(),
+			bridge_asset,
+			0,
+			ALICE,
+		));
+
+		assert_eq!(Assets::balance(0, &ALICE), 0);
+
+		// transfer from asset resolve location, would mint asset into ALICE directly
+		assert_ok!(BridgeTransfer::transfer(
+			Origin::signed(Bridge::account_id()),
+			[&[src_chainid], alice_location.encode().as_slice()].concat(),
+			amount,
+			r_id,
+		));
+		assert_eq!(Assets::balance(0, &ALICE), amount);
+		assert_eq!(
+			Assets::balance(0, &src_resolve_location.into_account().into()),
+			0
+		);
+
+		assert_events(vec![
+			// mint asset
+			Event::Assets(pallet_assets::Event::Issued {
+				asset_id: 0,
+				owner: ALICE,
+				total_supply: amount,
+			}),
+		]);
+	})
+}
+
+#[test]
+fn simulate_transfer_solochainassets_from_nonresolve_to_local() {
+	new_test_ext().execute_with(|| {
+		let src_chainid: u8 = 0;
+		let asset_resolve_chainid: u8 = 1;
+		let bridge_asset_location = MultiLocation::new(
+			1,
+			X4(
+				Parachain(2004),
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(asset_resolve_chainid.into()),
+				GeneralKey(b"an asset".to_vec()),
+			),
+		);
+		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset =
+			bridge_asset_location.clone().into();
+		let r_id: [u8; 32] = bridge_asset.clone().into();
+		let amount: u64 = 100;
+		let alice_location = MultiLocation::new(
+			0,
+			X1(AccountId32 {
+				network: NetworkId::Any,
+				id: ALICE.into(),
+			}),
+		);
+		let src_resolve_location: MultiLocation = (
+			0,
+			X2(
+				GeneralKey(b"solo".to_vec()),
+				GeneralIndex(src_chainid.into()),
+			),
+		)
+			.into();
 
 		// register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
@@ -369,20 +523,51 @@ fn simulate_assets_transfer_from_solochain() {
 		assert_ok!(Assets::mint(
 			Origin::signed(ALICE),
 			0,
-			reserve_id.clone(),
+			src_resolve_location.clone().into_account().into(),
 			amount * 2
 		));
-		assert_eq!(Assets::balance(0, &reserve_id), amount * 2);
+		assert_eq!(
+			Assets::balance(0, &src_resolve_location.clone().into_account().into()),
+			amount * 2
+		);
+		assert_events(vec![
+			// mint asset
+			Event::Assets(pallet_assets::Event::Issued {
+				asset_id: 0,
+				owner: src_resolve_location.clone().into_account().into(),
+				total_supply: amount * 2,
+			}),
+		]);
 
-		// transfer to ALICE, would transfer asset from reserve account into ALICE
+		// transfer from nonresolve location of asset,
+		// first: burn asset from source resolve account
+		// second: mint asset into recipient
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
-			alice_location.encode(),
+			[&[src_chainid], alice_location.encode().as_slice()].concat(),
 			amount,
 			r_id,
 		));
 		assert_eq!(Assets::balance(0, &ALICE), amount);
-		assert_eq!(Assets::balance(0, &reserve_id), amount);
+		assert_eq!(
+			Assets::balance(0, &src_resolve_location.clone().into_account().into()),
+			amount
+		);
+
+		assert_events(vec![
+			// burn asset
+			Event::Assets(pallet_assets::Event::Burned {
+				asset_id: 0,
+				owner: src_resolve_location.into_account().into(),
+				balance: amount,
+			}),
+			// mint asset
+			Event::Assets(pallet_assets::Event::Issued {
+				asset_id: 0,
+				owner: ALICE,
+				total_supply: amount,
+			}),
+		]);
 	})
 }
 
@@ -391,7 +576,7 @@ fn create_successful_transfer_proposal() {
 	new_test_ext().execute_with(|| {
 		let prop_id = 1;
 		let src_id = 1;
-		let r_id = bridge::derive_resource_id(src_id, b"transfer");
+		let r_id = NativeTokenResourceId::get();
 		let resource = b"BridgeTransfer.transfer".to_vec();
 		let relayer_location = MultiLocation::new(
 			0,
@@ -400,7 +585,8 @@ fn create_successful_transfer_proposal() {
 				id: RELAYER_A.into(),
 			}),
 		);
-		let proposal = make_transfer_proposal(relayer_location.encode(), 10);
+		let proposal =
+			make_transfer_proposal([&[0], relayer_location.encode().as_slice()].concat(), 10);
 
 		assert_ok!(Bridge::set_threshold(Origin::root(), TEST_THRESHOLD,));
 		assert_ok!(Bridge::add_relayer(Origin::root(), RELAYER_A));
@@ -471,9 +657,14 @@ fn create_successful_transfer_proposal() {
 			Event::Bridge(bridge::Event::VoteAgainst(src_id, prop_id, RELAYER_B)),
 			Event::Bridge(bridge::Event::VoteFor(src_id, prop_id, RELAYER_C)),
 			Event::Bridge(bridge::Event::ProposalApproved(src_id, prop_id)),
-			Event::Balances(balances::Event::Transfer {
-				from: Bridge::account_id(),
-				to: RELAYER_A,
+			// withdraw from resolve account(for PHA, is bridge account)
+			Event::Balances(balances::Event::Withdraw {
+				who: Bridge::account_id(),
+				amount: 10,
+			}),
+			// deposit into recipient
+			Event::Balances(balances::Event::Deposit {
+				who: RELAYER_A,
 				amount: 10,
 			}),
 			Event::Bridge(bridge::Event::ProposalSucceeded(src_id, prop_id)),

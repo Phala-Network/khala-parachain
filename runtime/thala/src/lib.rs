@@ -933,23 +933,43 @@ impl Config for XcmConfig {
     type Trader = (
         FixedRateOfFungible<
             ExecutionPriceInKSM,
-            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
         >,
         FixedRateOfFungible<
             ExecutionPriceInPHA,
-            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
         >,
         FixedRateOfFungible<
             ExecutionPriceInKAR,
-            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
         >,
         FixedRateOfFungible<
             ExecutionPriceInBNC,
-            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
         >,
         FixedRateOfFungible<
             ExecutionPriceInVKSM,
-            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
         >,
     );
     type ResponseHandler = PolkadotXcm;

@@ -9,7 +9,7 @@ pub mod pallet {
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::StaticLookup;
 	use sp_std::convert::From;
-	use xcm::latest::MultiLocation;
+	use xcm::latest::{prelude::*, MultiLocation};
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub struct XTransferAsset(MultiLocation);
@@ -29,6 +29,95 @@ pub mod pallet {
 	impl From<XTransferAsset> for [u8; 32] {
 		fn from(x: XTransferAsset) -> Self {
 			sp_io::hashing::keccak_256(&x.0.encode())
+		}
+	}
+
+	pub trait AccountId32Conversion {
+		fn into_account(self) -> [u8; 32];
+	}
+
+	impl AccountId32Conversion for MultiLocation {
+		fn into_account(self) -> [u8; 32] {
+			sp_io::hashing::keccak_256(&self.encode())
+		}
+	}
+
+	impl AccountId32Conversion for XTransferAsset {
+		fn into_account(self) -> [u8; 32] {
+			sp_io::hashing::keccak_256(&self.0.encode())
+		}
+	}
+
+	pub trait Resolve {
+		fn resolve(self) -> Option<MultiLocation>;
+	}
+
+	impl Resolve for MultiLocation {
+		fn resolve(self) -> Option<MultiLocation> {
+			match self.first_interior() {
+				Some(Parachain(para_id)) => {
+					match self.interior.at(1) {
+						// identify solo chain
+						Some(GeneralKey(solo_key)) => {
+							if solo_key.clone() == b"solo".to_vec() {
+								//self.interior.at(2) contains solo chain id
+								return Some(
+									(
+										0,
+										X2(
+											GeneralKey(solo_key.clone()),
+											self.interior
+												.at(2)
+												.expect("chain id missing; qed.")
+												.clone(),
+										),
+									)
+										.into(),
+								);
+							} else {
+								return None;
+							}
+						}
+						_ => {
+							return Some((self.parents, Parachain(*para_id)).into());
+						}
+					}
+				}
+				_ => {
+					// location not contains Junction::Parachain
+					match self.interior() {
+						Here | X1(AccountId32 { network: _, id: _ }) => {
+							return Some((self.parents, Here).into());
+						}
+						X3(GeneralKey(solo_key), GeneralIndex(evm_chain_id), GeneralKey(_)) => {
+							if solo_key.clone() == b"solo".to_vec() {
+								// identify solo chain
+								return Some(
+									(
+										0,
+										X2(
+											GeneralKey(solo_key.clone()),
+											GeneralIndex(*evm_chain_id),
+										),
+									)
+										.into(),
+								);
+							} else {
+								return None;
+							}
+						}
+						_ => {
+							return None;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	impl Resolve for XTransferAsset {
+		fn resolve(self) -> Option<MultiLocation> {
+			self.0.resolve()
 		}
 	}
 
