@@ -168,10 +168,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let mut dest_location = dest.clone();
 			// make sure we are processing crosschain transfer and we got correct path
-			ensure!(
-				!dest_location.is_here() && dest_location.interior.len() >= 2,
-				Error::<T>::IllegalDestination
-			);
+			ensure!(!dest_location.is_here(), Error::<T>::IllegalDestination);
 			// FIXME: what if someone give a Parachain junction at the end?
 			// After take_last(), dest only contains reserve location of the recipient.
 			let recipient = match dest_location.take_last() {
