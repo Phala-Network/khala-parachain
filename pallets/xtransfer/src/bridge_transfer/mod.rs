@@ -380,23 +380,30 @@ pub mod pallet {
 				// to relaychain or other parachain, forward it by xcm
 				(1, X1(AccountId32 { network: _, id: _ }))
 				| (1, X2(Parachain(_), AccountId32 { network: _, id: _ })) => {
-					let asset_id = Self::rid_to_assetid(&rid)?;
-					let asset_amount = T::BalanceConverter::to_asset_balance(imbalance, asset_id)
-						.map_err(|_| Error::<T>::BalanceConversionFailed)?;
-
 					let dest_resolve_account = dest_resolve_location.clone().into_account();
 					if asset_resolve_location != dest_resolve_location {
 						log::error!(
 							target: "BridgeTransfer.transfer",
 							"resolve of asset and dest dismatch, deposit asset to dest resolve location.",
 						);
-						// mint asset into dest resolve account
-						<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::mint_into(
-							asset_id,
-							&dest_resolve_account.clone().into(),
-							asset_amount,
-						)
-						.map_err(|_| Error::<T>::FailedToTransactAsset)?;
+						if rid == T::NativeTokenResourceId::get() {
+							<T as Config>::Currency::deposit_creating(
+								&dest_resolve_account.clone().into(),
+								imbalance,
+							);
+						} else {
+							let asset_id = Self::rid_to_assetid(&rid)?;
+							let asset_amount =
+								T::BalanceConverter::to_asset_balance(imbalance, asset_id)
+									.map_err(|_| Error::<T>::BalanceConversionFailed)?;
+							// mint asset into dest resolve account
+							<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::mint_into(
+								asset_id,
+								&dest_resolve_account.clone().into(),
+								asset_amount,
+							)
+							.map_err(|_| Error::<T>::FailedToTransactAsset)?;
+						}
 					}
 
 					// Two main tasks of transfer_fungible is:
@@ -463,6 +470,10 @@ pub mod pallet {
 		pub fn rid_to_assetid(
 			rid: &[u8; 32],
 		) -> Result<<T as pallet_assets::Config>::AssetId, DispatchError> {
+			// PHA based on pallet_balances, not pallet_assets
+			if *rid == T::NativeTokenResourceId::get() {
+				return Err(Error::<T>::AssetNotRegistered.into());
+			}
 			let xtransfer_asset: XTransferAsset = T::AssetsWrapper::from_resource_id(&rid)
 				.ok_or(Error::<T>::AssetConversionFailed)?;
 			let asset_id: <T as pallet_assets::Config>::AssetId =
