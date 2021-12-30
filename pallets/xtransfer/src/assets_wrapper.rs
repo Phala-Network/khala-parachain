@@ -60,20 +60,24 @@ pub mod pallet {
 						// identify solo chain
 						Some(GeneralKey(solo_key)) => {
 							if solo_key.clone() == b"solo".to_vec() {
-								//self.interior.at(2) contains solo chain id
-								return Some(
-									(
-										0,
-										X2(
-											GeneralKey(solo_key.clone()),
-											self.interior
-												.at(2)
-												.expect("chain id missing; qed.")
-												.clone(),
-										),
-									)
-										.into(),
-								);
+								//self.interior.at(2) should contains solo chain id
+								match self.interior.at(2) {
+									Some(GeneralIndex(chain_id)) => {
+										return Some(
+											(
+												0,
+												X2(
+													GeneralKey(solo_key.clone()),
+													GeneralIndex(*chain_id),
+												),
+											)
+												.into(),
+										);
+									}
+									_ => {
+										return None;
+									}
+								}
 							} else {
 								return None;
 							}
