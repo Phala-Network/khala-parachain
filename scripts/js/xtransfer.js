@@ -252,8 +252,8 @@ async function transferPhaFromEvmToKarura(khalaApi, bridge, sender, recipient, a
     await bridge.deposit(khalaChainId, phaResourceId, data);
 }
 
-function dumpResourceId(khalaApi) {
-    // PHA resourceId: 0x41ab283b2b268c9c99ddfe96ed5dfbfa3dcc1a2f5551a30049fea8484186f2eb
+function dumpResourceId(khalaApi, soloChainId) {
+    // PHA resourceId: 0x00ab283b2b268c9c99ddfe96ed5dfbfa3dcc1a2f5551a30049fea8484186f2eb
     let pha = khalaApi.createType('XcmV1MultiLocation', {
         parents: 1,
         interior: khalaApi.createType('Junctions', {
@@ -263,7 +263,12 @@ function dumpResourceId(khalaApi) {
         })
     }).toHex();
 
-    console.log(`resource id of PHA: ${ethers.utils.keccak256(pha)}`);
+    let rid = ethers.utils.keccak256(pha);
+    let ridBuffer = Buffer.from(rid.substr(2), 'hex');
+    ridBuffer[0] = soloChainId;
+    rid = '0x' + ridBuffer.toString('hex');
+
+    console.log(`resource id of PHA: ${rid}`);
 }
 
 async function main() {
