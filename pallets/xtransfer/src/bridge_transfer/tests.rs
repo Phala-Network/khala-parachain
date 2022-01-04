@@ -9,8 +9,6 @@ use crate::bridge_transfer::mock::{
 };
 use codec::Encode;
 use frame_support::{assert_err, assert_noop, assert_ok};
-use hex_literal::hex;
-use sp_core::hashing::blake2_128;
 use sp_runtime::DispatchError;
 use xcm::latest::prelude::*;
 
@@ -23,14 +21,6 @@ fn make_transfer_proposal(dest: Vec<u8>, amount: u64) -> Call {
 		amount: amount.into(),
 		rid: resource_id,
 	})
-}
-
-#[test]
-fn constant_equality() {
-	let r_id = bridge::derive_resource_id(1, &blake2_128(b"PHA"));
-	let encoded: [u8; 32] =
-		hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
-	assert_eq!(r_id, encoded);
 }
 
 #[test]
@@ -191,6 +181,13 @@ fn transfer_assets_insufficient_balance() {
 			ALICE,
 		));
 
+		// setup solo chain for this asset
+		assert_ok!(AssetsWrapper::force_setup_solochain(
+			Origin::root(),
+			0,
+			dest_chain,
+		));
+
 		// after registered, free balance of ALICE is 0
 		assert_noop!(
 			BridgeTransfer::transfer_assets(
@@ -238,6 +235,13 @@ fn transfer_assets_to_nonresolve() {
 			bridge_asset_location.clone().into(),
 			0,
 			ALICE,
+		));
+
+		// setup solo chain for this asset
+		assert_ok!(AssetsWrapper::force_setup_solochain(
+			Origin::root(),
+			0,
+			dest_chain,
 		));
 
 		// mint some token to ALICE
@@ -295,6 +299,13 @@ fn transfer_assets_to_resolve() {
 			bridge_asset_location.clone().into(),
 			0,
 			ALICE,
+		));
+
+		// setup solo chain for this asset
+		assert_ok!(AssetsWrapper::force_setup_solochain(
+			Origin::root(),
+			0,
+			dest_chain,
 		));
 
 		// mint some token to ALICE
@@ -385,7 +396,7 @@ fn simulate_transfer_pha_from_solochain() {
 		// Transfer and check result
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
-			[&[0], relayer_location.encode().as_slice()].concat(),
+			relayer_location.encode(),
 			10,
 			resource_id,
 		));
@@ -422,7 +433,7 @@ fn simulate_transfer_solochainassets_from_resolve_to_local() {
 		);
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset =
 			bridge_asset_location.clone().into();
-		let r_id: [u8; 32] = bridge_asset.clone().into();
+		let r_id: [u8; 32] = bridge_asset.clone().into_rid(src_chainid);
 		let amount: u64 = 100;
 		let alice_location = MultiLocation::new(
 			0,
@@ -449,12 +460,19 @@ fn simulate_transfer_solochainassets_from_resolve_to_local() {
 			ALICE,
 		));
 
+		// setup solo chain for this asset
+		assert_ok!(AssetsWrapper::force_setup_solochain(
+			Origin::root(),
+			0,
+			src_chainid,
+		));
+
 		assert_eq!(Assets::balance(0, &ALICE), 0);
 
 		// transfer from asset resolve location, would mint asset into ALICE directly
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
-			[&[src_chainid], alice_location.encode().as_slice()].concat(),
+			alice_location.encode(),
 			amount,
 			r_id,
 		));
@@ -479,19 +497,15 @@ fn simulate_transfer_solochainassets_from_resolve_to_local() {
 fn simulate_transfer_solochainassets_from_nonresolve_to_local() {
 	new_test_ext().execute_with(|| {
 		let src_chainid: u8 = 0;
-		let asset_resolve_chainid: u8 = 1;
-		let bridge_asset_location = MultiLocation::new(
+		let para_asset_location = MultiLocation::new(
 			1,
-			X4(
-				Parachain(2004),
-				GeneralKey(b"solo".to_vec()),
-				GeneralIndex(asset_resolve_chainid.into()),
-				GeneralKey(b"an asset".to_vec()),
+			X2(
+				Parachain(2000),
+				GeneralKey(b"an asset from karura".to_vec()),
 			),
 		);
-		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset =
-			bridge_asset_location.clone().into();
-		let r_id: [u8; 32] = bridge_asset.clone().into();
+		let para_asset: crate::pallet_assets_wrapper::XTransferAsset =
+			para_asset_location.clone().into();
 		let amount: u64 = 100;
 		let alice_location = MultiLocation::new(
 			0,
@@ -512,9 +526,16 @@ fn simulate_transfer_solochainassets_from_nonresolve_to_local() {
 		// register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
-			bridge_asset,
+			para_asset.clone(),
 			0,
 			ALICE,
+		));
+
+		// setup solo chain for this asset
+		assert_ok!(AssetsWrapper::force_setup_solochain(
+			Origin::root(),
+			0,
+			src_chainid,
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), 0);
@@ -544,9 +565,9 @@ fn simulate_transfer_solochainassets_from_nonresolve_to_local() {
 		// second: mint asset into recipient
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
-			[&[src_chainid], alice_location.encode().as_slice()].concat(),
+			alice_location.encode(),
 			amount,
-			r_id,
+			para_asset.into_rid(src_chainid),
 		));
 		assert_eq!(Assets::balance(0, &ALICE), amount);
 		assert_eq!(
@@ -585,8 +606,7 @@ fn create_successful_transfer_proposal() {
 				id: RELAYER_A.into(),
 			}),
 		);
-		let proposal =
-			make_transfer_proposal([&[0], relayer_location.encode().as_slice()].concat(), 10);
+		let proposal = make_transfer_proposal(relayer_location.encode(), 10);
 
 		assert_ok!(Bridge::set_threshold(Origin::root(), TEST_THRESHOLD,));
 		assert_ok!(Bridge::add_relayer(Origin::root(), RELAYER_A));

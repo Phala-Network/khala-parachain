@@ -1340,7 +1340,8 @@ impl pallet_bridge::Config for Runtime {
 }
 
 parameter_types! {
-    pub const NativeTokenResourceId: [u8; 32] = hex_literal::hex!("41ab283b2b268c9c99ddfe96ed5dfbfa3dcc1a2f5551a30049fea8484186f2eb");
+    // first byte is 0x00, chain id of ethereum mainnet
+    pub const NativeTokenResourceId: [u8; 32] = hex_literal::hex!("00ab283b2b268c9c99ddfe96ed5dfbfa3dcc1a2f5551a30049fea8484186f2eb");
 }
 
 impl pallet_bridge_transfer::Config for Runtime {

@@ -164,8 +164,17 @@ pub mod pallet {
 				BridgeFee::<T>::contains_key(&dest_id),
 				Error::<T>::FeeOptionsMissing
 			);
+
 			let asset_id: <T as pallet_assets::Config>::AssetId =
 				T::AssetsWrapper::id(&asset).ok_or(Error::<T>::AssetNotRegistered)?;
+
+			let rid: bridge::ResourceId = asset.clone().into_rid(dest_id);
+			// ensure asset is setup for the solo chain
+			ensure!(
+				Self::rid_to_assetid(&rid).is_ok(),
+				Error::<T>::AssetConversionFailed
+			);
+
 			let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
 				.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 			let reducible_balance = <pallet_assets::pallet::Pallet<T>>::reducible_balance(
@@ -178,9 +187,6 @@ pub mod pallet {
 				Error::<T>::InsufficientBalance
 			);
 
-			let rid: bridge::ResourceId = asset
-				.try_into()
-				.map_err(|_| Error::<T>::AssetConversionFailed)?;
 			let fee = Self::calculate_fee(dest_id, amount);
 			// check native balance to cover fee
 			let native_free_balance = <T as Config>::Currency::free_balance(&sender);
@@ -288,19 +294,15 @@ pub mod pallet {
 			rid: ResourceId,
 		) -> DispatchResult {
 			let bridge_id = T::BridgeOrigin::ensure_origin(origin.clone())?;
-
-			let (src_id, dest_location) = dest.split_first().ok_or(Error::<T>::DestUnrecognised)?;
-			let u128_src_id: u128 = (*src_id)
+			// for solo chain assets, we encode solo chain id as the first byte of resourceId
+			let src_id: u128 = rid[0]
 				.try_into()
 				.expect("Convert from chain id to u128 must be ok; qed.");
-			let src_resolve_location: MultiLocation = (
-				0,
-				X2(GeneralKey(b"solo".to_vec()), GeneralIndex(u128_src_id)),
-			)
-				.into();
+			let src_resolve_location: MultiLocation =
+				(0, X2(GeneralKey(b"solo".to_vec()), GeneralIndex(src_id))).into();
 
-			let dest_location: MultiLocation = Decode::decode(&mut dest_location.clone())
-				.map_err(|_| Error::<T>::DestUnrecognised)?;
+			let dest_location: MultiLocation =
+				Decode::decode(&mut dest.as_slice()).map_err(|_| Error::<T>::DestUnrecognised)?;
 			let dest_resolve_location: MultiLocation = dest_location
 				.clone()
 				.resolve()

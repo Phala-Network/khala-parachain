@@ -249,7 +249,7 @@ pub mod xcm_helper {
 					// to notify relayers submit proposal to our bridge contract that deployed on EVM chains.
 					BridgeTransactor::transfer_fungible(
 						dest_id,
-						xtransfer_asset.into(),
+						xtransfer_asset.into_rid(dest_id),
 						recipient.to_vec(),
 						U256::from(amount),
 					)

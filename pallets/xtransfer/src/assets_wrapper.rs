@@ -10,6 +10,7 @@ pub mod pallet {
 	use sp_runtime::traits::StaticLookup;
 	use sp_std::convert::From;
 	use xcm::latest::{prelude::*, MultiLocation};
+	// use crate::bridge::bridge::{BridgeChainId, ResourceId}
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub struct XTransferAsset(MultiLocation);
@@ -23,12 +24,6 @@ pub mod pallet {
 	impl From<XTransferAsset> for MultiLocation {
 		fn from(x: XTransferAsset) -> Self {
 			x.0
-		}
-	}
-
-	impl From<XTransferAsset> for [u8; 32] {
-		fn from(x: XTransferAsset) -> Self {
-			sp_io::hashing::keccak_256(&x.0.encode())
 		}
 	}
 
@@ -79,7 +74,8 @@ pub mod pallet {
 									}
 								}
 							} else {
-								return None;
+								// maybe assets from other chain
+								return Some((self.parents, Parachain(*para_id)).into());
 							}
 						}
 						_ => {
@@ -122,6 +118,14 @@ pub mod pallet {
 	impl Resolve for XTransferAsset {
 		fn resolve(self) -> Option<MultiLocation> {
 			self.0.resolve()
+		}
+	}
+
+	impl XTransferAsset {
+		pub fn into_rid(self, chain_id: u8) -> [u8; 32] {
+			let mut rid = sp_io::hashing::keccak_256(&self.0.encode());
+			rid[0] = chain_id;
+			rid
 		}
 	}
 
@@ -170,11 +174,18 @@ pub mod pallet {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			asset: XTransferAsset,
 		},
+		/// Asset setup for a solo chain. \[asset_id, chain_id, rid]
+		SolochainSetuped {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			chain_id: u8,
+			rid: [u8; 32],
+		},
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
 		AssetAlreadyExist,
+		SolochainAlreadySetted,
 	}
 
 	#[pallet::call]
@@ -207,10 +218,8 @@ pub mod pallet {
 				true,
 				T::MinBalance::get(),
 			)?;
-			let resource_id: [u8; 32] = asset.clone().into();
 			AssetToId::<T>::insert(&asset, asset_id);
 			IdToAsset::<T>::insert(asset_id, &asset);
-			ResourceIdToAsset::<T>::insert(&resource_id, &asset);
 
 			Self::deposit_event(Event::AssetRegistered { asset_id, asset });
 			Ok(())
@@ -227,12 +236,32 @@ pub mod pallet {
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
 			if let Some(asset) = IdToAsset::<T>::get(&asset_id) {
-				let resource_id: [u8; 32] = asset.clone().into();
 				IdToAsset::<T>::remove(&asset_id);
 				AssetToId::<T>::remove(&asset);
-				ResourceIdToAsset::<T>::remove(&resource_id);
-
 				Self::deposit_event(Event::AssetUnRegistered { asset_id, asset });
+			}
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn force_setup_solochain(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			chain_id: u8,
+		) -> DispatchResult {
+			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
+			if let Some(asset) = IdToAsset::<T>::get(&asset_id) {
+				let rid: [u8; 32] = asset.clone().into_rid(chain_id);
+				ensure!(
+					ResourceIdToAsset::<T>::get(&rid) == None,
+					Error::<T>::SolochainAlreadySetted
+				);
+				ResourceIdToAsset::<T>::insert(&rid, &asset);
+				Self::deposit_event(Event::SolochainSetuped {
+					asset_id,
+					chain_id,
+					rid,
+				});
 			}
 			Ok(())
 		}
