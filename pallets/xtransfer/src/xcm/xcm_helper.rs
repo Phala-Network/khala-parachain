@@ -3,7 +3,7 @@ pub use self::xcm_helper::*;
 pub mod xcm_helper {
 	use crate::bridge::pallet::{BridgeChainId, BridgeTransact};
 	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, Resolve, XTransferAsset, XTransferAssetInfo,
+		AccountId32Conversion, Reserve, XTransferAsset, XTransferAssetInfo,
 	};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::pallet_prelude::*;
@@ -206,30 +206,30 @@ pub mod xcm_helper {
 						(Fungible(amount), Concrete(id)) => (amount, id),
 						_ => return Err(XcmError::Unimplemented),
 					};
-					let dest_resolve: MultiLocation =
+					let dest_reserve: MultiLocation =
 						(0, X2(GeneralKey(b"solo".to_vec()), GeneralIndex(*dest_id))).into();
 					let xtransfer_asset: XTransferAsset = location.clone().into();
 					let dest_id: BridgeChainId = dest_id
 						.clone()
 						.try_into()
 						.expect("Convert from u128 to dest_id must be ok; qed.");
-					let asset_resolve_location = location
+					let asset_reserve_location = location
 						.clone()
-						.resolve()
-						.ok_or(XcmError::FailedToTransactAsset("FailedGetResolve"))?;
+						.reserve()
+						.ok_or(XcmError::FailedToTransactAsset("FailedGetreserve"))?;
 
-					// If we are forwarding asset to its non-resolve destination, deposit assets
-					// to resolve account first
-					if asset_resolve_location != dest_resolve {
+					// If we are forwarding asset to its non-reserve destination, deposit assets
+					// to reserve account first
+					if asset_reserve_location != dest_reserve {
 						log::trace!(
 							target: LOG_TARGET,
-							"XTransferAdapter, resolve of asset and dest dismatch, deposit asset to resolve account.",
+							"XTransferAdapter, reserve of asset and dest dismatch, deposit asset to reserve account.",
 						);
 						let resolove_account: MultiLocation = (
 							0,
 							X1(AccountId32 {
 								network: NetworkId::Any,
-								id: dest_resolve.into_account().into(),
+								id: dest_reserve.into_account().into(),
 							}),
 						)
 							.into();

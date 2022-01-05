@@ -132,7 +132,7 @@ pub mod pallet {
 			metadata: Vec<u8>,
 		) -> DispatchResult;
 
-		fn reserve_id() -> [u8; 32];
+		fn reservation_account() -> [u8; 32];
 	}
 
 	#[pallet::pallet]
@@ -737,7 +737,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		fn reserve_id() -> [u8; 32] {
+		fn reservation_account() -> [u8; 32] {
 			Self::account_id().into()
 		}
 	}
@@ -747,17 +747,17 @@ pub mod pallet {
 	impl<T: Config> EnsureOrigin<T::Origin> for EnsureBridge<T> {
 		type Success = T::AccountId;
 		fn try_origin(o: T::Origin) -> Result<Self::Success, T::Origin> {
-			let bridge_id = MODULE_ID.into_account();
+			let bridge_account = MODULE_ID.into_account();
 			o.into().and_then(|o| match o {
-				system::RawOrigin::Signed(who) if who == bridge_id => Ok(bridge_id),
+				system::RawOrigin::Signed(who) if who == bridge_account => Ok(bridge_account),
 				r => Err(T::Origin::from(r)),
 			})
 		}
 
 		#[cfg(feature = "runtime-benchmarks")]
 		fn successful_origin() -> T::Origin {
-			let bridge_id = MODULE_ID.into_account();
-			T::Origin::from(system::RawOrigin::Signed(bridge_id))
+			let bridge_account = MODULE_ID.into_account();
+			T::Origin::from(system::RawOrigin::Signed(bridge_account))
 		}
 	}
 }

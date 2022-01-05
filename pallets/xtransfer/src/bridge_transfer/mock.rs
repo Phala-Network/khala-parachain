@@ -164,13 +164,13 @@ pub const RELAYER_C: AccountId32 = AccountId32::new([3u8; 32]);
 pub const ENDOWED_BALANCE: u64 = 100_000_000;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let bridge_id = PalletId(*b"phala/bg").into_account();
+	let bridge_account = PalletId(*b"phala/bg").into_account();
 	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<Test>()
 		.unwrap();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
-			(bridge_id, ENDOWED_BALANCE),
+			(bridge_account, ENDOWED_BALANCE),
 			(RELAYER_A, ENDOWED_BALANCE),
 			(ALICE, ENDOWED_BALANCE),
 		],

@@ -203,10 +203,10 @@ fn transfer_assets_insufficient_balance() {
 }
 
 #[test]
-fn transfer_assets_to_nonresolve() {
+fn transfer_assets_to_nonreserve() {
 	new_test_ext().execute_with(|| {
 		let dest_chain: u8 = 2;
-		let dest_resolve_location: MultiLocation = (
+		let dest_reserve_location: MultiLocation = (
 			0,
 			X2(
 				GeneralKey(b"solo".to_vec()),
@@ -257,20 +257,20 @@ fn transfer_assets_to_nonresolve() {
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), amount);
-		// the asset's resolve chain is 0, dest chain is 2,
-		// so will save asset into resolve account of dest chain
+		// the asset's reserve chain is 0, dest chain is 2,
+		// so will save asset into reserve account of dest chain
 		assert_eq!(
-			Assets::balance(0, &dest_resolve_location.into_account().into()),
+			Assets::balance(0, &dest_reserve_location.into_account().into()),
 			amount
 		);
 	})
 }
 
 #[test]
-fn transfer_assets_to_resolve() {
+fn transfer_assets_to_reserve() {
 	new_test_ext().execute_with(|| {
 		let dest_chain: u8 = 2;
-		let dest_resolve_location: MultiLocation = (
+		let dest_reserve_location: MultiLocation = (
 			0,
 			X2(
 				GeneralKey(b"solo".to_vec()),
@@ -321,10 +321,10 @@ fn transfer_assets_to_resolve() {
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), amount);
-		// the asset's resolve chain is 2, dest chain is 2,
+		// the asset's reserve chain is 2, dest chain is 2,
 		// so assets just be burned from sender
 		assert_eq!(
-			Assets::balance(0, &dest_resolve_location.into_account().into()),
+			Assets::balance(0, &dest_reserve_location.into_account().into()),
 			0
 		);
 	})
@@ -382,9 +382,9 @@ fn transfer_native() {
 fn simulate_transfer_pha_from_solochain() {
 	new_test_ext().execute_with(|| {
 		// Check inital state
-		let bridge_id = Bridge::account_id();
+		let bridge_account = Bridge::account_id();
 		let resource_id = NativeTokenResourceId::get();
-		assert_eq!(Balances::free_balance(&bridge_id), ENDOWED_BALANCE);
+		assert_eq!(Balances::free_balance(&bridge_account), ENDOWED_BALANCE);
 		let relayer_location = MultiLocation::new(
 			0,
 			X1(AccountId32 {
@@ -400,11 +400,14 @@ fn simulate_transfer_pha_from_solochain() {
 			10,
 			resource_id,
 		));
-		assert_eq!(Balances::free_balance(&bridge_id), ENDOWED_BALANCE - 10);
+		assert_eq!(
+			Balances::free_balance(&bridge_account),
+			ENDOWED_BALANCE - 10
+		);
 		assert_eq!(Balances::free_balance(RELAYER_A), ENDOWED_BALANCE + 10);
 
 		assert_events(vec![
-			// withdraw from resolve account(for PHA, is bridge account)
+			// withdraw from reserve account(for PHA, is bridge account)
 			Event::Balances(balances::Event::Withdraw {
 				who: Bridge::account_id(),
 				amount: 10,
@@ -419,7 +422,7 @@ fn simulate_transfer_pha_from_solochain() {
 }
 
 #[test]
-fn simulate_transfer_solochainassets_from_resolve_to_local() {
+fn simulate_transfer_solochainassets_from_reserve_to_local() {
 	new_test_ext().execute_with(|| {
 		let src_chainid: u8 = 0;
 		let bridge_asset_location = MultiLocation::new(
@@ -443,7 +446,7 @@ fn simulate_transfer_solochainassets_from_resolve_to_local() {
 			}),
 		);
 
-		let src_resolve_location: MultiLocation = (
+		let src_reserve_location: MultiLocation = (
 			0,
 			X2(
 				GeneralKey(b"solo".to_vec()),
@@ -469,7 +472,7 @@ fn simulate_transfer_solochainassets_from_resolve_to_local() {
 
 		assert_eq!(Assets::balance(0, &ALICE), 0);
 
-		// transfer from asset resolve location, would mint asset into ALICE directly
+		// transfer from asset reserve location, would mint asset into ALICE directly
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
 			alice_location.encode(),
@@ -478,7 +481,7 @@ fn simulate_transfer_solochainassets_from_resolve_to_local() {
 		));
 		assert_eq!(Assets::balance(0, &ALICE), amount);
 		assert_eq!(
-			Assets::balance(0, &src_resolve_location.into_account().into()),
+			Assets::balance(0, &src_reserve_location.into_account().into()),
 			0
 		);
 
@@ -494,7 +497,7 @@ fn simulate_transfer_solochainassets_from_resolve_to_local() {
 }
 
 #[test]
-fn simulate_transfer_solochainassets_from_nonresolve_to_local() {
+fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 	new_test_ext().execute_with(|| {
 		let src_chainid: u8 = 0;
 		let para_asset_location = MultiLocation::new(
@@ -514,7 +517,7 @@ fn simulate_transfer_solochainassets_from_nonresolve_to_local() {
 				id: ALICE.into(),
 			}),
 		);
-		let src_resolve_location: MultiLocation = (
+		let src_reserve_location: MultiLocation = (
 			0,
 			X2(
 				GeneralKey(b"solo".to_vec()),
@@ -544,24 +547,24 @@ fn simulate_transfer_solochainassets_from_nonresolve_to_local() {
 		assert_ok!(Assets::mint(
 			Origin::signed(ALICE),
 			0,
-			src_resolve_location.clone().into_account().into(),
+			src_reserve_location.clone().into_account().into(),
 			amount * 2
 		));
 		assert_eq!(
-			Assets::balance(0, &src_resolve_location.clone().into_account().into()),
+			Assets::balance(0, &src_reserve_location.clone().into_account().into()),
 			amount * 2
 		);
 		assert_events(vec![
 			// mint asset
 			Event::Assets(pallet_assets::Event::Issued {
 				asset_id: 0,
-				owner: src_resolve_location.clone().into_account().into(),
+				owner: src_reserve_location.clone().into_account().into(),
 				total_supply: amount * 2,
 			}),
 		]);
 
-		// transfer from nonresolve location of asset,
-		// first: burn asset from source resolve account
+		// transfer from nonreserve location of asset,
+		// first: burn asset from source reserve account
 		// second: mint asset into recipient
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
@@ -571,7 +574,7 @@ fn simulate_transfer_solochainassets_from_nonresolve_to_local() {
 		));
 		assert_eq!(Assets::balance(0, &ALICE), amount);
 		assert_eq!(
-			Assets::balance(0, &src_resolve_location.clone().into_account().into()),
+			Assets::balance(0, &src_reserve_location.clone().into_account().into()),
 			amount
 		);
 
@@ -579,7 +582,7 @@ fn simulate_transfer_solochainassets_from_nonresolve_to_local() {
 			// burn asset
 			Event::Assets(pallet_assets::Event::Burned {
 				asset_id: 0,
-				owner: src_resolve_location.into_account().into(),
+				owner: src_reserve_location.into_account().into(),
 				balance: amount,
 			}),
 			// mint asset
@@ -677,7 +680,7 @@ fn create_successful_transfer_proposal() {
 			Event::Bridge(bridge::Event::VoteAgainst(src_id, prop_id, RELAYER_B)),
 			Event::Bridge(bridge::Event::VoteFor(src_id, prop_id, RELAYER_C)),
 			Event::Bridge(bridge::Event::ProposalApproved(src_id, prop_id)),
-			// withdraw from resolve account(for PHA, is bridge account)
+			// withdraw from reserve account(for PHA, is bridge account)
 			Event::Balances(balances::Event::Withdraw {
 				who: Bridge::account_id(),
 				amount: 10,

@@ -43,12 +43,12 @@ pub mod pallet {
 		}
 	}
 
-	pub trait Resolve {
-		fn resolve(self) -> Option<MultiLocation>;
+	pub trait Reserve {
+		fn reserve(self) -> Option<MultiLocation>;
 	}
 
-	impl Resolve for MultiLocation {
-		fn resolve(self) -> Option<MultiLocation> {
+	impl Reserve for MultiLocation {
+		fn reserve(self) -> Option<MultiLocation> {
 			match self.first_interior() {
 				Some(Parachain(para_id)) => {
 					match self.interior.at(1) {
@@ -115,9 +115,9 @@ pub mod pallet {
 		}
 	}
 
-	impl Resolve for XTransferAsset {
-		fn resolve(self) -> Option<MultiLocation> {
-			self.0.resolve()
+	impl Reserve for XTransferAsset {
+		fn reserve(self) -> Option<MultiLocation> {
+			self.0.reserve()
 		}
 	}
 
@@ -159,7 +159,7 @@ pub mod pallet {
 	/// Mapping resource id to corresponding asset
 	#[pallet::storage]
 	#[pallet::getter(fn resource_id_to_asset)]
-	pub type ResourceIdToAsset<T: Config> = StorageMap<_, Twox64Concat, [u8; 32], XTransferAsset>;
+	pub type ResourceIdToAssets<T: Config> = StorageMap<_, Twox64Concat, [u8; 32], XTransferAsset>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -238,6 +238,7 @@ pub mod pallet {
 			if let Some(asset) = IdToAsset::<T>::get(&asset_id) {
 				IdToAsset::<T>::remove(&asset_id);
 				AssetToId::<T>::remove(&asset);
+
 				Self::deposit_event(Event::AssetUnRegistered { asset_id, asset });
 			}
 			Ok(())
@@ -284,7 +285,7 @@ pub mod pallet {
 		}
 
 		fn from_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset> {
-			ResourceIdToAsset::<T>::get(resource_id)
+			ResourceIdToAssets::<T>::get(resource_id)
 		}
 	}
 }

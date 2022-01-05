@@ -268,7 +268,7 @@ impl BridgeTransact for () {
 		Ok(())
 	}
 
-	fn reserve_id() -> [u8; 32] {
+	fn reservation_account() -> [u8; 32] {
 		[0; 32]
 	}
 }
