@@ -7,7 +7,7 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, ReserveLocation, XTransferAsset, XTransferAssetInfo,
+		AccountId32Conversion, ReserveLocation, XTransferAsset, XTransferAssetInfo, CB_ASSET_KEY,
 	};
 	use frame_support::{
 		pallet_prelude::*,
@@ -99,6 +99,7 @@ pub mod pallet {
 		FailedToTransactAsset,
 		DestUnrecognized,
 		Unimplemented,
+		CannotDetermineReservedLocation,
 	}
 
 	#[pallet::storage]
@@ -143,18 +144,20 @@ pub mod pallet {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			let u128_dest_id: u128 = dest_id
-				.clone()
 				.try_into()
 				.expect("Convert from chain id to u128 must be ok; qed.");
 			let dest_reserve_location: MultiLocation = (
 				0,
-				X2(GeneralKey(b"solo".to_vec()), GeneralIndex(u128_dest_id)),
+				X2(
+					GeneralKey(CB_ASSET_KEY.to_vec()),
+					GeneralIndex(u128_dest_id),
+				),
 			)
 				.into();
 			let asset_reserve_location: MultiLocation = asset
 				.clone()
 				.reserve()
-				.ok_or(Error::<T>::AssetConversionFailed)?;
+				.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
 
 			ensure!(
 				<bridge::Pallet<T>>::chain_whitelisted(dest_id),
@@ -298,11 +301,14 @@ pub mod pallet {
 			let src_id: u128 = rid[0]
 				.try_into()
 				.expect("Convert from chain id to u128 must be ok; qed.");
-			let src_reserve_location: MultiLocation =
-				(0, X2(GeneralKey(b"solo".to_vec()), GeneralIndex(src_id))).into();
+			let src_reserve_location: MultiLocation = (
+				0,
+				X2(GeneralKey(CB_ASSET_KEY.to_vec()), GeneralIndex(src_id)),
+			)
+				.into();
 
 			let dest_location: MultiLocation =
-				Decode::decode(&mut dest.as_slice()).map_err(|_| Error::<T>::DestUnrecognised)?;
+				Decode::decode(&mut dest.as_slice()).map_err(|_| Error::<T>::DestUnrecognized)?;
 			let dest_reserve_location: MultiLocation = dest_location
 				.clone()
 				.reserve()
@@ -312,7 +318,7 @@ pub mod pallet {
 			let asset_reserve_location: MultiLocation = asset_location
 				.clone()
 				.reserve()
-				.ok_or(Error::<T>::AssetConversionFailed)?;
+				.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
 
 			log::trace!(
 				target: LOG_TARGET,
@@ -428,11 +434,7 @@ pub mod pallet {
 				// to other evm chains
 				(
 					0,
-					X3(
-						GeneralKey(_solo_key),
-						GeneralIndex(_evm_chain_id),
-						GeneralKey(_evm_account),
-					),
+					X3(GeneralKey(_cb_key), GeneralIndex(_evm_chain_id), GeneralKey(_evm_account)),
 				) => {
 					// TODO
 					return Err(Error::<T>::DestUnrecognized.into());
@@ -459,7 +461,7 @@ pub mod pallet {
 			let asset_location: MultiLocation = if *rid == T::NativeTokenResourceId::get() {
 				MultiLocation::here()
 			} else {
-				let xtransfer_asset: XTransferAsset = T::AssetsWrapper::from_resource_id(&rid)
+				let xtransfer_asset: XTransferAsset = T::AssetsWrapper::lookup_by_resource_id(&rid)
 					.ok_or(Error::<T>::AssetConversionFailed)?;
 				xtransfer_asset.into()
 			};
@@ -473,7 +475,7 @@ pub mod pallet {
 			if *rid == T::NativeTokenResourceId::get() {
 				return Err(Error::<T>::AssetNotRegistered.into());
 			}
-			let xtransfer_asset: XTransferAsset = T::AssetsWrapper::from_resource_id(&rid)
+			let xtransfer_asset: XTransferAsset = T::AssetsWrapper::lookup_by_resource_id(&rid)
 				.ok_or(Error::<T>::AssetConversionFailed)?;
 			let asset_id: <T as pallet_assets::Config>::AssetId =
 				T::AssetsWrapper::id(&xtransfer_asset).ok_or(Error::<T>::AssetNotRegistered)?;

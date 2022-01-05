@@ -10,7 +10,9 @@ pub mod pallet {
 	use sp_runtime::traits::StaticLookup;
 	use sp_std::convert::From;
 	use xcm::latest::{prelude::*, MultiLocation};
-	// use crate::bridge::bridge::{BridgeChainId, ResourceId}
+
+	// Junction used to indicate chainbridge assets. str "cb"
+	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub struct XTransferAsset(MultiLocation);
@@ -43,6 +45,10 @@ pub mod pallet {
 		}
 	}
 
+	// Split `Reserve` location from the given MultiLocation.
+	// The reserve location represent which chain the location belong to.
+	// By finding the reserve location, we can also identity where an asset
+	// comes from.
 	pub trait ReserveLocation {
 		fn reserve(self) -> Option<MultiLocation>;
 	}
@@ -53,8 +59,8 @@ pub mod pallet {
 				Some(Parachain(para_id)) => {
 					match self.interior.at(1) {
 						// identify solo chain
-						Some(GeneralKey(solo_key)) => {
-							if solo_key.clone() == b"solo".to_vec() {
+						Some(GeneralKey(cb_key)) => {
+							if cb_key == &CB_ASSET_KEY.to_vec() {
 								//self.interior.at(2) should contains solo chain id
 								match self.interior.at(2) {
 									Some(GeneralIndex(chain_id)) => {
@@ -62,7 +68,7 @@ pub mod pallet {
 											(
 												0,
 												X2(
-													GeneralKey(solo_key.clone()),
+													GeneralKey((&cb_key).to_vec()),
 													GeneralIndex(*chain_id),
 												),
 											)
@@ -89,14 +95,14 @@ pub mod pallet {
 						Here | X1(AccountId32 { network: _, id: _ }) => {
 							return Some((self.parents, Here).into());
 						}
-						X3(GeneralKey(solo_key), GeneralIndex(evm_chain_id), GeneralKey(_)) => {
-							if solo_key.clone() == b"solo".to_vec() {
+						X3(GeneralKey(cb_key), GeneralIndex(evm_chain_id), GeneralKey(_)) => {
+							if cb_key == &CB_ASSET_KEY.to_vec() {
 								// identify solo chain
 								return Some(
 									(
 										0,
 										X2(
-											GeneralKey(solo_key.clone()),
+											GeneralKey((&cb_key).to_vec()),
 											GeneralIndex(*evm_chain_id),
 										),
 									)
@@ -254,10 +260,10 @@ pub mod pallet {
 			if let Some(asset) = IdToAsset::<T>::get(&asset_id) {
 				let rid: [u8; 32] = asset.clone().into_rid(chain_id);
 				ensure!(
-					ResourceIdToAsset::<T>::get(&rid) == None,
+					ResourceIdToAssets::<T>::get(&rid) == None,
 					Error::<T>::SolochainAlreadySetted
 				);
-				ResourceIdToAsset::<T>::insert(&rid, &asset);
+				ResourceIdToAssets::<T>::insert(&rid, &asset);
 				Self::deposit_event(Event::SolochainSetuped {
 					asset_id,
 					chain_id,
@@ -272,7 +278,7 @@ pub mod pallet {
 		fn id(asset: &XTransferAsset) -> Option<AssetId>;
 		fn asset(id: &AssetId) -> Option<XTransferAsset>;
 		// expect a better name
-		fn from_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset>;
+		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset>;
 	}
 
 	impl<T: Config> XTransferAssetInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
@@ -284,7 +290,7 @@ pub mod pallet {
 			IdToAsset::<T>::get(id)
 		}
 
-		fn from_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset> {
+		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset> {
 			ResourceIdToAssets::<T>::get(resource_id)
 		}
 	}

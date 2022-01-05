@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate::assets_wrapper::pallet::{AccountId32Conversion, XTransferAssetInfo};
+use crate::assets_wrapper::pallet::{AccountId32Conversion, XTransferAssetInfo, CB_ASSET_KEY};
 use crate::bridge;
 use crate::bridge_transfer::mock::{
 	assert_events, balances, expect_event, new_test_ext, Assets, AssetsWrapper, Balances, Bridge,
@@ -30,7 +30,7 @@ fn register_asset() {
 			1,
 			X4(
 				Parachain(2004),
-				GeneralKey(b"solo".to_vec()),
+				GeneralKey(CB_ASSET_KEY.to_vec()),
 				GeneralIndex(0),
 				GeneralKey(b"an asset".to_vec()),
 			),
@@ -69,7 +69,7 @@ fn register_asset() {
 			1,
 			X4(
 				Parachain(2004),
-				GeneralKey(b"solo".to_vec()),
+				GeneralKey(CB_ASSET_KEY.to_vec()),
 				GeneralIndex(0),
 				GeneralKey(b"another asset".to_vec()),
 			),
@@ -120,7 +120,7 @@ fn transfer_assets_not_registered() {
 			1,
 			X4(
 				Parachain(2004),
-				GeneralKey(b"solo".to_vec()),
+				GeneralKey(CB_ASSET_KEY.to_vec()),
 				GeneralIndex(0),
 				GeneralKey(b"an asset".to_vec()),
 			),
@@ -152,7 +152,7 @@ fn transfer_assets_insufficient_balance() {
 			1,
 			X4(
 				Parachain(2004),
-				GeneralKey(b"solo".to_vec()),
+				GeneralKey(CB_ASSET_KEY.to_vec()),
 				GeneralIndex(0),
 				GeneralKey(b"an asset".to_vec()),
 			),
@@ -199,7 +199,7 @@ fn transfer_assets_to_nonreserve() {
 		let dest_reserve_location: MultiLocation = (
 			0,
 			X2(
-				GeneralKey(b"solo".to_vec()),
+				GeneralKey(CB_ASSET_KEY.to_vec()),
 				GeneralIndex(dest_chain.into()),
 			),
 		)
@@ -208,7 +208,7 @@ fn transfer_assets_to_nonreserve() {
 			1,
 			X4(
 				Parachain(2004),
-				GeneralKey(b"solo".to_vec()),
+				GeneralKey(CB_ASSET_KEY.to_vec()),
 				GeneralIndex(0),
 				GeneralKey(b"an asset".to_vec()),
 			),
@@ -263,7 +263,7 @@ fn transfer_assets_to_reserve() {
 		let dest_reserve_location: MultiLocation = (
 			0,
 			X2(
-				GeneralKey(b"solo".to_vec()),
+				GeneralKey(CB_ASSET_KEY.to_vec()),
 				GeneralIndex(dest_chain.into()),
 			),
 		)
@@ -272,7 +272,7 @@ fn transfer_assets_to_reserve() {
 			1,
 			X4(
 				Parachain(2004),
-				GeneralKey(b"solo".to_vec()),
+				GeneralKey(CB_ASSET_KEY.to_vec()),
 				GeneralIndex(dest_chain.into()),
 				GeneralKey(b"an asset".to_vec()),
 			),
@@ -414,7 +414,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 			1,
 			X4(
 				Parachain(2004),
-				GeneralKey(b"solo".to_vec()),
+				GeneralKey(CB_ASSET_KEY.to_vec()),
 				GeneralIndex(src_chainid.into()),
 				GeneralKey(b"an asset".to_vec()),
 			),
@@ -434,7 +434,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 		let src_reserve_location: MultiLocation = (
 			0,
 			X2(
-				GeneralKey(b"solo".to_vec()),
+				GeneralKey(CB_ASSET_KEY.to_vec()),
 				GeneralIndex(src_chainid.into()),
 			),
 		)
@@ -505,7 +505,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 		let src_reserve_location: MultiLocation = (
 			0,
 			X2(
-				GeneralKey(b"solo".to_vec()),
+				GeneralKey(CB_ASSET_KEY.to_vec()),
 				GeneralIndex(src_chainid.into()),
 			),
 		)

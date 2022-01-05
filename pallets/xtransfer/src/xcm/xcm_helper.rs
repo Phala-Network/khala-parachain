@@ -3,7 +3,7 @@ pub use self::xcm_helper::*;
 pub mod xcm_helper {
 	use crate::bridge::pallet::{BridgeChainId, BridgeTransact};
 	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, ReserveLocation, XTransferAsset, XTransferAssetInfo,
+		AccountId32Conversion, ReserveLocation, XTransferAsset, XTransferAssetInfo, CB_ASSET_KEY,
 	};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::pallet_prelude::*;
@@ -193,21 +193,20 @@ pub mod xcm_helper {
 
 			match &who.interior {
 				// Destnation is a foreign chain. Forward it through the bridge
-				Junctions::X3(
-					GeneralKey(solo_key),
-					GeneralIndex(dest_id),
-					GeneralKey(recipient),
-				) => {
+				Junctions::X3(GeneralKey(cb_key), GeneralIndex(dest_id), GeneralKey(recipient)) => {
 					ensure!(
-						*solo_key == b"solo".to_vec(),
+						cb_key == &CB_ASSET_KEY.to_vec(),
 						XcmError::FailedToTransactAsset("DismatchPath")
 					);
 					let (&amount, location) = match (&what.fun, &what.id) {
 						(Fungible(amount), Concrete(id)) => (amount, id),
 						_ => return Err(XcmError::Unimplemented),
 					};
-					let dest_reserve: MultiLocation =
-						(0, X2(GeneralKey(b"solo".to_vec()), GeneralIndex(*dest_id))).into();
+					let dest_reserve: MultiLocation = (
+						0,
+						X2(GeneralKey(CB_ASSET_KEY.to_vec()), GeneralIndex(*dest_id)),
+					)
+						.into();
 					let xtransfer_asset: XTransferAsset = location.clone().into();
 					let dest_id: BridgeChainId = dest_id
 						.clone()
