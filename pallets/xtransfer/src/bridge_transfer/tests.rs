@@ -128,13 +128,8 @@ fn transfer_assets_not_registered() {
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
-		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::update_fee(
-			Origin::root(),
-			2,
-			2,
-			dest_chain.clone()
-		));
+		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
+		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 2, dest_chain));
 
 		assert_noop!(
 			BridgeTransfer::transfer_assets(
@@ -165,13 +160,8 @@ fn transfer_assets_insufficient_balance() {
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
-		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::update_fee(
-			Origin::root(),
-			2,
-			2,
-			dest_chain.clone()
-		));
+		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
+		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 2, dest_chain));
 
 		// register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
@@ -338,13 +328,8 @@ fn transfer_native() {
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
-		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain.clone()));
-		assert_ok!(BridgeTransfer::update_fee(
-			Origin::root(),
-			2,
-			2,
-			dest_chain.clone()
-		));
+		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
+		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 2, dest_chain));
 
 		assert_noop!(
 			BridgeTransfer::transfer_native(
