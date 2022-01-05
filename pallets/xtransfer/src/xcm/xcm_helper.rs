@@ -3,7 +3,7 @@ pub use self::xcm_helper::*;
 pub mod xcm_helper {
 	use crate::bridge::pallet::{BridgeChainId, BridgeTransact};
 	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, Reserve, XTransferAsset, XTransferAssetInfo,
+		AccountId32Conversion, ReserveLocation, XTransferAsset, XTransferAssetInfo,
 	};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::pallet_prelude::*;
@@ -192,7 +192,7 @@ pub mod xcm_helper {
 			);
 
 			match &who.interior {
-				// destnation is foreign chain, forward it through bridge
+				// Destnation is a foreign chain. Forward it through the bridge
 				Junctions::X3(
 					GeneralKey(solo_key),
 					GeneralIndex(dest_id),
@@ -212,7 +212,7 @@ pub mod xcm_helper {
 					let dest_id: BridgeChainId = dest_id
 						.clone()
 						.try_into()
-						.expect("Convert from u128 to dest_id must be ok; qed.");
+						.map_err(|_| XcmError::FailedToTransactAsset("ChainIdConversionFailed"))?;
 					let asset_reserve_location = location
 						.clone()
 						.reserve()
@@ -225,7 +225,7 @@ pub mod xcm_helper {
 							target: LOG_TARGET,
 							"XTransferAdapter, reserve of asset and dest dismatch, deposit asset to reserve account.",
 						);
-						let resolove_account: MultiLocation = (
+						let reserve_account: MultiLocation = (
 							0,
 							X1(AccountId32 {
 								network: NetworkId::Any,
@@ -235,13 +235,13 @@ pub mod xcm_helper {
 							.into();
 
 						if NativeChecker::is_native_asset(what) {
-							NativeAdapter::deposit_asset(what, &resolove_account).map_err(
-								|_| XcmError::FailedToTransactAsset("ReserveTransferFailed"),
-							)?;
+							NativeAdapter::deposit_asset(what, &reserve_account).map_err(|_| {
+								XcmError::FailedToTransactAsset("ReserveTransferFailed")
+							})?;
 						} else {
-							AssetsAdapter::deposit_asset(what, &resolove_account).map_err(
-								|_| XcmError::FailedToTransactAsset("ReserveTransferFailed"),
-							)?;
+							AssetsAdapter::deposit_asset(what, &reserve_account).map_err(|_| {
+								XcmError::FailedToTransactAsset("ReserveTransferFailed")
+							})?;
 						}
 					}
 

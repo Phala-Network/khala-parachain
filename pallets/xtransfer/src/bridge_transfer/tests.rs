@@ -8,7 +8,7 @@ use crate::bridge_transfer::mock::{
 	ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
 };
 use codec::Encode;
-use frame_support::{assert_err, assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok};
 use sp_runtime::DispatchError;
 use xcm::latest::prelude::*;
 
@@ -37,7 +37,7 @@ fn register_asset() {
 		);
 
 		// permission denied
-		assert_err!(
+		assert_noop!(
 			AssetsWrapper::force_register_asset(
 				Origin::signed(ALICE),
 				bridge_asset_location.clone().into(),

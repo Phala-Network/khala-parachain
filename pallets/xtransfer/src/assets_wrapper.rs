@@ -43,11 +43,11 @@ pub mod pallet {
 		}
 	}
 
-	pub trait Reserve {
+	pub trait ReserveLocation {
 		fn reserve(self) -> Option<MultiLocation>;
 	}
 
-	impl Reserve for MultiLocation {
+	impl ReserveLocation for MultiLocation {
 		fn reserve(self) -> Option<MultiLocation> {
 			match self.first_interior() {
 				Some(Parachain(para_id)) => {
@@ -115,7 +115,7 @@ pub mod pallet {
 		}
 	}
 
-	impl Reserve for XTransferAsset {
+	impl ReserveLocation for XTransferAsset {
 		fn reserve(self) -> Option<MultiLocation> {
 			self.0.reserve()
 		}

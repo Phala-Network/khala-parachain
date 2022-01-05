@@ -37,7 +37,7 @@ pub mod pallet {
 
 		type Currency: Currency<Self::AccountId>;
 
-		/// Required origin for sending XCM messages. If successful, then it reserves to `MultiLocation`
+		/// Required origin for sending XCM messages. If successful, then it resolves to `MultiLocation`
 		/// which exists as an interior location within this chain's XCM context.
 		type SendXcmOrigin: EnsureOrigin<Self::Origin, Success = MultiLocation>;
 
@@ -45,7 +45,7 @@ pub mod pallet {
 		type XcmRouter: SendXcm;
 
 		/// Required origin for executing XCM messages, including the teleport functionality. If successful,
-		/// then it reserves to `MultiLocation` which exists as an interior location within this chain's XCM
+		/// then it resolves to `MultiLocation` which exists as an interior location within this chain's XCM
 		/// context.
 		type ExecuteXcmOrigin: EnsureOrigin<Self::Origin, Success = MultiLocation>;
 

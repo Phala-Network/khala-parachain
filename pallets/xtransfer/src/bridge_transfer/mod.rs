@@ -7,7 +7,7 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, Reserve, XTransferAsset, XTransferAssetInfo,
+		AccountId32Conversion, ReserveLocation, XTransferAsset, XTransferAssetInfo,
 	};
 	use frame_support::{
 		pallet_prelude::*,
@@ -355,12 +355,9 @@ pub mod pallet {
 			};
 
 			// settle to dest
-			match (
-				dest_location.clone().parents,
-				dest_location.clone().interior,
-			) {
+			match (dest_location.parents, &dest_location.interior) {
 				// to local account
-				(0, X1(AccountId32 { network: _, id })) => {
+				(0, &X1(AccountId32 { network: _, id })) => {
 					if rid == T::NativeTokenResourceId::get() {
 						// ERC20 PHA transfer
 						<T as Config>::Currency::deposit_creating(&id.into(), imbalance);
