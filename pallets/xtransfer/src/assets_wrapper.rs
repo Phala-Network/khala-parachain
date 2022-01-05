@@ -164,12 +164,12 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Asset is registerd. \[asset_id, asset\]
+		/// Asset is registerd.
 		AssetRegistered {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			asset: XTransferAsset,
 		},
-		/// Asset is unregisterd. \[asset_id, asset\]
+		/// Asset is unregisterd.
 		AssetUnRegistered {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			asset: XTransferAsset,

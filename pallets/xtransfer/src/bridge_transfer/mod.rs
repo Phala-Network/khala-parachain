@@ -80,7 +80,6 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// [dest_id, min_fee, fee_scale]
 		FeeUpdated {
 			dest_id: bridge::BridgeChainId,
 			min_fee: BalanceOf<T>,
