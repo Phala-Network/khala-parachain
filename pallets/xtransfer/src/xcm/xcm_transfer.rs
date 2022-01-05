@@ -20,7 +20,7 @@ pub mod pallet {
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 	/// The logging target.
-	const LOG_TARGET: &str = "xcm-transfer";
+	const LOG_TARGET: &str = "runtime::xcm-transfer";
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
 	type BalanceOf<T> =

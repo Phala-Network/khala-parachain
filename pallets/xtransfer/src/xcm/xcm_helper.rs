@@ -27,7 +27,7 @@ pub mod xcm_helper {
 		Assets,
 	};
 
-	const LOG_TARGET: &str = "xcm-helper";
+	const LOG_TARGET: &str = "runtime::xcm-helper";
 
 	pub struct NativeAssetMatcher<C>(PhantomData<C>);
 	impl<C: NativeAssetChecker, B: TryFrom<u128>> MatchesFungible<B> for NativeAssetMatcher<C> {

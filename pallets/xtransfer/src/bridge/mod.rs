@@ -17,6 +17,7 @@ pub mod pallet {
 	use sp_runtime::RuntimeDebug;
 	use sp_std::prelude::*;
 
+	const LOG_TARGET: &str = "runtime::bridge";
 	const DEFAULT_RELAYER_THRESHOLD: u32 = 1;
 	const MODULE_ID: PalletId = PalletId(*b"phala/bg");
 
@@ -649,8 +650,8 @@ pub mod pallet {
 			amount: U256,
 		) -> DispatchResult {
 			log::trace!(
-				target: "Bridge",
-				"Bridge transfer_fungible, dest_id: {:?}, resource_id: {:?}, to: {:?}, amount: {:?}.",
+				target: LOG_TARGET,
+				"Fungible transfer, dest_id: {:?}, resource_id: {:?}, to: {:?}, amount: {:?}.",
 				dest_id,
 				&resource_id,
 				&to,

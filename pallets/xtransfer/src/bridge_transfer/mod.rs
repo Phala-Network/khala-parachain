@@ -38,6 +38,7 @@ pub mod pallet {
 		<T as frame_system::Config>::AccountId,
 	>>::NegativeImbalance;
 
+	const LOG_TARGET: &str = "runtime::bridge-transfer";
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
 	#[pallet::pallet]
@@ -315,8 +316,8 @@ pub mod pallet {
 				.ok_or(Error::<T>::AssetConversionFailed)?;
 
 			log::trace!(
-				target: "BridgeTransfer.transfer",
-				"resolve location of assset ${:?}, resolve location of source: {:?}.",
+				target: LOG_TARGET,
+				"Resolve location of assset ${:?}, resolve location of source: {:?}.",
 				&asset_resolve_location,
 				&src_resolve_location,
 			);
@@ -348,8 +349,8 @@ pub mod pallet {
 					amount
 				};
 				log::trace!(
-					target: "BridgeTransfer.transfer",
-					"resolve of asset and src dismatch, burn asset form source resolve location.",
+					target: LOG_TARGET,
+					"Resolve of asset and src dismatch, burn asset form source resolve location.",
 				);
 				imbalance
 			};
@@ -385,8 +386,8 @@ pub mod pallet {
 					let dest_resolve_account = dest_resolve_location.clone().into_account();
 					if asset_resolve_location != dest_resolve_location {
 						log::trace!(
-							target: "BridgeTransfer.transfer",
-							"resolve of asset and dest dismatch, deposit asset to dest resolve location.",
+							target: LOG_TARGET,
+							"Resolve of asset and dest dismatch, deposit asset to dest resolve location.",
 						);
 						if rid == T::NativeTokenResourceId::get() {
 							<T as Config>::Currency::deposit_creating(
