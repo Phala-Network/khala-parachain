@@ -143,19 +143,15 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-			let u128_dest_id: u128 = dest_id
-				.try_into()
-				.expect("Convert from chain id to u128 must be ok; qed.");
 			let dest_reserve_location: MultiLocation = (
 				0,
 				X2(
 					GeneralKey(CB_ASSET_KEY.to_vec()),
-					GeneralIndex(u128_dest_id),
+					GeneralIndex(dest_id as u128),
 				),
 			)
 				.into();
-			let asset_reserve_location: MultiLocation = asset
-				.clone()
+			let asset_reserve_location = asset
 				.reserve()
 				.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
 
@@ -209,12 +205,8 @@ pub mod pallet {
 
 			if asset_reserve_location == dest_reserve_location {
 				// burn if transfer back to its reserve location
-				<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::burn_from(
-					asset_id,
-					&sender,
-					asset_amount,
-				)
-				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
+				pallet_assets::pallet::Pallet::<T>::burn_from(asset_id, &sender, asset_amount)
+					.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 			} else {
 				// transfer asset from sender to reserve account
 				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
@@ -309,14 +301,12 @@ pub mod pallet {
 
 			let dest_location: MultiLocation =
 				Decode::decode(&mut dest.as_slice()).map_err(|_| Error::<T>::DestUnrecognized)?;
-			let dest_reserve_location: MultiLocation = dest_location
-				.clone()
+			let dest_reserve_location = dest_location
 				.reserve()
 				.ok_or(Error::<T>::DestUnrecognized)?;
 
-			let asset_location: MultiLocation = Self::rid_to_location(&rid)?;
-			let asset_reserve_location: MultiLocation = asset_location
-				.clone()
+			let asset_location = Self::rid_to_location(&rid)?;
+			let asset_reserve_location = asset_location
 				.reserve()
 				.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
 
@@ -327,9 +317,15 @@ pub mod pallet {
 				&src_reserve_location,
 			);
 			let imbalance = if asset_reserve_location == src_reserve_location {
-				// create
+				// we received asset send from its reserve chain, we just need mint
+				// the same amount of asset at local
 				amount
 			} else {
+				// we received asset send from non-reserve chain, which reserved
+				// in the local our other parachains/relaychain. That means we had
+				// reserved the asset in a reserve account while it was transfered
+				// the the source chain, so here we need withdraw/burn from the reserve
+				// account in advance.
 				let imbalance = if rid == T::NativeTokenResourceId::get() {
 					// ERC20 PHA save reserved assets in bridge account
 					let _imbalance = <T as Config>::Currency::withdraw(
@@ -345,7 +341,7 @@ pub mod pallet {
 						.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 
 					// burn from source reserve account
-					<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::burn_from(
+					pallet_assets::pallet::Pallet::<T>::burn_from(
 						asset_id,
 						&src_reserve_location.into_account().into(),
 						asset_amount,
@@ -360,7 +356,7 @@ pub mod pallet {
 				imbalance
 			};
 
-			// settle to dest
+			// settle the "imbalance" asset to dest
 			match (dest_location.parents, &dest_location.interior) {
 				// to local account
 				(0, &X1(AccountId32 { network: _, id })) => {
@@ -374,7 +370,7 @@ pub mod pallet {
 								.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 
 						// mint asset into recipient
-						<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::mint_into(
+						pallet_assets::pallet::Pallet::<T>::mint_into(
 							asset_id,
 							&id.into(),
 							asset_amount,
@@ -402,7 +398,7 @@ pub mod pallet {
 								T::BalanceConverter::to_asset_balance(imbalance, asset_id)
 									.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 							// mint asset into dest reserve account
-							<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::mint_into(
+							pallet_assets::pallet::Pallet::<T>::mint_into(
 								asset_id,
 								&dest_reserve_account.clone().into(),
 								asset_amount,

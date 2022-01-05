@@ -35,13 +35,13 @@ pub mod pallet {
 
 	impl AccountId32Conversion for MultiLocation {
 		fn into_account(self) -> [u8; 32] {
-			sp_io::hashing::keccak_256(&self.encode())
+			sp_io::hashing::blake2_256(&self.encode())
 		}
 	}
 
 	impl AccountId32Conversion for XTransferAsset {
 		fn into_account(self) -> [u8; 32] {
-			sp_io::hashing::keccak_256(&self.0.encode())
+			sp_io::hashing::blake2_256(&self.0.encode())
 		}
 	}
 
@@ -50,11 +50,11 @@ pub mod pallet {
 	// By finding the reserve location, we can also identity where an asset
 	// comes from.
 	pub trait ReserveLocation {
-		fn reserve(self) -> Option<MultiLocation>;
+		fn reserve(&self) -> Option<MultiLocation>;
 	}
 
 	impl ReserveLocation for MultiLocation {
-		fn reserve(self) -> Option<MultiLocation> {
+		fn reserve(&self) -> Option<MultiLocation> {
 			match self.first_interior() {
 				Some(Parachain(para_id)) => {
 					match self.interior.at(1) {
@@ -122,7 +122,7 @@ pub mod pallet {
 	}
 
 	impl ReserveLocation for XTransferAsset {
-		fn reserve(self) -> Option<MultiLocation> {
+		fn reserve(&self) -> Option<MultiLocation> {
 			self.0.reserve()
 		}
 	}

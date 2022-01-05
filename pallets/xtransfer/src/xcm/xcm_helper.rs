@@ -213,7 +213,6 @@ pub mod xcm_helper {
 						.try_into()
 						.map_err(|_| XcmError::FailedToTransactAsset("ChainIdConversionFailed"))?;
 					let asset_reserve_location = location
-						.clone()
 						.reserve()
 						.ok_or(XcmError::FailedToTransactAsset("FailedGetreserve"))?;
 
