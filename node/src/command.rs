@@ -63,7 +63,7 @@ impl IdentifyChain for dyn sc_service::ChainSpec {
         self.runtime_name() == "khala"
     }
     fn is_rhala(&self) -> bool {
-        self.runtime_name() == "khala"
+        self.runtime_name() == "rhala"
     }
     fn is_thala(&self) -> bool {
         self.runtime_name() == "thala"
@@ -129,13 +129,13 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         }
 
         return match environment? {
-            "dev" => Ok(Box::new(chain_spec::phala::phala_development_config(
+            "dev" => Ok(Box::new(chain_spec::phala::development_config(
                 para_id?.into(),
             ))),
-            "local" => Ok(Box::new(chain_spec::phala::phala_local_config(
+            "local" => Ok(Box::new(chain_spec::phala::local_config(
                 para_id?.into(),
             ))),
-            "staging" => Ok(Box::new(chain_spec::phala::phala_staging_config())),
+            "staging" => Ok(Box::new(chain_spec::phala::staging_config())),
             other => Err(format!("Unsupported environment {} for Phala", other)),
         };
     }
@@ -148,13 +148,13 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         }
 
         return match environment? {
-            "dev" => Ok(Box::new(chain_spec::khala::khala_development_config(
+            "dev" => Ok(Box::new(chain_spec::khala::development_config(
                 para_id?.into(),
             ))),
-            "local" => Ok(Box::new(chain_spec::khala::khala_local_config(
+            "local" => Ok(Box::new(chain_spec::khala::local_config(
                 para_id?.into(),
             ))),
-            "staging" => Ok(Box::new(chain_spec::khala::khala_staging_config())),
+            "staging" => Ok(Box::new(chain_spec::khala::staging_config())),
             other => Err(format!("Unsupported environment {} for Khala", other)),
         };
     }
@@ -168,13 +168,13 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         // }
 
         return match environment? {
-            "dev" => Ok(Box::new(chain_spec::rhala::rhala_development_config(
+            "dev" => Ok(Box::new(chain_spec::rhala::development_config(
                 para_id?.into(),
             ))),
-            "local" => Ok(Box::new(chain_spec::rhala::rhala_local_config(
+            "local" => Ok(Box::new(chain_spec::rhala::local_config(
                 para_id?.into(),
             ))),
-            "staging" => Ok(Box::new(chain_spec::rhala::rhala_staging_config())),
+            "staging" => Ok(Box::new(chain_spec::rhala::staging_config())),
             other => Err(format!("Unsupported environment {} for Rhala", other)),
         };
     }

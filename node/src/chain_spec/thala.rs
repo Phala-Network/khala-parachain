@@ -79,7 +79,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
                 id,
-                Some(dev_registry_config(get_account_id_from_seed::<
+                Some(development_registry_config(get_account_id_from_seed::<
                     sr25519::Public,
                 >("Alice"))),
             )
@@ -149,7 +149,7 @@ fn genesis(
     technical_committee: Vec<AccountId>,
     endowed_accounts: Vec<(AccountId, u128)>,
     id: ParaId,
-    dev_registry_override: Option<thala_parachain_runtime::PhalaRegistryConfig>,
+    registry_override: Option<thala_parachain_runtime::PhalaRegistryConfig>,
 ) -> thala_parachain_runtime::GenesisConfig {
     let all_accounts: Vec<_> = initial_authorities
         .iter()
@@ -213,7 +213,7 @@ fn genesis(
         vesting: thala_parachain_runtime::VestingConfig { vesting: vec![] },
         democracy: Default::default(),
         phragmen_election: Default::default(),
-        phala_registry: dev_registry_override.unwrap_or(
+        phala_registry: registry_override.unwrap_or(
             thala_parachain_runtime::PhalaRegistryConfig {
                 workers: Vec::new(),
                 gatekeepers: Vec::new(),
@@ -232,7 +232,7 @@ fn testnet_genesis(
     initial_authorities: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
-    dev_registry_override: Option<thala_parachain_runtime::PhalaRegistryConfig>,
+    registry_override: Option<thala_parachain_runtime::PhalaRegistryConfig>,
 ) -> thala_parachain_runtime::GenesisConfig {
     // Testnet setup:
     // - 1,152,921 PHA per endowed account
@@ -253,7 +253,7 @@ fn testnet_genesis(
         technical_committee,
         endowment,
         id,
-        dev_registry_override,
+        registry_override,
     )
 }
 
@@ -279,21 +279,21 @@ fn check_accounts_endowed(
     })
 }
 
-fn dev_registry_config(operator: AccountId) -> thala_parachain_runtime::PhalaRegistryConfig {
+fn development_registry_config(operator: AccountId) -> thala_parachain_runtime::PhalaRegistryConfig {
     // The pubkey of "0x1"
-    let raw_dev_sr25519_pubkey: [u8; 32] =
+    let raw_sr25519_pubkey: [u8; 32] =
         hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"];
-    let dev_sr25519_pubkey = sp_core::sr25519::Public::from_raw(raw_dev_sr25519_pubkey);
-    let dev_ecdh_pubkey =
+    let sr25519_pubkey = sp_core::sr25519::Public::from_raw(raw_sr25519_pubkey);
+    let ecdh_pubkey =
         hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"].to_vec();
 
     thala_parachain_runtime::PhalaRegistryConfig {
         workers: vec![(
-            dev_sr25519_pubkey.clone(),
-            dev_ecdh_pubkey,
+            sr25519_pubkey.clone(),
+            ecdh_pubkey,
             Some(operator.clone()),
         )],
-        gatekeepers: vec![dev_sr25519_pubkey],
+        gatekeepers: vec![sr25519_pubkey],
         benchmark_duration: 1,
     }
 }
