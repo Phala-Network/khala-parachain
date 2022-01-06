@@ -78,8 +78,8 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Assets sent to parachain or relaychain.
 		AssetTransfered {
-			sender: T::AccountId,
 			asset: MultiAsset,
+			origin: MultiLocation,
 			dest: MultiLocation,
 		},
 	}
@@ -95,7 +95,6 @@ pub mod pallet {
 		AssetNotFound,
 		LocationInvertFailed,
 		IllegalDestination,
-		IllegalOriginLocation,
 	}
 
 	#[pallet::call]
@@ -112,22 +111,13 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
+			let origin = T::ExecuteXcmOrigin::ensure_origin(origin)?;
 			// Get asset location by asset id
 			let asset_location: MultiLocation =
 				asset.try_into().map_err(|_| Error::<T>::AssetNotFound)?;
 			let multi_asset: MultiAsset = (asset_location, amount.into()).into();
 
-			match origin_location.interior() {
-				&X1(Junction::AccountId32 { network: _, id }) => Self::do_transfer_multiasset(
-					id.into(),
-					origin_location,
-					multi_asset,
-					dest,
-					dest_weight,
-				),
-				_ => Err(Error::<T>::IllegalOriginLocation.into()),
-			}
+			Self::do_transfer_multiasset(origin, multi_asset, dest, dest_weight)
 		}
 
 		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
@@ -137,12 +127,11 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			let sender = ensure_signed(origin.clone())?;
-			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
+			let origin = T::ExecuteXcmOrigin::ensure_origin(origin)?;
 			let asset_location: MultiLocation = (0, Here).into();
 			let asset: MultiAsset = (asset_location, amount.into()).into();
 
-			Self::do_transfer_multiasset(sender, origin_location, asset, dest, dest_weight)
+			Self::do_transfer_multiasset(origin, asset, dest, dest_weight)
 		}
 	}
 
@@ -157,9 +146,8 @@ pub mod pallet {
 			let nonreserve_xcm_transfer_session = XCMSession::<T> {
 				asset: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
 				fee: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
-				origin_location: MultiLocation::new(1, X1(Parachain(1u32))),
+				origin: MultiLocation::new(1, X1(Parachain(1u32))),
 				dest_location: MultiLocation::new(1, X1(Parachain(2u32))),
-				sender: PalletId(*b"phala/bg").into_account(),
 				recipient: PalletId(*b"phala/bg").into_account(),
 				dest_weight: 0,
 			};
@@ -170,8 +158,7 @@ pub mod pallet {
 		}
 
 		pub fn do_transfer_multiasset(
-			sender: T::AccountId,
-			origin_location: MultiLocation,
+			origin: MultiLocation,
 			asset: MultiAsset,
 			dest: MultiLocation,
 			dest_weight: Weight,
@@ -214,9 +201,8 @@ pub mod pallet {
 			let xcm_session = XCMSession::<T> {
 				asset: asset.clone(),
 				fee,
-				origin_location,
+				origin: origin.clone(),
 				dest_location,
-				sender: sender.clone(),
 				recipient: recipient.unwrap().into(),
 				dest_weight,
 			};
@@ -230,8 +216,8 @@ pub mod pallet {
 			xcm_session.execute(&mut msg)?;
 
 			Self::deposit_event(Event::AssetTransfered {
-				sender,
 				asset,
+				origin,
 				dest,
 			});
 
@@ -241,8 +227,7 @@ pub mod pallet {
 
 	pub trait XcmTransact<T: frame_system::Config> {
 		fn transfer_fungible(
-			sender: T::AccountId,
-			origin_location: MultiLocation,
+			origin: MultiLocation,
 			asset: MultiAsset,
 			dest: MultiLocation,
 			dest_weight: Weight,
@@ -253,8 +238,7 @@ pub mod pallet {
 	// be removed when release
 	impl<T: frame_system::Config> XcmTransact<T> for () {
 		fn transfer_fungible(
-			sender: T::AccountId,
-			origin_location: MultiLocation,
+			origin: MultiLocation,
 			asset: MultiAsset,
 			dest: MultiLocation,
 			dest_weight: Weight,
@@ -269,13 +253,12 @@ pub mod pallet {
 		BalanceOf<T>: Into<u128>,
 	{
 		fn transfer_fungible(
-			sender: T::AccountId,
-			origin_location: MultiLocation,
+			origin: MultiLocation,
 			asset: MultiAsset,
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			Self::do_transfer_multiasset(sender, origin_location, asset, dest, dest_weight)
+			Self::do_transfer_multiasset(origin, asset, dest, dest_weight)
 		}
 	}
 
@@ -298,10 +281,9 @@ pub mod pallet {
 	struct XCMSession<T: Config> {
 		asset: MultiAsset,
 		fee: MultiAsset,
-		origin_location: MultiLocation,
+		origin: MultiLocation,
 		// Where recipient located in
 		dest_location: MultiLocation,
-		sender: T::AccountId,
 		recipient: T::AccountId,
 		dest_weight: Weight,
 	}
@@ -364,7 +346,7 @@ pub mod pallet {
 			let weight =
 				T::Weigher::weight(message).map_err(|()| Error::<T>::UnweighableMessage)?;
 			T::XcmExecutor::execute_xcm_in_credit(
-				self.origin_location.clone(),
+				self.origin.clone(),
 				message.clone(),
 				weight,
 				weight,

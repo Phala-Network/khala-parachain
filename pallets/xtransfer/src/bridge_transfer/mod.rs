@@ -412,7 +412,6 @@ pub mod pallet {
 					// assets would be deposited into reserve account, in other words, bridge transfer
 					// always based on reserve mode.
 					T::XcmTransactor::transfer_fungible(
-						dest_reserve_account.clone().into(),
 						Junction::AccountId32 {
 							network: NetworkId::Any,
 							id: dest_reserve_account,
