@@ -95,11 +95,13 @@ substrate-build-script-utils = { git = "https://github.com/paritytech/substrate"
 [features]
 runtime-benchmarks = [
 	"polkadot-service/runtime-benchmarks",
+	"phala-parachain-runtime/runtime-benchmarks",
 	"khala-parachain-runtime/runtime-benchmarks",
 	"rhala-parachain-runtime/runtime-benchmarks",
 	"thala-parachain-runtime/runtime-benchmarks",
 ]
 try-runtime = [
+	"phala-parachain-runtime/try-runtime",
 	"khala-parachain-runtime/try-runtime",
 	"rhala-parachain-runtime/try-runtime",
 	"thala-parachain-runtime/try-runtime",
