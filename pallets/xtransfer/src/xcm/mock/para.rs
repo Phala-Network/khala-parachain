@@ -62,7 +62,7 @@ construct_runtime!(
 		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
 
-		// local palelts
+		// Local palelts
 		XcmTransfer: pallet_xcm_transfer::{Pallet, Call, Event<T>, Storage},
 	}
 );

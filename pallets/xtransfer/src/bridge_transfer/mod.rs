@@ -7,7 +7,8 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, ReserveLocation, XTransferAsset, XTransferAssetInfo, CB_ASSET_KEY,
+		AccountId32Conversion, ExtractReserveLocation, XTransferAsset, XTransferAssetInfo,
+		CB_ASSET_KEY,
 	};
 	use frame_support::{
 		pallet_prelude::*,
@@ -168,7 +169,7 @@ pub mod pallet {
 				T::AssetsWrapper::id(&asset).ok_or(Error::<T>::AssetNotRegistered)?;
 
 			let rid: bridge::ResourceId = asset.clone().into_rid(dest_id);
-			// ensure asset is setup for the solo chain
+			// Ensure asset is setup for the solo chain
 			ensure!(
 				Self::rid_to_assetid(&rid).is_ok(),
 				Error::<T>::AssetConversionFailed
@@ -187,11 +188,11 @@ pub mod pallet {
 			);
 
 			let fee = Self::calculate_fee(dest_id, amount);
-			// check native balance to cover fee
+			// Check native balance to cover fee
 			let native_free_balance = <T as Config>::Currency::free_balance(&sender);
 			ensure!(native_free_balance >= fee, Error::<T>::InsufficientBalance);
 
-			// pay fee to treasury
+			// Pay fee to treasury
 			let imbalance = <T as Config>::Currency::withdraw(
 				&sender,
 				fee,
@@ -204,11 +205,11 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 
 			if asset_reserve_location == dest_reserve_location {
-				// burn if transfer back to its reserve location
+				// Burn if transfer back to its reserve location
 				pallet_assets::pallet::Pallet::<T>::burn_from(asset_id, &sender, asset_amount)
 					.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 			} else {
-				// transfer asset from sender to reserve account
+				// Transfer asset from sender to reserve account
 				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
 					asset_id,
 					&sender,
@@ -219,7 +220,7 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 			}
 
-			// send message to evm chains
+			// Send message to evm chains
 			<bridge::Pallet<T>>::transfer_fungible(
 				dest_id,
 				rid,
@@ -289,7 +290,7 @@ pub mod pallet {
 			rid: ResourceId,
 		) -> DispatchResult {
 			let bridge_account = T::BridgeOrigin::ensure_origin(origin.clone())?;
-			// for solo chain assets, we encode solo chain id as the first byte of resourceId
+			// For solo chain assets, we encode solo chain id as the first byte of resourceId
 			let src_id: u128 = rid[0]
 				.try_into()
 				.expect("Convert from chain id to u128 must be ok; qed.");
@@ -355,7 +356,7 @@ pub mod pallet {
 
 			// The asset already being "mint" or "withdrawn from reserve account", now settle to dest
 			match (dest_location.parents, &dest_location.interior) {
-				// to local account
+				// To local account
 				(0, &X1(AccountId32 { network: _, id })) => {
 					if rid == T::NativeTokenResourceId::get() {
 						// ERC20 PHA transfer
@@ -365,7 +366,7 @@ pub mod pallet {
 						let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
 							.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 
-						// mint asset into recipient
+						// Mint asset into recipient
 						pallet_assets::pallet::Pallet::<T>::mint_into(
 							asset_id,
 							&id.into(),
@@ -374,7 +375,7 @@ pub mod pallet {
 						.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 					}
 				}
-				// to relaychain or other parachain, forward it by xcm
+				// To relaychain or other parachain, forward it by xcm
 				(1, X1(AccountId32 { .. })) | (1, X2(Parachain(_), AccountId32 { .. })) => {
 					let dest_reserve_account = dest_reserve_location.clone().into_account();
 					if asset_reserve_location != dest_reserve_location {
@@ -392,7 +393,7 @@ pub mod pallet {
 							let asset_amount =
 								T::BalanceConverter::to_asset_balance(amount, asset_id)
 									.map_err(|_| Error::<T>::BalanceConversionFailed)?;
-							// mint asset into dest reserve account
+							// Mint asset into dest reserve account
 							pallet_assets::pallet::Pallet::<T>::mint_into(
 								asset_id,
 								&dest_reserve_account.clone().into(),
@@ -422,7 +423,7 @@ pub mod pallet {
 						6000000000u64.into(),
 					)?;
 				}
-				// to other evm chains
+				// To other evm chains
 				(
 					0,
 					X3(GeneralKey(_cb_key), GeneralIndex(_evm_chain_id), GeneralKey(_evm_account)),

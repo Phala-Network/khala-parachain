@@ -3,7 +3,8 @@ pub use self::xcm_helper::*;
 pub mod xcm_helper {
 	use crate::bridge::pallet::{BridgeChainId, BridgeTransact};
 	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, ReserveLocation, XTransferAsset, XTransferAssetInfo, CB_ASSET_KEY,
+		AccountId32Conversion, ExtractReserveLocation, XTransferAsset, XTransferAssetInfo,
+		CB_ASSET_KEY,
 	};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::pallet_prelude::*;
@@ -128,13 +129,13 @@ pub mod xcm_helper {
 		pub fn origin(asset: &MultiAsset) -> Option<MultiLocation> {
 			Self::id(asset).and_then(|id| {
 				match (id.parents, id.first_interior()) {
-					// sibling parachain
+					// Sibling parachain
 					(1, Some(Parachain(id))) => Some(MultiLocation::new(1, X1(Parachain(*id)))),
-					// parent
+					// Parent
 					(1, _) => Some(MultiLocation::parent()),
-					// children parachain
+					// Children parachain
 					(0, Some(Parachain(id))) => Some(MultiLocation::new(0, X1(Parachain(*id)))),
-					// local: (0, Here)
+					// Local: (0, Here)
 					(0, None) => Some(id),
 					_ => None,
 				}
@@ -255,7 +256,7 @@ pub mod xcm_helper {
 
 					Ok(())
 				}
-				// try handle it with transfer adapter
+				// Try handle it with transfer adapter
 				_ => {
 					if NativeChecker::is_native_asset(what) {
 						NativeAdapter::deposit_asset(what, who)

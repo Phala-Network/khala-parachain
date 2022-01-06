@@ -36,7 +36,7 @@ fn register_asset() {
 			),
 		);
 
-		// permission denied
+		// Permission denied
 		assert_noop!(
 			AssetsWrapper::force_register_asset(
 				Origin::signed(ALICE),
@@ -54,7 +54,7 @@ fn register_asset() {
 			ALICE,
 		));
 
-		// same location register again, should be failed
+		// Same location register again, should be failed
 		assert_noop!(
 			AssetsWrapper::force_register_asset(
 				Origin::root(),
@@ -75,7 +75,7 @@ fn register_asset() {
 			),
 		);
 
-		// same asset id register again, should be failed
+		// Same asset id register again, should be failed
 		assert_noop!(
 			AssetsWrapper::force_register_asset(
 				Origin::root(),
@@ -86,7 +86,7 @@ fn register_asset() {
 			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
 		);
 
-		// register another asset, id = 1
+		// Register another asset, id = 1
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
 			another_bridge_asset_location.clone().into(),
@@ -102,7 +102,7 @@ fn register_asset() {
 			another_bridge_asset_location.clone().into()
 		);
 
-		// unregister asset
+		// Unregister asset
 		assert_ok!(AssetsWrapper::force_unregister_asset(Origin::root(), 1));
 		assert_eq!(
 			AssetsWrapper::id(&another_bridge_asset_location.into()),
@@ -163,7 +163,7 @@ fn transfer_assets_insufficient_balance() {
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
 		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 2, dest_chain));
 
-		// register asset, id = 0
+		// Register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
 			bridge_asset_location.clone().into(),
@@ -171,14 +171,14 @@ fn transfer_assets_insufficient_balance() {
 			ALICE,
 		));
 
-		// setup solo chain for this asset
+		// Setup solo chain for this asset
 		assert_ok!(AssetsWrapper::force_setup_solochain(
 			Origin::root(),
 			0,
 			dest_chain,
 		));
 
-		// after registered, free balance of ALICE is 0
+		// After registered, free balance of ALICE is 0
 		assert_noop!(
 			BridgeTransfer::transfer_assets(
 				Origin::signed(ALICE),
@@ -219,7 +219,7 @@ fn transfer_assets_to_nonreserve() {
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
 		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 2, dest_chain));
 
-		// register asset, id = 0
+		// Register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
 			bridge_asset_location.clone().into(),
@@ -227,14 +227,14 @@ fn transfer_assets_to_nonreserve() {
 			ALICE,
 		));
 
-		// setup solo chain for this asset
+		// Setup solo chain for this asset
 		assert_ok!(AssetsWrapper::force_setup_solochain(
 			Origin::root(),
 			0,
 			dest_chain,
 		));
 
-		// mint some token to ALICE
+		// Mint some token to ALICE
 		assert_ok!(Assets::mint(Origin::signed(ALICE), 0, ALICE, amount * 2));
 		assert_eq!(Assets::balance(0, &ALICE), amount * 2);
 
@@ -247,7 +247,7 @@ fn transfer_assets_to_nonreserve() {
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), amount);
-		// the asset's reserve chain is 0, dest chain is 2,
+		// The asset's reserve chain is 0, dest chain is 2,
 		// so will save asset into reserve account of dest chain
 		assert_eq!(
 			Assets::balance(0, &dest_reserve_location.into_account().into()),
@@ -283,7 +283,7 @@ fn transfer_assets_to_reserve() {
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
 		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 2, dest_chain));
 
-		// register asset, id = 0
+		// Register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
 			bridge_asset_location.clone().into(),
@@ -291,14 +291,14 @@ fn transfer_assets_to_reserve() {
 			ALICE,
 		));
 
-		// setup solo chain for this asset
+		// Setup solo chain for this asset
 		assert_ok!(AssetsWrapper::force_setup_solochain(
 			Origin::root(),
 			0,
 			dest_chain,
 		));
 
-		// mint some token to ALICE
+		// Mint some token to ALICE
 		assert_ok!(Assets::mint(Origin::signed(ALICE), 0, ALICE, amount * 2));
 		assert_eq!(Assets::balance(0, &ALICE), amount * 2);
 
@@ -311,7 +311,7 @@ fn transfer_assets_to_reserve() {
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), amount);
-		// the asset's reserve chain is 2, dest chain is 2,
+		// The asset's reserve chain is 2, dest chain is 2,
 		// so assets just be burned from sender
 		assert_eq!(
 			Assets::balance(0, &dest_reserve_location.into_account().into()),
@@ -392,12 +392,12 @@ fn simulate_transfer_pha_from_solochain() {
 		assert_eq!(Balances::free_balance(RELAYER_A), ENDOWED_BALANCE + 10);
 
 		assert_events(vec![
-			// withdraw from reserve account(for PHA, is bridge account)
+			// Withdraw from reserve account(for PHA, is bridge account)
 			Event::Balances(balances::Event::Withdraw {
 				who: Bridge::account_id(),
 				amount: 10,
 			}),
-			// deposit into recipient
+			// Deposit into recipient
 			Event::Balances(balances::Event::Deposit {
 				who: RELAYER_A,
 				amount: 10,
@@ -440,7 +440,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 		)
 			.into();
 
-		// register asset, id = 0
+		// Register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
 			bridge_asset,
@@ -448,7 +448,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 			ALICE,
 		));
 
-		// setup solo chain for this asset
+		// Setup solo chain for this asset
 		assert_ok!(AssetsWrapper::force_setup_solochain(
 			Origin::root(),
 			0,
@@ -457,7 +457,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 
 		assert_eq!(Assets::balance(0, &ALICE), 0);
 
-		// transfer from asset reserve location, would mint asset into ALICE directly
+		// Transfer from asset reserve location, would mint asset into ALICE directly
 		assert_ok!(BridgeTransfer::transfer(
 			Origin::signed(Bridge::account_id()),
 			alice_location.encode(),
@@ -471,7 +471,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 		);
 
 		assert_events(vec![
-			// mint asset
+			// Mint asset
 			Event::Assets(pallet_assets::Event::Issued {
 				asset_id: 0,
 				owner: ALICE,
@@ -511,7 +511,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 		)
 			.into();
 
-		// register asset, id = 0
+		// Register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
 			para_asset.clone(),
@@ -519,7 +519,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 			ALICE,
 		));
 
-		// setup solo chain for this asset
+		// Setup solo chain for this asset
 		assert_ok!(AssetsWrapper::force_setup_solochain(
 			Origin::root(),
 			0,
@@ -528,7 +528,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 
 		assert_eq!(Assets::balance(0, &ALICE), 0);
 
-		// mint some token to reserve account, simulate the reserve pool
+		// Mint some token to reserve account, simulate the reserve pool
 		assert_ok!(Assets::mint(
 			Origin::signed(ALICE),
 			0,
@@ -540,7 +540,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 			amount * 2
 		);
 		assert_events(vec![
-			// mint asset
+			// Mint asset
 			Event::Assets(pallet_assets::Event::Issued {
 				asset_id: 0,
 				owner: src_reserve_location.clone().into_account().into(),
@@ -548,7 +548,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 			}),
 		]);
 
-		// transfer from nonreserve location of asset,
+		// Transfer from nonreserve location of asset,
 		// first: burn asset from source reserve account
 		// second: mint asset into recipient
 		assert_ok!(BridgeTransfer::transfer(
@@ -564,13 +564,13 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 		);
 
 		assert_events(vec![
-			// burn asset
+			// Burn asset
 			Event::Assets(pallet_assets::Event::Burned {
 				asset_id: 0,
 				owner: src_reserve_location.into_account().into(),
 				balance: amount,
 			}),
-			// mint asset
+			// Mint asset
 			Event::Assets(pallet_assets::Event::Issued {
 				asset_id: 0,
 				owner: ALICE,
@@ -665,12 +665,12 @@ fn create_successful_transfer_proposal() {
 			Event::Bridge(bridge::Event::VoteAgainst(src_id, prop_id, RELAYER_B)),
 			Event::Bridge(bridge::Event::VoteFor(src_id, prop_id, RELAYER_C)),
 			Event::Bridge(bridge::Event::ProposalApproved(src_id, prop_id)),
-			// withdraw from reserve account(for PHA, is bridge account)
+			// Withdraw from reserve account(for PHA, is bridge account)
 			Event::Balances(balances::Event::Withdraw {
 				who: Bridge::account_id(),
 				amount: 10,
 			}),
-			// deposit into recipient
+			// Deposit into recipient
 			Event::Balances(balances::Event::Deposit {
 				who: RELAYER_A,
 				amount: 10,

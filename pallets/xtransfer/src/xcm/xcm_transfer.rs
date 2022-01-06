@@ -113,7 +113,7 @@ pub mod pallet {
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
-			// get asset location by asset id
+			// Get asset location by asset id
 			let asset_location: MultiLocation =
 				asset.try_into().map_err(|_| Error::<T>::AssetNotFound)?;
 			let multi_asset: MultiAsset = (asset_location, amount.into()).into();
@@ -126,7 +126,7 @@ pub mod pallet {
 					dest,
 					dest_weight,
 				),
-				_ => return Err(Error::<T>::IllegalOriginLocation.into()),
+				_ => Err(Error::<T>::IllegalOriginLocation.into()),
 			}
 		}
 
@@ -153,7 +153,7 @@ pub mod pallet {
 	{
 		/// Returns the estimated max weight for a xcm based on non-reserve xcm transfer cost
 		pub fn estimate_transfer_weight() -> Weight {
-			// we treat nonreserve xcm transfer cost the most weight
+			// We treat nonreserve xcm transfer cost the most weight
 			let nonreserve_xcm_transfer_session = XCMSession::<T> {
 				asset: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
 				fee: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
@@ -177,7 +177,7 @@ pub mod pallet {
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let mut dest_location = dest.clone();
-			// make sure we are processing crosschain transfer and we got correct path
+			// Make sure we are processing crosschain transfer and we got correct path
 			ensure!(!dest_location.is_here(), Error::<T>::IllegalDestination);
 			// FIXME: what if someone give a Parachain junction at the end?
 			// After take_last(), dest only contains reserve location of the recipient.
@@ -194,12 +194,12 @@ pub mod pallet {
 				|| T::NativeAssetChecker::is_native_asset(&asset)
 			{
 				match asset.fun {
-					// so far only half of amount are allowed to be used as fee
+					// So far only half of amount are allowed to be used as fee
 					Fungible(amount) => MultiAsset {
 						fun: Fungible(amount / 2),
 						id: asset.id.clone(),
 					},
-					// we do not support unfungible asset transfer, nor support it as fee
+					// We do not support unfungible asset transfer, nor support it as fee
 					_ => return Err(Error::<T>::AssetNotFound.into()),
 				}
 			} else {
@@ -299,6 +299,7 @@ pub mod pallet {
 		asset: MultiAsset,
 		fee: MultiAsset,
 		origin_location: MultiLocation,
+		// Where recipient located in
 		dest_location: MultiLocation,
 		sender: T::AccountId,
 		recipient: T::AccountId,
@@ -380,7 +381,7 @@ pub mod pallet {
 			}
 			.into();
 
-			// if self.asset.id == self.fee.id, self.asset must contains self.fee
+			// If self.asset.id == self.fee.id, self.asset must contains self.fee
 			let (withdraw_asset, max_assets) = if self.asset.contains(&self.fee) {
 				// The assets to pay the fee is the same as the main assets. Only one withdraw is required.
 				(WithdrawAsset(self.asset.clone().into()), 1)
@@ -482,7 +483,7 @@ mod test {
 		TestNet::reset();
 
 		ParaA::execute_with(|| {
-			// register first asset, id = 0
+			// Register first asset, id = 0
 			let para_a_location: MultiLocation = MultiLocation {
 				parents: 1,
 				interior: X1(Parachain(1)),
@@ -490,7 +491,7 @@ mod test {
 			let para_a_asset: pallet_assets_wrapper::XTransferAsset =
 				para_a_location.try_into().unwrap();
 
-			// should be failed if origin is from sudo user
+			// Should be failed if origin is from sudo user
 			assert_err!(
 				ParaAssetsWrapper::force_register_asset(
 					Some(ALICE).into(),
@@ -523,7 +524,7 @@ mod test {
 			);
 			assert_eq!(ParaAssets::total_supply(0u32.into()), 0);
 
-			// same asset location register again, should be failed
+			// Same asset location register again, should be failed
 			assert_noop!(
 				ParaAssetsWrapper::force_register_asset(
 					para::Origin::root(),
@@ -541,7 +542,7 @@ mod test {
 			let para_b_asset: pallet_assets_wrapper::XTransferAsset =
 				para_b_location.try_into().unwrap();
 
-			// same asset id register again, should be failed
+			// Same asset id register again, should be failed
 			assert_noop!(
 				ParaAssetsWrapper::force_register_asset(
 					para::Origin::root(),
@@ -552,7 +553,7 @@ mod test {
 				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
 			);
 
-			// register another asset, id = 1
+			// Register another asset, id = 1
 			let para_b_location: MultiLocation = MultiLocation {
 				parents: 1,
 				interior: X1(Parachain(2)),
@@ -571,7 +572,7 @@ mod test {
 				para_b_asset
 			);
 
-			// unregister asset
+			// Unregister asset
 			assert_ok!(ParaAssetsWrapper::force_unregister_asset(
 				para::Origin::root(),
 				1
@@ -676,7 +677,7 @@ mod test {
 			assert_eq!(ParaAssets::balance(0u32.into(), &BOB), 10 - 1);
 		});
 
-		// now, let's transfer back to paraA
+		// Now, let's transfer back to paraA
 		ParaB::execute_with(|| {
 			// ParaB send back ParaA's native asset
 			assert_ok!(XcmTransfer::transfer_asset(

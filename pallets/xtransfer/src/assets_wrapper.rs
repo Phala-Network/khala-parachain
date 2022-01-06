@@ -49,11 +49,11 @@ pub mod pallet {
 	// The reserve location represent which chain the location belong to.
 	// By finding the reserve location, we can also identity where an asset
 	// comes from.
-	pub trait ReserveLocation {
+	pub trait ExtractReserveLocation {
 		fn reserve(&self) -> Option<MultiLocation>;
 	}
 
-	impl ReserveLocation for MultiLocation {
+	impl ExtractReserveLocation for MultiLocation {
 		fn reserve(&self) -> Option<MultiLocation> {
 			match self.first_interior() {
 				Some(Parachain(para_id)) => {
@@ -92,7 +92,7 @@ pub mod pallet {
 				_ => {
 					// location not contains Junction::Parachain
 					match self.interior() {
-						Here | X1(AccountId32 { network: _, id: _ }) => {
+						Here | X1(AccountId32 { .. }) => {
 							return Some((self.parents, Here).into());
 						}
 						X3(GeneralKey(cb_key), GeneralIndex(evm_chain_id), GeneralKey(_)) => {
@@ -121,7 +121,7 @@ pub mod pallet {
 		}
 	}
 
-	impl ReserveLocation for XTransferAsset {
+	impl ExtractReserveLocation for XTransferAsset {
 		fn reserve(&self) -> Option<MultiLocation> {
 			self.0.reserve()
 		}
@@ -180,7 +180,7 @@ pub mod pallet {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			asset: XTransferAsset,
 		},
-		/// Asset setup for a solo chain. \[asset_id, chain_id, rid]
+		/// Asset setup for a solo chain.
 		SolochainSetuped {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			chain_id: u8,
@@ -207,12 +207,12 @@ pub mod pallet {
 			owner: <T::Lookup as StaticLookup>::Source,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin.clone())?;
-			// ensure location has not been registered
+			// Ensure location has not been registered
 			ensure!(
 				AssetToId::<T>::get(&asset) == None,
 				Error::<T>::AssetAlreadyExist
 			);
-			// ensure asset_id has not been registered
+			// Ensure asset_id has not been registered
 			ensure!(
 				IdToAsset::<T>::get(&asset_id) == None,
 				Error::<T>::AssetAlreadyExist
@@ -277,7 +277,7 @@ pub mod pallet {
 	pub trait XTransferAssetInfo<AssetId> {
 		fn id(asset: &XTransferAsset) -> Option<AssetId>;
 		fn asset(id: &AssetId) -> Option<XTransferAsset>;
-		// expect a better name
+		// Expect a better name
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset>;
 	}
 
