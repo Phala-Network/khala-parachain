@@ -122,7 +122,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     drop(normalized_id);
 
     if runtime_name == "phala" {
-        if para_id.is_err() {
+        if environment.is_err() && para_id.is_err() {
             return Ok(Box::new(chain_spec::phala::ChainSpec::from_json_bytes(
                 &include_bytes!("../res/phala.json")[..],
             )?));
@@ -141,7 +141,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     }
 
     if runtime_name == "khala" {
-        if para_id.is_err() {
+        if environment.is_err() && para_id.is_err() {
             return Ok(Box::new(chain_spec::khala::ChainSpec::from_json_bytes(
                 &include_bytes!("../res/khala.json")[..],
             )?));
@@ -161,7 +161,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 
     if runtime_name == "rhala" {
         // TODO: Export when we preparing for Rococo
-        // if para_id.is_err() {
+        // if environment.is_err() && para_id.is_err() {
         //     return Ok(Box::new(chain_spec::khala::ChainSpec::from_json_bytes(
         //         &include_bytes!("../res/rhala.json")[..],
         //     )?));
