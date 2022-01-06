@@ -42,6 +42,7 @@ pub mod constants;
 use constants::{currency::*, fee::WeightToFee};
 
 mod msg_routing;
+mod migrations;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use sp_api::impl_runtime_apis;
@@ -170,20 +171,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPallets,
-    (
-        CouncilStoragePrefixMigration,
-        TechnicalCommitteeStoragePrefixMigration,
-        TechnicalMembershipStoragePrefixMigration,
-        MigrateTipsPalletPrefix,
-        BountiesPrefixMigration,
-    ),
 >;
-
-mod migrations;
-use migrations::{
-    BountiesPrefixMigration, CouncilStoragePrefixMigration, MigrateTipsPalletPrefix,
-    TechnicalCommitteeStoragePrefixMigration, TechnicalMembershipStoragePrefixMigration,
-};
 
 construct_runtime! {
     pub enum Runtime where
