@@ -38,6 +38,7 @@ use substrate_prometheus_endpoint::Registry;
 
 pub mod phala;
 pub mod khala;
+pub mod rhala;
 pub mod thala;
 
 /// Starts a `ServiceBuilder` for a full service.

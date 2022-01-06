@@ -21,6 +21,7 @@ use sp_runtime::traits::{IdentifyAccount, Verify};
 
 pub mod phala;
 pub mod khala;
+pub mod rhala;
 pub mod thala;
 
 /// Default `ChainSpec`.

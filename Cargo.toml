@@ -36,6 +36,7 @@ members = [
 	"pallets/parachain-info",
 	"runtime/phala",
 	"runtime/khala",
+	"runtime/rhala",
 	"runtime/thala",
 ]
 
