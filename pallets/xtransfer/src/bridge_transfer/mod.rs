@@ -379,8 +379,7 @@ pub mod pallet {
 					}
 				}
 				// to relaychain or other parachain, forward it by xcm
-				(1, X1(AccountId32 { network: _, id: _ }))
-				| (1, X2(Parachain(_), AccountId32 { network: _, id: _ })) => {
+				(1, X1(AccountId32 { .. })) | (1, X2(Parachain(_), AccountId32 { .. })) => {
 					let dest_reserve_account = dest_reserve_location.clone().into_account();
 					if asset_reserve_location != dest_reserve_location {
 						log::trace!(

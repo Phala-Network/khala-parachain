@@ -95,6 +95,7 @@ pub mod pallet {
 		AssetNotFound,
 		LocationInvertFailed,
 		IllegalDestination,
+		IllegalOriginLocation,
 	}
 
 	#[pallet::call]
@@ -111,13 +112,22 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			let sender = ensure_signed(origin.clone())?;
 			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
 			// get asset location by asset id
 			let asset_location: MultiLocation =
 				asset.try_into().map_err(|_| Error::<T>::AssetNotFound)?;
 			let multi_asset: MultiAsset = (asset_location, amount.into()).into();
-			Self::do_transfer_multiasset(sender, origin_location, multi_asset, dest, dest_weight)
+
+			match origin_location.interior() {
+				&X1(Junction::AccountId32 { network: _, id }) => Self::do_transfer_multiasset(
+					id.into(),
+					origin_location,
+					multi_asset,
+					dest,
+					dest_weight,
+				),
+				_ => return Err(Error::<T>::IllegalOriginLocation.into()),
+			}
 		}
 
 		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
