@@ -106,7 +106,7 @@ impl bridge::Config for Test {
 
 parameter_types! {
 	// first byte is 0x00, chain id of ethereum mainnet
-	pub const NativeTokenResourceId: [u8; 32] = hex!("00ab283b2b268c9c99ddfe96ed5dfbfa3dcc1a2f5551a30049fea8484186f2eb");
+	pub const NativeTokenResourceId: [u8; 32] = hex!("0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844");
 }
 
 impl bridge_transfer::Config for Test {

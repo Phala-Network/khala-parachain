@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
+const { blake2AsU8a } = require('@polkadot/util-crypto');
 const BN = require('bn.js');
 const ethers = require('ethers');
 const BridgeJson = require('./Bridge.json');
@@ -200,7 +201,7 @@ async function transferAssetsKhalaAccounts(khalaApi, sender, recipient, amount) 
 // simulate EVM => Khala, call Bridge.Deposit()
 async function transferPhaFromEvmToKhala(khalaApi, bridge, sender, recipient, amount) {
     let khalaChainId = 1;
-    let phaResourceId = '0x41ab283b2b268c9c99ddfe96ed5dfbfa3dcc1a2f5551a30049fea8484186f2eb';
+    let phaResourceId = '0x0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844';
     // dest is not Account public key any more.
     let dest = khalaApi.createType('XcmV1MultiLocation', {
         // parents = 0 means we send to xcm local network(e.g. Khala network here)
@@ -226,7 +227,7 @@ async function transferPhaFromEvmToKhala(khalaApi, bridge, sender, recipient, am
 // simulate EVM => Khala => Karura, call Bridge.Deposit()
 async function transferPhaFromEvmToKarura(khalaApi, bridge, sender, recipient, amount) {
     let khalaChainId = 1;
-    let phaResourceId = '0x41ab283b2b268c9c99ddfe96ed5dfbfa3dcc1a2f5551a30049fea8484186f2eb';
+    let phaResourceId = '0x0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844';
     let dest = khalaApi.createType('XcmV1MultiLocation', {
         // parents = 1 means we wanna send to other parachains or relaychain
         parents: 1,
@@ -253,7 +254,7 @@ async function transferPhaFromEvmToKarura(khalaApi, bridge, sender, recipient, a
 }
 
 function dumpResourceId(khalaApi, soloChainId) {
-    // PHA resourceId: 0x00ab283b2b268c9c99ddfe96ed5dfbfa3dcc1a2f5551a30049fea8484186f2eb
+    // PHA resourceId: 0x0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844
     let pha = khalaApi.createType('XcmV1MultiLocation', {
         parents: 1,
         interior: khalaApi.createType('Junctions', {
@@ -263,10 +264,9 @@ function dumpResourceId(khalaApi, soloChainId) {
         })
     }).toHex();
 
-    let rid = ethers.utils.keccak256(pha);
-    let ridBuffer = Buffer.from(rid.substr(2), 'hex');
-    ridBuffer[0] = soloChainId;
-    rid = '0x' + ridBuffer.toString('hex');
+    let u8arid = blake2AsU8a(pha);
+    u8arid[0] = soloChainId;
+    let rid = '0x' + Buffer.from(u8arid).toString('hex');
 
     console.log(`resource id of PHA: ${rid}`);
 }

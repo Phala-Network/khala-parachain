@@ -980,7 +980,7 @@ impl Config for XcmConfig {
 parameter_types! {
     pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
 }
-/// No local origins on this chain are allowed to dispatch XCM sends/executions.
+
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
 
 /// The means for routing XCM messages which are not for local execution into the right message
@@ -1341,7 +1341,7 @@ impl pallet_bridge::Config for Runtime {
 
 parameter_types! {
     // first byte is 0x00, chain id of ethereum mainnet
-    pub const NativeTokenResourceId: [u8; 32] = hex_literal::hex!("00ab283b2b268c9c99ddfe96ed5dfbfa3dcc1a2f5551a30049fea8484186f2eb");
+    pub const NativeTokenResourceId: [u8; 32] = hex_literal::hex!("0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844");
 }
 
 impl pallet_bridge_transfer::Config for Runtime {

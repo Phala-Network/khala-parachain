@@ -129,7 +129,7 @@ pub mod pallet {
 
 	impl XTransferAsset {
 		pub fn into_rid(self, chain_id: u8) -> [u8; 32] {
-			let mut rid = sp_io::hashing::keccak_256(&self.0.encode());
+			let mut rid = sp_io::hashing::blake2_256(&self.0.encode());
 			rid[0] = chain_id;
 			rid
 		}
