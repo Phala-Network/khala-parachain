@@ -316,17 +316,17 @@ pub mod pallet {
 				&asset_reserve_location,
 				&src_reserve_location,
 			);
-			let imbalance = if asset_reserve_location == src_reserve_location {
-				// we received asset send from its reserve chain, we just need mint
-				// the same amount of asset at local
-				amount
-			} else {
-				// we received asset send from non-reserve chain, which reserved
-				// in the local our other parachains/relaychain. That means we had
-				// reserved the asset in a reserve account while it was transfered
-				// the the source chain, so here we need withdraw/burn from the reserve
-				// account in advance.
-				let imbalance = if rid == T::NativeTokenResourceId::get() {
+
+			// We received asset send from non-reserve chain, which reserved
+			// in the local our other parachains/relaychain. That means we had
+			// reserved the asset in a reserve account while it was transfered
+			// the the source chain, so here we need withdraw/burn from the reserve
+			// account in advance.
+			//
+			// Note: If we received asset send from its reserve chain, we just need
+			// mint the same amount of asset at local
+			if asset_reserve_location != src_reserve_location {
+				if rid == T::NativeTokenResourceId::get() {
 					// ERC20 PHA save reserved assets in bridge account
 					let _imbalance = <T as Config>::Currency::withdraw(
 						&bridge_account,
@@ -334,7 +334,6 @@ pub mod pallet {
 						WithdrawReasons::TRANSFER,
 						ExistenceRequirement::AllowDeath,
 					)?;
-					amount
 				} else {
 					let asset_id = Self::rid_to_assetid(&rid)?;
 					let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
@@ -347,27 +346,24 @@ pub mod pallet {
 						asset_amount,
 					)
 					.map_err(|_| Error::<T>::FailedToTransactAsset)?;
-					amount
 				};
 				log::trace!(
 					target: LOG_TARGET,
 					"Reserve of asset and src dismatch, burn asset form source reserve location.",
 				);
-				imbalance
-			};
+			}
 
-			// settle the "imbalance" asset to dest
+			// The asset already being "mint" or "withdrawn from reserve account", now settle to dest
 			match (dest_location.parents, &dest_location.interior) {
 				// to local account
 				(0, &X1(AccountId32 { network: _, id })) => {
 					if rid == T::NativeTokenResourceId::get() {
 						// ERC20 PHA transfer
-						<T as Config>::Currency::deposit_creating(&id.into(), imbalance);
+						<T as Config>::Currency::deposit_creating(&id.into(), amount);
 					} else {
 						let asset_id = Self::rid_to_assetid(&rid)?;
-						let asset_amount =
-							T::BalanceConverter::to_asset_balance(imbalance, asset_id)
-								.map_err(|_| Error::<T>::BalanceConversionFailed)?;
+						let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
+							.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 
 						// mint asset into recipient
 						pallet_assets::pallet::Pallet::<T>::mint_into(
@@ -389,12 +385,12 @@ pub mod pallet {
 						if rid == T::NativeTokenResourceId::get() {
 							<T as Config>::Currency::deposit_creating(
 								&dest_reserve_account.clone().into(),
-								imbalance,
+								amount,
 							);
 						} else {
 							let asset_id = Self::rid_to_assetid(&rid)?;
 							let asset_amount =
-								T::BalanceConverter::to_asset_balance(imbalance, asset_id)
+								T::BalanceConverter::to_asset_balance(amount, asset_id)
 									.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 							// mint asset into dest reserve account
 							pallet_assets::pallet::Pallet::<T>::mint_into(
