@@ -47,7 +47,6 @@ trait IdentifyChain {
     fn is_phala(&self) -> bool;
     fn is_khala(&self) -> bool;
     fn is_rhala(&self) -> bool;
-    fn is_whala(&self) -> bool;
     fn is_thala(&self) -> bool;
 }
 
@@ -65,9 +64,6 @@ impl IdentifyChain for dyn sc_service::ChainSpec {
     }
     fn is_rhala(&self) -> bool {
         self.runtime_name() == "khala"
-    }
-    fn is_whala(&self) -> bool {
-        self.runtime_name() == "whala"
     }
     fn is_thala(&self) -> bool {
         self.runtime_name() == "thala"
@@ -87,9 +83,6 @@ impl<T: sc_service::ChainSpec + 'static> IdentifyChain for T {
     fn is_rhala(&self) -> bool {
         <dyn sc_service::ChainSpec>::is_rhala(self)
     }
-    fn is_whala(&self) -> bool {
-        <dyn sc_service::ChainSpec>::is_whala(self)
-    }
     fn is_thala(&self) -> bool {
         <dyn sc_service::ChainSpec>::is_thala(self)
     }
@@ -105,8 +98,6 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             "phala" => Box::new(chain_spec::phala::ChainSpec::from_json_file(path.into())?),
             "khala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?),
             "rhala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?),
-            // Historical reason, Whala shares the same runtime with Khala
-            "whala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?),
             "thala" => Box::new(chain_spec::thala::ChainSpec::from_json_file(path.into())?),
             _ => return Err("`id` must starts with a known runtime name!".to_string()),
         };
@@ -165,21 +156,6 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             ))),
             "staging" => Ok(Box::new(chain_spec::khala::khala_staging_config())),
             other => Err(format!("Unsupported environment {} for Khala", other)),
-        };
-    }
-
-    if runtime_name == "whala" {
-        if para_id.is_err() {
-            return Ok(Box::new(chain_spec::khala::ChainSpec::from_json_bytes(
-                &include_bytes!("../res/whala.json")[..],
-            )?));
-        }
-
-        return match environment? {
-            "local" => Ok(Box::new(chain_spec::khala::whala_local_config(
-                para_id?.into(),
-            ))),
-            other => Err(format!("Unsupported environment {} for Whala", other)),
         };
     }
 
@@ -320,15 +296,6 @@ macro_rules! construct_async_run {
                 { $( $code )* }.map(|v| (v, task_manager))
             })
         } else if runner.config().chain_spec.is_khala() {
-            runner.async_run(|$config| {
-                let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
-                    &$config,
-                    crate::service::khala::build_import_queue,
-                )?;
-                let task_manager = $components.task_manager;
-                { $( $code )* }.map(|v| (v, task_manager))
-            })
-        } else if runner.config().chain_spec.is_whala() {
             runner.async_run(|$config| {
                 let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
                     &$config,
@@ -495,10 +462,6 @@ pub fn run() -> Result<()> {
                     runner.async_run(|config| {
                         Ok((cmd.run::<Block, KhalaParachainRuntimeExecutor>(config), task_manager))
                     })
-                } else if runner.config().chain_spec.is_whala() {
-                    runner.async_run(|config| {
-                        Ok((cmd.run::<Block, KhalaParachainRuntimeExecutor>(config), task_manager))
-                    })
                 } else if runner.config().chain_spec.is_rhala() {
                     runner.async_run(|config| {
                         Ok((cmd.run::<Block, RhalaParachainRuntimeExecutor>(config), task_manager))
@@ -561,11 +524,6 @@ pub fn run() -> Result<()> {
                         .map(|r| r.0)
                         .map_err(Into::into)
                 } else if config.chain_spec.is_khala() {
-                    crate::service::khala::start_node(config, polkadot_config, id)
-                        .await
-                        .map(|r| r.0)
-                        .map_err(Into::into)
-                } else if config.chain_spec.is_whala() {
                     crate::service::khala::start_node(config, polkadot_config, id)
                         .await
                         .map(|r| r.0)

@@ -108,11 +108,6 @@ pub fn khala_local_config(id: ParaId) -> ChainSpec {
     local_testnet_config(id, genesis_info_bytes, "kusama-local")
 }
 
-pub fn whala_local_config(id: ParaId) -> ChainSpec {
-    let genesis_info_bytes = include_bytes!("../../res/whala_local_genesis_info.json");
-    local_testnet_config(id, genesis_info_bytes, "westend-local")
-}
-
 fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str) -> ChainSpec {
     let genesis_info: KhalaGenesisInfo =
         serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
