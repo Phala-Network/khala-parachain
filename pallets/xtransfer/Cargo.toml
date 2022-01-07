@@ -22,6 +22,7 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "polk
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false, optional = true }
 sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
 
 # Polkadot
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.13", default-features = false }
@@ -31,6 +32,7 @@ xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "releas
 # Cumulus
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.13", default-features = false }
 cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.13", default-features = false }
+cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.13", default-features = false }
 
 # Local
 parachains-common = { path = "../../parachains-common", default-features = false }
