@@ -1,4 +1,4 @@
-// USAGE: node patchRelayChainSpec.js ../../tmp/specs/test-rococo.json > ../../tmp/specs/test-rococo-patched.json
+// USAGE: node patch_relay_chainspec.js ../../tmp/specs/test-rococo.json > ../../tmp/specs/test-rococo-patched.json
 
 const fs = require('fs');
 

@@ -104,7 +104,7 @@ pub fn local_config(id: ParaId) -> ChainSpec {
     // - Collator account: <master>//validator//<idx>
     // - Collator session key: <master>//validator//<idx>//aura
     //
-    // Learn more: scripts/js/genKhalaGenesis.js
+    // Learn more: scripts/js/gen_khala_genesis.js
     let genesis_info_bytes = include_bytes!("../../res/khala_local_genesis_info.json");
     local_testnet_config(id, genesis_info_bytes, "kusama-local")
 }

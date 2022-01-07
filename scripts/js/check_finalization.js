@@ -1,5 +1,5 @@
 // USAGE:
-//   ENDPOINT=ws://127.0.0.1:9944 DRY_RUN=0 node insertSessionKey.js
+//   ENDPOINT=ws://127.0.0.1:9944 DRY_RUN=0 node insert_session_key.js
 
 require('dotenv').config();
 

@@ -1,8 +1,6 @@
 # Khala Parachain
 
-
 Khala parachain repo.
-
 
 ## Development Notes
 
@@ -34,5 +32,5 @@ Khala parachain repo.
     ```bash
     cd scripts/js
     yarn
-    node insertSessionKey.js
+    node insert_session_key.js
     ```
