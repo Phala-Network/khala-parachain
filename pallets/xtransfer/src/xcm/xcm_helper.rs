@@ -192,9 +192,12 @@ pub mod xcm_helper {
 				&who,
 			);
 
-			match &who.interior {
+			match (who.parents, &who.interior) {
 				// Destnation is a foreign chain. Forward it through the bridge
-				Junctions::X3(GeneralKey(cb_key), GeneralIndex(dest_id), GeneralKey(recipient)) => {
+				(
+					0,
+					Junctions::X3(GeneralKey(cb_key), GeneralIndex(dest_id), GeneralKey(recipient)),
+				) => {
 					ensure!(
 						cb_key == &CB_ASSET_KEY.to_vec(),
 						XcmError::FailedToTransactAsset("DismatchPath")
