@@ -3,7 +3,7 @@ pub use self::xcm_helper::*;
 pub mod xcm_helper {
 	use crate::bridge::pallet::{BridgeChainId, BridgeTransact};
 	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, ExtractReserveLocation, XTransferAsset, XTransferAssetInfo,
+		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, XTransferAsset,
 		CB_ASSET_KEY,
 	};
 	use cumulus_primitives_core::ParaId;
@@ -50,7 +50,7 @@ pub mod xcm_helper {
 	pub struct ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>(
 		PhantomData<(AssetId, Balance, AssetsInfo)>,
 	);
-	impl<AssetId, Balance: Clone + From<u128>, AssetsInfo: XTransferAssetInfo<AssetId>>
+	impl<AssetId, Balance: Clone + From<u128>, AssetsInfo: GetAssetRegistryInfo<AssetId>>
 		MatchesFungibles<AssetId, Balance> for ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>
 	{
 		fn matches_fungibles(a: &MultiAsset) -> result::Result<(AssetId, Balance), MatchError> {

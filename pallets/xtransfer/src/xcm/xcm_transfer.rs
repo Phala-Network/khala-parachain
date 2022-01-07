@@ -453,7 +453,7 @@ mod test {
 	use xcm_simulator::TestExt;
 
 	use crate::pallet_assets_wrapper;
-	use crate::pallet_assets_wrapper::XTransferAssetInfo;
+	use crate::pallet_assets_wrapper::GetAssetRegistryInfo;
 	use assert_matches::assert_matches;
 
 	fn sibling_account(para_id: u32) -> AccountId32 {

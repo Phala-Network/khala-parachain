@@ -11,7 +11,7 @@ pub mod pallet {
 	use sp_std::convert::From;
 	use xcm::latest::{prelude::*, MultiLocation};
 
-	// Junction used to indicate chainbridge assets. str "cb"
+	// Const used to indicate chainbridge assets. str "cb"
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
@@ -249,14 +249,13 @@ pub mod pallet {
 		}
 	}
 
-	pub trait XTransferAssetInfo<AssetId> {
+	pub trait GetAssetRegistryInfo<AssetId> {
 		fn id(asset: &XTransferAsset) -> Option<AssetId>;
 		fn asset(id: &AssetId) -> Option<XTransferAsset>;
-		// Expect a better name
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset>;
 	}
 
-	impl<T: Config> XTransferAssetInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
+	impl<T: Config> GetAssetRegistryInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
 		fn id(asset: &XTransferAsset) -> Option<<T as pallet_assets::Config>::AssetId> {
 			AssetToId::<T>::get(asset)
 		}

@@ -7,7 +7,7 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, ExtractReserveLocation, XTransferAsset, XTransferAssetInfo,
+		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, XTransferAsset,
 		CB_ASSET_KEY,
 	};
 	use frame_support::{
@@ -52,7 +52,7 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		/// Assets register wrapper
-		type AssetsWrapper: XTransferAssetInfo<<Self as pallet_assets::Config>::AssetId>;
+		type AssetsWrapper: GetAssetRegistryInfo<<Self as pallet_assets::Config>::AssetId>;
 
 		/// Convert Balance of Currency to AssetId of pallet_assets
 		type BalanceConverter: BalanceConversion<

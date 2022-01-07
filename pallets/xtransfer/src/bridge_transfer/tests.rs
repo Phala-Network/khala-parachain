@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate::assets_wrapper::pallet::{AccountId32Conversion, XTransferAssetInfo, CB_ASSET_KEY};
+use crate::assets_wrapper::pallet::{AccountId32Conversion, GetAssetRegistryInfo, CB_ASSET_KEY};
 use crate::bridge;
 use crate::bridge_transfer::mock::{
 	assert_events, balances, expect_event, new_test_ext, Assets, AssetsWrapper, Balances, Bridge,
