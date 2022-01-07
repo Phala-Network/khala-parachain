@@ -53,70 +53,45 @@ pub mod pallet {
 		fn reserve(&self) -> Option<MultiLocation>;
 	}
 
+	impl ExtractReserveLocation for Junctions {
+		fn reserve(&self) -> Option<MultiLocation> {
+			match (self.at(0), self.at(1)) {
+				(Some(GeneralKey(cb_key)), Some(GeneralIndex(chain_id))) => {
+					// Satisfy our spec
+					if cb_key == &CB_ASSET_KEY.to_vec() {
+						return Some(
+							(
+								0,
+								X2(GeneralKey((&cb_key).to_vec()), GeneralIndex(*chain_id)),
+							)
+								.into(),
+						);
+					} else {
+						return None;
+					}
+				}
+				_ => None,
+			}
+		}
+	}
+
 	impl ExtractReserveLocation for MultiLocation {
 		fn reserve(&self) -> Option<MultiLocation> {
-			match self.first_interior() {
-				Some(Parachain(para_id)) => {
-					match self.interior.at(1) {
-						// identify solo chain
-						Some(GeneralKey(cb_key)) => {
-							if cb_key == &CB_ASSET_KEY.to_vec() {
-								//self.interior.at(2) should contains solo chain id
-								match self.interior.at(2) {
-									Some(GeneralIndex(chain_id)) => {
-										return Some(
-											(
-												0,
-												X2(
-													GeneralKey((&cb_key).to_vec()),
-													GeneralIndex(*chain_id),
-												),
-											)
-												.into(),
-										);
-									}
-									_ => {
-										return None;
-									}
-								}
-							} else {
-								// maybe assets from other chain
-								return Some((self.parents, Parachain(*para_id)).into());
-							}
-						}
-						_ => {
-							return Some((self.parents, Parachain(*para_id)).into());
-						}
-					}
+			match (self.parents, self.first_interior()) {
+				// Sibling parachain
+				(1, Some(Parachain(id))) => {
+					let mut interior = self.interior.clone();
+					// Remove Junction::Parachain
+					interior.take_first();
+					interior
+						.reserve()
+						.or(Some(MultiLocation::new(1, X1(Parachain(*id)))))
 				}
-				_ => {
-					// location not contains Junction::Parachain
-					match self.interior() {
-						Here | X1(AccountId32 { .. }) => {
-							return Some((self.parents, Here).into());
-						}
-						X3(GeneralKey(cb_key), GeneralIndex(evm_chain_id), GeneralKey(_)) => {
-							if cb_key == &CB_ASSET_KEY.to_vec() {
-								// identify solo chain
-								return Some(
-									(
-										0,
-										X2(
-											GeneralKey((&cb_key).to_vec()),
-											GeneralIndex(*evm_chain_id),
-										),
-									)
-										.into(),
-								);
-							} else {
-								return None;
-							}
-						}
-						_ => {
-							return None;
-						}
-					}
-				}
+				// Parent
+				(1, _) => Some(MultiLocation::parent()),
+				// Local
+				(0, _) => self.interior.reserve().or(Some(MultiLocation::here())),
+				_ => None,
 			}
 		}
 	}
