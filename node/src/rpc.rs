@@ -100,6 +100,7 @@ where
 }
 
 // TODO: Remove when Phala integrated Phala pallets
+#[allow(dead_code)]
 pub fn create_phala_full<C, B, P>(deps: FullDeps<C, B, P>) -> RpcExtension
     where
         C: ProvideRuntimeApi<Block>

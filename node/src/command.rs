@@ -34,13 +34,16 @@ use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
 use std::{collections::VecDeque, io::Write, net::SocketAddr};
 
-use crate::service::{
-    Block, new_partial,
-    phala::RuntimeExecutor as PhalaParachainRuntimeExecutor,
-    khala::RuntimeExecutor as KhalaParachainRuntimeExecutor,
-    rhala::RuntimeExecutor as RhalaParachainRuntimeExecutor,
-    thala::RuntimeExecutor as ThalaParachainRuntimeExecutor,
-};
+use crate::service::{Block, new_partial};
+
+#[cfg(feature = "phala-native")]
+use crate::service::phala::RuntimeExecutor as PhalaParachainRuntimeExecutor;
+#[cfg(feature = "khala-native")]
+use crate::service::khala::RuntimeExecutor as KhalaParachainRuntimeExecutor;
+#[cfg(feature = "rhala-native")]
+use crate::service::rhala::RuntimeExecutor as RhalaParachainRuntimeExecutor;
+#[cfg(feature = "thala-native")]
+use crate::service::thala::RuntimeExecutor as ThalaParachainRuntimeExecutor;
 
 trait IdentifyChain {
     fn runtime_name(&self) -> String;
@@ -95,9 +98,13 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         let chain_spec =
             chain_spec::ChainSpec::from_json_file(path.clone().into())?;
         let parsed: Box<dyn sc_service::ChainSpec> = match chain_spec.runtime_name().as_str() {
+            #[cfg(feature = "phala-native")]
             "phala" => Box::new(chain_spec::phala::ChainSpec::from_json_file(path.into())?),
+            #[cfg(feature = "khala-native")]
             "khala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?),
+            #[cfg(feature = "rhala-native")]
             "rhala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?),
+            #[cfg(feature = "thala-native")]
             "thala" => Box::new(chain_spec::thala::ChainSpec::from_json_file(path.into())?),
             _ => return Err("`id` must starts with a known runtime name!".to_string()),
         };
@@ -121,6 +128,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         .ok_or("Must specify parachain id");
     drop(normalized_id);
 
+    #[cfg(feature = "phala-native")]
     if runtime_name == "phala" {
         if environment.is_err() && para_id.is_err() {
             return Ok(Box::new(chain_spec::phala::ChainSpec::from_json_bytes(
@@ -139,7 +147,12 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             other => Err(format!("Unsupported environment {} for Phala", other)),
         };
     }
+    #[cfg(not(feature = "phala-native"))]
+    if runtime_name == "phala" {
+        return Err(format!("`{}` only supported with `phala-native` feature enabled.", id))
+    }
 
+    #[cfg(feature = "khala-native")]
     if runtime_name == "khala" {
         if environment.is_err() && para_id.is_err() {
             return Ok(Box::new(chain_spec::khala::ChainSpec::from_json_bytes(
@@ -158,7 +171,12 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             other => Err(format!("Unsupported environment {} for Khala", other)),
         };
     }
+    #[cfg(not(feature = "khala-native"))]
+    if runtime_name == "khala" {
+        return Err(format!("`{}` only supported with `rhala-native` feature enabled.", id))
+    }
 
+    #[cfg(feature = "rhala-native")]
     if runtime_name == "rhala" {
         // TODO: Export when we preparing for Rococo
         // if environment.is_err() && para_id.is_err() {
@@ -178,7 +196,12 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             other => Err(format!("Unsupported environment {} for Rhala", other)),
         };
     }
+    #[cfg(not(feature = "rhala-native"))]
+    if runtime_name == "rhala" {
+        return Err(format!("`{}` only supported with `rhala-native` feature enabled.", id))
+    }
 
+    #[cfg(feature = "thala-native")]
     if runtime_name == "thala" {
         return match environment? {
             "dev" => Ok(Box::new(chain_spec::thala::development_config(
@@ -188,6 +211,11 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             other => Err(format!("Unsupported environment {} for Thala", other)),
         };
     }
+    #[cfg(not(feature = "thala-native"))]
+    if runtime_name == "thala" {
+        return Err(format!("`{}` only supported with `thala-native` feature enabled.", id))
+    }
+
 
     Err(format!(
         "Invalid `--chain` arg. \
@@ -286,8 +314,10 @@ fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<V
 macro_rules! construct_async_run {
     (|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
         let runner = $cli.create_runner($cmd)?;
+
+        #[cfg(feature = "phala-native")]
         if runner.config().chain_spec.is_phala() {
-            runner.async_run(|$config| {
+            return runner.async_run(|$config| {
                 let $components = new_partial::<phala_parachain_runtime::RuntimeApi, PhalaParachainRuntimeExecutor, _>(
                     &$config,
                     crate::service::phala::build_import_queue,
@@ -295,8 +325,11 @@ macro_rules! construct_async_run {
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
             })
-        } else if runner.config().chain_spec.is_khala() {
-            runner.async_run(|$config| {
+        }
+
+        #[cfg(feature = "khala-native")]
+        if runner.config().chain_spec.is_khala() {
+            return runner.async_run(|$config| {
                 let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
                     &$config,
                     crate::service::khala::build_import_queue,
@@ -304,8 +337,11 @@ macro_rules! construct_async_run {
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
             })
-        } else if runner.config().chain_spec.is_rhala() {
-            runner.async_run(|$config| {
+        }
+
+        #[cfg(feature = "rhala-native")]
+        if runner.config().chain_spec.is_rhala() {
+            return runner.async_run(|$config| {
                 let $components = new_partial::<rhala_parachain_runtime::RuntimeApi, RhalaParachainRuntimeExecutor, _>(
                     &$config,
                     crate::service::rhala::build_import_queue,
@@ -313,8 +349,11 @@ macro_rules! construct_async_run {
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
             })
-        } else if runner.config().chain_spec.is_thala() {
-            runner.async_run(|$config| {
+        }
+
+        #[cfg(feature = "thala-native")]
+        if runner.config().chain_spec.is_thala() {
+            return runner.async_run(|$config| {
                 let $components = new_partial::<thala_parachain_runtime::RuntimeApi, ThalaParachainRuntimeExecutor, _>(
                     &$config,
                     crate::service::thala::build_import_queue,
@@ -322,9 +361,9 @@ macro_rules! construct_async_run {
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
             })
-        } else {
-            panic!("Can not determine runtime")
         }
+
+        panic!("Can not determine runtime")
     }}
 }
 
@@ -427,17 +466,28 @@ pub fn run() -> Result<()> {
         Some(Subcommand::Benchmark(cmd)) => {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
+
+                #[cfg(feature = "phala-native")]
                 if runner.config().chain_spec.is_phala() {
-                    runner.sync_run(|config| cmd.run::<Block, PhalaParachainRuntimeExecutor>(config))
-                } else if runner.config().chain_spec.is_khala() {
-                    runner.sync_run(|config| cmd.run::<Block, KhalaParachainRuntimeExecutor>(config))
-                } else if runner.config().chain_spec.is_rhala() {
-                    runner.sync_run(|config| cmd.run::<Block, RhalaParachainRuntimeExecutor>(config))
-                } else if runner.config().chain_spec.is_thala() {
-                    runner.sync_run(|config| cmd.run::<Block, ThalaParachainRuntimeExecutor>(config))
-                } else {
-                    Err("Chain doesn't support benchmarking".into())
+                    return runner.sync_run(|config| cmd.run::<Block, PhalaParachainRuntimeExecutor>(config))
                 }
+
+                #[cfg(feature = "khala-native")]
+                if runner.config().chain_spec.is_khala() {
+                    return runner.sync_run(|config| cmd.run::<Block, KhalaParachainRuntimeExecutor>(config))
+                }
+
+                #[cfg(feature = "rhala-native")]
+                if runner.config().chain_spec.is_rhala() {
+                    return runner.sync_run(|config| cmd.run::<Block, RhalaParachainRuntimeExecutor>(config))
+                }
+
+                #[cfg(feature = "thala-native")]
+                if runner.config().chain_spec.is_thala() {
+                    return runner.sync_run(|config| cmd.run::<Block, ThalaParachainRuntimeExecutor>(config))
+                }
+
+                Err("Chain doesn't support benchmarking".into())
             } else {
                 Err("Benchmarking wasn't enabled when building the node. \
                     You can enable it with `--features runtime-benchmarks`."
@@ -454,25 +504,35 @@ pub fn run() -> Result<()> {
                     TaskManager::new(runner.config().tokio_handle.clone(), *registry)
                         .map_err(|e| format!("Error: {:?}", e))?;
 
+                #[cfg(feature = "phala-native")]
                 if runner.config().chain_spec.is_phala() {
-                    runner.async_run(|config| {
+                    return runner.async_run(|config| {
                         Ok((cmd.run::<Block, PhalaParachainRuntimeExecutor>(config), task_manager))
                     })
-                } else if runner.config().chain_spec.is_khala() {
-                    runner.async_run(|config| {
+                }
+
+                #[cfg(feature = "khala-native")]
+                if runner.config().chain_spec.is_khala() {
+                    return runner.async_run(|config| {
                         Ok((cmd.run::<Block, KhalaParachainRuntimeExecutor>(config), task_manager))
                     })
-                } else if runner.config().chain_spec.is_rhala() {
-                    runner.async_run(|config| {
+                }
+
+                #[cfg(feature = "rhala-native")]
+                if runner.config().chain_spec.is_rhala() {
+                   return runner.async_run(|config| {
                         Ok((cmd.run::<Block, RhalaParachainRuntimeExecutor>(config), task_manager))
                     })
-                } else if runner.config().chain_spec.is_thala() {
-                    runner.async_run(|config| {
+                }
+
+                #[cfg(feature = "thala-native")]
+                if runner.config().chain_spec.is_thala() {
+                    return runner.async_run(|config| {
                         Ok((cmd.run::<Block, ThalaParachainRuntimeExecutor>(config), task_manager))
                     })
-                } else {
-                    Err("Can't determine runtime from chain_spec".into())
                 }
+
+                Err("Can't determine runtime from chain_spec".into())
             } else {
                 Err("Try-runtime must be enabled by `--features try-runtime`.".into())
             },
@@ -518,29 +578,39 @@ pub fn run() -> Result<()> {
                     }
                 );
 
+                #[cfg(feature = "phala-native")]
                 if config.chain_spec.is_phala() {
-                    crate::service::phala::start_node(config, polkadot_config, id)
+                    return crate::service::phala::start_node(config, polkadot_config, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
-                } else if config.chain_spec.is_khala() {
-                    crate::service::khala::start_node(config, polkadot_config, id)
-                        .await
-                        .map(|r| r.0)
-                        .map_err(Into::into)
-                } else if config.chain_spec.is_rhala() {
-                    crate::service::rhala::start_node(config, polkadot_config, id)
-                        .await
-                        .map(|r| r.0)
-                        .map_err(Into::into)
-                } else if config.chain_spec.is_thala() {
-                    crate::service::thala::start_node(config, polkadot_config, id)
-                        .await
-                        .map(|r| r.0)
-                        .map_err(Into::into)
-                } else {
-                    Err("Can't determine runtime from chain_spec".into())
                 }
+
+                #[cfg(feature = "khala-native")]
+                if config.chain_spec.is_khala() {
+                    return crate::service::khala::start_node(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                }
+
+                #[cfg(feature = "rhala-native")]
+                if config.chain_spec.is_rhala() {
+                    return crate::service::rhala::start_node(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                }
+
+                #[cfg(feature = "thala-native")]
+                if config.chain_spec.is_thala() {
+                    return crate::service::thala::start_node(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                }
+
+                Err("Can't determine runtime from chain_spec".into())
             })
         }
     }
