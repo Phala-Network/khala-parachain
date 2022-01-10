@@ -172,7 +172,7 @@ fn transfer_assets_insufficient_balance() {
 		));
 
 		// Setup solo chain for this asset
-		assert_ok!(AssetsWrapper::force_setup_solochain(
+		assert_ok!(AssetsWrapper::force_setup_chainbridge(
 			Origin::root(),
 			0,
 			dest_chain,
@@ -228,7 +228,7 @@ fn transfer_assets_to_nonreserve() {
 		));
 
 		// Setup solo chain for this asset
-		assert_ok!(AssetsWrapper::force_setup_solochain(
+		assert_ok!(AssetsWrapper::force_setup_chainbridge(
 			Origin::root(),
 			0,
 			dest_chain,
@@ -292,7 +292,7 @@ fn transfer_assets_to_reserve() {
 		));
 
 		// Setup solo chain for this asset
-		assert_ok!(AssetsWrapper::force_setup_solochain(
+		assert_ok!(AssetsWrapper::force_setup_chainbridge(
 			Origin::root(),
 			0,
 			dest_chain,
@@ -449,7 +449,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 		));
 
 		// Setup solo chain for this asset
-		assert_ok!(AssetsWrapper::force_setup_solochain(
+		assert_ok!(AssetsWrapper::force_setup_chainbridge(
 			Origin::root(),
 			0,
 			src_chainid,
@@ -520,7 +520,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 		));
 
 		// Setup solo chain for this asset
-		assert_ok!(AssetsWrapper::force_setup_solochain(
+		assert_ok!(AssetsWrapper::force_setup_chainbridge(
 			Origin::root(),
 			0,
 			src_chainid,

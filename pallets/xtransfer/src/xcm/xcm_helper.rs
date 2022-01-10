@@ -199,7 +199,7 @@ pub mod xcm_helper {
 					Junctions::X3(GeneralKey(cb_key), GeneralIndex(dest_id), GeneralKey(recipient)),
 				) => {
 					ensure!(
-						cb_key == &CB_ASSET_KEY.to_vec(),
+						&cb_key == &CB_ASSET_KEY,
 						XcmError::FailedToTransactAsset("DismatchPath")
 					);
 					let (&amount, location) = match (&what.fun, &what.id) {

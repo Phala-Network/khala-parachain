@@ -8,7 +8,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::StaticLookup;
-	use sp_std::{convert::From, vec::Vec};
+	use sp_std::{convert::From, vec, vec::Vec};
 	use xcm::latest::{prelude::*, MultiLocation};
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
@@ -18,17 +18,17 @@ pub mod pallet {
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
-	pub struct ChainBridgeRegistryInfo {
-		chain_id: u8,
-		resource_id: [u8; 32],
+	pub enum XBridge {
+		Xcmp,
+		ChainBridge { chain_id: u8, resource_id: [u8; 32] },
+		// Potential other bridge solutions
 	}
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub struct AssetRegistryInfo {
 		location: MultiLocation,
 		reserve_location: Option<MultiLocation>,
-		enabled_chainbridge: Vec<ChainBridgeRegistryInfo>,
-		// Maybe have more different bridges enabled
+		enabled_bridges: Vec<XBridge>,
 	}
 
 	impl From<MultiLocation> for XTransferAsset {
@@ -72,7 +72,7 @@ pub mod pallet {
 			match (self.at(0), self.at(1)) {
 				(Some(GeneralKey(cb_key)), Some(GeneralIndex(chain_id))) => {
 					// Satisfy our spec
-					if cb_key == &CB_ASSET_KEY.to_vec() {
+					if &cb_key == &CB_ASSET_KEY {
 						return Some(
 							(
 								0,
@@ -226,7 +226,8 @@ pub mod pallet {
 				AssetRegistryInfo {
 					location: asset.clone().into(),
 					reserve_location: asset.reserve(),
-					enabled_chainbridge: Vec::new(),
+					// Xcmp will be enabled when assets being registered.
+					enabled_bridges: vec![XBridge::Xcmp],
 				},
 			);
 			Self::deposit_event(Event::AssetRegistered { asset_id, asset });
@@ -248,8 +249,18 @@ pub mod pallet {
 				AssetToId::<T>::remove(&asset);
 				// Unbind resource id and asset if have chain bridge set
 				if let Some(info) = IdToRegistryInfo::<T>::get(&asset_id) {
-					for chain in info.enabled_chainbridge {
-						ResourceIdToAssets::<T>::remove(&chain.resource_id);
+					for bridge in info.enabled_bridges {
+						match bridge {
+							XBridge::ChainBridge {
+								chain_id: _,
+								resource_id,
+							} => {
+								ResourceIdToAssets::<T>::remove(&resource_id);
+							}
+							_ => {
+								continue;
+							}
+						}
 					}
 				}
 				// Delete registry info
@@ -261,7 +272,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn force_setup_solochain(
+		pub fn force_setup_chainbridge(
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
 			chain_id: u8,
@@ -276,7 +287,7 @@ pub mod pallet {
 				ResourceIdToAssets::<T>::insert(&rid, &asset);
 				// Save into registry info, here save chain id can not be added more than twice
 				if let Some(mut info) = IdToRegistryInfo::<T>::get(&asset_id) {
-					info.enabled_chainbridge.push(ChainBridgeRegistryInfo {
+					info.enabled_bridges.push(XBridge::ChainBridge {
 						chain_id,
 						resource_id: rid.clone(),
 					});
