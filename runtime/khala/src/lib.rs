@@ -274,7 +274,7 @@ impl Contains<Call> for BaseCallFilter {
                     return true;
                 }
                 pallet_xcm::Call::__Ignore { .. } => {
-                    unimplemented!()
+                    return false;
                 }
             }
         }
