@@ -175,11 +175,17 @@ pub mod pallet {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			asset: XTransferAsset,
 		},
-		/// Asset setup for a solo chain.
-		SolochainSetuped {
+		/// Asset enabled chainbridge.
+		ChainbridgeEnabled {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			chain_id: u8,
-			rid: [u8; 32],
+			resource_id: [u8; 32],
+		},
+		/// Asset disabled chainbridge.
+		ChainbridgeDisabled {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			chain_id: u8,
+			resource_id: [u8; 32],
 		},
 	}
 
@@ -187,7 +193,8 @@ pub mod pallet {
 	pub enum Error<T> {
 		AssetAlreadyExist,
 		AssetNotRegistered,
-		SolochainAlreadySetted,
+		BridgeAlreadyEnabled,
+		BridgeAlreadyDisabled,
 	}
 
 	#[pallet::call]
@@ -269,7 +276,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn force_setup_chainbridge(
+		pub fn force_enable_chainbridge(
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
 			chain_id: u8,
@@ -278,24 +285,60 @@ pub mod pallet {
 			let asset = AssetByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
 			let mut info =
 				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
-			let rid: [u8; 32] = asset.clone().into_rid(chain_id);
+			let resource_id: [u8; 32] = asset.clone().into_rid(chain_id);
 
 			ensure!(
-				AssetByResourceIds::<T>::get(&rid) == None,
-				Error::<T>::SolochainAlreadySetted
+				AssetByResourceIds::<T>::get(&resource_id) == None,
+				Error::<T>::BridgeAlreadyEnabled,
 			);
-			AssetByResourceIds::<T>::insert(&rid, &asset);
+			AssetByResourceIds::<T>::insert(&resource_id, &asset);
 			// Save into registry info, here save chain id can not be added more than twice
 			info.enabled_bridges.push(XBridge::ChainBridge {
 				chain_id,
-				resource_id: rid.clone(),
+				resource_id: resource_id.clone(),
 			});
 			RegistryInfoByIds::<T>::insert(&asset_id, &info);
 
-			Self::deposit_event(Event::SolochainSetuped {
+			Self::deposit_event(Event::ChainbridgeEnabled {
 				asset_id,
 				chain_id,
-				rid,
+				resource_id,
+			});
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn force_disable_chainbridge(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			chain_id: u8,
+		) -> DispatchResult {
+			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
+			let asset = AssetByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			let resource_id: [u8; 32] = asset.clone().into_rid(chain_id);
+
+			ensure!(
+				AssetByResourceIds::<T>::get(&resource_id).is_some(),
+				Error::<T>::BridgeAlreadyDisabled,
+			);
+			AssetByResourceIds::<T>::remove(&resource_id);
+			// Unbind resource id and asset
+			if let Some(idx) = info.enabled_bridges.iter().position(|item| {
+				item == &XBridge::ChainBridge {
+					chain_id,
+					resource_id: resource_id.clone(),
+				}
+			}) {
+				info.enabled_bridges.remove(idx);
+			}
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
+
+			Self::deposit_event(Event::ChainbridgeDisabled {
+				asset_id,
+				chain_id,
+				resource_id,
 			});
 			Ok(())
 		}
