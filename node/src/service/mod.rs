@@ -36,8 +36,13 @@ use sp_runtime::traits::BlakeTwo256;
 use std::sync::Arc;
 use substrate_prometheus_endpoint::Registry;
 
+#[cfg(feature = "phala-native")]
 pub mod phala;
+#[cfg(feature = "khala-native")]
 pub mod khala;
+#[cfg(feature = "rhala-native")]
+pub mod rhala;
+#[cfg(feature = "thala-native")]
 pub mod thala;
 
 /// Starts a `ServiceBuilder` for a full service.

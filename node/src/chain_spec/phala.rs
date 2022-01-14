@@ -31,26 +31,26 @@ pub type ChainSpec =
 /// Generate the session keys from individual elements.
 ///
 /// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn phala_session_keys(keys: AuraId) -> phala_parachain_runtime::opaque::SessionKeys {
+pub fn session_keys(keys: AuraId) -> phala_parachain_runtime::opaque::SessionKeys {
     phala_parachain_runtime::opaque::SessionKeys { aura: keys }
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct PhalaGenesisInfo {
+struct GenesisInfo {
     root_key: AccountId,
     initial_authorities: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<(AccountId, String)>,
     technical_committee: Vec<AccountId>,
 }
 
-pub fn phala_development_config(id: ParaId) -> ChainSpec {
+pub fn development_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         "Phala Local Testnet",
         "phala_local_testnet",
         ChainType::Local,
         move || {
-            phala_testnet_genesis(
+            testnet_genesis(
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![
                     (
@@ -91,7 +91,7 @@ pub fn phala_development_config(id: ParaId) -> ChainSpec {
     )
 }
 
-pub fn phala_local_config(id: ParaId) -> ChainSpec {
+pub fn local_config(id: ParaId) -> ChainSpec {
     // Master key:
     // extend split brush maximum nominee oblige merit modify latin never shiver slide
     //
@@ -105,7 +105,7 @@ pub fn phala_local_config(id: ParaId) -> ChainSpec {
 }
 
 fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str) -> ChainSpec {
-    let genesis_info: PhalaGenesisInfo =
+    let genesis_info: GenesisInfo =
         serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
 
     ChainSpec::from_genesis(
@@ -114,7 +114,7 @@ fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str
         ChainType::Live,
         move || {
             let genesis_info = genesis_info.clone();
-            phala_testnet_genesis(
+            testnet_genesis(
                 genesis_info.root_key,
                 genesis_info.initial_authorities,
                 genesis_info
@@ -137,9 +137,9 @@ fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str
     )
 }
 
-pub fn phala_staging_config() -> ChainSpec {
+pub fn staging_config() -> ChainSpec {
     let genesis_info_bytes = include_bytes!("../../res/phala_genesis_info.json");
-    let genesis_info: PhalaGenesisInfo =
+    let genesis_info: GenesisInfo =
         serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
 
     ChainSpec::from_genesis(
@@ -149,7 +149,7 @@ pub fn phala_staging_config() -> ChainSpec {
         move || {
             use std::str::FromStr;
             let genesis_info = genesis_info.clone();
-            phala_genesis(
+            genesis(
                 genesis_info.root_key,
                 genesis_info.initial_authorities,
                 genesis_info.technical_committee,
@@ -173,7 +173,7 @@ pub fn phala_staging_config() -> ChainSpec {
     )
 }
 
-fn phala_genesis(
+fn genesis(
     root_key: AccountId,
     initial_authorities: Vec<(AccountId, AuraId)>,
     technical_committee: Vec<AccountId>,
@@ -220,7 +220,7 @@ fn phala_genesis(
                     (
                         acc.clone(),              // account id
                         acc.clone(),              // validator id
-                        phala_session_keys(aura), // session keys
+                        session_keys(aura), // session keys
                     )
                 })
                 .collect(),
@@ -246,7 +246,7 @@ fn phala_genesis(
     }
 }
 
-fn phala_testnet_genesis(
+fn testnet_genesis(
     root_key: AccountId,
     initial_authorities: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
@@ -265,7 +265,7 @@ fn phala_testnet_genesis(
         .take((endowed_accounts.len() + 1) / 2)
         .cloned()
         .collect();
-    phala_genesis(
+    genesis(
         root_key,
         initial_authorities,
         technical_committee,

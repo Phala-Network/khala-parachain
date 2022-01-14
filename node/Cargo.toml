@@ -84,20 +84,33 @@ polkadot-cli = { git = "https://github.com/paritytech/polkadot", branch = "relea
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.13" }
 
 parachains-common = { path = "../parachains-common" }
-phala-parachain-runtime = { path = "../runtime/phala" }
-khala-parachain-runtime = { path = "../runtime/khala" }
-thala-parachain-runtime = { path = "../runtime/thala" }
+phala-parachain-runtime = { path = "../runtime/phala", optional = true }
+khala-parachain-runtime = { path = "../runtime/khala", optional = true }
+rhala-parachain-runtime = { path = "../runtime/rhala", optional = true }
+thala-parachain-runtime = { path = "../runtime/thala", optional = true }
 
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
 
 [features]
+default = ["khala-native", "thala-native"]
+
+phala-native = ["phala-parachain-runtime"]
+khala-native = ["khala-parachain-runtime"]
+rhala-native = ["rhala-parachain-runtime"]
+thala-native = ["thala-parachain-runtime"]
+all-runtimes = ["phala-native", "khala-native", "rhala-native", "thala-native"]
+
 runtime-benchmarks = [
 	"polkadot-service/runtime-benchmarks",
+	"phala-parachain-runtime/runtime-benchmarks",
 	"khala-parachain-runtime/runtime-benchmarks",
+	"rhala-parachain-runtime/runtime-benchmarks",
 	"thala-parachain-runtime/runtime-benchmarks",
 ]
 try-runtime = [
+	"phala-parachain-runtime/try-runtime",
 	"khala-parachain-runtime/try-runtime",
+	"rhala-parachain-runtime/try-runtime",
 	"thala-parachain-runtime/try-runtime",
 ]

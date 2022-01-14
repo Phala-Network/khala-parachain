@@ -32,26 +32,26 @@ pub type ChainSpec =
 /// Generate the session keys from individual elements.
 ///
 /// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn khala_session_keys(keys: AuraId) -> khala_parachain_runtime::opaque::SessionKeys {
+pub fn session_keys(keys: AuraId) -> khala_parachain_runtime::opaque::SessionKeys {
     khala_parachain_runtime::opaque::SessionKeys { aura: keys }
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct KhalaGenesisInfo {
+struct GenesisInfo {
     root_key: AccountId,
     initial_authorities: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<(AccountId, String)>,
     technical_committee: Vec<AccountId>,
 }
 
-pub fn khala_development_config(id: ParaId) -> ChainSpec {
+pub fn development_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         "Khala Local Testnet",
         "khala_local_testnet",
         ChainType::Local,
         move || {
-            khala_testnet_genesis(
+            testnet_genesis(
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![
                     (
@@ -78,7 +78,7 @@ pub fn khala_development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
                 id,
-                Some(dev_registry_config(get_account_id_from_seed::<
+                Some(development_registry_config(get_account_id_from_seed::<
                     sr25519::Public,
                 >("Alice"))),
             )
@@ -95,7 +95,7 @@ pub fn khala_development_config(id: ParaId) -> ChainSpec {
     )
 }
 
-pub fn khala_local_config(id: ParaId) -> ChainSpec {
+pub fn local_config(id: ParaId) -> ChainSpec {
     // Master key:
     // extend split brush maximum nominee oblige merit modify latin never shiver slide
     //
@@ -108,13 +108,8 @@ pub fn khala_local_config(id: ParaId) -> ChainSpec {
     local_testnet_config(id, genesis_info_bytes, "kusama-local")
 }
 
-pub fn whala_local_config(id: ParaId) -> ChainSpec {
-    let genesis_info_bytes = include_bytes!("../../res/whala_local_genesis_info.json");
-    local_testnet_config(id, genesis_info_bytes, "westend-local")
-}
-
 fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str) -> ChainSpec {
-    let genesis_info: KhalaGenesisInfo =
+    let genesis_info: GenesisInfo =
         serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
 
     ChainSpec::from_genesis(
@@ -123,7 +118,7 @@ fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str
         ChainType::Live,
         move || {
             let genesis_info = genesis_info.clone();
-            khala_testnet_genesis(
+            testnet_genesis(
                 genesis_info.root_key,
                 genesis_info.initial_authorities,
                 genesis_info
@@ -147,9 +142,9 @@ fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str
     )
 }
 
-pub fn khala_staging_config() -> ChainSpec {
+pub fn staging_config() -> ChainSpec {
     let genesis_info_bytes = include_bytes!("../../res/khala_genesis_info.json");
-    let genesis_info: KhalaGenesisInfo =
+    let genesis_info: GenesisInfo =
         serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
 
     ChainSpec::from_genesis(
@@ -159,7 +154,7 @@ pub fn khala_staging_config() -> ChainSpec {
         move || {
             use std::str::FromStr;
             let genesis_info = genesis_info.clone();
-            khala_genesis(
+            genesis(
                 genesis_info.root_key,
                 genesis_info.initial_authorities,
                 genesis_info.technical_committee,
@@ -184,13 +179,13 @@ pub fn khala_staging_config() -> ChainSpec {
     )
 }
 
-fn khala_genesis(
+fn genesis(
     root_key: AccountId,
     initial_authorities: Vec<(AccountId, AuraId)>,
     technical_committee: Vec<AccountId>,
     endowed_accounts: Vec<(AccountId, u128)>,
     id: ParaId,
-    dev_registry_override: Option<khala_parachain_runtime::PhalaRegistryConfig>,
+    registry_override: Option<khala_parachain_runtime::PhalaRegistryConfig>,
 ) -> khala_parachain_runtime::GenesisConfig {
     let all_accounts: Vec<_> = initial_authorities
         .iter()
@@ -232,7 +227,7 @@ fn khala_genesis(
                     (
                         acc.clone(),              // account id
                         acc.clone(),              // validator id
-                        khala_session_keys(aura), // session keys
+                        session_keys(aura), // session keys
                     )
                 })
                 .collect(),
@@ -255,7 +250,7 @@ fn khala_genesis(
         vesting: khala_parachain_runtime::VestingConfig { vesting: vec![] },
         democracy: Default::default(),
         phragmen_election: Default::default(),
-        phala_registry: dev_registry_override.unwrap_or(
+        phala_registry: registry_override.unwrap_or(
             khala_parachain_runtime::PhalaRegistryConfig {
                 workers: Vec::new(),
                 gatekeepers: Vec::new(),
@@ -266,12 +261,12 @@ fn khala_genesis(
     }
 }
 
-fn khala_testnet_genesis(
+fn testnet_genesis(
     root_key: AccountId,
     initial_authorities: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
-    dev_registry_override: Option<khala_parachain_runtime::PhalaRegistryConfig>,
+    registry_override: Option<khala_parachain_runtime::PhalaRegistryConfig>,
 ) -> khala_parachain_runtime::GenesisConfig {
     // Testnet setup:
     // - 1,152,921 PHA per endowed account
@@ -286,13 +281,13 @@ fn khala_testnet_genesis(
         .take((endowed_accounts.len() + 1) / 2)
         .cloned()
         .collect();
-    khala_genesis(
+    genesis(
         root_key,
         initial_authorities,
         technical_committee,
         endowment,
         id,
-        dev_registry_override,
+        registry_override,
     )
 }
 
@@ -318,21 +313,21 @@ fn check_accounts_endowed(
     })
 }
 
-fn dev_registry_config(operator: AccountId) -> khala_parachain_runtime::PhalaRegistryConfig {
+fn development_registry_config(operator: AccountId) -> khala_parachain_runtime::PhalaRegistryConfig {
     // The pubkey of "0x1"
-    let raw_dev_sr25519_pubkey: [u8; 32] =
+    let raw_sr25519_pubkey: [u8; 32] =
         hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"];
-    let dev_sr25519_pubkey = sp_core::sr25519::Public::from_raw(raw_dev_sr25519_pubkey);
-    let dev_ecdh_pubkey =
+    let sr25519_pubkey = sp_core::sr25519::Public::from_raw(raw_sr25519_pubkey);
+    let ecdh_pubkey =
         hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"].to_vec();
 
     khala_parachain_runtime::PhalaRegistryConfig {
         workers: vec![(
-            dev_sr25519_pubkey.clone(),
-            dev_ecdh_pubkey,
+            sr25519_pubkey.clone(),
+            ecdh_pubkey,
             Some(operator.clone()),
         )],
-        gatekeepers: vec![dev_sr25519_pubkey],
+        gatekeepers: vec![sr25519_pubkey],
         benchmark_duration: 1,
     }
 }

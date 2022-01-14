@@ -19,8 +19,13 @@ use serde::{Deserialize, Serialize};
 use sp_core::{Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
+#[cfg(feature = "phala-native")]
 pub mod phala;
+#[cfg(feature = "khala-native")]
 pub mod khala;
+#[cfg(feature = "rhala-native")]
+pub mod rhala;
+#[cfg(feature = "thala-native")]
 pub mod thala;
 
 /// Default `ChainSpec`.
