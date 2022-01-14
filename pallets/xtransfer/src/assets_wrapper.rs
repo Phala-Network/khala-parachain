@@ -70,19 +70,16 @@ pub mod pallet {
 	impl ExtractReserveLocation for Junctions {
 		fn reserve(&self) -> Option<MultiLocation> {
 			match (self.at(0), self.at(1)) {
-				(Some(GeneralKey(cb_key)), Some(GeneralIndex(chain_id))) => {
-					// Satisfy our spec
-					if &cb_key == &CB_ASSET_KEY {
-						return Some(
-							(
-								0,
-								X2(GeneralKey((&cb_key).to_vec()), GeneralIndex(*chain_id)),
-							)
-								.into(),
-						);
-					} else {
-						return None;
-					}
+				(Some(GeneralKey(cb_key)), Some(GeneralIndex(chain_id)))
+					if &cb_key == &CB_ASSET_KEY =>
+				{
+					Some(
+						(
+							0,
+							X2(GeneralKey((&cb_key).to_vec()), GeneralIndex(*chain_id)),
+						)
+							.into(),
+					)
 				}
 				_ => None,
 			}
@@ -186,6 +183,7 @@ pub mod pallet {
 	#[pallet::error]
 	pub enum Error<T> {
 		AssetAlreadyExist,
+		AssetNotRegistered,
 		SolochainAlreadySetted,
 	}
 
@@ -244,30 +242,26 @@ pub mod pallet {
 			asset_id: T::AssetId,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
-			if let Some(asset) = IdToAsset::<T>::get(&asset_id) {
-				IdToAsset::<T>::remove(&asset_id);
-				AssetToId::<T>::remove(&asset);
-				// Unbind resource id and asset if have chain bridge set
-				if let Some(info) = IdToRegistryInfo::<T>::get(&asset_id) {
-					for bridge in info.enabled_bridges {
-						match bridge {
-							XBridge::ChainBridge {
-								chain_id: _,
-								resource_id,
-							} => {
-								ResourceIdToAssets::<T>::remove(&resource_id);
-							}
-							_ => {
-								continue;
-							}
-						}
-					}
-				}
-				// Delete registry info
-				IdToRegistryInfo::<T>::remove(&asset_id);
+			let asset = IdToAsset::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			let info =
+				IdToRegistryInfo::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
 
-				Self::deposit_event(Event::AssetUnRegistered { asset_id, asset });
+			IdToAsset::<T>::remove(&asset_id);
+			AssetToId::<T>::remove(&asset);
+			// Unbind resource id and asset if have chain bridge set
+			for bridge in info.enabled_bridges {
+				if let XBridge::ChainBridge {
+					chain_id: _,
+					resource_id,
+				} = bridge
+				{
+					ResourceIdToAssets::<T>::remove(&resource_id);
+				}
 			}
+			// Delete registry info
+			IdToRegistryInfo::<T>::remove(&asset_id);
+
+			Self::deposit_event(Event::AssetUnRegistered { asset_id, asset });
 			Ok(())
 		}
 
@@ -278,27 +272,28 @@ pub mod pallet {
 			chain_id: u8,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
-			if let Some(asset) = IdToAsset::<T>::get(&asset_id) {
-				let rid: [u8; 32] = asset.clone().into_rid(chain_id);
-				ensure!(
-					ResourceIdToAssets::<T>::get(&rid) == None,
-					Error::<T>::SolochainAlreadySetted
-				);
-				ResourceIdToAssets::<T>::insert(&rid, &asset);
-				// Save into registry info, here save chain id can not be added more than twice
-				if let Some(mut info) = IdToRegistryInfo::<T>::get(&asset_id) {
-					info.enabled_bridges.push(XBridge::ChainBridge {
-						chain_id,
-						resource_id: rid.clone(),
-					});
-					IdToRegistryInfo::<T>::insert(&asset_id, &info);
-				}
-				Self::deposit_event(Event::SolochainSetuped {
-					asset_id,
-					chain_id,
-					rid,
-				});
-			}
+			let asset = IdToAsset::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			let mut info =
+				IdToRegistryInfo::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			let rid: [u8; 32] = asset.clone().into_rid(chain_id);
+
+			ensure!(
+				ResourceIdToAssets::<T>::get(&rid) == None,
+				Error::<T>::SolochainAlreadySetted
+			);
+			ResourceIdToAssets::<T>::insert(&rid, &asset);
+			// Save into registry info, here save chain id can not be added more than twice
+			info.enabled_bridges.push(XBridge::ChainBridge {
+				chain_id,
+				resource_id: rid.clone(),
+			});
+			IdToRegistryInfo::<T>::insert(&asset_id, &info);
+
+			Self::deposit_event(Event::SolochainSetuped {
+				asset_id,
+				chain_id,
+				rid,
+			});
 			Ok(())
 		}
 	}
