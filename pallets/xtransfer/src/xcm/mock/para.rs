@@ -1,14 +1,17 @@
 use super::ParachainXcmRouter;
+use crate::bridge::pallet::{BridgeChainId, BridgeTransact, ResourceId};
 use crate::{pallet_assets_wrapper, pallet_xcm_transfer, xcm_helper};
 
 use frame_support::{
-	construct_runtime, match_type, parameter_types,
+	construct_runtime, match_type,
+	pallet_prelude::*,
+	parameter_types,
 	traits::{Contains, Everything},
 	weights::{IdentityFee, Weight},
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
-use sp_core::H256;
+use sp_core::{H256, U256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
@@ -59,7 +62,7 @@ construct_runtime!(
 		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
 
-		// local palelts
+		// Local palelts
 		XcmTransfer: pallet_xcm_transfer::{Pallet, Call, Event<T>, Storage},
 	}
 );
@@ -237,6 +240,39 @@ pub type FungiblesTransactor = FungiblesAdapter<
 	(),
 >;
 
+impl BridgeTransact for () {
+	fn transfer_fungible(
+		_dest_id: BridgeChainId,
+		_resource_id: ResourceId,
+		_to: Vec<u8>,
+		_amount: U256,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn transfer_nonfungible(
+		_dest_id: BridgeChainId,
+		_resource_id: ResourceId,
+		_token_id: Vec<u8>,
+		_to: Vec<u8>,
+		_metadata: Vec<u8>,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn transfer_generic(
+		_dest_id: BridgeChainId,
+		_resource_id: ResourceId,
+		_metadata: Vec<u8>,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn reservation_account() -> [u8; 32] {
+		[0; 32]
+	}
+}
+
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type Call = Call;
@@ -245,6 +281,7 @@ impl Config for XcmConfig {
 		CurrencyTransactor,
 		FungiblesTransactor,
 		xcm_helper::NativeAssetFilter<ParachainInfo>,
+		(),
 	>;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;

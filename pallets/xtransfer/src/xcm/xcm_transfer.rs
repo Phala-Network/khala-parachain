@@ -5,7 +5,6 @@ pub use self::pallet::*;
 pub mod pallet {
 	use crate::pallet_assets_wrapper;
 	use crate::xcm_helper::{ConcrateAsset, NativeAssetChecker};
-	use cumulus_primitives_core::ParaId;
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
@@ -21,7 +20,7 @@ pub mod pallet {
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 	/// The logging target.
-	const LOG_TARGET: &str = "xcm-transfer";
+	const LOG_TARGET: &str = "runtime::xcm-transfer";
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
 	type BalanceOf<T> =
@@ -38,7 +37,7 @@ pub mod pallet {
 
 		type Currency: Currency<Self::AccountId>;
 
-		/// Required origin for sending XCM messages. If successful, the it resolves to `MultiLocation`
+		/// Required origin for sending XCM messages. If successful, then it resolves to `MultiLocation`
 		/// which exists as an interior location within this chain's XCM context.
 		type SendXcmOrigin: EnsureOrigin<Self::Origin, Success = MultiLocation>;
 
@@ -77,8 +76,12 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Assets sent to parachain or relaychain. \[from, paraId, to, amount\]
-		AssetTransfered(T::AccountId, ParaId, T::AccountId, BalanceOf<T>),
+		/// Assets sent to parachain or relaychain.
+		AssetTransfered {
+			asset: MultiAsset,
+			origin: MultiLocation,
+			dest: MultiLocation,
+		},
 	}
 
 	#[pallet::error]
@@ -91,60 +94,60 @@ pub mod pallet {
 		UnknownTransfer,
 		AssetNotFound,
 		LocationInvertFailed,
+		IllegalDestination,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
-		T::AccountId: Into<[u8; 32]>,
+		T::AccountId: Into<[u8; 32]> + From<[u8; 32]>,
 		BalanceOf<T>: Into<u128>,
 	{
 		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
 		pub fn transfer_asset(
 			origin: OriginFor<T>,
 			asset: pallet_assets_wrapper::XTransferAsset,
-			para_id: ParaId,
-			recipient: T::AccountId,
+			dest: MultiLocation,
 			amount: BalanceOf<T>,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			// get asset location by asset id
+			let origin = T::ExecuteXcmOrigin::ensure_origin(origin)?;
+			// Get asset location by asset id
 			let asset_location: MultiLocation =
 				asset.try_into().map_err(|_| Error::<T>::AssetNotFound)?;
 			let multi_asset: MultiAsset = (asset_location, amount.into()).into();
 
-			Self::do_transfer(origin, multi_asset, para_id, recipient, amount, dest_weight)
+			Self::do_transfer_multiasset(origin, multi_asset, dest, dest_weight)
 		}
 
 		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
 		pub fn transfer_native(
 			origin: OriginFor<T>,
-			para_id: ParaId,
-			recipient: T::AccountId,
+			dest: MultiLocation,
 			amount: BalanceOf<T>,
 			dest_weight: Weight,
 		) -> DispatchResult {
+			let origin = T::ExecuteXcmOrigin::ensure_origin(origin)?;
 			let asset_location: MultiLocation = (0, Here).into();
 			let asset: MultiAsset = (asset_location, amount.into()).into();
 
-			Self::do_transfer(origin, asset, para_id, recipient, amount, dest_weight)
+			Self::do_transfer_multiasset(origin, asset, dest, dest_weight)
 		}
 	}
 
 	impl<T: Config> Pallet<T>
 	where
-		T::AccountId: Into<[u8; 32]>,
+		T::AccountId: Into<[u8; 32]> + From<[u8; 32]>,
 		BalanceOf<T>: Into<u128>,
 	{
 		/// Returns the estimated max weight for a xcm based on non-reserve xcm transfer cost
 		pub fn estimate_transfer_weight() -> Weight {
-			// we treat nonreserve xcm transfer cost the most weight
+			// We treat nonreserve xcm transfer cost the most weight
 			let nonreserve_xcm_transfer_session = XCMSession::<T> {
 				asset: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
 				fee: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
-				origin_location: MultiLocation::new(1, X1(Parachain(1u32))),
+				origin: MultiLocation::new(1, X1(Parachain(1u32))),
 				dest_location: MultiLocation::new(1, X1(Parachain(2u32))),
-				sender: PalletId(*b"phala/bg").into_account(),
 				recipient: PalletId(*b"phala/bg").into_account(),
 				dest_weight: 0,
 			};
@@ -154,28 +157,36 @@ pub mod pallet {
 			T::Weigher::weight(&mut msg).map_or(Weight::max_value(), |w| w)
 		}
 
-		pub fn do_transfer(
-			origin: OriginFor<T>,
+		pub fn do_transfer_multiasset(
+			origin: MultiLocation,
 			asset: MultiAsset,
-			para_id: ParaId,
-			recipient: T::AccountId,
-			amount: BalanceOf<T>,
+			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			let sender = ensure_signed(origin.clone())?;
-			let origin_location = T::ExecuteXcmOrigin::ensure_origin(origin)?;
-			let dest_location = (1, X1(Parachain(para_id.into()))).into();
+			let mut dest_location = dest.clone();
+			// Make sure we are processing crosschain transfer and we got correct path
+			ensure!(!dest_location.is_here(), Error::<T>::IllegalDestination);
+			// FIXME: what if someone give a Parachain junction at the end?
+			// After take_last(), dest only contains reserve location of the recipient.
+			let recipient = match dest_location.take_last() {
+				Some(Junction::AccountId32 {
+					network: _,
+					id: recipient,
+				}) => Some(recipient),
+				_ => None,
+			};
+			ensure!(!recipient.is_none(), Error::<T>::IllegalDestination);
 
 			let fee = if T::FeeAssets::get().contains(&asset)
 				|| T::NativeAssetChecker::is_native_asset(&asset)
 			{
 				match asset.fun {
-					// so far only half of amount are allowed to be used as fee
+					// So far only half of amount are allowed to be used as fee
 					Fungible(amount) => MultiAsset {
 						fun: Fungible(amount / 2),
 						id: asset.id.clone(),
 					},
-					// we do not support unfungible asset transfer, nor support it as fee
+					// We do not support unfungible asset transfer, nor support it as fee
 					_ => return Err(Error::<T>::AssetNotFound.into()),
 				}
 			} else {
@@ -188,12 +199,11 @@ pub mod pallet {
 			};
 
 			let xcm_session = XCMSession::<T> {
-				asset,
+				asset: asset.clone(),
 				fee,
-				origin_location,
+				origin: origin.clone(),
 				dest_location,
-				sender: sender.clone(),
-				recipient: recipient.clone(),
+				recipient: recipient.unwrap().into(),
 				dest_weight,
 			};
 			let mut msg = xcm_session.message()?;
@@ -205,9 +215,50 @@ pub mod pallet {
 
 			xcm_session.execute(&mut msg)?;
 
-			Self::deposit_event(Event::AssetTransfered(sender, para_id, recipient, amount));
+			Self::deposit_event(Event::AssetTransfered {
+				asset,
+				origin,
+				dest,
+			});
 
 			Ok(())
+		}
+	}
+
+	pub trait XcmTransact<T: frame_system::Config> {
+		fn transfer_fungible(
+			origin: MultiLocation,
+			asset: MultiAsset,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> DispatchResult;
+	}
+
+	// Impl XcmTransact trait for () only for testing purpose, would
+	// be removed when release
+	impl<T: frame_system::Config> XcmTransact<T> for () {
+		fn transfer_fungible(
+			origin: MultiLocation,
+			asset: MultiAsset,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> DispatchResult {
+			Ok(())
+		}
+	}
+
+	impl<T: Config> XcmTransact<T> for Pallet<T>
+	where
+		T::AccountId: From<[u8; 32]> + Into<[u8; 32]>,
+		BalanceOf<T>: Into<u128>,
+	{
+		fn transfer_fungible(
+			origin: MultiLocation,
+			asset: MultiAsset,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> DispatchResult {
+			Self::do_transfer_multiasset(origin, asset, dest, dest_weight)
 		}
 	}
 
@@ -230,9 +281,9 @@ pub mod pallet {
 	struct XCMSession<T: Config> {
 		asset: MultiAsset,
 		fee: MultiAsset,
-		origin_location: MultiLocation,
+		origin: MultiLocation,
+		// Where recipient located in
 		dest_location: MultiLocation,
-		sender: T::AccountId,
 		recipient: T::AccountId,
 		dest_weight: Weight,
 	}
@@ -295,7 +346,7 @@ pub mod pallet {
 			let weight =
 				T::Weigher::weight(message).map_err(|()| Error::<T>::UnweighableMessage)?;
 			T::XcmExecutor::execute_xcm_in_credit(
-				self.origin_location.clone(),
+				self.origin.clone(),
 				message.clone(),
 				weight,
 				weight,
@@ -312,7 +363,7 @@ pub mod pallet {
 			}
 			.into();
 
-			// if self.asset.id == self.fee.id, self.asset must contains self.fee
+			// If self.asset.id == self.fee.id, self.asset must contains self.fee
 			let (withdraw_asset, max_assets) = if self.asset.contains(&self.fee) {
 				// The assets to pay the fee is the same as the main assets. Only one withdraw is required.
 				(WithdrawAsset(self.asset.clone().into()), 1)
@@ -402,19 +453,19 @@ mod test {
 	use xcm_simulator::TestExt;
 
 	use crate::pallet_assets_wrapper;
-	use crate::pallet_assets_wrapper::XTransferAssetInfo;
+	use crate::pallet_assets_wrapper::GetAssetRegistryInfo;
 	use assert_matches::assert_matches;
 
-    fn sibling_account(para_id: u32) -> AccountId32 {
-            Sibling::from(para_id).into_account()
-    }
+	fn sibling_account(para_id: u32) -> AccountId32 {
+		Sibling::from(para_id).into_account()
+	}
 
 	#[test]
 	fn test_asset_register() {
 		TestNet::reset();
 
 		ParaA::execute_with(|| {
-			// register first asset, id = 0
+			// Register first asset, id = 0
 			let para_a_location: MultiLocation = MultiLocation {
 				parents: 1,
 				interior: X1(Parachain(1)),
@@ -422,7 +473,7 @@ mod test {
 			let para_a_asset: pallet_assets_wrapper::XTransferAsset =
 				para_a_location.try_into().unwrap();
 
-			// should be failed if origin is from sudo user
+			// Should be failed if origin is from sudo user
 			assert_err!(
 				ParaAssetsWrapper::force_register_asset(
 					Some(ALICE).into(),
@@ -455,7 +506,7 @@ mod test {
 			);
 			assert_eq!(ParaAssets::total_supply(0u32.into()), 0);
 
-			// same asset location register again, should be failed
+			// Same asset location register again, should be failed
 			assert_noop!(
 				ParaAssetsWrapper::force_register_asset(
 					para::Origin::root(),
@@ -473,7 +524,7 @@ mod test {
 			let para_b_asset: pallet_assets_wrapper::XTransferAsset =
 				para_b_location.try_into().unwrap();
 
-			// same asset id register again, should be failed
+			// Same asset id register again, should be failed
 			assert_noop!(
 				ParaAssetsWrapper::force_register_asset(
 					para::Origin::root(),
@@ -484,7 +535,7 @@ mod test {
 				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
 			);
 
-			// register another asset, id = 1
+			// Register another asset, id = 1
 			let para_b_location: MultiLocation = MultiLocation {
 				parents: 1,
 				interior: X1(Parachain(2)),
@@ -503,7 +554,7 @@ mod test {
 				para_b_asset
 			);
 
-			// unregister asset
+			// Unregister asset
 			assert_ok!(ParaAssetsWrapper::force_unregister_asset(
 				para::Origin::root(),
 				1
@@ -538,8 +589,16 @@ mod test {
 			// ParaA send it's own native asset to paraB
 			assert_ok!(XcmTransfer::transfer_native(
 				Some(ALICE).into(),
-				2u32.into(),
-				BOB,
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(2u32.into()),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into()
+						}
+					)
+				),
 				10,
 				1,
 			));
@@ -554,7 +613,7 @@ mod test {
 	}
 
 	#[test]
-	fn test_transfer_to_resolve_parachain() {
+	fn test_transfer_to_reserve_parachain() {
 		TestNet::reset();
 
 		let para_a_location: MultiLocation = MultiLocation {
@@ -578,8 +637,16 @@ mod test {
 			// ParaA send it's own native asset to paraB
 			assert_ok!(XcmTransfer::transfer_native(
 				Some(ALICE).into(),
-				2u32.into(),
-				BOB,
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(2u32.into()),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into()
+						}
+					)
+				),
 				10,
 				1,
 			));
@@ -592,14 +659,22 @@ mod test {
 			assert_eq!(ParaAssets::balance(0u32.into(), &BOB), 10 - 1);
 		});
 
-		// now, let's transfer back to paraA
+		// Now, let's transfer back to paraA
 		ParaB::execute_with(|| {
 			// ParaB send back ParaA's native asset
 			assert_ok!(XcmTransfer::transfer_asset(
 				Some(BOB).into(),
 				para_a_asset.clone().into(),
-				1u32.into(),
-				ALICE,
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(1u32.into()),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: ALICE.into()
+						}
+					)
+				),
 				5,
 				1,
 			));
@@ -613,5 +688,5 @@ mod test {
 	}
 
 	#[test]
-	fn test_transfer_to_unresolve_parachain() {}
+	fn test_transfer_to_nonreserve_parachain() {}
 }

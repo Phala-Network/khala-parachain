@@ -7,7 +7,7 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, ConvertInto, IdentityLookup},
-	Perbill,
+	AccountId32, Perbill,
 };
 
 use crate::bridge_transfer;
@@ -53,7 +53,7 @@ impl frame_system::Config for Test {
 	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type AccountId = u64;
+	type AccountId = AccountId32;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type Event = Event;
@@ -105,7 +105,8 @@ impl bridge::Config for Test {
 }
 
 parameter_types! {
-	pub const NativeTokenResourceId: [u8; 32] = hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
+	// First byte is 0x00, chain id of ethereum mainnet
+	pub const NativeTokenResourceId: [u8; 32] = hex!("0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844");
 }
 
 impl bridge_transfer::Config for Test {
@@ -114,6 +115,7 @@ impl bridge_transfer::Config for Test {
 	type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Test, ConvertInto>;
 	type BridgeOrigin = bridge::EnsureBridge<Test>;
 	type Currency = Balances;
+	type XcmTransactor = ();
 	type NativeTokenResourceId = NativeTokenResourceId;
 	type OnFeePay = ();
 }
@@ -155,20 +157,20 @@ impl pallet_timestamp::Config for Test {
 	type WeightInfo = ();
 }
 
-pub const ALICE: u64 = 0x1;
-pub const RELAYER_A: u64 = 0x2;
-pub const RELAYER_B: u64 = 0x3;
-pub const RELAYER_C: u64 = 0x4;
+pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
+pub const RELAYER_A: AccountId32 = AccountId32::new([1u8; 32]);
+pub const RELAYER_B: AccountId32 = AccountId32::new([2u8; 32]);
+pub const RELAYER_C: AccountId32 = AccountId32::new([3u8; 32]);
 pub const ENDOWED_BALANCE: u64 = 100_000_000;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let bridge_id = PalletId(*b"phala/bg").into_account();
+	let bridge_account = PalletId(*b"phala/bg").into_account();
 	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<Test>()
 		.unwrap();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
-			(bridge_id, ENDOWED_BALANCE),
+			(bridge_account, ENDOWED_BALANCE),
 			(RELAYER_A, ENDOWED_BALANCE),
 			(ALICE, ENDOWED_BALANCE),
 		],

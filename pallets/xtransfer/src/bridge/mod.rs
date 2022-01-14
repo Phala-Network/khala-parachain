@@ -17,6 +17,7 @@ pub mod pallet {
 	use sp_runtime::RuntimeDebug;
 	use sp_std::prelude::*;
 
+	const LOG_TARGET: &str = "runtime::bridge";
 	const DEFAULT_RELAYER_THRESHOLD: u32 = 1;
 	const MODULE_ID: PalletId = PalletId(*b"phala/bg");
 
@@ -108,6 +109,31 @@ pub mod pallet {
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+
+	pub trait BridgeTransact {
+		fn transfer_fungible(
+			dest_id: BridgeChainId,
+			resource_id: ResourceId,
+			to: Vec<u8>,
+			amount: U256,
+		) -> DispatchResult;
+
+		fn transfer_nonfungible(
+			dest_id: BridgeChainId,
+			resource_id: ResourceId,
+			token_id: Vec<u8>,
+			to: Vec<u8>,
+			metadata: Vec<u8>,
+		) -> DispatchResult;
+
+		fn transfer_generic(
+			dest_id: BridgeChainId,
+			resource_id: ResourceId,
+			metadata: Vec<u8>,
+		) -> DispatchResult;
+
+		fn reservation_account() -> [u8; 32];
+	}
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -610,14 +636,27 @@ pub mod pallet {
 			Self::deposit_event(Event::ProposalRejected(src_id, nonce));
 			Ok(())
 		}
+	}
 
+	impl<T: Config> BridgeTransact for Pallet<T>
+	where
+		T::AccountId: Into<[u8; 32]>,
+	{
 		/// Initiates a transfer of a fungible asset out of the chain. This should be called by another pallet.
-		pub fn transfer_fungible(
+		fn transfer_fungible(
 			dest_id: BridgeChainId,
 			resource_id: ResourceId,
 			to: Vec<u8>,
 			amount: U256,
 		) -> DispatchResult {
+			log::trace!(
+				target: LOG_TARGET,
+				"Fungible transfer, dest_id: {:?}, resource_id: {:?}, to: {:?}, amount: {:?}.",
+				dest_id,
+				&resource_id,
+				&to,
+				amount,
+			);
 			ensure!(
 				Self::chain_whitelisted(dest_id),
 				Error::<T>::ChainNotWhitelisted
@@ -641,7 +680,7 @@ pub mod pallet {
 		}
 
 		/// Initiates a transfer of a nonfungible asset out of the chain. This should be called by another pallet.
-		pub fn transfer_nonfungible(
+		fn transfer_nonfungible(
 			dest_id: BridgeChainId,
 			resource_id: ResourceId,
 			token_id: Vec<u8>,
@@ -673,7 +712,7 @@ pub mod pallet {
 		}
 
 		/// Initiates a transfer of generic data out of the chain. This should be called by another pallet.
-		pub fn transfer_generic(
+		fn transfer_generic(
 			dest_id: BridgeChainId,
 			resource_id: ResourceId,
 			metadata: Vec<u8>,
@@ -697,6 +736,10 @@ pub mod pallet {
 			));
 			Ok(())
 		}
+
+		fn reservation_account() -> [u8; 32] {
+			Self::account_id().into()
+		}
 	}
 
 	/// Simple ensure origin for the bridge account
@@ -704,17 +747,17 @@ pub mod pallet {
 	impl<T: Config> EnsureOrigin<T::Origin> for EnsureBridge<T> {
 		type Success = T::AccountId;
 		fn try_origin(o: T::Origin) -> Result<Self::Success, T::Origin> {
-			let bridge_id = MODULE_ID.into_account();
+			let bridge_account = MODULE_ID.into_account();
 			o.into().and_then(|o| match o {
-				system::RawOrigin::Signed(who) if who == bridge_id => Ok(bridge_id),
+				system::RawOrigin::Signed(who) if who == bridge_account => Ok(bridge_account),
 				r => Err(T::Origin::from(r)),
 			})
 		}
 
 		#[cfg(feature = "runtime-benchmarks")]
 		fn successful_origin() -> T::Origin {
-			let bridge_id = MODULE_ID.into_account();
-			T::Origin::from(system::RawOrigin::Signed(bridge_id))
+			let bridge_account = MODULE_ID.into_account();
+			T::Origin::from(system::RawOrigin::Signed(bridge_account))
 		}
 	}
 }

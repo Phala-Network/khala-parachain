@@ -8,7 +8,7 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
-	Perbill,
+	AccountId32, Perbill,
 };
 
 use crate::bridge;
@@ -46,7 +46,7 @@ impl frame_system::Config for Test {
 	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type AccountId = u64;
+	type AccountId = AccountId32;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type Event = Event;
@@ -98,9 +98,9 @@ impl Config for Test {
 }
 
 // pub const BRIDGE_ID: u64 =
-pub const RELAYER_A: u64 = 0x2;
-pub const RELAYER_B: u64 = 0x3;
-pub const RELAYER_C: u64 = 0x4;
+pub const RELAYER_A: AccountId32 = AccountId32::new([1u8; 32]);
+pub const RELAYER_B: AccountId32 = AccountId32::new([2u8; 32]);
+pub const RELAYER_C: AccountId32 = AccountId32::new([3u8; 32]);
 pub const ENDOWED_BALANCE: u64 = 100_000_000;
 pub const TEST_THRESHOLD: u32 = 2;
 

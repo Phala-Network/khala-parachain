@@ -892,7 +892,7 @@ parameter_types! {
     );
     pub ExecutionPriceInBNC: (AssetId, u128) = (
         BNCAssetId::get(),
-        pha_per_second()
+        pha_per_second() / 5
     );
     pub ExecutionPriceInVKSM: (AssetId, u128) = (
         VSKSMAssetId::get(),
@@ -922,6 +922,7 @@ impl Config for XcmConfig {
         CurrencyTransactor,
         FungiblesTransactor,
         xcm_helper::NativeAssetFilter<ParachainInfo>,
+        ChainBridge,
     >;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = xcm_helper::AssetOriginFilter;
@@ -932,23 +933,43 @@ impl Config for XcmConfig {
     type Trader = (
         FixedRateOfFungible<
             ExecutionPriceInKSM,
-            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
         >,
         FixedRateOfFungible<
             ExecutionPriceInPHA,
-            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
         >,
         FixedRateOfFungible<
             ExecutionPriceInKAR,
-            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
         >,
         FixedRateOfFungible<
             ExecutionPriceInBNC,
-            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
         >,
         FixedRateOfFungible<
             ExecutionPriceInVKSM,
-            xcm_helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
         >,
     );
     type ResponseHandler = PolkadotXcm;
@@ -959,14 +980,14 @@ impl Config for XcmConfig {
 parameter_types! {
     pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
 }
-/// No local origins on this chain are allowed to dispatch XCM sends/executions.
+
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
 pub type XcmRouter = (
     // Two routers - use UMP to communicate with the relay chain:
-    cumulus_primitives_utility::ParentAsUmp<ParachainSystem, ()>,
+    cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm>,
     // ..and XCMP to communicate with the sibling chains.
     XcmpQueue,
 );
@@ -979,7 +1000,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ChannelInfo = ParachainSystem;
-    type VersionWrapper = ();
+    type VersionWrapper = PolkadotXcm;
 }
 impl cumulus_pallet_dmp_queue::Config for Runtime {
     type Event = Event;
@@ -1319,8 +1340,8 @@ impl pallet_bridge::Config for Runtime {
 }
 
 parameter_types! {
-    // bridge::derive_resource_id(1, &bridge::hashing::blake2_128(b"PHA"));
-    pub const NativeTokenResourceId: [u8; 32] = hex_literal::hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
+    // first byte is 0x00, chain id of ethereum mainnet
+    pub const NativeTokenResourceId: [u8; 32] = hex_literal::hex!("0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844");
 }
 
 impl pallet_bridge_transfer::Config for Runtime {
@@ -1329,6 +1350,7 @@ impl pallet_bridge_transfer::Config for Runtime {
     type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Runtime, ConvertInto>;
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
+    type XcmTransactor = XcmTransfer;
     type NativeTokenResourceId = NativeTokenResourceId;
     type OnFeePay = Treasury;
 }
