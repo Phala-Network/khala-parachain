@@ -64,11 +64,11 @@ pub mod pallet {
 	// By finding the reserve location, we can also identity where an asset
 	// comes from.
 	pub trait ExtractReserveLocation {
-		fn reserve(&self) -> Option<MultiLocation>;
+		fn reserve_location(&self) -> Option<MultiLocation>;
 	}
 
 	impl ExtractReserveLocation for Junctions {
-		fn reserve(&self) -> Option<MultiLocation> {
+		fn reserve_location(&self) -> Option<MultiLocation> {
 			match (self.at(0), self.at(1)) {
 				(Some(GeneralKey(cb_key)), Some(GeneralIndex(chain_id)))
 					if &cb_key == &CB_ASSET_KEY =>
@@ -87,7 +87,7 @@ pub mod pallet {
 	}
 
 	impl ExtractReserveLocation for MultiLocation {
-		fn reserve(&self) -> Option<MultiLocation> {
+		fn reserve_location(&self) -> Option<MultiLocation> {
 			match (self.parents, self.first_interior()) {
 				// Sibling parachain
 				(1, Some(Parachain(id))) => {
@@ -95,21 +95,24 @@ pub mod pallet {
 					// Remove Junction::Parachain
 					interior.take_first();
 					interior
-						.reserve()
+						.reserve_location()
 						.or(Some(MultiLocation::new(1, X1(Parachain(*id)))))
 				}
 				// Parent
 				(1, _) => Some(MultiLocation::parent()),
 				// Local
-				(0, _) => self.interior.reserve().or(Some(MultiLocation::here())),
+				(0, _) => self
+					.interior
+					.reserve_location()
+					.or(Some(MultiLocation::here())),
 				_ => None,
 			}
 		}
 	}
 
 	impl ExtractReserveLocation for XTransferAsset {
-		fn reserve(&self) -> Option<MultiLocation> {
-			self.0.reserve()
+		fn reserve_location(&self) -> Option<MultiLocation> {
+			self.0.reserve_location()
 		}
 	}
 
@@ -139,24 +142,24 @@ pub mod pallet {
 	/// Mapping asset to corresponding asset id
 	#[pallet::storage]
 	#[pallet::getter(fn asset_to_id)]
-	pub type AssetToId<T: Config> =
+	pub type IdByAssets<T: Config> =
 		StorageMap<_, Twox64Concat, XTransferAsset, <T as pallet_assets::Config>::AssetId>;
 
 	/// Mapping asset id to corresponding asset
 	#[pallet::storage]
 	#[pallet::getter(fn id_to_asset)]
-	pub type IdToAsset<T: Config> =
+	pub type AssetByIds<T: Config> =
 		StorageMap<_, Twox64Concat, <T as pallet_assets::Config>::AssetId, XTransferAsset>;
 
 	/// Mapping resource id to corresponding asset
 	#[pallet::storage]
 	#[pallet::getter(fn resource_id_to_asset)]
-	pub type ResourceIdToAssets<T: Config> = StorageMap<_, Twox64Concat, [u8; 32], XTransferAsset>;
+	pub type AssetByResourceIds<T: Config> = StorageMap<_, Twox64Concat, [u8; 32], XTransferAsset>;
 
 	// Mapping asset id to corresponding registry info
 	#[pallet::storage]
 	#[pallet::getter(fn id_to_registry_info)]
-	pub type IdToRegistryInfo<T: Config> =
+	pub type RegistryInfoByIds<T: Config> =
 		StorageMap<_, Twox64Concat, <T as pallet_assets::Config>::AssetId, AssetRegistryInfo>;
 
 	#[pallet::event]
@@ -202,12 +205,12 @@ pub mod pallet {
 			T::AssetsCommitteeOrigin::ensure_origin(origin.clone())?;
 			// Ensure location has not been registered
 			ensure!(
-				AssetToId::<T>::get(&asset) == None,
+				IdByAssets::<T>::get(&asset) == None,
 				Error::<T>::AssetAlreadyExist
 			);
 			// Ensure asset_id has not been registered
 			ensure!(
-				IdToAsset::<T>::get(&asset_id) == None,
+				AssetByIds::<T>::get(&asset_id) == None,
 				Error::<T>::AssetAlreadyExist
 			);
 			pallet_assets::pallet::Pallet::<T>::force_create(
@@ -217,13 +220,13 @@ pub mod pallet {
 				true,
 				T::MinBalance::get(),
 			)?;
-			AssetToId::<T>::insert(&asset, asset_id);
-			IdToAsset::<T>::insert(asset_id, &asset);
-			IdToRegistryInfo::<T>::insert(
+			IdByAssets::<T>::insert(&asset, asset_id);
+			AssetByIds::<T>::insert(asset_id, &asset);
+			RegistryInfoByIds::<T>::insert(
 				asset_id,
 				AssetRegistryInfo {
 					location: asset.clone().into(),
-					reserve_location: asset.reserve(),
+					reserve_location: asset.reserve_location(),
 					// Xcmp will be enabled when assets being registered.
 					enabled_bridges: vec![XBridge::Xcmp],
 				},
@@ -242,12 +245,12 @@ pub mod pallet {
 			asset_id: T::AssetId,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
-			let asset = IdToAsset::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			let asset = AssetByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
 			let info =
-				IdToRegistryInfo::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
 
-			IdToAsset::<T>::remove(&asset_id);
-			AssetToId::<T>::remove(&asset);
+			AssetByIds::<T>::remove(&asset_id);
+			IdByAssets::<T>::remove(&asset);
 			// Unbind resource id and asset if have chain bridge set
 			for bridge in info.enabled_bridges {
 				if let XBridge::ChainBridge {
@@ -255,11 +258,11 @@ pub mod pallet {
 					resource_id,
 				} = bridge
 				{
-					ResourceIdToAssets::<T>::remove(&resource_id);
+					AssetByResourceIds::<T>::remove(&resource_id);
 				}
 			}
 			// Delete registry info
-			IdToRegistryInfo::<T>::remove(&asset_id);
+			RegistryInfoByIds::<T>::remove(&asset_id);
 
 			Self::deposit_event(Event::AssetUnRegistered { asset_id, asset });
 			Ok(())
@@ -272,22 +275,22 @@ pub mod pallet {
 			chain_id: u8,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
-			let asset = IdToAsset::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			let asset = AssetByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
 			let mut info =
-				IdToRegistryInfo::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
 			let rid: [u8; 32] = asset.clone().into_rid(chain_id);
 
 			ensure!(
-				ResourceIdToAssets::<T>::get(&rid) == None,
+				AssetByResourceIds::<T>::get(&rid) == None,
 				Error::<T>::SolochainAlreadySetted
 			);
-			ResourceIdToAssets::<T>::insert(&rid, &asset);
+			AssetByResourceIds::<T>::insert(&rid, &asset);
 			// Save into registry info, here save chain id can not be added more than twice
 			info.enabled_bridges.push(XBridge::ChainBridge {
 				chain_id,
 				resource_id: rid.clone(),
 			});
-			IdToRegistryInfo::<T>::insert(&asset_id, &info);
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
 
 			Self::deposit_event(Event::SolochainSetuped {
 				asset_id,
@@ -306,15 +309,15 @@ pub mod pallet {
 
 	impl<T: Config> GetAssetRegistryInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
 		fn id(asset: &XTransferAsset) -> Option<<T as pallet_assets::Config>::AssetId> {
-			AssetToId::<T>::get(asset)
+			IdByAssets::<T>::get(asset)
 		}
 
 		fn asset(id: &<T as pallet_assets::Config>::AssetId) -> Option<XTransferAsset> {
-			IdToAsset::<T>::get(id)
+			AssetByIds::<T>::get(id)
 		}
 
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset> {
-			ResourceIdToAssets::<T>::get(resource_id)
+			AssetByResourceIds::<T>::get(resource_id)
 		}
 	}
 }

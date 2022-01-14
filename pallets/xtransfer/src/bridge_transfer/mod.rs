@@ -153,7 +153,7 @@ pub mod pallet {
 			)
 				.into();
 			let asset_reserve_location = asset
-				.reserve()
+				.reserve_location()
 				.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
 
 			ensure!(
@@ -303,12 +303,12 @@ pub mod pallet {
 			let dest_location: MultiLocation =
 				Decode::decode(&mut dest.as_slice()).map_err(|_| Error::<T>::DestUnrecognized)?;
 			let dest_reserve_location = dest_location
-				.reserve()
+				.reserve_location()
 				.ok_or(Error::<T>::DestUnrecognized)?;
 
 			let asset_location = Self::rid_to_location(&rid)?;
 			let asset_reserve_location = asset_location
-				.reserve()
+				.reserve_location()
 				.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
 
 			log::trace!(

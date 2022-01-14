@@ -217,7 +217,7 @@ pub mod xcm_helper {
 						.try_into()
 						.map_err(|_| XcmError::FailedToTransactAsset("ChainIdConversionFailed"))?;
 					let asset_reserve_location = location
-						.reserve()
+						.reserve_location()
 						.ok_or(XcmError::FailedToTransactAsset("FailedGetreserve"))?;
 
 					// If we are forwarding asset to its non-reserve destination, deposit assets
