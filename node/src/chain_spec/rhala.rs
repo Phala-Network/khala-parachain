@@ -257,7 +257,7 @@ fn genesis(
             },
         ),
         phala_mining: Default::default(),
-        polkadot_xcm: khala_parachain_runtime::PolkadotXcmConfig {
+        polkadot_xcm: rhala_parachain_runtime::PolkadotXcmConfig {
             safe_xcm_version: Some(2),
         },
     }
