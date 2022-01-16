@@ -68,7 +68,7 @@ pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
         Contains, Currency, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
-        KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, Randomness, U128CurrencyToVote,
+        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -81,6 +81,18 @@ use frame_system::{
     limits::{BlockLength, BlockWeights},
     EnsureOneOf, EnsureRoot,
 };
+
+use pallet_xcm::XcmPassthrough;
+use polkadot_parachain::primitives::Sibling;
+use xcm::latest::prelude::*;
+use xcm_builder::{
+    AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
+    AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds,
+    LocationInverter, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
+    SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+    SovereignSignedViaLocation, TakeWeightCredit,
+};
+use xcm_executor::{Config, XcmExecutor};
 
 pub use parachains_common::Index;
 pub use parachains_common::*;
@@ -195,6 +207,12 @@ construct_runtime! {
         ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config} = 20,
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 21,
 
+        // XCM helpers
+        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
+        CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 31,
+        DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 32,
+        PolkadotXcm: pallet_xcm::{Pallet, Storage, Call, Event<T>, Origin, Config} = 33,
+
         // Monetary stuff
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 40,
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 41,
@@ -241,6 +259,26 @@ construct_runtime! {
 pub struct BaseCallFilter;
 impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
+        if let Call::PolkadotXcm(xcm_method) = call {
+            return match xcm_method {
+                pallet_xcm::Call::execute { .. }
+                | pallet_xcm::Call::teleport_assets { .. }
+                | pallet_xcm::Call::reserve_transfer_assets { .. }
+                | pallet_xcm::Call::limited_reserve_transfer_assets { .. }
+                | pallet_xcm::Call::limited_teleport_assets { .. }
+                | pallet_xcm::Call::__Ignore { .. } => {
+                    false
+                }
+                pallet_xcm::Call::force_xcm_version { .. }
+                | pallet_xcm::Call::force_default_xcm_version { .. }
+                | pallet_xcm::Call::force_subscribe_version_notify { .. }
+                | pallet_xcm::Call::force_unsubscribe_version_notify { .. }
+                | pallet_xcm::Call::send { .. } => {
+                    true
+                }
+            }
+        }
+
         matches!(
             call,
             Call::Sudo { .. } |
@@ -699,16 +737,134 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type Event = Event;
     type OnValidationData = ();
     type SelfParaId = pallet_parachain_info::Pallet<Runtime>;
-    type DmpMessageHandler = ();
+    type DmpMessageHandler = DmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
-    type OutboundXcmpMessageSource = ();
-    type XcmpMessageHandler = ();
+    type OutboundXcmpMessageSource = XcmpQueue;
+    type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
 }
 
 impl pallet_parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
+
+parameter_types! {
+    pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
+    pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+}
+
+/// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
+/// when determining ownership of accounts for asset transacting and when attempting to use XCM
+/// `Transact` in order to determine the dispatch Origin.
+pub type LocationToAccountId = (
+    // The parent (Relay-chain) origin converts to the default `AccountId`.
+    ParentIsDefault<AccountId>,
+    // Sibling parachain origins convert to AccountId via the `ParaId::into`.
+    SiblingParachainConvertsVia<Sibling, AccountId>,
+    // Straight up local `AccountId32` origins just alias directly to `AccountId`.
+    AccountId32Aliases<RelayNetwork, AccountId>,
+);
+
+/// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
+/// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
+/// biases the kind of local `Origin` it will become.
+pub type XcmOriginToTransactDispatchOrigin = (
+    // Sovereign account converter; this attempts to derive an `AccountId` from the origin location
+    // using `LocationToAccountId` and then turn that into the usual `Signed` origin. Useful for
+    // foreign chains who want to have a local sovereign account on this chain which they control.
+    SovereignSignedViaLocation<LocationToAccountId, Origin>,
+    // Native converter for Relay-chain (Parent) location; will converts to a `Relay` origin when
+    // recognised.
+    RelayChainAsNative<RelayChainOrigin, Origin>,
+    // Native converter for sibling Parachains; will convert to a `SiblingPara` origin when
+    // recognised.
+    SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
+    // Native signed account converter; this just converts an `AccountId32` origin into a normal
+    // `Origin::Signed` origin of the same 32-byte value.
+    SignedAccountId32AsNative<RelayNetwork, Origin>,
+    // Xcm origins can be represented natively under the Xcm pallet's Xcm origin.
+    XcmPassthrough<Origin>,
+);
+parameter_types! {
+    pub UnitWeightCost: Weight = 200_000_000;
+    pub const MaxInstructions: u32 = 100;
+}
+
+pub type Barrier = (
+    TakeWeightCredit,
+    AllowTopLevelPaidExecutionFrom<Everything>,
+    // Expected responses are OK.
+    AllowKnownQueryResponses<PolkadotXcm>,
+    // Subscriptions for version tracking are OK.
+    AllowSubscriptionsFrom<Everything>,
+);
+
+pub struct XcmConfig;
+impl Config for XcmConfig {
+    type Call = Call;
+    type XcmSender = XcmRouter;
+    // How to withdraw and deposit an asset.
+    type AssetTransactor = ();
+    type OriginConverter = XcmOriginToTransactDispatchOrigin;
+    type IsReserve = ();
+    type IsTeleporter = ();
+    type LocationInverter = LocationInverter<Ancestry>;
+    type Barrier = Barrier;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+    type Trader = ();
+    type ResponseHandler = PolkadotXcm;
+    type AssetTrap = PolkadotXcm;
+    type AssetClaims = PolkadotXcm;
+    type SubscriptionService = PolkadotXcm;
+}
+parameter_types! {
+    pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
+}
+/// No local origins on this chain are allowed to dispatch XCM sends/executions.
+pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
+
+/// The means for routing XCM messages which are not for local execution into the right message
+/// queues.
+pub type XcmRouter = (
+    // Two routers - use UMP to communicate with the relay chain:
+    cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm>,
+    // ..and XCMP to communicate with the sibling chains.
+    XcmpQueue,
+);
+
+impl cumulus_pallet_xcm::Config for Runtime {
+    type Event = Event;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+}
+impl cumulus_pallet_xcmp_queue::Config for Runtime {
+    type Event = Event;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ChannelInfo = ParachainSystem;
+    type VersionWrapper = PolkadotXcm;
+}
+impl cumulus_pallet_dmp_queue::Config for Runtime {
+    type Event = Event;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+}
+
+impl pallet_xcm::Config for Runtime {
+    type Event = Event;
+    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmRouter = XcmRouter;
+    type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmExecuteFilter = Nothing;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type XcmTeleportFilter = Nothing;
+    type XcmReserveTransferFilter = Everything;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+    type LocationInverter = LocationInverter<Ancestry>;
+    type Origin = Origin;
+    type Call = Call;
+    const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
+    type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
+}
 
 impl pallet_assets_wrapper::Config for Runtime {
     type Event = Event;
@@ -1021,6 +1177,7 @@ impl pallet_bridge_transfer::Config for Runtime {
     type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Runtime, ConvertInto>;
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
+    type XcmTransactor = ();
     type NativeTokenResourceId = NativeTokenResourceId;
     type OnFeePay = Treasury;
 }
