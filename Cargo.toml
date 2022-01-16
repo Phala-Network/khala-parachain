@@ -17,6 +17,7 @@ resolver = "2"
 exclude = [
 	"vendor/webpki",
 	"vendor/ring",
+	"cumulus/client/cli",
 	"polkadot/node/service",
 ]
 
@@ -42,3 +43,6 @@ members = [
 
 [patch."https://github.com/paritytech/polkadot"]
 polkadot-service = { path = "polkadot/node/service" }
+
+[patch."https://github.com/paritytech/cumulus"]
+cumulus-client-cli = { path = "cumulus/client/cli" }
