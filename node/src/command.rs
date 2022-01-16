@@ -103,7 +103,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             #[cfg(feature = "khala-native")]
             "khala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?),
             #[cfg(feature = "rhala-native")]
-            "rhala" => Box::new(chain_spec::khala::ChainSpec::from_json_file(path.into())?),
+            "rhala" => Box::new(chain_spec::rhala::ChainSpec::from_json_file(path.into())?),
             #[cfg(feature = "thala-native")]
             "thala" => Box::new(chain_spec::thala::ChainSpec::from_json_file(path.into())?),
             _ => return Err("`id` must starts with a known runtime name!".to_string()),
