@@ -1021,6 +1021,7 @@ impl pallet_bridge_transfer::Config for Runtime {
     type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Runtime, ConvertInto>;
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
+    type XcmTransactor = ();
     type NativeTokenResourceId = NativeTokenResourceId;
     type OnFeePay = Treasury;
 }

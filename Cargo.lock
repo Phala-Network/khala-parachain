@@ -3572,8 +3572,11 @@ name = "khala-parachain-runtime"
 version = "0.1.9-1"
 dependencies = [
  "cumulus-pallet-aura-ext",
+ "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-timestamp",
  "cumulus-primitives-utility",
@@ -3612,6 +3615,7 @@ dependencies = [
  "pallet-treasury",
  "pallet-utility 4.0.0-phala-dev",
  "pallet-vesting",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "phala-pallets",
@@ -3634,6 +3638,9 @@ dependencies = [
  "sp-version",
  "static_assertions",
  "substrate-wasm-builder",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
  "xtransfer-pallets",
 ]
 
