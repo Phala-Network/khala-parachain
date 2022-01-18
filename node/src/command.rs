@@ -106,7 +106,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             "rhala" => Box::new(chain_spec::rhala::ChainSpec::from_json_file(path.into())?),
             #[cfg(feature = "thala-native")]
             "thala" => Box::new(chain_spec::thala::ChainSpec::from_json_file(path.into())?),
-            _ => return Err("`id` must starts with a known runtime name!".to_string()),
+            _ => return Err("`chain` must starts with a known runtime name!".to_string()),
         };
         return Ok(parsed);
     }
@@ -114,13 +114,13 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     let mut normalized_id: VecDeque<&str> = id.split("-").collect();
     if normalized_id.len() > 3 {
         return Err(
-            "ParaId pattern must be runtime_name-environment-para_id or runtime_name-para_id"
+            "ParaId pattern must be runtime_name-profile-para_id or runtime_name-para_id"
                 .into(),
         );
     }
 
     let runtime_name = normalized_id.pop_front().expect("Never empty");
-    let environment = normalized_id.pop_front().ok_or("Environment skipped");
+    let profile = normalized_id.pop_front().ok_or("Profile skipped");
     let para_id = normalized_id
         .pop_front()
         .map(|id| id.parse::<u32>().or(Err("No parachain id")))
@@ -128,15 +128,22 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         .ok_or("Must specify parachain id");
     drop(normalized_id);
 
+    info!(
+        "Load native runtime: {}, profile: {}, para-id: {}",
+        runtime_name,
+        profile.unwrap_or("(Not Provide)"),
+        para_id.unwrap_or(0)
+    );
+
     #[cfg(feature = "phala-native")]
     if runtime_name == "phala" {
-        if environment.is_err() && para_id.is_err() {
+        if profile.is_err() && para_id.is_err() {
             return Ok(Box::new(chain_spec::phala::ChainSpec::from_json_bytes(
                 &include_bytes!("../res/phala.json")[..],
             )?));
         }
 
-        return match environment? {
+        return match profile? {
             "dev" => Ok(Box::new(chain_spec::phala::development_config(
                 para_id?.into(),
             ))),
@@ -144,7 +151,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
                 para_id?.into(),
             ))),
             "staging" => Ok(Box::new(chain_spec::phala::staging_config())),
-            other => Err(format!("Unsupported environment {} for Phala", other)),
+            other => Err(format!("Unknown profile {} for Phala", other)),
         };
     }
     #[cfg(not(feature = "phala-native"))]
@@ -154,13 +161,13 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 
     #[cfg(feature = "khala-native")]
     if runtime_name == "khala" {
-        if environment.is_err() && para_id.is_err() {
+        if profile.is_err() && para_id.is_err() {
             return Ok(Box::new(chain_spec::khala::ChainSpec::from_json_bytes(
                 &include_bytes!("../res/khala.json")[..],
             )?));
         }
 
-        return match environment? {
+        return match profile? {
             "dev" => Ok(Box::new(chain_spec::khala::development_config(
                 para_id?.into(),
             ))),
@@ -168,24 +175,24 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
                 para_id?.into(),
             ))),
             "staging" => Ok(Box::new(chain_spec::khala::staging_config())),
-            other => Err(format!("Unsupported environment {} for Khala", other)),
+            other => Err(format!("Unknown profile {} for Khala", other)),
         };
     }
     #[cfg(not(feature = "khala-native"))]
     if runtime_name == "khala" {
-        return Err(format!("`{}` only supported with `rhala-native` feature enabled.", id))
+        return Err(format!("`{}` only supported with `khala-native` feature enabled.", id))
     }
 
     #[cfg(feature = "rhala-native")]
     if runtime_name == "rhala" {
         // TODO: Export when we preparing for Rococo
-        // if environment.is_err() && para_id.is_err() {
-        //     return Ok(Box::new(chain_spec::khala::ChainSpec::from_json_bytes(
+        // if profile.is_err() && para_id.is_err() {
+        //     return Ok(Box::new(chain_spec::rhala::ChainSpec::from_json_bytes(
         //         &include_bytes!("../res/rhala.json")[..],
         //     )?));
         // }
 
-        return match environment? {
+        return match profile? {
             "dev" => Ok(Box::new(chain_spec::rhala::development_config(
                 para_id?.into(),
             ))),
@@ -193,7 +200,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
                 para_id?.into(),
             ))),
             "staging" => Ok(Box::new(chain_spec::rhala::staging_config())),
-            other => Err(format!("Unsupported environment {} for Rhala", other)),
+            other => Err(format!("Unknown profile {} for Rhala", other)),
         };
     }
     #[cfg(not(feature = "rhala-native"))]
@@ -203,12 +210,12 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 
     #[cfg(feature = "thala-native")]
     if runtime_name == "thala" {
-        return match environment? {
+        return match profile? {
             "dev" => Ok(Box::new(chain_spec::thala::development_config(
                 para_id?.into(),
             ))),
             "local" => Ok(Box::new(chain_spec::thala::local_config(para_id?.into()))),
-            other => Err(format!("Unsupported environment {} for Thala", other)),
+            other => Err(format!("Unknown profile {} for Thala", other)),
         };
     }
     #[cfg(not(feature = "thala-native"))]
@@ -219,7 +226,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 
     Err(format!(
         "Invalid `--chain` arg. \
-            give exported chain-spec or follow pattern: runtime-environment-para_id"
+            give exported chain-spec or follow pattern: runtime-profile-para_id"
     ))
 }
 
