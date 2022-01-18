@@ -3499,7 +3499,7 @@ dependencies = [
 
 [[package]]
 name = "khala-node"
-version = "0.1.9-1"
+version = "0.1.10"
 dependencies = [
  "async-trait",
  "cumulus-client-cli",
@@ -3569,7 +3569,7 @@ dependencies = [
 
 [[package]]
 name = "khala-parachain-runtime"
-version = "0.1.9-1"
+version = "0.1.10"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -6373,7 +6373,7 @@ dependencies = [
 
 [[package]]
 name = "phala-parachain-runtime"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
@@ -8167,7 +8167,7 @@ checksum = "448296241d034b96c11173591deaa1302f2c17b56092106c1f92c1bc0183a8c9"
 
 [[package]]
 name = "rhala-parachain-runtime"
-version = "0.1.9-1"
+version = "0.1.10"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -10825,7 +10825,7 @@ dependencies = [
 
 [[package]]
 name = "thala-parachain-runtime"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
