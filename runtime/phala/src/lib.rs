@@ -41,6 +41,8 @@ pub mod defaults;
 pub mod constants;
 use constants::{currency::*, fee::WeightToFee};
 
+mod migrations;
+
 use codec::{Decode, Encode, MaxEncodedLen};
 use sp_api::impl_runtime_apis;
 use sp_core::{
