@@ -104,11 +104,6 @@ impl bridge::Config for Test {
 	type ProposalLifetime = ProposalLifetime;
 }
 
-parameter_types! {
-	// First byte is 0x00, chain id of ethereum mainnet
-	pub const NativeTokenResourceId: [u8; 32] = hex!("0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844");
-}
-
 impl bridge_transfer::Config for Test {
 	type Event = Event;
 	type AssetsWrapper = AssetsWrapper;
@@ -116,7 +111,6 @@ impl bridge_transfer::Config for Test {
 	type BridgeOrigin = bridge::EnsureBridge<Test>;
 	type Currency = Balances;
 	type XcmTransactor = ();
-	type NativeTokenResourceId = NativeTokenResourceId;
 	type OnFeePay = ();
 }
 
