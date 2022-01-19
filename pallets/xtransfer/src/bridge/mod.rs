@@ -264,10 +264,6 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn resources)]
-	pub type Resources<T> = StorageMap<_, Blake2_256, ResourceId, Vec<u8>>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn bridge_events)]
 	pub type BridgeEvents<T> = StorageValue<_, Vec<BridgeEvent>, ValueQuery>;
 
@@ -294,35 +290,6 @@ pub mod pallet {
 		pub fn set_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
 			Self::set_relayer_threshold(threshold)
-		}
-
-		/// Stores a method name on chain under an associated resource ID.
-		///
-		/// # <weight>
-		/// - O(1) write
-		/// # </weight>
-		#[pallet::weight(195_000_000)]
-		pub fn set_resource(
-			origin: OriginFor<T>,
-			id: ResourceId,
-			method: Vec<u8>,
-		) -> DispatchResult {
-			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
-			Self::register_resource(id, method)
-		}
-
-		/// Removes a resource ID from the resource mapping.
-		///
-		/// After this call, bridge transfers with the associated resource ID will
-		/// be rejected.
-		///
-		/// # <weight>
-		/// - O(1) removal
-		/// # </weight>
-		#[pallet::weight(195_000_000)]
-		pub fn remove_resource(origin: OriginFor<T>, id: ResourceId) -> DispatchResult {
-			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
-			Self::unregister_resource(id)
 		}
 
 		/// Enables a chain ID as a source or destination for a bridge transfer.
@@ -374,7 +341,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			nonce: DepositNonce,
 			src_id: BridgeChainId,
-			r_id: ResourceId,
+			_r_id: ResourceId,
 			call: Box<<T as Config>::Proposal>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -382,10 +349,6 @@ pub mod pallet {
 			ensure!(
 				Self::chain_whitelisted(src_id),
 				Error::<T>::ChainNotWhitelisted
-			);
-			ensure!(
-				Self::resource_exists(r_id),
-				Error::<T>::ResourceDoesNotExist
 			);
 
 			Self::vote_for(who, nonce, src_id, call)
@@ -401,7 +364,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			nonce: DepositNonce,
 			src_id: BridgeChainId,
-			r_id: ResourceId,
+			_r_id: ResourceId,
 			call: Box<<T as Config>::Proposal>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -409,10 +372,6 @@ pub mod pallet {
 			ensure!(
 				Self::chain_whitelisted(src_id),
 				Error::<T>::ChainNotWhitelisted
-			);
-			ensure!(
-				Self::resource_exists(r_id),
-				Error::<T>::ResourceDoesNotExist
 			);
 
 			Self::vote_against(who, nonce, src_id, call)
@@ -456,11 +415,6 @@ pub mod pallet {
 			MODULE_ID.into_account()
 		}
 
-		/// Asserts if a resource is registered
-		pub fn resource_exists(id: ResourceId) -> bool {
-			Self::resources(id).is_some()
-		}
-
 		/// Checks if a chain exists as a whitelisted destination
 		pub fn chain_whitelisted(id: BridgeChainId) -> bool {
 			Self::chains(id).is_some()
@@ -480,18 +434,6 @@ pub mod pallet {
 			ensure!(threshold > 0, Error::<T>::InvalidThreshold);
 			RelayerThreshold::<T>::put(threshold);
 			Self::deposit_event(Event::RelayerThresholdChanged(threshold));
-			Ok(())
-		}
-
-		/// Register a method for a resource Id, enabling associated transfers
-		pub fn register_resource(id: ResourceId, method: Vec<u8>) -> DispatchResult {
-			Resources::<T>::insert(id, method);
-			Ok(())
-		}
-
-		/// Removes a resource ID, disabling associated transfer
-		pub fn unregister_resource(id: ResourceId) -> DispatchResult {
-			Resources::<T>::remove(id);
 			Ok(())
 		}
 
