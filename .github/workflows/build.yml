@@ -1,0 +1,27 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  cargo-tests:
+    name: Cargo test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2021-11-11
+          override: true
+          target: wasm32-unknown-unknown
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - name: Run cargo tests
+        run: cargo test --verbose --workspace
