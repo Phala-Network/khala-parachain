@@ -271,14 +271,14 @@ function dumpResourceId(khalaApi, soloChainId) {
 
 async function main() {
     // create khala api
-    const khalaEndpoint = process.env.ENDPOINT || 'ws://35.215.162.102:9944';
+    const khalaEndpoint = process.env.ENDPOINT || 'ws://localhost:9944';
     const khalaProvider = new WsProvider(khalaEndpoint);
     const khalaApi = await ApiPromise.create({
         provider: khalaProvider,
     });
 
     // create karura api
-    const karuraEndpoint = process.env.ENDPOINT || 'ws://35.215.162.102:9955';
+    const karuraEndpoint = process.env.ENDPOINT || 'ws://localhost:9955';
     const karuraProvider = new WsProvider(karuraEndpoint);
     const karuraApi = await ApiPromise.create({
         provider: karuraProvider,
