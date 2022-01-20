@@ -106,7 +106,7 @@ pub mod pallet {
 		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
 		pub fn transfer_asset(
 			origin: OriginFor<T>,
-			asset: pallet_assets_wrapper::XTransferAsset,
+			asset: Box<pallet_assets_wrapper::XTransferAsset>,
 			dest: MultiLocation,
 			amount: BalanceOf<T>,
 			dest_weight: Weight,
@@ -114,7 +114,7 @@ pub mod pallet {
 			let origin = T::ExecuteXcmOrigin::ensure_origin(origin)?;
 			// Get asset location by asset id
 			let asset_location: MultiLocation =
-				asset.try_into().map_err(|_| Error::<T>::AssetNotFound)?;
+				(*asset).try_into().map_err(|_| Error::<T>::AssetNotFound)?;
 			let multi_asset: MultiAsset = (asset_location, amount.into()).into();
 
 			Self::do_transfer_multiasset(origin, multi_asset, dest, dest_weight)

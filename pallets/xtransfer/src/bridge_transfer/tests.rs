@@ -587,7 +587,6 @@ fn create_successful_transfer_proposal() {
 		let prop_id = 1;
 		let src_id = 1;
 		let r_id = BridgeTransfer::gen_pha_rid(src_id);
-		let resource = b"BridgeTransfer.transfer".to_vec();
 		let relayer_location = MultiLocation::new(
 			0,
 			X1(AccountId32 {
