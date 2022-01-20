@@ -4,8 +4,8 @@ use crate::assets_wrapper::pallet::{AccountId32Conversion, GetAssetRegistryInfo,
 use crate::bridge;
 use crate::bridge_transfer::mock::{
 	assert_events, balances, expect_event, new_test_ext, Assets, AssetsWrapper, Balances, Bridge,
-	BridgeTransfer, Call, Event, NativeTokenResourceId, Origin, ProposalLifetime, Test, ALICE,
-	ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
+	BridgeTransfer, Call, Event, Origin, ProposalLifetime, Test, ALICE, ENDOWED_BALANCE, RELAYER_A,
+	RELAYER_B, RELAYER_C,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -14,8 +14,8 @@ use xcm::latest::prelude::*;
 
 const TEST_THRESHOLD: u32 = 2;
 
-fn make_transfer_proposal(dest: Vec<u8>, amount: u64) -> Call {
-	let resource_id = NativeTokenResourceId::get();
+fn make_transfer_proposal(dest: Vec<u8>, src_id: u8, amount: u64) -> Call {
+	let resource_id = BridgeTransfer::gen_pha_rid(src_id);
 	Call::BridgeTransfer(crate::bridge_transfer::Call::transfer {
 		dest,
 		amount: amount.into(),
@@ -324,7 +324,7 @@ fn transfer_assets_to_reserve() {
 fn transfer_native() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 0;
-		let resource_id = NativeTokenResourceId::get();
+		let resource_id = BridgeTransfer::gen_pha_rid(dest_chain);
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
@@ -368,7 +368,8 @@ fn simulate_transfer_pha_from_solochain() {
 	new_test_ext().execute_with(|| {
 		// Check inital state
 		let bridge_account = Bridge::account_id();
-		let resource_id = NativeTokenResourceId::get();
+		let src_chainid = 0;
+		let resource_id = BridgeTransfer::gen_pha_rid(src_chainid);
 		assert_eq!(Balances::free_balance(&bridge_account), ENDOWED_BALANCE);
 		let relayer_location = MultiLocation::new(
 			0,
@@ -585,8 +586,7 @@ fn create_successful_transfer_proposal() {
 	new_test_ext().execute_with(|| {
 		let prop_id = 1;
 		let src_id = 1;
-		let r_id = NativeTokenResourceId::get();
-		let resource = b"BridgeTransfer.transfer".to_vec();
+		let r_id = BridgeTransfer::gen_pha_rid(src_id);
 		let relayer_location = MultiLocation::new(
 			0,
 			X1(AccountId32 {
@@ -594,14 +594,13 @@ fn create_successful_transfer_proposal() {
 				id: RELAYER_A.into(),
 			}),
 		);
-		let proposal = make_transfer_proposal(relayer_location.encode(), 10);
+		let proposal = make_transfer_proposal(relayer_location.encode(), src_id, 10);
 
 		assert_ok!(Bridge::set_threshold(Origin::root(), TEST_THRESHOLD,));
 		assert_ok!(Bridge::add_relayer(Origin::root(), RELAYER_A));
 		assert_ok!(Bridge::add_relayer(Origin::root(), RELAYER_B));
 		assert_ok!(Bridge::add_relayer(Origin::root(), RELAYER_C));
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), src_id));
-		assert_ok!(Bridge::set_resource(Origin::root(), r_id, resource));
 
 		// Create proposal (& vote)
 		assert_ok!(Bridge::acknowledge_proposal(

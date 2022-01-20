@@ -12,7 +12,7 @@ pub mod pallet {
 	use xcm::latest::{prelude::*, MultiLocation};
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
-	pub struct XTransferAsset(MultiLocation);
+	pub struct XTransferAsset(pub MultiLocation);
 
 	// Const used to indicate chainbridge assets. str "cb"
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];

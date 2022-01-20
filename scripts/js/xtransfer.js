@@ -201,7 +201,7 @@ async function transferAssetsKhalaAccounts(khalaApi, sender, recipient, amount) 
 // simulate EVM => Khala, call Bridge.Deposit()
 async function transferPhaFromEvmToKhala(khalaApi, bridge, sender, recipient, amount) {
     let khalaChainId = 1;
-    let phaResourceId = '0x0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844';
+    let phaResourceId = '0x00e6dfb61a2fb903df487c401663825643bb825d41695e63df8af6162ab145a6';
     // dest is not Account public key any more.
     let dest = khalaApi.createType('XcmV1MultiLocation', {
         // parents = 0 means we send to xcm local network(e.g. Khala network here)
@@ -221,13 +221,15 @@ async function transferPhaFromEvmToKhala(khalaApi, bridge, sender, recipient, am
         ethers.utils.hexZeroPad(ethers.utils.hexlify((dest.length - 2)/2), 32).substr(2) +
         dest.substr(2);
 
-    await bridge.deposit(khalaChainId, phaResourceId, data);
+    const tx = await bridge.deposit(khalaChainId, phaResourceId, data);
+    console.log(`Transfer PHA from EVM to Khala: ${tx.hash}`);
+
 }
 
 // simulate EVM => Khala => Karura, call Bridge.Deposit()
 async function transferPhaFromEvmToKarura(khalaApi, bridge, sender, recipient, amount) {
     let khalaChainId = 1;
-    let phaResourceId = '0x0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844';
+    let phaResourceId = '0x00e6dfb61a2fb903df487c401663825643bb825d41695e63df8af6162ab145a6';
     let dest = khalaApi.createType('XcmV1MultiLocation', {
         // parents = 1 means we wanna send to other parachains or relaychain
         parents: 1,
@@ -254,14 +256,10 @@ async function transferPhaFromEvmToKarura(khalaApi, bridge, sender, recipient, a
 }
 
 function dumpResourceId(khalaApi, soloChainId) {
-    // PHA resourceId: 0x0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844
+    // PHA resourceId: 0x00e6dfb61a2fb903df487c401663825643bb825d41695e63df8af6162ab145a6
     let pha = khalaApi.createType('XcmV1MultiLocation', {
-        parents: 1,
-        interior: khalaApi.createType('Junctions', {
-            X1: khalaApi.createType('XcmV1Junction', {
-                    Parachain: khalaApi.createType('Compact<U32>', khalaParaId)
-                })
-        })
+        parents: 0,
+        interior: khalaApi.createType('Junctions', "Here")
     }).toHex();
 
     let u8arid = blake2AsU8a(pha);

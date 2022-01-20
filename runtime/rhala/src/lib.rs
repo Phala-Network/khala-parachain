@@ -1166,11 +1166,6 @@ impl pallet_bridge::Config for Runtime {
     type ProposalLifetime = ProposalLifetime;
 }
 
-parameter_types! {
-    // bridge::derive_resource_id(1, &bridge::hashing::blake2_128(b"PHA"));
-    pub const NativeTokenResourceId: [u8; 32] = hex_literal::hex!("00000000000000000000000000000063a7e2be78898ba83824b0c0cc8dfb6001");
-}
-
 impl pallet_bridge_transfer::Config for Runtime {
     type Event = Event;
     type AssetsWrapper = AssetsWrapper;
@@ -1178,7 +1173,6 @@ impl pallet_bridge_transfer::Config for Runtime {
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
     type XcmTransactor = ();
-    type NativeTokenResourceId = NativeTokenResourceId;
     type OnFeePay = Treasury;
 }
 

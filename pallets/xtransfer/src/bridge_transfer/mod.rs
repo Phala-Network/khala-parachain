@@ -70,10 +70,6 @@ pub mod pallet {
 		/// XCM transactor
 		type XcmTransactor: XcmTransact<Self>;
 
-		/// PHA resource id
-		#[pallet::constant]
-		type NativeTokenResourceId: Get<ResourceId>;
-
 		/// The handler to absorb the fee.
 		type OnFeePay: OnUnbalanced<NegativeImbalanceOf<Self>>;
 	}
@@ -271,7 +267,7 @@ pub mod pallet {
 
 			<bridge::Pallet<T>>::transfer_fungible(
 				dest_id,
-				T::NativeTokenResourceId::get(),
+				Self::gen_pha_rid(dest_id),
 				recipient,
 				U256::from(amount.saturated_into::<u128>()),
 			)
@@ -291,12 +287,13 @@ pub mod pallet {
 		) -> DispatchResult {
 			let bridge_account = T::BridgeOrigin::ensure_origin(origin.clone())?;
 			// For solo chain assets, we encode solo chain id as the first byte of resourceId
-			let src_id: u128 = rid[0]
-				.try_into()
-				.expect("Convert from chain id to u128 must be ok; qed.");
+			let src_chainid: bridge::BridgeChainId = Self::get_chainid(&rid);
 			let src_reserve_location: MultiLocation = (
 				0,
-				X2(GeneralKey(CB_ASSET_KEY.to_vec()), GeneralIndex(src_id)),
+				X2(
+					GeneralKey(CB_ASSET_KEY.to_vec()),
+					GeneralIndex(src_chainid as u128),
+				),
 			)
 				.into();
 
@@ -327,7 +324,7 @@ pub mod pallet {
 			// Note: If we received asset send from its reserve chain, we just need
 			// mint the same amount of asset at local
 			if asset_reserve_location != src_reserve_location {
-				if rid == T::NativeTokenResourceId::get() {
+				if rid == Self::gen_pha_rid(src_chainid) {
 					// ERC20 PHA save reserved assets in bridge account
 					let _imbalance = <T as Config>::Currency::withdraw(
 						&bridge_account,
@@ -358,7 +355,7 @@ pub mod pallet {
 			match (dest_location.parents, &dest_location.interior) {
 				// To local account
 				(0, &X1(AccountId32 { network: _, id })) => {
-					if rid == T::NativeTokenResourceId::get() {
+					if rid == Self::gen_pha_rid(src_chainid) {
 						// ERC20 PHA transfer
 						<T as Config>::Currency::deposit_creating(&id.into(), amount);
 					} else {
@@ -383,7 +380,7 @@ pub mod pallet {
 							target: LOG_TARGET,
 							"Reserve of asset and dest dismatch, deposit asset to dest reserve location.",
 						);
-						if rid == T::NativeTokenResourceId::get() {
+						if rid == Self::gen_pha_rid(src_chainid) {
 							<T as Config>::Currency::deposit_creating(
 								&dest_reserve_account.clone().into(),
 								amount,
@@ -449,7 +446,8 @@ pub mod pallet {
 		}
 
 		pub fn rid_to_location(rid: &[u8; 32]) -> Result<MultiLocation, DispatchError> {
-			let asset_location: MultiLocation = if *rid == T::NativeTokenResourceId::get() {
+			let src_chainid: bridge::BridgeChainId = Self::get_chainid(rid);
+			let asset_location: MultiLocation = if *rid == Self::gen_pha_rid(src_chainid) {
 				MultiLocation::here()
 			} else {
 				let xtransfer_asset: XTransferAsset = T::AssetsWrapper::lookup_by_resource_id(&rid)
@@ -462,8 +460,9 @@ pub mod pallet {
 		pub fn rid_to_assetid(
 			rid: &[u8; 32],
 		) -> Result<<T as pallet_assets::Config>::AssetId, DispatchError> {
+			let src_chainid: bridge::BridgeChainId = Self::get_chainid(rid);
 			// PHA based on pallet_balances, not pallet_assets
-			if *rid == T::NativeTokenResourceId::get() {
+			if *rid == Self::gen_pha_rid(src_chainid) {
 				return Err(Error::<T>::AssetNotRegistered.into());
 			}
 			let xtransfer_asset: XTransferAsset = T::AssetsWrapper::lookup_by_resource_id(&rid)
@@ -471,6 +470,14 @@ pub mod pallet {
 			let asset_id: <T as pallet_assets::Config>::AssetId =
 				T::AssetsWrapper::id(&xtransfer_asset).ok_or(Error::<T>::AssetNotRegistered)?;
 			Ok(asset_id)
+		}
+
+		pub fn gen_pha_rid(chain_id: bridge::BridgeChainId) -> bridge::ResourceId {
+			XTransferAsset(MultiLocation::here()).into_rid(chain_id)
+		}
+
+		pub fn get_chainid(rid: &bridge::ResourceId) -> bridge::BridgeChainId {
+			rid[0]
 		}
 	}
 }

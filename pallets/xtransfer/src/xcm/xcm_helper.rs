@@ -247,11 +247,22 @@ pub mod xcm_helper {
 						}
 					}
 
+					// Currently, we use chainbridge forwards transfer to solo chain, which use resource id
+					// to indicate an asset.
+					//
+					// When asset is native token, e.g. PHA, we need transfer the location to MultiLocation::here()
+					// from (1, X1(Parachain(id))) to match resource id registered in solo chains.
+					let rid = if NativeChecker::is_native_asset(what) {
+						XTransferAsset(MultiLocation::here()).into_rid(dest_id)
+					} else {
+						xtransfer_asset.into_rid(dest_id)
+					};
+
 					// This operation will not do real transfer, it just emits FungibleTransfer event
 					// to notify relayers submit proposal to our bridge contract that deployed on EVM chains.
 					BridgeTransactor::transfer_fungible(
 						dest_id,
-						xtransfer_asset.into_rid(dest_id),
+						rid,
 						recipient.to_vec(),
 						U256::from(amount),
 					)
