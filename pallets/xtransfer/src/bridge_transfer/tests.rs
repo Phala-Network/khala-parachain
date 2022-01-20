@@ -15,7 +15,7 @@ use xcm::latest::prelude::*;
 const TEST_THRESHOLD: u32 = 2;
 
 fn make_transfer_proposal(dest: Vec<u8>, src_id: u8, amount: u64) -> Call {
-	let resource_id = BridgeTransfer::get_pha_rid(src_id);
+	let resource_id = BridgeTransfer::gen_pha_rid(src_id);
 	Call::BridgeTransfer(crate::bridge_transfer::Call::transfer {
 		dest,
 		amount: amount.into(),
@@ -324,7 +324,7 @@ fn transfer_assets_to_reserve() {
 fn transfer_native() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 0;
-		let resource_id = BridgeTransfer::get_pha_rid(dest_chain);
+		let resource_id = BridgeTransfer::gen_pha_rid(dest_chain);
 		let amount: u64 = 100;
 		let recipient = vec![99];
 
@@ -369,7 +369,7 @@ fn simulate_transfer_pha_from_solochain() {
 		// Check inital state
 		let bridge_account = Bridge::account_id();
 		let src_chainid = 0;
-		let resource_id = BridgeTransfer::get_pha_rid(src_chainid);
+		let resource_id = BridgeTransfer::gen_pha_rid(src_chainid);
 		assert_eq!(Balances::free_balance(&bridge_account), ENDOWED_BALANCE);
 		let relayer_location = MultiLocation::new(
 			0,
@@ -586,7 +586,7 @@ fn create_successful_transfer_proposal() {
 	new_test_ext().execute_with(|| {
 		let prop_id = 1;
 		let src_id = 1;
-		let r_id = BridgeTransfer::get_pha_rid(src_id);
+		let r_id = BridgeTransfer::gen_pha_rid(src_id);
 		let resource = b"BridgeTransfer.transfer".to_vec();
 		let relayer_location = MultiLocation::new(
 			0,
