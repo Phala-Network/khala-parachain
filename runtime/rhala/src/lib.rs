@@ -39,7 +39,7 @@ pub mod defaults;
 
 // Constant values used within the runtime.
 pub mod constants;
-use constants::{currency::*, fee::WeightToFee};
+use constants::{currency::*, fee::{pha_per_second, WeightToFee}};
 
 mod msg_routing;
 mod migrations;
@@ -99,7 +99,7 @@ pub use parachains_common::*;
 
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
 
-pub use xtransfer_pallets::{pallet_assets_wrapper, pallet_bridge, pallet_bridge_transfer};
+pub use xtransfer_pallets::{pallet_assets_wrapper, pallet_bridge, pallet_bridge_transfer, xcm_helper};
 
 #[cfg(any(feature = "std", test))]
 pub use frame_system::Call as SystemCall;
@@ -1156,6 +1156,7 @@ impl pallet_collator_selection::Config for Runtime {
 parameter_types! {
     pub const BridgeChainId: u8 = 1;
     pub const ProposalLifetime: BlockNumber = 50400; // ~7 days
+    pub NativeExecutionPrice: u128 = pha_per_second();
 }
 
 impl pallet_bridge::Config for Runtime {
@@ -1174,6 +1175,9 @@ impl pallet_bridge_transfer::Config for Runtime {
     type Currency = Balances;
     type XcmTransactor = ();
     type OnFeePay = Treasury;
+    type NativeChecker = xcm_helper::NativeAssetFilter<ParachainInfo>;
+    type NativeExecutionPrice = NativeExecutionPrice;
+    type ExecutionPriceInfo = ();
 }
 
 pub struct MqCallMatcher;

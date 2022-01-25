@@ -282,6 +282,9 @@ impl Config for XcmConfig {
 		FungiblesTransactor,
 		xcm_helper::NativeAssetFilter<ParachainInfo>,
 		(),
+		(),
+		AccountId,
+		(),
 	>;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;

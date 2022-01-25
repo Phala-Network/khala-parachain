@@ -1,6 +1,8 @@
 #![cfg(test)]
 
-use frame_support::{ord_parameter_types, parameter_types, weights::Weight, PalletId};
+use frame_support::{
+	ord_parameter_types, parameter_types, traits::GenesisBuild, weights::Weight, PalletId,
+};
 use frame_system::{self as system};
 use sp_core::H256;
 use sp_runtime::{
@@ -12,6 +14,7 @@ use sp_runtime::{
 use crate::bridge_transfer;
 use crate::pallet_assets_wrapper;
 use crate::pallet_bridge as bridge;
+use crate::xcm_helper::NativeAssetFilter;
 pub use pallet_balances as balances;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -32,6 +35,7 @@ frame_support::construct_runtime!(
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
 		AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>},
+		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config},
 	}
 );
 
@@ -111,6 +115,9 @@ impl bridge_transfer::Config for Test {
 	type Currency = Balances;
 	type XcmTransactor = ();
 	type OnFeePay = ();
+	type NativeChecker = NativeAssetFilter<ParachainInfo>;
+	type NativeExecutionPrice = ();
+	type ExecutionPriceInfo = ();
 }
 
 parameter_types! {
@@ -150,6 +157,8 @@ impl pallet_timestamp::Config for Test {
 	type WeightInfo = ();
 }
 
+impl pallet_parachain_info::Config for Test {}
+
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
 pub const RELAYER_A: AccountId32 = AccountId32::new([1u8; 32]);
 pub const RELAYER_B: AccountId32 = AccountId32::new([2u8; 32]);
@@ -161,6 +170,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<Test>()
 		.unwrap();
+	let parachain_info_config = pallet_parachain_info::GenesisConfig {
+		parachain_id: 2004.into(),
+	};
+	<pallet_parachain_info::GenesisConfig as GenesisBuild<Test, _>>::assimilate_storage(
+		&parachain_info_config,
+		&mut t,
+	)
+	.unwrap();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
 			(bridge_account, ENDOWED_BALANCE),

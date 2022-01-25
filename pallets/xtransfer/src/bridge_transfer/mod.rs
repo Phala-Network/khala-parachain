@@ -25,11 +25,14 @@ pub mod pallet {
 	use crate::bridge;
 	use crate::bridge::pallet::BridgeTransact;
 	use crate::xcm::xcm_transfer::pallet::XcmTransact;
+	use crate::xcm_helper::NativeAssetChecker;
 	use frame_system::pallet_prelude::*;
 	use sp_arithmetic::traits::SaturatedConversion;
 	use sp_core::U256;
 	use sp_std::prelude::*;
-	use xcm::latest::{prelude::*, MultiLocation};
+	use xcm::latest::{
+		prelude::*, AssetId as XcmAssetId, Fungibility::Fungible, MultiAsset, MultiLocation,
+	};
 
 	type ResourceId = bridge::ResourceId;
 
@@ -72,6 +75,15 @@ pub mod pallet {
 
 		/// The handler to absorb the fee.
 		type OnFeePay: OnUnbalanced<NegativeImbalanceOf<Self>>;
+
+		/// Check whether an asset is PHA
+		type NativeChecker: NativeAssetChecker;
+
+		/// Execution price in PHA
+		type NativeExecutionPrice: Get<u128>;
+
+		/// Execution price information
+		type ExecutionPriceInfo: Get<Vec<(XcmAssetId, u128)>>;
 	}
 
 	#[pallet::event]
@@ -183,7 +195,7 @@ pub mod pallet {
 				Error::<T>::InsufficientBalance
 			);
 
-			let fee = Self::calculate_fee(dest_id, amount);
+			let fee = Self::estimate_fee_in_pha(dest_id, amount);
 			// Check native balance to cover fee
 			let native_free_balance = <T as Config>::Currency::free_balance(&sender);
 			ensure!(native_free_balance >= fee, Error::<T>::InsufficientBalance);
@@ -244,7 +256,7 @@ pub mod pallet {
 				BridgeFee::<T>::contains_key(&dest_id),
 				Error::<T>::FeeOptionsMissing
 			);
-			let fee = Self::calculate_fee(dest_id, amount);
+			let fee = Self::estimate_fee_in_pha(dest_id, amount);
 			let free_balance = <T as Config>::Currency::free_balance(&sender);
 			ensure!(
 				free_balance >= (amount + fee),
@@ -435,7 +447,10 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		// TODO.wf: A more proper way to estimate fee
-		pub fn calculate_fee(dest_id: bridge::BridgeChainId, amount: BalanceOf<T>) -> BalanceOf<T> {
+		pub fn estimate_fee_in_pha(
+			dest_id: bridge::BridgeChainId,
+			amount: BalanceOf<T>,
+		) -> BalanceOf<T> {
 			let (min_fee, fee_scale) = Self::bridge_fee(dest_id);
 			let fee_estimated = amount * fee_scale.into() / 1000u32.into();
 			if fee_estimated > min_fee {
@@ -481,12 +496,44 @@ pub mod pallet {
 		}
 	}
 
-	pub trait GetBridgeFee<T: Config> {
-		fn get_fee(chain_id: &bridge::BridgeChainId) -> (BalanceOf<T>, u32);
+	pub trait GetBridgeFee {
+		fn get_fee(chain_id: bridge::BridgeChainId, asset: &MultiAsset) -> Option<u128>;
 	}
-	impl<T: Config> GetBridgeFee<T> for Pallet<T> {
-		fn get_fee(chain_id: &bridge::BridgeChainId) -> (BalanceOf<T>, u32) {
-			BridgeFee::<T>::get(&chain_id)
+	impl<T: Config> GetBridgeFee for Pallet<T>
+	where
+		BalanceOf<T>: From<u128> + Into<u128>,
+	{
+		fn get_fee(chain_id: bridge::BridgeChainId, asset: &MultiAsset) -> Option<u128> {
+			return match (&asset.id, &asset.fun) {
+				(Concrete(asset_id), Fungible(amount)) => {
+					let fee_estimated_in_pha =
+						Self::estimate_fee_in_pha(chain_id, (*amount).into());
+					if T::NativeChecker::is_native_asset(asset) {
+						Some(fee_estimated_in_pha.into())
+					} else {
+						let fee_in_asset;
+						let fee_prices = T::ExecutionPriceInfo::get();
+						if let Some(idx) = fee_prices.iter().position(|(fee_asset_id, _)| {
+							fee_asset_id == &Concrete(asset_id.clone())
+						}) {
+							fee_in_asset = Some(
+								fee_estimated_in_pha.into() * fee_prices[idx].1
+									/ T::NativeExecutionPrice::get(),
+							)
+						} else {
+							fee_in_asset = None
+						}
+						fee_in_asset
+					}
+				}
+				_ => None,
+			};
+		}
+	}
+
+	impl GetBridgeFee for () {
+		fn get_fee(_chain_id: bridge::BridgeChainId, _asset: &MultiAsset) -> Option<u128> {
+			Some(0)
 		}
 	}
 }

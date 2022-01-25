@@ -899,13 +899,14 @@ parameter_types! {
         pha_per_second()
     );
 
-    pub FeePrices = [
-        ExecutionPriceInKSM,
-        ExecutionPriceInPHA,
-        ExecutionPriceInKAR,
-        ExecutionPriceInBNC,
-        ExecutionPriceInVKSM,
-    ];
+    pub NativeExecutionPrice: u128 = pha_per_second();
+    pub ExecutionPrices: Vec<(AssetId, u128)> = [
+        ExecutionPriceInKSM::get(),
+        ExecutionPriceInPHA::get(),
+        ExecutionPriceInKAR::get(),
+        ExecutionPriceInBNC::get(),
+        ExecutionPriceInVKSM::get(),
+    ].to_vec().into();
 
     pub FeeAssets: MultiAssets = [
         KSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
@@ -932,7 +933,8 @@ impl Config for XcmConfig {
         xcm_helper::NativeAssetFilter<ParachainInfo>,
         ChainBridge,
         BridgeTransfer,
-        FeePrices,
+        AccountId,
+        KhalaTreasuryAccount,
     >;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = xcm_helper::AssetOriginFilter;
@@ -1362,6 +1364,9 @@ impl pallet_bridge_transfer::Config for Runtime {
     type Currency = Balances;
     type XcmTransactor = XcmTransfer;
     type OnFeePay = Treasury;
+    type NativeChecker = xcm_helper::NativeAssetFilter<ParachainInfo>;
+    type NativeExecutionPrice = NativeExecutionPrice;
+    type ExecutionPriceInfo = ExecutionPrices;
 }
 
 pub struct MqCallMatcher;
