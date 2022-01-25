@@ -84,6 +84,9 @@ pub mod pallet {
 
 		/// Execution price information
 		type ExecutionPriceInfo: Get<Vec<(XcmAssetId, u128)>>;
+
+		/// Treasury account to receive assets fee
+		type TreasuryAccount: Get<Self::AccountId>;
 	}
 
 	#[pallet::event]
@@ -101,6 +104,7 @@ pub mod pallet {
 		AssetConversionFailed,
 		AssetNotRegistered,
 		FeeOptionsMissing,
+		CannotPayAsFee,
 		InvalidDestination,
 		InvalidFeeOption,
 		InsufficientBalance,
@@ -120,7 +124,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T>
 	where
 		<T as frame_system::Config>::AccountId: From<[u8; 32]> + Into<[u8; 32]>,
-		BalanceOf<T>: Into<u128>,
+		BalanceOf<T>: Into<u128> + From<u128>,
 	{
 		/// Change extra bridge transfer fee that user should pay
 		#[pallet::weight(195_000_000)]
@@ -195,23 +199,29 @@ pub mod pallet {
 				Error::<T>::InsufficientBalance
 			);
 
-			let fee = Self::estimate_fee_in_pha(dest_id, amount);
-			// Check native balance to cover fee
-			let native_free_balance = <T as Config>::Currency::free_balance(&sender);
-			ensure!(native_free_balance >= fee, Error::<T>::InsufficientBalance);
+			let fee = Self::get_fee(
+				dest_id,
+				&(Concrete(asset.clone().into()), Fungible(amount.into())).into(),
+			)
+			.ok_or(Error::<T>::CannotPayAsFee)?;
+			// Check asset balance to cover fee
+			ensure!(amount > fee.into(), Error::<T>::InsufficientBalance);
 
-			// Pay fee to treasury
-			let imbalance = <T as Config>::Currency::withdraw(
-				&sender,
-				fee,
-				WithdrawReasons::FEE,
-				ExistenceRequirement::AllowDeath,
-			)?;
-			T::OnFeePay::on_unbalanced(imbalance);
-
-			let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
+			// Transfer asset fee from sender to treasury account
+			let fee_amount = T::BalanceConverter::to_asset_balance(fee.into(), asset_id)
 				.map_err(|_| Error::<T>::BalanceConversionFailed)?;
+			<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
+				asset_id,
+				&sender,
+				&T::TreasuryAccount::get(),
+				fee_amount,
+				false,
+			)
+			.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 
+			let remain_asset = amount - fee.into();
+			let asset_amount = T::BalanceConverter::to_asset_balance(remain_asset, asset_id)
+				.map_err(|_| Error::<T>::BalanceConversionFailed)?;
 			if asset_reserve_location == dest_reserve_location {
 				// Burn if transfer back to its reserve location
 				pallet_assets::pallet::Pallet::<T>::burn_from(asset_id, &sender, asset_amount)
@@ -233,7 +243,7 @@ pub mod pallet {
 				dest_id,
 				rid,
 				recipient,
-				U256::from(amount.saturated_into::<u128>()),
+				U256::from((remain_asset).saturated_into::<u128>()),
 			)
 		}
 

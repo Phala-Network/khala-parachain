@@ -238,7 +238,7 @@ pub mod xcm_helper {
 					let fee = BridgeFeeInfo::get_fee(dest_id, what)
 						.ok_or(XcmError::FailedToTransactAsset("FailedGetFee"))?;
 					ensure!(
-						amount >= fee,
+						amount > fee,
 						XcmError::FailedToTransactAsset("Insufficient")
 					);
 					let fee_asset: MultiAsset = (location.clone(), fee).into();

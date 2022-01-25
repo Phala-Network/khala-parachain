@@ -1178,6 +1178,7 @@ impl pallet_bridge_transfer::Config for Runtime {
     type NativeChecker = xcm_helper::NativeAssetFilter<ParachainInfo>;
     type NativeExecutionPrice = NativeExecutionPrice;
     type ExecutionPriceInfo = ();
+    type TreasuryAccount = ();
 }
 
 pub struct MqCallMatcher;

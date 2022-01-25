@@ -20,7 +20,7 @@ pub use pallet_balances as balances;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
-pub(crate) type Balance = u64;
+pub(crate) type Balance = u128;
 
 frame_support::construct_runtime!(
 	pub enum Test where
@@ -63,7 +63,7 @@ impl frame_system::Config for Test {
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = ();
 	type Version = ();
-	type AccountData = pallet_balances::AccountData<u64>;
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
@@ -75,7 +75,7 @@ impl frame_system::Config for Test {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
+	pub const ExistentialDeposit: Balance = 1;
 }
 
 ord_parameter_types! {
@@ -118,6 +118,7 @@ impl bridge_transfer::Config for Test {
 	type NativeChecker = NativeAssetFilter<ParachainInfo>;
 	type NativeExecutionPrice = ();
 	type ExecutionPriceInfo = ();
+	type TreasuryAccount = ();
 }
 
 parameter_types! {
@@ -163,7 +164,7 @@ pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
 pub const RELAYER_A: AccountId32 = AccountId32::new([1u8; 32]);
 pub const RELAYER_B: AccountId32 = AccountId32::new([2u8; 32]);
 pub const RELAYER_C: AccountId32 = AccountId32::new([3u8; 32]);
-pub const ENDOWED_BALANCE: u64 = 100_000_000;
+pub const ENDOWED_BALANCE: Balance = 100_000_000;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let bridge_account = PalletId(*b"phala/bg").into_account();
@@ -171,7 +172,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		.build_storage::<Test>()
 		.unwrap();
 	let parachain_info_config = pallet_parachain_info::GenesisConfig {
-		parachain_id: 2004.into(),
+		parachain_id: 2004u32.into(),
 	};
 	<pallet_parachain_info::GenesisConfig as GenesisBuild<Test, _>>::assimilate_storage(
 		&parachain_info_config,
