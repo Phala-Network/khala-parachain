@@ -899,6 +899,14 @@ parameter_types! {
         pha_per_second()
     );
 
+    pub FeePrices = [
+        ExecutionPriceInKSM,
+        ExecutionPriceInPHA,
+        ExecutionPriceInKAR,
+        ExecutionPriceInBNC,
+        ExecutionPriceInVKSM,
+    ];
+
     pub FeeAssets: MultiAssets = [
         KSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         PHAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
@@ -923,6 +931,8 @@ impl Config for XcmConfig {
         FungiblesTransactor,
         xcm_helper::NativeAssetFilter<ParachainInfo>,
         ChainBridge,
+        BridgeTransfer,
+        FeePrices,
     >;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = xcm_helper::AssetOriginFilter;

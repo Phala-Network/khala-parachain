@@ -2,6 +2,7 @@ pub use self::xcm_helper::*;
 
 pub mod xcm_helper {
 	use crate::bridge::pallet::{BridgeChainId, BridgeTransact};
+    use crate::bridge_transfer::pallet::GetBridgeFee;
 	use crate::pallet_assets_wrapper::{
 		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, XTransferAsset,
 		CB_ASSET_KEY,
@@ -143,12 +144,14 @@ pub mod xcm_helper {
 		}
 	}
 
-	pub struct XTransferAdapter<NativeAdapter, AssetsAdapter, NativeChecker, BridgeTransactor>(
+	pub struct XTransferAdapter<NativeAdapter, AssetsAdapter, NativeChecker, BridgeTransactor, BridgeFeeInfo, FeePrices>(
 		PhantomData<(
 			NativeAdapter,
 			AssetsAdapter,
 			NativeChecker,
 			BridgeTransactor,
+            BridgeFeeInfo,
+            FeePrices,
 		)>,
 	);
 
@@ -157,8 +160,10 @@ pub mod xcm_helper {
 			AssetsAdapter: TransactAsset,
 			NativeChecker: NativeAssetChecker,
 			BridgeTransactor: BridgeTransact,
+            BridgeFeeInfo: GetBridgeFee,
+            FeePrices: Get<Vec<(AssetId, u128)>>;
 		> TransactAsset
-		for XTransferAdapter<NativeAdapter, AssetsAdapter, NativeChecker, BridgeTransactor>
+		for XTransferAdapter<NativeAdapter, AssetsAdapter, NativeChecker, BridgeTransactor, BridgeFeeInfo, FeePrices>
 	{
 		fn can_check_in(_origin: &MultiLocation, what: &MultiAsset) -> XcmResult {
 			if NativeChecker::is_native_asset(what) {
@@ -257,6 +262,26 @@ pub mod xcm_helper {
 					} else {
 						xtransfer_asset.into_rid(dest_id)
 					};
+
+                    // Transfer assets in bridge need pay fees, and we only support registered assets to be paied
+                    // as fee.
+                    
+                    let (min_fee, fee_scale) = BridgeFeeInfo::get_fee(&dest_id);
+                    let fee_estimated = amount * fee_scale.into() / 1000u32.into();
+                    let fee_estimated_in_pha = if fee_estimated > min_fee {
+                        fee_estimated
+                    } else {
+                        min_fee
+                    };
+
+                    let fee = if NativeChecker::is_native_asset(what) {
+                        fee_estimated_in_pha
+					} else {
+                        let fee_prices = FeeAssets::get();
+                        if let Some(price) = fee_prices.iter().position(|(asset_id, price)| asset_id == what.id.into()) {
+                            price
+                        }
+					}
 
 					// This operation will not do real transfer, it just emits FungibleTransfer event
 					// to notify relayers submit proposal to our bridge contract that deployed on EVM chains.

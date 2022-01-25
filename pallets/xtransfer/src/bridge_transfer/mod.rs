@@ -480,4 +480,13 @@ pub mod pallet {
 			rid[0]
 		}
 	}
+
+	pub trait GetBridgeFee<T: Config> {
+		fn get_fee(chain_id: &bridge::BridgeChainId) -> (BalanceOf<T>, u32);
+	}
+	impl<T: Config> GetBridgeFee<T> for Pallet<T> {
+		fn get_fee(chain_id: &bridge::BridgeChainId) -> (BalanceOf<T>, u32) {
+			BridgeFee::<T>::get(&chain_id)
+		}
+	}
 }
