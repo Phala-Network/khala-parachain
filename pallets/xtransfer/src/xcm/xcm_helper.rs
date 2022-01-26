@@ -7,6 +7,7 @@ pub mod xcm_helper {
 		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, XTransferAsset,
 		CB_ASSET_KEY,
 	};
+	use crate::xcm::xcm_transfer::{XcmOnDeposited, XcmOnWithdrawn};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::pallet_prelude::*;
 	use sp_core::U256;
@@ -147,6 +148,8 @@ pub mod xcm_helper {
 	pub struct XTransferAdapter<
 		NativeAdapter,
 		AssetsAdapter,
+		DepositHandler,
+		WithdrawHandler,
 		NativeChecker,
 		BridgeTransactor,
 		BridgeFeeInfo,
@@ -156,6 +159,8 @@ pub mod xcm_helper {
 		PhantomData<(
 			NativeAdapter,
 			AssetsAdapter,
+			DepositHandler,
+			WithdrawHandler,
 			NativeChecker,
 			BridgeTransactor,
 			BridgeFeeInfo,
@@ -167,6 +172,8 @@ pub mod xcm_helper {
 	impl<
 			NativeAdapter: TransactAsset,
 			AssetsAdapter: TransactAsset,
+			DepositHandler: XcmOnDeposited,
+			WithdrawHandler: XcmOnWithdrawn,
 			NativeChecker: NativeAssetChecker,
 			BridgeTransactor: BridgeTransact,
 			BridgeFeeInfo: GetBridgeFee,
@@ -176,6 +183,8 @@ pub mod xcm_helper {
 		for XTransferAdapter<
 			NativeAdapter,
 			AssetsAdapter,
+			DepositHandler,
+			WithdrawHandler,
 			NativeChecker,
 			BridgeTransactor,
 			BridgeFeeInfo,
@@ -323,18 +332,20 @@ pub mod xcm_helper {
 						U256::from(transfering_amount),
 					)
 					.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
-
-					Ok(())
 				}
 				// Try handle it with transfer adapter
 				_ => {
 					if NativeChecker::is_native_asset(what) {
-						NativeAdapter::deposit_asset(what, who)
+						NativeAdapter::deposit_asset(what, who).map_err(|e| return e)?;
 					} else {
-						AssetsAdapter::deposit_asset(what, who)
+						AssetsAdapter::deposit_asset(what, who).map_err(|e| return e)?;
 					}
 				}
 			}
+
+			DepositHandler::on_deposited(what.clone(), who.clone())
+				.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+			Ok(())
 		}
 
 		fn withdraw_asset(
@@ -347,11 +358,14 @@ pub mod xcm_helper {
 				&what,
 				&who,
 			);
-			if NativeChecker::is_native_asset(what) {
-				NativeAdapter::withdraw_asset(what, who)
+			let assets = if NativeChecker::is_native_asset(what) {
+				NativeAdapter::withdraw_asset(what, who).map_err(|e| return e)?
 			} else {
-				AssetsAdapter::withdraw_asset(what, who)
-			}
+				AssetsAdapter::withdraw_asset(what, who).map_err(|e| return e)?
+			};
+			WithdrawHandler::on_withdrawn(what.clone(), who.clone())
+				.map_err(|e| return XcmError::FailedToTransactAsset(e.into()))?;
+			Ok(assets)
 		}
 	}
 
