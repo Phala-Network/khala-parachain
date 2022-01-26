@@ -258,11 +258,8 @@ pub mod xcm_helper {
 							.map_err(|_| XcmError::FailedToTransactAsset("FeeTransferFailed"))?;
 					}
 
+					// transfering_amount > 0
 					let transfering_amount = amount - fee;
-					if transfering_amount == 0 {
-						// Transfering end
-						return Ok(());
-					}
 					let transfering_asset: MultiAsset =
 						(location.clone(), transfering_amount).into();
 					let dest_reserve: MultiLocation = (
