@@ -16,6 +16,7 @@ use crate::pallet_assets_wrapper;
 use crate::pallet_bridge as bridge;
 use crate::xcm_helper::NativeAssetFilter;
 pub use pallet_balances as balances;
+pub use xcm::latest::{prelude::*, AssetId, MultiAsset, MultiLocation};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -97,6 +98,43 @@ impl pallet_balances::Config for Test {
 parameter_types! {
 	pub const TestChainId: u8 = 5;
 	pub const ProposalLifetime: u64 = 100;
+
+	// We define two test assets to simulate tranfer assets to reserve location and unreserve location,
+	// we must defiend here because those need be configed as fee payment assets
+	pub SoloChain0AssetLocation: MultiLocation = MultiLocation::new(
+		1,
+		X4(
+			Parachain(2004),
+			GeneralKey(pallet_assets_wrapper::CB_ASSET_KEY.to_vec()),
+			GeneralIndex(0),
+			GeneralKey(b"an asset".to_vec()),
+		),
+	);
+	pub SoloChain2AssetLocation: MultiLocation = MultiLocation::new(
+		1,
+		X4(
+			Parachain(2004),
+			GeneralKey(pallet_assets_wrapper::CB_ASSET_KEY.to_vec()),
+			GeneralIndex(2),
+			GeneralKey(b"an asset".to_vec()),
+		),
+	);
+	pub AssetId0: AssetId = SoloChain0AssetLocation::get().into();
+	pub AssetId2: AssetId = SoloChain2AssetLocation::get().into();
+	pub ExecutionPriceInAsset0: (AssetId, u128) = (
+		AssetId0::get(),
+		1
+	);
+	pub ExecutionPriceInAsset2: (AssetId, u128) = (
+		AssetId2::get(),
+		1
+	);
+	pub NativeExecutionPrice: u128 = 1;
+	pub ExecutionPrices: Vec<(AssetId, u128)> = [
+		ExecutionPriceInAsset0::get(),
+		ExecutionPriceInAsset2::get(),
+	].to_vec().into();
+	pub TREASURY: AccountId32 = AccountId32::new([4u8; 32]);
 }
 
 impl bridge::Config for Test {
@@ -116,9 +154,9 @@ impl bridge_transfer::Config for Test {
 	type XcmTransactor = ();
 	type OnFeePay = ();
 	type NativeChecker = NativeAssetFilter<ParachainInfo>;
-	type NativeExecutionPrice = ();
-	type ExecutionPriceInfo = ();
-	type TreasuryAccount = ();
+	type NativeExecutionPrice = NativeExecutionPrice;
+	type ExecutionPriceInfo = ExecutionPrices;
+	type TreasuryAccount = TREASURY;
 }
 
 parameter_types! {

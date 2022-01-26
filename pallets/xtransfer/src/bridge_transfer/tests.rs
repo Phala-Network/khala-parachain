@@ -4,8 +4,9 @@ use crate::assets_wrapper::pallet::{AccountId32Conversion, GetAssetRegistryInfo,
 use crate::bridge;
 use crate::bridge_transfer::mock::{
 	assert_events, balances, expect_event, new_test_ext, Assets, AssetsWrapper, Balance, Balances,
-	Bridge, BridgeTransfer, Call, Event, Origin, ProposalLifetime, Test, ALICE, ENDOWED_BALANCE,
-	RELAYER_A, RELAYER_B, RELAYER_C,
+	Bridge, BridgeTransfer, Call, Event, Origin, ProposalLifetime, SoloChain0AssetLocation,
+	SoloChain2AssetLocation, Test, ALICE, ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
+	TREASURY,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -204,15 +205,7 @@ fn transfer_assets_to_nonreserve() {
 			),
 		)
 			.into();
-		let bridge_asset_location = MultiLocation::new(
-			1,
-			X4(
-				Parachain(2004),
-				GeneralKey(CB_ASSET_KEY.to_vec()),
-				GeneralIndex(0),
-				GeneralKey(b"an asset".to_vec()),
-			),
-		);
+		let bridge_asset_location = SoloChain0AssetLocation::get();
 		let amount: Balance = 100;
 		let recipient = vec![99];
 
@@ -247,11 +240,13 @@ fn transfer_assets_to_nonreserve() {
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), amount);
+		assert_eq!(Assets::balance(0, &TREASURY::get()), 2);
+
 		// The asset's reserve chain is 0, dest chain is 2,
 		// so will save asset into reserve account of dest chain
 		assert_eq!(
 			Assets::balance(0, &dest_reserve_location.into_account().into()),
-			amount
+			amount - 2 // exclude fee saved to treasury
 		);
 	})
 }
@@ -268,15 +263,7 @@ fn transfer_assets_to_reserve() {
 			),
 		)
 			.into();
-		let bridge_asset_location = MultiLocation::new(
-			1,
-			X4(
-				Parachain(2004),
-				GeneralKey(CB_ASSET_KEY.to_vec()),
-				GeneralIndex(dest_chain.into()),
-				GeneralKey(b"an asset".to_vec()),
-			),
-		);
+		let bridge_asset_location = SoloChain2AssetLocation::get();
 		let amount: Balance = 100;
 		let recipient = vec![99];
 
@@ -311,6 +298,8 @@ fn transfer_assets_to_reserve() {
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), amount);
+		assert_eq!(Assets::balance(0, &TREASURY::get()), 2);
+
 		// The asset's reserve chain is 2, dest chain is 2,
 		// so assets just be burned from sender
 		assert_eq!(
