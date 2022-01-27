@@ -177,6 +177,8 @@ fn transfer_assets_insufficient_balance() {
 			Origin::root(),
 			0,
 			dest_chain,
+			true,
+			Box::new(Vec::new()),
 		));
 
 		// After registered, free balance of ALICE is 0
@@ -225,6 +227,8 @@ fn transfer_assets_to_nonreserve() {
 			Origin::root(),
 			0,
 			dest_chain,
+			true,
+			Box::new(Vec::new()),
 		));
 
 		// Mint some token to ALICE
@@ -283,6 +287,8 @@ fn transfer_assets_to_reserve() {
 			Origin::root(),
 			0,
 			dest_chain,
+			true,
+			Box::new(Vec::new()),
 		));
 
 		// Mint some token to ALICE
@@ -443,6 +449,8 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 			Origin::root(),
 			0,
 			src_chainid,
+			true,
+			Box::new(Vec::new()),
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), 0);
@@ -514,6 +522,8 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 			Origin::root(),
 			0,
 			src_chainid,
+			true,
+			Box::new(Vec::new()),
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), 0);

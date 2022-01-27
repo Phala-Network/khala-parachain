@@ -8,7 +8,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::StaticLookup;
-	use sp_std::{convert::From, vec, vec::Vec};
+	use sp_std::{boxed::Box, convert::From, vec, vec::Vec};
 	use xcm::latest::{prelude::*, MultiLocation};
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
@@ -20,7 +20,13 @@ pub mod pallet {
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub enum XBridge {
 		Xcmp,
-		ChainBridge { chain_id: u8, resource_id: [u8; 32] },
+		ChainBridge {
+			chain_id: u8,
+			resource_id: [u8; 32],
+			reserve_account: [u8; 32],
+			is_mintable: bool,
+			memo: Box<Vec<u8>>,
+		},
 		// Potential other bridge solutions
 	}
 
@@ -263,6 +269,7 @@ pub mod pallet {
 				if let XBridge::ChainBridge {
 					chain_id: _,
 					resource_id,
+					..
 				} = bridge
 				{
 					AssetByResourceIds::<T>::remove(&resource_id);
@@ -280,6 +287,8 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
 			chain_id: u8,
+			is_mintable: bool,
+			memo: Box<Vec<u8>>,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
 			let asset = AssetByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
@@ -293,9 +302,20 @@ pub mod pallet {
 			);
 			AssetByResourceIds::<T>::insert(&resource_id, &asset);
 			// Save into registry info, here save chain id can not be added more than twice
+			let reserve_location: MultiLocation = (
+				0,
+				X2(
+					GeneralKey(CB_ASSET_KEY.to_vec()),
+					GeneralIndex(chain_id as u128),
+				),
+			)
+				.into();
 			info.enabled_bridges.push(XBridge::ChainBridge {
 				chain_id,
 				resource_id: resource_id.clone(),
+				reserve_account: reserve_location.into_account(),
+				is_mintable,
+				memo,
 			});
 			RegistryInfoByIds::<T>::insert(&asset_id, &info);
 
@@ -326,10 +346,15 @@ pub mod pallet {
 			AssetByResourceIds::<T>::remove(&resource_id);
 			// Unbind resource id and asset
 			if let Some(idx) = info.enabled_bridges.iter().position(|item| {
-				item == &XBridge::ChainBridge {
-					chain_id,
-					resource_id: resource_id.clone(),
-				}
+				let is_chainbridge = match item {
+					XBridge::ChainBridge {
+						chain_id: cid,
+						resource_id: rid,
+						..
+					} => cid == &chain_id && rid == &resource_id,
+					_ => false,
+				};
+				is_chainbridge
 			}) {
 				info.enabled_bridges.remove(idx);
 			}
