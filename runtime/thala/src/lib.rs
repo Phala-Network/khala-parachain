@@ -877,6 +877,7 @@ parameter_types! {
     pub KARAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec()))).into();
     pub BNCAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::BNC_KEY.to_vec()))).into();
     pub VSKSMAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::VSKSM_KEY.to_vec()))).into();
+    pub ZLKAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::ZLK_KEY.to_vec()))).into();
 
     pub ExecutionPriceInKSM: (AssetId, u128) = (
         KSMAssetId::get(),
@@ -892,11 +893,15 @@ parameter_types! {
     );
     pub ExecutionPriceInBNC: (AssetId, u128) = (
         BNCAssetId::get(),
-        pha_per_second() / 5
+        pha_per_second() / 4
     );
-    pub ExecutionPriceInVKSM: (AssetId, u128) = (
+    pub ExecutionPriceInVSKSM: (AssetId, u128) = (
         VSKSMAssetId::get(),
-        pha_per_second()
+        pha_per_second() / 600
+    );
+    pub ExecutionPriceInZLK: (AssetId, u128) = (
+        ZLKAssetId::get(),
+        pha_per_second() / 4
     );
 
     pub NativeExecutionPrice: u128 = pha_per_second();
@@ -905,7 +910,8 @@ parameter_types! {
         ExecutionPriceInPHA::get(),
         ExecutionPriceInKAR::get(),
         ExecutionPriceInBNC::get(),
-        ExecutionPriceInVKSM::get(),
+        ExecutionPriceInVSKSM::get(),
+        ExecutionPriceInZLK::get(),
     ].to_vec().into();
 
     pub FeeAssets: MultiAssets = [
@@ -914,6 +920,7 @@ parameter_types! {
         KARAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         BNCAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         VSKSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+        ZLKAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
     ].to_vec().into();
 
     // This fee is set when we trying to send assets that dest chain not support
@@ -978,7 +985,15 @@ impl Config for XcmConfig {
             >,
         >,
         FixedRateOfFungible<
-            ExecutionPriceInVKSM,
+            ExecutionPriceInVSKSM,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
+        >,
+        FixedRateOfFungible<
+            ExecutionPriceInZLK,
             xcm_helper::XTransferTakeRevenue<
                 Self::AssetTransactor,
                 AccountId,
