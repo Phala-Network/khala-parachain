@@ -514,7 +514,7 @@ pub mod pallet {
 		BalanceOf<T>: From<u128> + Into<u128>,
 	{
 		fn get_fee(chain_id: bridge::BridgeChainId, asset: &MultiAsset) -> Option<u128> {
-			return match (&asset.id, &asset.fun) {
+			match (&asset.id, &asset.fun) {
 				(Concrete(asset_id), Fungible(amount)) => {
 					let fee_estimated_in_pha =
 						Self::estimate_fee_in_pha(chain_id, (*amount).into());
@@ -537,7 +537,7 @@ pub mod pallet {
 					}
 				}
 				_ => None,
-			};
+			}
 		}
 	}
 

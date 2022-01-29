@@ -336,9 +336,9 @@ pub mod xcm_helper {
 				// Try handle it with transfer adapter
 				_ => {
 					if NativeChecker::is_native_asset(what) {
-						NativeAdapter::deposit_asset(what, who).map_err(|e| return e)?;
+						NativeAdapter::deposit_asset(what, who)?;
 					} else {
-						AssetsAdapter::deposit_asset(what, who).map_err(|e| return e)?;
+						AssetsAdapter::deposit_asset(what, who)?;
 					}
 				}
 			}
@@ -359,9 +359,9 @@ pub mod xcm_helper {
 				&who,
 			);
 			let assets = if NativeChecker::is_native_asset(what) {
-				NativeAdapter::withdraw_asset(what, who).map_err(|e| return e)?
+				NativeAdapter::withdraw_asset(what, who)?
 			} else {
-				AssetsAdapter::withdraw_asset(what, who).map_err(|e| return e)?
+				AssetsAdapter::withdraw_asset(what, who)?
 			};
 			WithdrawHandler::on_withdrawn(what.clone(), who.clone())
 				.map_err(|e| return XcmError::FailedToTransactAsset(e.into()))?;

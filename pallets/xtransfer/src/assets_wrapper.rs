@@ -18,14 +18,19 @@ pub mod pallet {
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
-	pub enum XBridge {
+	pub struct XBridge {
+		config: XBridgeConfig,
+		metadata: Box<Vec<u8>>,
+	}
+
+	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
+	pub enum XBridgeConfig {
 		Xcmp,
 		ChainBridge {
 			chain_id: u8,
 			resource_id: [u8; 32],
 			reserve_account: [u8; 32],
 			is_mintable: bool,
-			memo: Box<Vec<u8>>,
 		},
 		// Potential other bridge solutions
 	}
@@ -241,7 +246,10 @@ pub mod pallet {
 					location: asset.clone().into(),
 					reserve_location: asset.reserve_location(),
 					// Xcmp will be enabled when assets being registered.
-					enabled_bridges: vec![XBridge::Xcmp],
+					enabled_bridges: vec![XBridge {
+						config: XBridgeConfig::Xcmp,
+						metadata: Box::new(Vec::new()),
+					}],
 				},
 			);
 			Self::deposit_event(Event::AssetRegistered { asset_id, asset });
@@ -264,13 +272,14 @@ pub mod pallet {
 
 			AssetByIds::<T>::remove(&asset_id);
 			IdByAssets::<T>::remove(&asset);
+
 			// Unbind resource id and asset if have chain bridge set
 			for bridge in info.enabled_bridges {
-				if let XBridge::ChainBridge {
+				if let XBridgeConfig::ChainBridge {
 					chain_id: _,
 					resource_id,
 					..
-				} = bridge
+				} = bridge.config
 				{
 					AssetByResourceIds::<T>::remove(&resource_id);
 				}
@@ -288,7 +297,7 @@ pub mod pallet {
 			asset_id: T::AssetId,
 			chain_id: u8,
 			is_mintable: bool,
-			memo: Box<Vec<u8>>,
+			metadata: Box<Vec<u8>>,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
 			let asset = AssetByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
@@ -310,12 +319,14 @@ pub mod pallet {
 				),
 			)
 				.into();
-			info.enabled_bridges.push(XBridge::ChainBridge {
-				chain_id,
-				resource_id: resource_id.clone(),
-				reserve_account: reserve_location.into_account(),
-				is_mintable,
-				memo,
+			info.enabled_bridges.push(XBridge {
+				config: XBridgeConfig::ChainBridge {
+					chain_id,
+					resource_id: resource_id.clone(),
+					reserve_account: reserve_location.into_account(),
+					is_mintable,
+				},
+				metadata,
 			});
 			RegistryInfoByIds::<T>::insert(&asset_id, &info);
 
@@ -345,17 +356,17 @@ pub mod pallet {
 			);
 			AssetByResourceIds::<T>::remove(&resource_id);
 			// Unbind resource id and asset
-			if let Some(idx) = info.enabled_bridges.iter().position(|item| {
-				let is_chainbridge = match item {
-					XBridge::ChainBridge {
+			if let Some(idx) = info
+				.enabled_bridges
+				.iter()
+				.position(|item| match item.config {
+					XBridgeConfig::ChainBridge {
 						chain_id: cid,
 						resource_id: rid,
 						..
-					} => cid == &chain_id && rid == &resource_id,
+					} => cid == chain_id && rid == resource_id,
 					_ => false,
-				};
-				is_chainbridge
-			}) {
+				}) {
 				info.enabled_bridges.remove(idx);
 			}
 			RegistryInfoByIds::<T>::insert(&asset_id, &info);
