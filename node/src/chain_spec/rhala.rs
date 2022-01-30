@@ -86,6 +86,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         vec![],
         None,
         Some("khala"),
+        None,
         chain_properties(),
         Extensions {
             relay_chain: "rococo-dev".into(),
@@ -170,6 +171,7 @@ pub fn staging_config() -> ChainSpec {
         Vec::new(),
         None,
         Some("khala"),
+        None,
         chain_properties(),
         Extensions {
             relay_chain: "rococo".into(),
@@ -207,7 +209,7 @@ fn genesis(
         balances: rhala_parachain_runtime::BalancesConfig {
             balances: endowed_accounts,
         },
-        sudo: rhala_parachain_runtime::SudoConfig { key: root_key },
+        sudo: rhala_parachain_runtime::SudoConfig { key: Some(root_key) },
         parachain_info: rhala_parachain_runtime::ParachainInfoConfig { parachain_id: id },
         collator_selection: rhala_parachain_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities

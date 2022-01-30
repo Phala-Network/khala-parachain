@@ -128,6 +128,7 @@ fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str
         Vec::new(),
         None,
         Some("phala"),
+        None,
         chain_properties(),
         Extensions {
             relay_chain: relay_chain.into(),
@@ -164,6 +165,7 @@ pub fn staging_config() -> ChainSpec {
         Vec::new(),
         None,
         Some("phala"),
+        None,
         chain_properties(),
         Extensions {
             relay_chain: "polkadot".into(),
@@ -201,7 +203,7 @@ fn genesis(
             balances: endowed_accounts,
         },
         // TODO: Remove sudo in the future
-        sudo: phala_parachain_runtime::SudoConfig { key: root_key },
+        sudo: phala_parachain_runtime::SudoConfig { key: Some(root_key) },
         parachain_info: phala_parachain_runtime::ParachainInfoConfig { parachain_id: id },
         collator_selection: phala_parachain_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities

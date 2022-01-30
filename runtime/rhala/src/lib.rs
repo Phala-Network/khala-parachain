@@ -144,6 +144,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
+    state_version: 0,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -735,7 +736,7 @@ parameter_types! {
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
     type Event = Event;
-    type OnValidationData = ();
+    type OnSystemEvent = ();
     type SelfParaId = pallet_parachain_info::Pallet<Runtime>;
     type DmpMessageHandler = DmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
@@ -1239,6 +1240,39 @@ impl pallet_stakepool::Config for Runtime {
     type BackfillOrigin = EnsureRootOrHalfCouncil;
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+#[macro_use]
+extern crate frame_benchmarking;
+
+#[cfg(feature = "runtime-benchmarks")]
+mod benches {
+    define_benchmarks!(
+        [frame_system, SystemBench::<Runtime>]
+        [pallet_balances, Balances]
+        [pallet_bounties, Bounties]
+        [pallet_collective, Council]
+        [pallet_collective, TechnicalCommittee]
+        [pallet_democracy, Democracy]
+        // TODO: assertion failed `failed to submit candidacy`
+        [pallet_elections_phragmen, PhragmenElection]
+        [pallet_identity, Identity]
+        [pallet_membership, TechnicalMembership]
+        [pallet_multisig, Multisig]
+        [pallet_proxy, Proxy]
+        [pallet_scheduler, Scheduler]
+        [pallet_session, SessionBench::<Runtime>]
+        [pallet_timestamp, Timestamp]
+        [pallet_tips, Tips]
+        [pallet_treasury, Treasury]
+        [pallet_utility, Utility]
+        [pallet_vesting, Vesting]
+        [pallet_lottery, Lottery]
+        [pallet_assets, Assets]
+        // TODO: panic
+        [pallet_collator_selection, CollatorSelection]
+    );
+}
+
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
         fn slot_duration() -> sp_consensus_aura::SlotDuration {
@@ -1343,8 +1377,8 @@ impl_runtime_apis! {
     }
 
     impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
-        fn collect_collation_info() -> cumulus_primitives_core::CollationInfo {
-            ParachainSystem::collect_collation_info()
+        fn collect_collation_info(header: &<Block as BlockT>::Header) -> cumulus_primitives_core::CollationInfo {
+            ParachainSystem::collect_collation_info(header)
         }
     }
 
@@ -1370,36 +1404,14 @@ impl_runtime_apis! {
             Vec<frame_benchmarking::BenchmarkList>,
             Vec<frame_support::traits::StorageInfo>,
         ) {
-            use frame_benchmarking::{list_benchmark, Benchmarking, BenchmarkList};
+            use frame_benchmarking::{Benchmarking, BenchmarkList};
             use frame_support::traits::StorageInfoTrait;
 
             use frame_system_benchmarking::Pallet as SystemBench;
             use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
 
             let mut list = Vec::<BenchmarkList>::new();
-
-            list_benchmark!(list, extra, pallet_balances, Balances);
-            list_benchmark!(list, extra, pallet_bounties, Bounties);
-            list_benchmark!(list, extra, pallet_collective, Council);
-            list_benchmark!(list, extra, pallet_collective, TechnicalCommittee);
-            list_benchmark!(list, extra, pallet_democracy, Democracy);
-            // TODO: assertion failed `failed to submit candidacy`
-            list_benchmark!(list, extra, pallet_elections_phragmen, PhragmenElection);
-            list_benchmark!(list, extra, pallet_identity, Identity);
-            list_benchmark!(list, extra, pallet_membership, TechnicalMembership);
-            list_benchmark!(list, extra, pallet_multisig, Multisig);
-            list_benchmark!(list, extra, pallet_proxy, Proxy);
-            list_benchmark!(list, extra, pallet_scheduler, Scheduler);
-            list_benchmark!(list, extra, pallet_session, SessionBench::<Runtime>);
-            list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
-            list_benchmark!(list, extra, pallet_timestamp, Timestamp);
-            list_benchmark!(list, extra, pallet_tips, Tips);
-            list_benchmark!(list, extra, pallet_treasury, Treasury);
-            list_benchmark!(list, extra, pallet_utility, Utility);
-            list_benchmark!(list, extra, pallet_vesting, Vesting);
-            list_benchmark!(list, extra, pallet_lottery, Lottery);
-            // TODO: panic
-            list_benchmark!(list, extra, pallet_collator_selection, CollatorSelection);
+            list_benchmarks!(list, extra);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1409,7 +1421,7 @@ impl_runtime_apis! {
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-            use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
+            use frame_benchmarking::{Benchmarking, BenchmarkBatch, TrackedStorageKey};
 
             use frame_system_benchmarking::Pallet as SystemBench;
             impl frame_system_benchmarking::Config for Runtime {}
@@ -1434,29 +1446,7 @@ impl_runtime_apis! {
 
             let mut batches = Vec::<BenchmarkBatch>::new();
             let params = (&config, &whitelist);
-
-            add_benchmark!(params, batches, pallet_balances, Balances);
-            add_benchmark!(params, batches, pallet_bounties, Bounties);
-            add_benchmark!(params, batches, pallet_collective, Council);
-            add_benchmark!(params, batches, pallet_collective, TechnicalCommittee);
-            add_benchmark!(params, batches, pallet_democracy, Democracy);
-            // TODO: assertion failed `failed to submit candidacy`
-            add_benchmark!(params, batches, pallet_elections_phragmen, PhragmenElection);
-            add_benchmark!(params, batches, pallet_identity, Identity);
-            add_benchmark!(params, batches, pallet_membership, TechnicalMembership);
-            add_benchmark!(params, batches, pallet_multisig, Multisig);
-            add_benchmark!(params, batches, pallet_proxy, Proxy);
-            add_benchmark!(params, batches, pallet_scheduler, Scheduler);
-            add_benchmark!(params, batches, pallet_session, SessionBench::<Runtime>);
-            add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
-            add_benchmark!(params, batches, pallet_timestamp, Timestamp);
-            add_benchmark!(params, batches, pallet_tips, Tips);
-            add_benchmark!(params, batches, pallet_treasury, Treasury);
-            add_benchmark!(params, batches, pallet_utility, Utility);
-            add_benchmark!(params, batches, pallet_vesting, Vesting);
-            add_benchmark!(params, batches, pallet_lottery, Lottery);
-            // TODO: panic
-            add_benchmark!(params, batches, pallet_collator_selection, CollatorSelection);
+            add_benchmarks!(params, batches);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)
