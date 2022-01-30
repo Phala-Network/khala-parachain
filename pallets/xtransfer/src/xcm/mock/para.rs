@@ -280,7 +280,12 @@ impl Config for XcmConfig {
 	type AssetTransactor = xcm_helper::XTransferAdapter<
 		CurrencyTransactor,
 		FungiblesTransactor,
+		XcmTransfer,
+		XcmTransfer,
 		xcm_helper::NativeAssetFilter<ParachainInfo>,
+		(),
+		(),
+		AccountId,
 		(),
 	>;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;

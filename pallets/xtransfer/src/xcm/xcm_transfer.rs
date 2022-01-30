@@ -82,6 +82,16 @@ pub mod pallet {
 			origin: MultiLocation,
 			dest: MultiLocation,
 		},
+		/// Assets being deposited, including being deposited to reserve account of solo chains.
+		XcmDeposited {
+			what: MultiAsset,
+			who: MultiLocation,
+		},
+		/// Assets being withdrawn
+		XcmWithdrawn {
+			what: MultiAsset,
+			who: MultiLocation,
+		},
 	}
 
 	#[pallet::error]
@@ -259,6 +269,26 @@ pub mod pallet {
 			dest_weight: Weight,
 		) -> DispatchResult {
 			Self::do_transfer_multiasset(origin, asset, dest, dest_weight)
+		}
+	}
+
+	pub trait XcmOnDeposited {
+		fn on_deposited(what: MultiAsset, who: MultiLocation) -> DispatchResult;
+	}
+	impl<T: Config> XcmOnDeposited for Pallet<T> {
+		fn on_deposited(what: MultiAsset, who: MultiLocation) -> DispatchResult {
+			Self::deposit_event(Event::XcmDeposited { what, who });
+			Ok(())
+		}
+	}
+
+	pub trait XcmOnWithdrawn {
+		fn on_withdrawn(what: MultiAsset, who: MultiLocation) -> DispatchResult;
+	}
+	impl<T: Config> XcmOnWithdrawn for Pallet<T> {
+		fn on_withdrawn(what: MultiAsset, who: MultiLocation) -> DispatchResult {
+			Self::deposit_event(Event::XcmWithdrawn { what, who });
+			Ok(())
 		}
 	}
 

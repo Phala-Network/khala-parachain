@@ -89,5 +89,6 @@ pub mod parachains {
         pub const ID: u32 = 2001;
         pub const BNC_KEY: &[u8] = &[0, 1];
         pub const VSKSM_KEY: &[u8] = &[4, 4];
+        pub const ZLK_KEY: &[u8] = &[2, 7];
     }
 }

@@ -1,6 +1,8 @@
 #![cfg(test)]
 
-use frame_support::{ord_parameter_types, parameter_types, weights::Weight, PalletId};
+use frame_support::{
+	ord_parameter_types, parameter_types, traits::GenesisBuild, weights::Weight, PalletId,
+};
 use frame_system::{self as system};
 use sp_core::H256;
 use sp_runtime::{
@@ -12,12 +14,14 @@ use sp_runtime::{
 use crate::bridge_transfer;
 use crate::pallet_assets_wrapper;
 use crate::pallet_bridge as bridge;
+use crate::xcm_helper::NativeAssetFilter;
 pub use pallet_balances as balances;
+pub use xcm::latest::{prelude::*, AssetId, MultiAsset, MultiLocation};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
-pub(crate) type Balance = u64;
+pub(crate) type Balance = u128;
 
 frame_support::construct_runtime!(
 	pub enum Test where
@@ -32,6 +36,7 @@ frame_support::construct_runtime!(
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
 		AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>},
+		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config},
 	}
 );
 
@@ -59,7 +64,7 @@ impl frame_system::Config for Test {
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = ();
 	type Version = ();
-	type AccountData = pallet_balances::AccountData<u64>;
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
@@ -71,7 +76,7 @@ impl frame_system::Config for Test {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
+	pub const ExistentialDeposit: Balance = 1;
 }
 
 ord_parameter_types! {
@@ -93,6 +98,43 @@ impl pallet_balances::Config for Test {
 parameter_types! {
 	pub const TestChainId: u8 = 5;
 	pub const ProposalLifetime: u64 = 100;
+
+	// We define two test assets to simulate tranfer assets to reserve location and unreserve location,
+	// we must defiend here because those need be configed as fee payment assets
+	pub SoloChain0AssetLocation: MultiLocation = MultiLocation::new(
+		1,
+		X4(
+			Parachain(2004),
+			GeneralKey(pallet_assets_wrapper::CB_ASSET_KEY.to_vec()),
+			GeneralIndex(0),
+			GeneralKey(b"an asset".to_vec()),
+		),
+	);
+	pub SoloChain2AssetLocation: MultiLocation = MultiLocation::new(
+		1,
+		X4(
+			Parachain(2004),
+			GeneralKey(pallet_assets_wrapper::CB_ASSET_KEY.to_vec()),
+			GeneralIndex(2),
+			GeneralKey(b"an asset".to_vec()),
+		),
+	);
+	pub AssetId0: AssetId = SoloChain0AssetLocation::get().into();
+	pub AssetId2: AssetId = SoloChain2AssetLocation::get().into();
+	pub ExecutionPriceInAsset0: (AssetId, u128) = (
+		AssetId0::get(),
+		1
+	);
+	pub ExecutionPriceInAsset2: (AssetId, u128) = (
+		AssetId2::get(),
+		1
+	);
+	pub NativeExecutionPrice: u128 = 1;
+	pub ExecutionPrices: Vec<(AssetId, u128)> = [
+		ExecutionPriceInAsset0::get(),
+		ExecutionPriceInAsset2::get(),
+	].to_vec().into();
+	pub TREASURY: AccountId32 = AccountId32::new([4u8; 32]);
 }
 
 impl bridge::Config for Test {
@@ -111,6 +153,10 @@ impl bridge_transfer::Config for Test {
 	type Currency = Balances;
 	type XcmTransactor = ();
 	type OnFeePay = ();
+	type NativeChecker = NativeAssetFilter<ParachainInfo>;
+	type NativeExecutionPrice = NativeExecutionPrice;
+	type ExecutionPriceInfo = ExecutionPrices;
+	type TreasuryAccount = TREASURY;
 }
 
 parameter_types! {
@@ -150,17 +196,27 @@ impl pallet_timestamp::Config for Test {
 	type WeightInfo = ();
 }
 
+impl pallet_parachain_info::Config for Test {}
+
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
 pub const RELAYER_A: AccountId32 = AccountId32::new([1u8; 32]);
 pub const RELAYER_B: AccountId32 = AccountId32::new([2u8; 32]);
 pub const RELAYER_C: AccountId32 = AccountId32::new([3u8; 32]);
-pub const ENDOWED_BALANCE: u64 = 100_000_000;
+pub const ENDOWED_BALANCE: Balance = 100_000_000;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let bridge_account = PalletId(*b"phala/bg").into_account();
 	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<Test>()
 		.unwrap();
+	let parachain_info_config = pallet_parachain_info::GenesisConfig {
+		parachain_id: 2004u32.into(),
+	};
+	<pallet_parachain_info::GenesisConfig as GenesisBuild<Test, _>>::assimilate_storage(
+		&parachain_info_config,
+		&mut t,
+	)
+	.unwrap();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
 			(bridge_account, ENDOWED_BALANCE),

@@ -3,9 +3,10 @@
 use crate::assets_wrapper::pallet::{AccountId32Conversion, GetAssetRegistryInfo, CB_ASSET_KEY};
 use crate::bridge;
 use crate::bridge_transfer::mock::{
-	assert_events, balances, expect_event, new_test_ext, Assets, AssetsWrapper, Balances, Bridge,
-	BridgeTransfer, Call, Event, Origin, ProposalLifetime, Test, ALICE, ENDOWED_BALANCE, RELAYER_A,
-	RELAYER_B, RELAYER_C,
+	assert_events, balances, expect_event, new_test_ext, Assets, AssetsWrapper, Balance, Balances,
+	Bridge, BridgeTransfer, Call, Event, Origin, ProposalLifetime, SoloChain0AssetLocation,
+	SoloChain2AssetLocation, Test, ALICE, ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
+	TREASURY,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -14,7 +15,7 @@ use xcm::latest::prelude::*;
 
 const TEST_THRESHOLD: u32 = 2;
 
-fn make_transfer_proposal(dest: Vec<u8>, src_id: u8, amount: u64) -> Call {
+fn make_transfer_proposal(dest: Vec<u8>, src_id: u8, amount: Balance) -> Call {
 	let resource_id = BridgeTransfer::gen_pha_rid(src_id);
 	Call::BridgeTransfer(crate::bridge_transfer::Call::transfer {
 		dest,
@@ -125,7 +126,7 @@ fn transfer_assets_not_registered() {
 				GeneralKey(b"an asset".to_vec()),
 			),
 		);
-		let amount: u64 = 100;
+		let amount: Balance = 100;
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
@@ -157,7 +158,7 @@ fn transfer_assets_insufficient_balance() {
 				GeneralKey(b"an asset".to_vec()),
 			),
 		);
-		let amount: u64 = 100;
+		let amount: Balance = 100;
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
@@ -176,6 +177,8 @@ fn transfer_assets_insufficient_balance() {
 			Origin::root(),
 			0,
 			dest_chain,
+			true,
+			Box::new(Vec::new()),
 		));
 
 		// After registered, free balance of ALICE is 0
@@ -204,16 +207,8 @@ fn transfer_assets_to_nonreserve() {
 			),
 		)
 			.into();
-		let bridge_asset_location = MultiLocation::new(
-			1,
-			X4(
-				Parachain(2004),
-				GeneralKey(CB_ASSET_KEY.to_vec()),
-				GeneralIndex(0),
-				GeneralKey(b"an asset".to_vec()),
-			),
-		);
-		let amount: u64 = 100;
+		let bridge_asset_location = SoloChain0AssetLocation::get();
+		let amount: Balance = 100;
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
@@ -232,6 +227,8 @@ fn transfer_assets_to_nonreserve() {
 			Origin::root(),
 			0,
 			dest_chain,
+			true,
+			Box::new(Vec::new()),
 		));
 
 		// Mint some token to ALICE
@@ -247,11 +244,13 @@ fn transfer_assets_to_nonreserve() {
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), amount);
+		assert_eq!(Assets::balance(0, &TREASURY::get()), 2);
+
 		// The asset's reserve chain is 0, dest chain is 2,
 		// so will save asset into reserve account of dest chain
 		assert_eq!(
 			Assets::balance(0, &dest_reserve_location.into_account().into()),
-			amount
+			amount - 2 // exclude fee saved to treasury
 		);
 	})
 }
@@ -268,16 +267,8 @@ fn transfer_assets_to_reserve() {
 			),
 		)
 			.into();
-		let bridge_asset_location = MultiLocation::new(
-			1,
-			X4(
-				Parachain(2004),
-				GeneralKey(CB_ASSET_KEY.to_vec()),
-				GeneralIndex(dest_chain.into()),
-				GeneralKey(b"an asset".to_vec()),
-			),
-		);
-		let amount: u64 = 100;
+		let bridge_asset_location = SoloChain2AssetLocation::get();
+		let amount: Balance = 100;
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
@@ -296,6 +287,8 @@ fn transfer_assets_to_reserve() {
 			Origin::root(),
 			0,
 			dest_chain,
+			true,
+			Box::new(Vec::new()),
 		));
 
 		// Mint some token to ALICE
@@ -311,6 +304,8 @@ fn transfer_assets_to_reserve() {
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), amount);
+		assert_eq!(Assets::balance(0, &TREASURY::get()), 2);
+
 		// The asset's reserve chain is 2, dest chain is 2,
 		// so assets just be burned from sender
 		assert_eq!(
@@ -325,7 +320,7 @@ fn transfer_native() {
 	new_test_ext().execute_with(|| {
 		let dest_chain = 0;
 		let resource_id = BridgeTransfer::gen_pha_rid(dest_chain);
-		let amount: u64 = 100;
+		let amount: Balance = 100;
 		let recipient = vec![99];
 
 		assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_chain));
@@ -423,7 +418,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset =
 			bridge_asset_location.clone().into();
 		let r_id: [u8; 32] = bridge_asset.clone().into_rid(src_chainid);
-		let amount: u64 = 100;
+		let amount: Balance = 100;
 		let alice_location = MultiLocation::new(
 			0,
 			X1(AccountId32 {
@@ -454,6 +449,8 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 			Origin::root(),
 			0,
 			src_chainid,
+			true,
+			Box::new(Vec::new()),
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), 0);
@@ -495,7 +492,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 		);
 		let para_asset: crate::pallet_assets_wrapper::XTransferAsset =
 			para_asset_location.clone().into();
-		let amount: u64 = 100;
+		let amount: Balance = 100;
 		let alice_location = MultiLocation::new(
 			0,
 			X1(AccountId32 {
@@ -525,6 +522,8 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 			Origin::root(),
 			0,
 			src_chainid,
+			true,
+			Box::new(Vec::new()),
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), 0);
