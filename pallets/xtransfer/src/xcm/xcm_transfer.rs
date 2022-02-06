@@ -343,11 +343,12 @@ pub mod pallet {
 		) -> Result<Instruction<()>, DispatchError> {
 			let inv_dest = T::LocationInverter::invert_location(location)
 				.map_err(|()| Error::<T>::LocationInvertFailed)?;
+			let ancestry = T::LocationInverter::ancestry();
 
 			let fees = self
 				.fee
 				.clone()
-				.reanchored(&inv_dest)
+				.reanchored(&inv_dest, &ancestry)
 				.map_err(|_| Error::<T>::CannotReanchor)?;
 
 			Ok(BuyExecution {
