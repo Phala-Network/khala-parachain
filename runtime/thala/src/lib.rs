@@ -46,6 +46,7 @@ use constants::{
 };
 
 mod msg_routing;
+mod migrations;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use sp_api::impl_runtime_apis;
