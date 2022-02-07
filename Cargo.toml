@@ -24,6 +24,7 @@ exclude = [
 members = [
 	"node",
 	"parachains-common",
+	"crates/phala-serde-more",
 	"crates/phala-types",
 	"crates/phala-mq",
 	"crates/phala-node-rpc-ext",

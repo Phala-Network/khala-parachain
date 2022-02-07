@@ -7,7 +7,7 @@ pub mod pallet {
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
-		traits::{StorageVersion, UnixTime},
+		traits::{Currency, StorageVersion, UnixTime},
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
@@ -23,8 +23,8 @@ pub mod pallet {
 
 	use phala_types::{
 		messaging::{
-			self, bind_topic, DecodedMessage, GatekeeperChange, GatekeeperLaunch, MessageOrigin,
-			SignedMessage, SystemEvent, WorkerEvent, WorkerPinkReport,
+			self, bind_topic, ContractId, DecodedMessage, GatekeeperChange, GatekeeperLaunch,
+			MessageOrigin, SignedMessage, SystemEvent, WorkerEvent,
 		},
 		ContractPublicKey, EcdhPublicKey, MasterPublicKey, WorkerPublicKey, WorkerRegistrationInfo,
 	};
@@ -38,7 +38,10 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event> + IsType<<Self as frame_system::Config>::Event>;
+		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		/// The currency in which fees are paid and contract balances are held.
+		type Currency: Currency<Self::AccountId>;
 
 		type UnixTime: UnixTime;
 		type AttestationValidator: AttestationValidator;
@@ -78,7 +81,7 @@ pub mod pallet {
 
 	/// Mapping from contract address to pubkey
 	#[pallet::storage]
-	pub type ContractKey<T> = StorageMap<_, Twox64Concat, H256, ContractPublicKey>;
+	pub type ContractKeys<T> = StorageMap<_, Twox64Concat, ContractId, ContractPublicKey>;
 
 	/// Pubkey for secret topics.
 	#[pallet::storage]
@@ -103,7 +106,8 @@ pub mod pallet {
 		StorageValue<_, Vec<H256>, ValueQuery>;
 
 	#[pallet::event]
-	pub enum Event {
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event<T: Config> {
 		GatekeeperAdded(WorkerPublicKey),
 	}
 
@@ -182,18 +186,6 @@ pub mod pallet {
 					confidence_level: worker_info.confidence_level,
 				}),
 			));
-			Ok(())
-		}
-
-		/// Force register a contract pubkey
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn force_register_contract(
-			origin: OriginFor<T>,
-			contract: H256,
-			pubkey: ContractPublicKey,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-			ContractKey::<T>::insert(contract, pubkey);
 			Ok(())
 		}
 
@@ -426,7 +418,7 @@ pub mod pallet {
 			let pubkey = match &message.message.sender {
 				MessageOrigin::Worker(pubkey) => pubkey,
 				MessageOrigin::Contract(id) => {
-					pubkey_copy = ContractKey::<T>::get(id).ok_or(Error::<T>::UnknownContract)?;
+					pubkey_copy = ContractKeys::<T>::get(id).ok_or(Error::<T>::UnknownContract)?;
 					&pubkey_copy
 				}
 				MessageOrigin::Gatekeeper => {
@@ -489,10 +481,10 @@ pub mod pallet {
 				}
 				RegistryEvent::MasterPubkey { master_pubkey } => {
 					let gatekeepers = Gatekeeper::<T>::get();
-					if !gatekeepers.contains(worker_pubkey) {
-						return Err(Error::<T>::InvalidGatekeeper.into());
-					}
-
+					ensure!(
+						gatekeepers.contains(worker_pubkey),
+						Error::<T>::InvalidGatekeeper
+					);
 					match GatekeeperMasterPubkey::<T>::try_get() {
 						Ok(saved_pubkey) => {
 							ensure!(
@@ -507,26 +499,6 @@ pub mod pallet {
 							));
 						}
 					}
-				}
-			}
-			Ok(())
-		}
-
-		pub fn on_pink_message_received(
-			message: DecodedMessage<WorkerPinkReport>,
-		) -> DispatchResult {
-			match &message.sender {
-				MessageOrigin::Worker(_) => (),
-				_ => return Err(Error::<T>::InvalidSender.into()),
-			}
-			match message.payload {
-				WorkerPinkReport::PinkInstantiated {
-					id,
-					group_id: _,
-					owner: _,
-					pubkey,
-				} => {
-					ContractKey::<T>::insert(id, pubkey);
 				}
 			}
 			Ok(())
@@ -656,17 +628,17 @@ pub mod pallet {
 	#[derive(Encode, Decode, TypeInfo, Debug, Clone)]
 	pub struct WorkerInfo<AccountId> {
 		// identity
-		pubkey: WorkerPublicKey,
-		ecdh_pubkey: EcdhPublicKey,
+		pub pubkey: WorkerPublicKey,
+		pub ecdh_pubkey: EcdhPublicKey,
 		// system
-		runtime_version: u32,
-		last_updated: u64,
+		pub runtime_version: u32,
+		pub last_updated: u64,
 		pub operator: Option<AccountId>,
 		// platform
 		pub confidence_level: u8,
 		// scoring
 		pub initial_score: Option<u32>,
-		features: Vec<u32>,
+		pub features: Vec<u32>,
 	}
 
 	impl<T: Config> From<AttestationError> for Error<T> {
