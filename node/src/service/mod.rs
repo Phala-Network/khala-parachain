@@ -13,15 +13,17 @@
 
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
+use std::{sync::Arc, time::Duration};
+
 use cumulus_client_consensus_common::ParachainConsensus;
-use cumulus_client_network::build_block_announce_validator;
+use cumulus_client_network::BlockAnnounceValidator;
 use cumulus_client_service::{
     prepare_node_config, start_collator, start_full_node, StartCollatorParams, StartFullNodeParams,
 };
 use cumulus_primitives_core::ParaId;
-use polkadot_service::NativeExecutionDispatch;
+use cumulus_relay_chain_interface::RelayChainInterface;
+use cumulus_relay_chain_local::build_relay_chain_interface;
 
-use crate::rpc;
 pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
 use sc_executor::NativeElseWasmExecutor;
 
@@ -33,7 +35,6 @@ use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerH
 use sp_api::ConstructRuntimeApi;
 use sp_keystore::SyncCryptoStorePtr;
 use sp_runtime::traits::BlakeTwo256;
-use std::sync::Arc;
 use substrate_prometheus_endpoint::Registry;
 
 #[cfg(feature = "phala-native")]
@@ -190,9 +191,8 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
         + sp_block_builder::BlockBuilder<Block>
         + cumulus_primitives_core::CollectCollationInfo<Block>
         + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
-        + substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
-        + pallet_mq_runtime_api::MqApi<Block>
-        + frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
+        + substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
+        + pallet_mq_runtime_api::MqApi<Block>,
         sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
         Executor: sc_executor::NativeExecutionDispatch + 'static,
         RB: Fn(
@@ -272,11 +272,18 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
     let rpc_extensions_builder = {
         let client = client.clone();
         let transaction_pool = transaction_pool.clone();
+        let backend = backend.clone();
+        let enable_archive = match parachain_config.state_pruning {
+            PruningMode::Constrained(_) => false,
+            PruningMode::ArchiveAll | PruningMode::ArchiveCanonical => true,
+        };
 
         Box::new(move |deny_unsafe, _| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: transaction_pool.clone(),
+                backend: backend.clone(),
+                enable_archive,
                 deny_unsafe,
             };
 
@@ -352,5 +359,3 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
 
     Ok((task_manager, client))
 }
-
-

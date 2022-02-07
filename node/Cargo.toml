@@ -101,7 +101,7 @@ xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.1
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 
 [features]
-default = ["khala-native", "thala-native"]
+default = ["all-runtimes"]
 
 phala-native = ["phala-parachain-runtime"]
 khala-native = ["khala-parachain-runtime"]

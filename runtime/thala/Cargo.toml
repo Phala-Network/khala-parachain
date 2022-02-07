@@ -54,12 +54,14 @@ pallet-collective = { git = "https://github.com/paritytech/substrate", branch = 
 pallet-membership = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 pallet-bounties = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+pallet-child-bounties = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 pallet-lottery = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 pallet-vesting = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 pallet-identity = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 pallet-democracy = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 pallet-tips = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 
 # Cumulus dependencies
@@ -107,6 +109,7 @@ runtime-benchmarks = [
 	"pallet-membership/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-bounties/runtime-benchmarks",
+	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-lottery/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
@@ -174,6 +177,7 @@ std = [
 	"pallet-membership/std",
 	"pallet-treasury/std",
 	"pallet-bounties/std",
+	"pallet-child-bounties/std",
 	"pallet-lottery/std",
 	"pallet-vesting/std",
 	"pallet-identity/std",
@@ -208,6 +212,7 @@ try-runtime = [
 	"pallet-membership/try-runtime",
 	"pallet-treasury/try-runtime",
 	"pallet-bounties/try-runtime",
+	"pallet-child-bounties/try-runtime",
 	"pallet-lottery/try-runtime",
 	"pallet-vesting/try-runtime",
 	"pallet-identity/try-runtime",

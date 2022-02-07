@@ -15,7 +15,6 @@
 
 use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
-use polkadot_service::IsCollator::No;
 use khala_parachain_runtime::{AccountId, AuraId};
 use sc_chain_spec::Properties;
 use sc_service::ChainType;

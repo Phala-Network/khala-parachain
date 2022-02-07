@@ -82,6 +82,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         vec![],
         None,
         Some("phala"),
+        None,
         chain_properties(),
         Extensions {
             relay_chain: "polkadot-dev".into(),

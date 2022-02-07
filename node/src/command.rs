@@ -327,7 +327,7 @@ macro_rules! construct_async_run {
             return runner.async_run(|$config| {
                 let $components = new_partial::<phala_parachain_runtime::RuntimeApi, PhalaParachainRuntimeExecutor, _>(
                     &$config,
-                    crate::service::phala::build_import_queue,
+                    crate::service::phala::parachain_build_import_queue,
                 )?;
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
@@ -339,7 +339,7 @@ macro_rules! construct_async_run {
             return runner.async_run(|$config| {
                 let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
                     &$config,
-                    crate::service::khala::build_import_queue,
+                    crate::service::khala::parachain_build_import_queue,
                 )?;
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
@@ -351,7 +351,7 @@ macro_rules! construct_async_run {
             return runner.async_run(|$config| {
                 let $components = new_partial::<rhala_parachain_runtime::RuntimeApi, RhalaParachainRuntimeExecutor, _>(
                     &$config,
-                    crate::service::rhala::build_import_queue,
+                    crate::service::rhala::parachain_build_import_queue,
                 )?;
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
@@ -363,7 +363,7 @@ macro_rules! construct_async_run {
             return runner.async_run(|$config| {
                 let $components = new_partial::<thala_parachain_runtime::RuntimeApi, ThalaParachainRuntimeExecutor, _>(
                     &$config,
-                    crate::service::thala::build_import_queue,
+                    crate::service::thala::parachain_build_import_queue,
                 )?;
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
@@ -411,7 +411,7 @@ pub fn run() -> Result<()> {
                     &config,
                     [RelayChainCli::executable_name().to_string()]
                         .iter()
-                        .chain(cli.relaychain_args.iter()),
+                        .chain(cli.relay_chain_args.iter()),
                 );
 
                 let polkadot_config = SubstrateCli::create_configuration(
@@ -432,8 +432,9 @@ pub fn run() -> Result<()> {
             builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
             let _ = builder.init();
 
-            let block: Block =
-                generate_genesis_block(&load_spec(&params.chain.clone().unwrap_or_default())?)?;
+            let spec = load_spec(&params.chain.clone().unwrap_or_default())?;
+            let state_version = Cli::native_runtime_version(&spec).state_version();
+            let block: Block = generate_genesis_block(&spec, state_version)?;
             let raw_header = block.header().encode();
             let output_buf = if params.raw {
                 raw_header
@@ -556,7 +557,7 @@ pub fn run() -> Result<()> {
                     &config,
                     [RelayChainCli::executable_name().to_string()]
                         .iter()
-                        .chain(cli.relaychain_args.iter()),
+                        .chain(cli.relay_chain_args.iter()),
                 );
 
                 let id = ParaId::from(para_id);
@@ -564,8 +565,10 @@ pub fn run() -> Result<()> {
                 let parachain_account =
                     AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
 
-                let block: Block =
-                    generate_genesis_block(&config.chain_spec).map_err(|e| format!("{:?}", e))?;
+                let state_version =
+                    RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
+                let block: Block = generate_genesis_block(&config.chain_spec, state_version)
+                    .map_err(|e| format!("{:?}", e))?;
                 let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
                 let task_executor = config.tokio_handle.clone();
@@ -587,7 +590,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "phala-native")]
                 if config.chain_spec.is_phala() {
-                    return crate::service::phala::start_node(config, polkadot_config, id)
+                    return crate::service::phala::start_parachain_node(config, polkadot_config, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -595,7 +598,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "khala-native")]
                 if config.chain_spec.is_khala() {
-                    return crate::service::khala::start_node(config, polkadot_config, id)
+                    return crate::service::khala::start_parachain_node(config, polkadot_config, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -603,7 +606,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "rhala-native")]
                 if config.chain_spec.is_rhala() {
-                    return crate::service::rhala::start_node(config, polkadot_config, id)
+                    return crate::service::rhala::start_parachain_node(config, polkadot_config, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -611,7 +614,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "thala-native")]
                 if config.chain_spec.is_thala() {
-                    return crate::service::thala::start_node(config, polkadot_config, id)
+                    return crate::service::thala::start_parachain_node(config, polkadot_config, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -677,22 +680,31 @@ impl CliConfiguration<Self> for RelayChainCli {
         self.base.base.rpc_ws(default_listen_port)
     }
 
-    fn prometheus_config(&self, default_listen_port: u16) -> Result<Option<PrometheusConfig>> {
-        self.base.base.prometheus_config(default_listen_port)
+    fn prometheus_config(
+        &self,
+        default_listen_port: u16,
+        chain_spec: &Box<dyn ChainSpec>,
+    ) -> Result<Option<PrometheusConfig>> {
+        self.base.base.prometheus_config(default_listen_port, chain_spec)
     }
 
-    fn init<C: SubstrateCli>(&self) -> Result<()> {
+    fn init<F>(
+        &self,
+        _support_url: &String,
+        _impl_version: &String,
+        _logger_hook: F,
+        _config: &sc_service::Configuration,
+    ) -> Result<()>
+        where
+            F: FnOnce(&mut sc_cli::LoggerBuilder, &sc_service::Configuration),
+    {
         unreachable!("PolkadotCli is never initialized; qed");
     }
 
     fn chain_id(&self, is_dev: bool) -> Result<String> {
         let chain_id = self.base.base.chain_id(is_dev)?;
 
-        Ok(if chain_id.is_empty() {
-            self.chain_id.clone().unwrap_or_default()
-        } else {
-            chain_id
-        })
+        Ok(if chain_id.is_empty() { self.chain_id.clone().unwrap_or_default() } else { chain_id })
     }
 
     fn role(&self, is_dev: bool) -> Result<sc_service::Role> {

@@ -6,7 +6,7 @@ use frame_support::{
 	construct_runtime, match_type,
 	pallet_prelude::*,
 	parameter_types,
-	traits::{Contains, Everything},
+	traits::{Contains, Everything, ConstU32, ConstU128},
 	weights::{IdentityFee, Weight},
 };
 use frame_system as system;
@@ -100,6 +100,7 @@ impl system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
+	type MaxConsumers = ConstU32<2>;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -129,6 +130,7 @@ impl pallet_assets::Config for Runtime {
 	type Currency = Balances;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type AssetDeposit = AssetDeposit;
+	type AssetAccountDeposit = ConstU128<10>;
 	type MetadataDepositBase = MetadataDepositBase;
 	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ApprovalDeposit;
@@ -330,6 +332,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ChannelInfo = ChannelInfo;
 	type VersionWrapper = ();
+	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
 impl cumulus_pallet_dmp_queue::Config for Runtime {
 	type Event = Event;

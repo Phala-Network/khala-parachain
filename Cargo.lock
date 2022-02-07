@@ -3573,6 +3573,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-bounties",
+ "pallet-child-bounties",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-democracy",
@@ -3583,6 +3584,7 @@ dependencies = [
  "pallet-mq-runtime-api",
  "pallet-multisig",
  "pallet-parachain-info",
+ "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
  "pallet-scheduler",
@@ -5276,6 +5278,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-child-bounties"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.16#4aeb95f7f38fcd519e2628f32f79044a8fef99d5"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-bounties",
+ "pallet-treasury",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-collator-selection"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.16#86f76c5619c64d1300315612695ad4b4fcd0f562"
@@ -6404,6 +6425,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-bounties",
+ "pallet-child-bounties",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-democracy",
@@ -6413,6 +6435,7 @@ dependencies = [
  "pallet-membership",
  "pallet-multisig",
  "pallet-parachain-info",
+ "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
  "pallet-scheduler",
@@ -8224,6 +8247,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-bounties",
+ "pallet-child-bounties",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-democracy",
@@ -8234,6 +8258,7 @@ dependencies = [
  "pallet-mq-runtime-api",
  "pallet-multisig",
  "pallet-parachain-info",
+ "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
  "pallet-scheduler",
@@ -10919,6 +10944,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-bounties",
+ "pallet-child-bounties",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-democracy",
@@ -10929,6 +10955,7 @@ dependencies = [
  "pallet-mq-runtime-api",
  "pallet-multisig",
  "pallet-parachain-info",
+ "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
  "pallet-scheduler",
@@ -11230,7 +11257,7 @@ dependencies = [
  "chrono",
  "lazy_static",
  "matchers",
- "parking_lot 0.11.2",
+ "parking_lot 0.10.2",
  "regex",
  "serde",
  "serde_json",
