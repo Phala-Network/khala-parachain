@@ -295,7 +295,7 @@ impl Contains<Call> for BaseCallFilter {
             // System
             Call::System { .. } | Call::Timestamp { .. } | Call::Utility { .. } |
             Call::Multisig { .. } | Call::Proxy { .. } | Call::Scheduler { .. } |
-            Call::Vesting { .. } |
+            Call::Vesting { .. } | Call::Preimage { .. } |
             // Parachain
             Call::ParachainSystem { .. } |
             // Monetary
@@ -308,7 +308,8 @@ impl Contains<Call> for BaseCallFilter {
             Call::Identity { .. } | Call::Treasury { .. } |
             Call::Democracy { .. } | Call::PhragmenElection { .. } |
             Call::Council { .. } | Call::TechnicalCommittee { .. } | Call::TechnicalMembership { .. } |
-            Call::Bounties { .. } | Call::Lottery { .. } | Call::Tips { .. } |
+            Call::Bounties { .. } | Call::ChildBounties { .. } |
+            Call::Lottery { .. } | Call::Tips { .. } |
             // Phala
             Call::PhalaMq { .. } | Call::PhalaRegistry { .. } |
             Call::PhalaMining { .. } | Call::PhalaStakePool { .. }
