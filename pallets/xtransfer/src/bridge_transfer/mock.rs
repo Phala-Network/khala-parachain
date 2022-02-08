@@ -2,10 +2,9 @@
 
 use frame_support::{
 	ord_parameter_types, parameter_types,
-	traits::{
-		GenesisBuild, ConstU32, ConstU128,
-	},
-	weights::Weight, PalletId,
+	traits::{ConstU128, ConstU32, GenesisBuild},
+	weights::Weight,
+	PalletId,
 };
 use frame_system::{self as system};
 use sp_core::H256;

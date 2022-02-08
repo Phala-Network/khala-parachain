@@ -6,7 +6,7 @@ use frame_support::{
 	construct_runtime, match_type,
 	pallet_prelude::*,
 	parameter_types,
-	traits::{Contains, Everything, ConstU32, ConstU128},
+	traits::{ConstU128, ConstU32, Contains, Everything},
 	weights::{IdentityFee, Weight},
 };
 use frame_system as system;
