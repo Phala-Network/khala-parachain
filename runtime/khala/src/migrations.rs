@@ -3,18 +3,29 @@ use super::*;
 #[allow(unused_imports)]
 use frame_support::traits::OnRuntimeUpgrade;
 
-// Note to "late-migration":
-//
-// All the migrations defined in this file are so called "late-migration". We should have done the
-// pallet migrations as soon as we perform the runtime upgrade. However the runtime v1090 was done
-// without applying the necessary migrations. Without the migrations, affected pallets can no
-// longer access the state db properly.
-//
-// So here we need to redo the migrations afterward. An immediate problem is that, after the new
-// pallets are upgraded, they may have already written some data under the new pallet storage
-// prefixes. Most of the pre_upgrade logic checks there's no data under the new pallets as a safe
-// guard. However for "late-migrations" this is not the case.
-//
-// The final decision is to just skip the pre_upgrade checks. We have carefully checked all the
-// pre_upgrade checks and confirmed that only the prefix checks are skipped. All the other checks
-// are still performed in an offline try-runtime test.
+pub struct ReproTest;
+
+impl OnRuntimeUpgrade for ReproTest {
+	/// Execute some pre-checks prior to a runtime upgrade.
+	///
+	/// This hook is never meant to be executed on-chain but is meant to be used by testing tools.
+	#[cfg(feature = "try-runtime")]
+	fn pre_upgrade() -> Result<(), &'static str> {
+
+		log::warn!("ReproTest");
+
+        let tokenomic = phala_pallets::mining::Pallet::<super::Runtime>::tokenomic().unwrap();
+        let ve = tokenomic.ve(18900_000000000000, 1698, 2);
+		log::warn!("ve = {}", ve);
+		Ok(())
+	}
+
+	/// Execute some post-checks after a runtime upgrade.
+	///
+	/// This hook is never meant to be executed on-chain but is meant to be used by testing tools.
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade() -> Result<(), &'static str> {
+		Ok(())
+	}
+
+}

@@ -845,7 +845,7 @@ pub mod pallet {
 			)
 		}
 
-		fn tokenomic() -> Result<Tokenomic<T>, Error<T>> {
+		pub fn tokenomic() -> Result<Tokenomic<T>, Error<T>> {
 			let params = TokenomicParameters::<T>::get()
 				.ok_or(Error::<T>::InternalErrorBadTokenomicParameters)?;
 			Ok(Tokenomic::<T>::new(params))
@@ -858,7 +858,7 @@ pub mod pallet {
 		}
 	}
 
-	struct Tokenomic<T> {
+	pub struct Tokenomic<T> {
 		params: TokenomicParams,
 		mark: PhantomData<T>,
 	}
@@ -884,13 +884,14 @@ pub mod pallet {
 		}
 
 		/// Calcuates the initial Ve
-		fn ve(&self, s: BalanceOf<T>, p: u32, confidence_level: u8) -> FixedPoint {
+		pub fn ve(&self, s: BalanceOf<T>, p: u32, confidence_level: u8) -> FixedPoint {
 			let f1 = FixedPoint::from_num(1);
 			let score = Self::confidence_score(confidence_level);
 			let re = FixedPoint::from_bits(self.params.re);
 			let tweaked_re = (re - f1) * score + f1;
 			let s = s.to_fixed();
 			let c = self.rig_cost(p);
+            log::warn!("s = {}, c = {}, t_re = {}", s, c, tweaked_re);
 			tweaked_re * (s + c)
 		}
 
@@ -905,7 +906,8 @@ pub mod pallet {
 			let cost_b = FixedPoint::from_bits(self.params.rig_b);
 			let pha_rate = FixedPoint::from_bits(self.params.pha_rate);
 			let p = FixedPoint::from_num(p);
-			(cost_k * p + cost_b) / pha_rate
+            log::warn!("cost_k = {}, p = {}, cost_b = {}, pha_rate = {}", cost_k, p, cost_b, pha_rate);
+			cost_k * p + cost_b
 		}
 
 		/// Gets the operating cost per sec
@@ -915,7 +917,7 @@ pub mod pallet {
 			let cost_b = FixedPoint::from_bits(self.params.cost_b);
 			let pha_rate = FixedPoint::from_bits(self.params.pha_rate);
 			let p = FixedPoint::from_num(p);
-			(cost_k * p + cost_b) / pha_rate
+			cost_k * p + cost_b
 		}
 
 		/// Converts confidence level to score
