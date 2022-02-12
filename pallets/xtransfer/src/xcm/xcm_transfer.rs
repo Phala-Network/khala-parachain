@@ -714,8 +714,7 @@ mod test {
 
 		ParaA::execute_with(|| {
 			assert_eq!(ParaBalances::free_balance(&sibling_account(2)), 5);
-			// FIXME: ALICE should receive the asset
-			// assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10 + 4);
+			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10 + 4);
 		});
 	}
 

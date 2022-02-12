@@ -78,3 +78,17 @@ pub mod fee {
         base_tx_fee * tx_per_second
     }
 }
+
+pub mod parachains {
+    pub mod karura {
+        pub const ID: u32 = 2000;
+        pub const KAR_KEY: [u8; 2] = [0, 128];
+    }
+
+    pub mod bifrost {
+        pub const ID: u32 = 2001;
+        pub const BNC_KEY: &[u8] = &[0, 1];
+        pub const VSKSM_KEY: &[u8] = &[4, 4];
+        pub const ZLK_KEY: &[u8] = &[2, 7];
+    }
+}
