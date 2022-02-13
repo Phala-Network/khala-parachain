@@ -153,6 +153,7 @@ parameter_types! {
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 
 	pub KSMLocation: MultiLocation = MultiLocation::new(1, Here);
+	pub LocalParaLocation: MultiLocation = MultiLocation::new(0, Here);
 	pub ParaALocation: MultiLocation = MultiLocation::new(1, X1(Parachain(1)));
 	pub ParaBLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(2)));
 	pub ParaCLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(3)));
@@ -298,6 +299,7 @@ impl Config for XcmConfig {
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type Trader = (
 		UsingComponents<IdentityFee<Balance>, KSMLocation, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, LocalParaLocation, AccountId, Balances, ()>,
 		UsingComponents<IdentityFee<Balance>, ParaALocation, AccountId, Balances, ()>,
 		UsingComponents<IdentityFee<Balance>, ParaBLocation, AccountId, Balances, ()>,
 		UsingComponents<IdentityFee<Balance>, ParaCLocation, AccountId, Balances, ()>,
