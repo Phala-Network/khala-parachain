@@ -2,7 +2,9 @@
 
 use super::*;
 
-use frame_support::{assert_ok, ord_parameter_types, parameter_types, weights::Weight};
+use frame_support::{
+	assert_ok, ord_parameter_types, parameter_types, traits::ConstU32, weights::Weight,
+};
 use frame_system::{self as system};
 use sp_core::H256;
 use sp_runtime::{
@@ -62,6 +64,7 @@ impl frame_system::Config for Test {
 	type BlockLength = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
+	type MaxConsumers = ConstU32<2>;
 }
 
 parameter_types! {

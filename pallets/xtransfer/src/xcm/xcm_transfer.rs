@@ -29,6 +29,7 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
@@ -340,13 +341,12 @@ pub mod pallet {
 			&self,
 			location: &MultiLocation,
 		) -> Result<Instruction<()>, DispatchError> {
-			let inv_dest = T::LocationInverter::invert_location(location)
-				.map_err(|()| Error::<T>::LocationInvertFailed)?;
+			let ancestry = T::LocationInverter::ancestry();
 
 			let fees = self
 				.fee
 				.clone()
-				.reanchored(&inv_dest)
+				.reanchored(&location, &ancestry)
 				.map_err(|_| Error::<T>::CannotReanchor)?;
 
 			Ok(BuyExecution {
@@ -694,7 +694,7 @@ mod test {
 			// ParaB send back ParaA's native asset
 			assert_ok!(XcmTransfer::transfer_asset(
 				Some(BOB).into(),
-				para_a_asset.clone().into(),
+				Box::new(para_a_asset.clone().into()),
 				MultiLocation::new(
 					1,
 					X2(
@@ -713,6 +713,7 @@ mod test {
 		});
 
 		ParaA::execute_with(|| {
+			assert_eq!(ParaBalances::free_balance(&sibling_account(2)), 5);
 			assert_eq!(ParaBalances::free_balance(&ALICE), 1_000 - 10 + 4);
 		});
 	}

@@ -24,6 +24,7 @@ exclude = [
 members = [
 	"node",
 	"parachains-common",
+	"crates/phala-serde-more",
 	"crates/phala-types",
 	"crates/phala-mq",
 	"crates/phala-node-rpc-ext",
@@ -43,6 +44,3 @@ members = [
 
 [patch."https://github.com/paritytech/polkadot"]
 polkadot-service = { path = "polkadot/node/service" }
-
-[patch."https://github.com/paritytech/cumulus"]
-cumulus-client-cli = { path = "cumulus/client/cli" }

@@ -87,6 +87,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         vec![],
         None,
         Some("khala"),
+        None,
         chain_properties(),
         Extensions {
             relay_chain: "kusama-dev".into(),
@@ -134,6 +135,7 @@ fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str
         Vec::new(),
         None,
         Some("khala"),
+        None,
         chain_properties(),
         Extensions {
             relay_chain: relay_chain.into(),
@@ -171,7 +173,7 @@ fn genesis(
         balances: thala_parachain_runtime::BalancesConfig {
             balances: endowed_accounts,
         },
-        sudo: thala_parachain_runtime::SudoConfig { key: root_key },
+        sudo: thala_parachain_runtime::SudoConfig { key: Some(root_key) },
         parachain_info: thala_parachain_runtime::ParachainInfoConfig { parachain_id: id },
         collator_selection: thala_parachain_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities

@@ -1,9 +1,12 @@
+use super::WorkerPublicKey;
+use alloc::boxed::Box;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::format;
 use codec::{Decode, Encode};
+use scale_info::TypeInfo;
 
-pub use phala_mq::{contract_id256 as id256, ContractId};
+pub use phala_mq::{ContractClusterId, ContractId};
 
 pub type ContractId32 = u32;
 pub const SYSTEM: ContractId32 = 0;
@@ -15,6 +18,109 @@ pub const DIEM: ContractId32 = 5;
 pub const SUBSTRATE_KITTIES: ContractId32 = 6;
 pub const BTC_LOTTERY: ContractId32 = 7;
 pub const GEOLOCATION: ContractId32 = 8;
+pub const GUESS_NUMBER: ContractId32 = 100;
+pub const BTC_PRICE_BOT: ContractId32 = 101;
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub enum CodeIndex<CodeHash> {
+    NativeCode(ContractId32),
+    WasmCode(CodeHash),
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub enum DeployTarget {
+    Cluster(ContractClusterId),
+    NewGroup(Vec<WorkerPublicKey>),
+}
+
+impl<CodeHash: AsRef<[u8]>> CodeIndex<CodeHash> {
+    pub fn code_hash(&self) -> Vec<u8> {
+        match self {
+            CodeIndex::NativeCode(contract_id) => contract_id.to_be_bytes().to_vec(),
+            CodeIndex::WasmCode(code_hash) => code_hash.as_ref().to_vec(),
+        }
+    }
+}
+
+pub mod messaging {
+    use alloc::vec::Vec;
+    use codec::{Decode, Encode};
+
+    use super::{ContractClusterId, ContractInfo};
+    use crate::WorkerIdentity;
+    use phala_mq::bind_topic;
+
+    bind_topic!(ContractEvent<CodeHash, AccountId>, b"phala/contract/event");
+    #[derive(Encode, Decode, Debug)]
+    pub enum ContractEvent<CodeHash, AccountId> {
+        // TODO.shelven: enable add and remove workers
+        InstantiateCode {
+            contract_info: ContractInfo<CodeHash, AccountId>,
+            deploy_workers: Vec<WorkerIdentity>,
+        },
+    }
+
+    impl<CodeHash, AccountId> ContractEvent<CodeHash, AccountId> {
+        pub fn instantiate_code(
+            contract_info: ContractInfo<CodeHash, AccountId>,
+            deploy_workers: Vec<WorkerIdentity>,
+        ) -> Self {
+            ContractEvent::InstantiateCode {
+                contract_info,
+                deploy_workers,
+            }
+        }
+    }
+
+    bind_topic!(ContractOperation<AccountId>, b"phala/contract/op");
+    #[derive(Encode, Decode, Debug)]
+    pub enum ContractOperation<AccountId> {
+        UploadCodeToCluster {
+            origin: AccountId,
+            code: Vec<u8>,
+            cluster_id: ContractClusterId,
+        },
+    }
+}
+
+/// On-chain contract registration info
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub struct ContractInfo<CodeHash, AccountId> {
+    pub deployer: AccountId,
+    pub code_index: CodeIndex<CodeHash>,
+    pub salt: Vec<u8>,
+    pub cluster_id: ContractClusterId,
+    pub instantiate_data: Vec<u8>,
+}
+
+/// Use blake2_256 on the preimage for the final contract id
+pub fn contract_id_preimage(
+    deployer: &[u8],
+    code_hash: &[u8],
+    cluster_id: &[u8],
+    salt: &[u8],
+) -> Vec<u8> {
+    let buf: Vec<_> = deployer
+        .iter()
+        .chain(code_hash)
+        .chain(cluster_id)
+        .chain(salt)
+        .cloned()
+        .collect();
+    buf
+}
+
+impl<CodeHash: AsRef<[u8]>, AccountId: AsRef<[u8]>> ContractInfo<CodeHash, AccountId> {
+    pub fn contract_id(&self, blake2_256: Box<dyn Fn(&[u8]) -> [u8; 32]>) -> ContractId {
+        let buf = contract_id_preimage(
+            self.deployer.as_ref(),
+            self.code_index.code_hash().as_ref(),
+            self.cluster_id.as_ref(),
+            self.salt.as_ref(),
+        );
+        ContractId::from(blake2_256(buf.as_ref()))
+    }
+}
 
 /// Contract query request parameters, to be encrypted.
 #[derive(Encode, Decode, Debug)]
@@ -73,5 +179,7 @@ impl From<ContractQueryError> for prpc::server::Error {
 }
 
 pub fn command_topic(id: ContractId) -> Vec<u8> {
-    format!("phala/contract/{}/command", hex::encode(&id)).as_bytes().to_vec()
+    format!("phala/contract/{}/command", hex::encode(&id))
+        .as_bytes()
+        .to_vec()
 }

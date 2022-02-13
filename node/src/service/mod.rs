@@ -13,15 +13,17 @@
 
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
+use std::{sync::Arc, time::Duration};
+
 use cumulus_client_consensus_common::ParachainConsensus;
-use cumulus_client_network::build_block_announce_validator;
+use cumulus_client_network::BlockAnnounceValidator;
 use cumulus_client_service::{
     prepare_node_config, start_collator, start_full_node, StartCollatorParams, StartFullNodeParams,
 };
 use cumulus_primitives_core::ParaId;
-use polkadot_service::NativeExecutionDispatch;
+use cumulus_relay_chain_interface::RelayChainInterface;
+use cumulus_relay_chain_local::build_relay_chain_interface;
 
-use crate::rpc;
 pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
 use sc_executor::NativeElseWasmExecutor;
 
@@ -33,7 +35,6 @@ use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerH
 use sp_api::ConstructRuntimeApi;
 use sp_keystore::SyncCryptoStorePtr;
 use sp_runtime::traits::BlakeTwo256;
-use std::sync::Arc;
 use substrate_prometheus_endpoint::Registry;
 
 #[cfg(feature = "phala-native")]
@@ -49,6 +50,7 @@ pub mod thala;
 ///
 /// Use this macro if you don't actually need the full service, but just the builder in order to
 /// be able to perform chain operations.
+#[allow(clippy::type_complexity)]
 pub fn new_partial<RuntimeApi, Executor, BIQ>(
     config: &Configuration,
     build_import_queue: BIQ,
@@ -83,7 +85,7 @@ pub fn new_partial<RuntimeApi, Executor, BIQ>(
         > + sp_offchain::OffchainWorkerApi<Block>
         + sp_block_builder::BlockBuilder<Block>,
         sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
-        Executor: NativeExecutionDispatch + 'static,
+        Executor: sc_executor::NativeExecutionDispatch + 'static,
         BIQ: FnOnce(
             Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>,
             &Configuration,
@@ -112,11 +114,12 @@ pub fn new_partial<RuntimeApi, Executor, BIQ>(
         config.wasm_method,
         config.default_heap_pages,
         config.max_runtime_instances,
+        config.runtime_cache_size,
     );
 
     let (client, backend, keystore_container, task_manager) =
         sc_service::new_full_parts::<Block, RuntimeApi, _>(
-            &config,
+            config,
             telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
             executor,
         )?;
@@ -188,12 +191,12 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
         + sp_block_builder::BlockBuilder<Block>
         + cumulus_primitives_core::CollectCollationInfo<Block>
         + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
-        + pallet_mq_runtime_api::MqApi<Block>
-        + frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
+        + substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
+        + pallet_mq_runtime_api::MqApi<Block>,
         sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
         Executor: sc_executor::NativeExecutionDispatch + 'static,
         RB: Fn(
-            Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>,
+            Arc<TFullClient<Block, RuntimeApi, Executor>>,
         ) -> Result<jsonrpc_core::IoHandler<sc_rpc::Metadata>, sc_service::Error>
         + Send
         + 'static,
@@ -214,7 +217,7 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
             Option<&Registry>,
             Option<TelemetryHandle>,
             &TaskManager,
-            &polkadot_service::NewFull<polkadot_service::Client>,
+            Arc<dyn RelayChainInterface>,
             Arc<
                 sc_transaction_pool::FullPool<
                     Block,
@@ -227,7 +230,7 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
         ) -> Result<Box<dyn ParachainConsensus<Block>>, sc_service::Error>,
 {
     if matches!(parachain_config.role, Role::Light) {
-        return Err("Light client not supported!".into());
+        return Err("Light client not supported!".into())
     }
 
     let parachain_config = prepare_node_config(parachain_config);
@@ -235,27 +238,23 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
     let params = new_partial::<RuntimeApi, Executor, BIQ>(&parachain_config, build_import_queue)?;
     let (mut telemetry, telemetry_worker_handle) = params.other;
 
-    let relay_chain_full_node =
-        cumulus_client_service::build_polkadot_full_node(polkadot_config, telemetry_worker_handle)
+    let client = params.client.clone();
+    let backend = params.backend.clone();
+    let mut task_manager = params.task_manager;
+
+    let (relay_chain_interface, collator_key) =
+        build_relay_chain_interface(polkadot_config, telemetry_worker_handle, &mut task_manager)
             .map_err(|e| match e {
                 polkadot_service::Error::Sub(x) => x,
                 s => format!("{}", s).into(),
             })?;
 
-    let client = params.client.clone();
-    let backend = params.backend.clone();
-    let block_announce_validator = build_block_announce_validator(
-        relay_chain_full_node.client.clone(),
-        id,
-        Box::new(relay_chain_full_node.network.clone()),
-        relay_chain_full_node.backend.clone(),
-    );
+    let block_announce_validator = BlockAnnounceValidator::new(relay_chain_interface.clone(), id);
 
     let force_authoring = parachain_config.force_authoring;
     let validator = parachain_config.role.is_authority();
     let prometheus_registry = parachain_config.prometheus_registry().cloned();
     let transaction_pool = params.transaction_pool.clone();
-    let mut task_manager = params.task_manager;
     let import_queue = cumulus_client_service::SharedImportQueue::new(params.import_queue);
     let (network, system_rpc_tx, start_network) =
         sc_service::build_network(sc_service::BuildNetworkParams {
@@ -264,7 +263,9 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
             transaction_pool: transaction_pool.clone(),
             spawn_handle: task_manager.spawn_handle(),
             import_queue: import_queue.clone(),
-            block_announce_validator_builder: Some(Box::new(|_| block_announce_validator)),
+            block_announce_validator_builder: Some(Box::new(|_| {
+                Box::new(block_announce_validator)
+            })),
             warp_sync: None,
         })?;
 
@@ -278,7 +279,7 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
         };
 
         Box::new(move |deny_unsafe, _| {
-            let deps = rpc::FullDeps {
+            let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: transaction_pool.clone(),
                 backend: backend.clone(),
@@ -286,7 +287,7 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
                 deny_unsafe,
             };
 
-            Ok(rpc::create_full(deps))
+            Ok(crate::rpc::create_full(deps))
         })
     };
 
@@ -308,13 +309,15 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
         Arc::new(move |hash, data| network.announce_block(hash, data))
     };
 
+    let relay_chain_slot_duration = Duration::from_secs(6);
+
     if validator {
         let parachain_consensus = build_consensus(
             client.clone(),
             prometheus_registry.as_ref(),
             telemetry.as_ref().map(|t| t.handle()),
             &task_manager,
-            &relay_chain_full_node,
+            relay_chain_interface.clone(),
             transaction_pool,
             network,
             params.keystore_container.sync_keystore(),
@@ -329,10 +332,12 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
             announce_block,
             client: client.clone(),
             task_manager: &mut task_manager,
-            relay_chain_full_node,
+            relay_chain_interface,
             spawner,
             parachain_consensus,
             import_queue,
+            collator_key,
+            relay_chain_slot_duration,
         };
 
         start_collator(params).await?;
@@ -342,7 +347,9 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
             announce_block,
             task_manager: &mut task_manager,
             para_id: id,
-            relay_chain_full_node,
+            relay_chain_interface,
+            relay_chain_slot_duration,
+            import_queue,
         };
 
         start_full_node(params)?;
@@ -352,5 +359,3 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
 
     Ok((task_manager, client))
 }
-
-

@@ -1,7 +1,10 @@
 #![cfg(test)]
 
 use frame_support::{
-	ord_parameter_types, parameter_types, traits::GenesisBuild, weights::Weight, PalletId,
+	ord_parameter_types, parameter_types,
+	traits::{ConstU128, ConstU32, GenesisBuild},
+	weights::Weight,
+	PalletId,
 };
 use frame_system::{self as system};
 use sp_core::H256;
@@ -73,6 +76,7 @@ impl frame_system::Config for Test {
 	type BlockLength = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
+	type MaxConsumers = ConstU32<2>;
 }
 
 parameter_types! {
@@ -174,6 +178,7 @@ impl pallet_assets::Config for Test {
 	type Currency = Balances;
 	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type AssetDeposit = AssetDeposit;
+	type AssetAccountDeposit = ConstU128<10>;
 	type MetadataDepositBase = MetadataDepositBase;
 	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ApprovalDeposit;

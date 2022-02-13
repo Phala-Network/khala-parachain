@@ -6,7 +6,7 @@ use frame_support::{
 	construct_runtime, match_type,
 	pallet_prelude::*,
 	parameter_types,
-	traits::{Contains, Everything},
+	traits::{ConstU128, ConstU32, Contains, Everything},
 	weights::{IdentityFee, Weight},
 };
 use frame_system as system;
@@ -100,6 +100,7 @@ impl system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
+	type MaxConsumers = ConstU32<2>;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -129,6 +130,7 @@ impl pallet_assets::Config for Runtime {
 	type Currency = Balances;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type AssetDeposit = AssetDeposit;
+	type AssetAccountDeposit = ConstU128<10>;
 	type MetadataDepositBase = MetadataDepositBase;
 	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ApprovalDeposit;
@@ -151,6 +153,7 @@ parameter_types! {
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 
 	pub KSMLocation: MultiLocation = MultiLocation::new(1, Here);
+	pub LocalParaLocation: MultiLocation = MultiLocation::new(0, Here);
 	pub ParaALocation: MultiLocation = MultiLocation::new(1, X1(Parachain(1)));
 	pub ParaBLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(2)));
 	pub ParaCLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(3)));
@@ -296,6 +299,7 @@ impl Config for XcmConfig {
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type Trader = (
 		UsingComponents<IdentityFee<Balance>, KSMLocation, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, LocalParaLocation, AccountId, Balances, ()>,
 		UsingComponents<IdentityFee<Balance>, ParaALocation, AccountId, Balances, ()>,
 		UsingComponents<IdentityFee<Balance>, ParaBLocation, AccountId, Balances, ()>,
 		UsingComponents<IdentityFee<Balance>, ParaCLocation, AccountId, Balances, ()>,
@@ -330,6 +334,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ChannelInfo = ChannelInfo;
 	type VersionWrapper = ();
+	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
 impl cumulus_pallet_dmp_queue::Config for Runtime {
 	type Event = Event;
