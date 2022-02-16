@@ -17,7 +17,6 @@ resolver = "2"
 exclude = [
 	"vendor/webpki",
 	"vendor/ring",
-	"cumulus/client/cli",
 	"polkadot/node/service",
 ]
 
