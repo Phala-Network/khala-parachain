@@ -297,6 +297,8 @@ impl Contains<Call> for BaseCallFilter {
             return match assets_method {
                 pallet_assets::Call::create { .. }
                 | pallet_assets::Call::force_create { .. }
+                | pallet_assets::Call::set_metadata { .. }
+                | pallet_assets::Call::force_set_metadata { .. }
                 | pallet_assets::Call::__Ignore { .. } => {
                     false
                 }

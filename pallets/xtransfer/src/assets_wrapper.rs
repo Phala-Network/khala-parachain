@@ -4,7 +4,9 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use codec::{Decode, Encode};
-	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, traits::StorageVersion};
+	use frame_support::{
+		dispatch::DispatchResult, pallet_prelude::*, traits::StorageVersion, transactional,
+	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::StaticLookup;
@@ -36,10 +38,18 @@ pub mod pallet {
 	}
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
+	pub struct AssetProperties {
+		pub name: Vec<u8>,
+		pub symbol: Vec<u8>,
+		pub decimals: u8,
+	}
+
+	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub struct AssetRegistryInfo {
 		location: MultiLocation,
 		reserve_location: Option<MultiLocation>,
 		enabled_bridges: Vec<XBridge>,
+		properties: AssetProperties,
 	}
 
 	impl From<MultiLocation> for XTransferAsset {
@@ -215,10 +225,12 @@ pub mod pallet {
 		T: pallet_assets::Config,
 	{
 		#[pallet::weight(195_000_000)]
+		#[transactional]
 		pub fn force_register_asset(
 			origin: OriginFor<T>,
 			asset: XTransferAsset,
 			asset_id: T::AssetId,
+			properties: AssetProperties,
 			owner: <T::Lookup as StaticLookup>::Source,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin.clone())?;
@@ -233,7 +245,7 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyExist
 			);
 			pallet_assets::pallet::Pallet::<T>::force_create(
-				origin,
+				origin.clone(),
 				asset_id,
 				owner,
 				true,
@@ -241,6 +253,7 @@ pub mod pallet {
 			)?;
 			IdByAssets::<T>::insert(&asset, asset_id);
 			AssetByIds::<T>::insert(asset_id, &asset);
+
 			RegistryInfoByIds::<T>::insert(
 				asset_id,
 				AssetRegistryInfo {
@@ -251,8 +264,18 @@ pub mod pallet {
 						config: XBridgeConfig::Xcmp,
 						metadata: Box::new(Vec::new()),
 					}],
+					properties: properties.clone(),
 				},
 			);
+			pallet_assets::pallet::Pallet::<T>::force_set_metadata(
+				origin,
+				asset_id,
+				properties.name,
+				properties.symbol,
+				properties.decimals,
+				false,
+			)?;
+
 			Self::deposit_event(Event::AssetRegistered { asset_id, asset });
 			Ok(())
 		}
@@ -262,6 +285,7 @@ pub mod pallet {
 		/// will not success anymore, we should call pallet_assets::destory() manually
 		/// if we want to delete this asset from our chain
 		#[pallet::weight(195_000_000)]
+		#[transactional]
 		pub fn force_unregister_asset(
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
@@ -293,6 +317,32 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_set_metadata(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			properties: AssetProperties,
+		) -> DispatchResult {
+			T::AssetsCommitteeOrigin::ensure_origin(origin.clone())?;
+
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			info.properties = properties.clone();
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
+			pallet_assets::pallet::Pallet::<T>::force_set_metadata(
+				origin,
+				asset_id,
+				properties.name,
+				properties.symbol,
+				properties.decimals,
+				false,
+			)?;
+
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		#[transactional]
 		pub fn force_enable_chainbridge(
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
@@ -340,6 +390,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(195_000_000)]
+		#[transactional]
 		pub fn force_disable_chainbridge(
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
@@ -385,6 +436,7 @@ pub mod pallet {
 		fn id(asset: &XTransferAsset) -> Option<AssetId>;
 		fn asset(id: &AssetId) -> Option<XTransferAsset>;
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset>;
+		fn decimals(id: &AssetId) -> Option<u8>;
 	}
 
 	impl<T: Config> GetAssetRegistryInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
@@ -398,6 +450,10 @@ pub mod pallet {
 
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset> {
 			AssetByResourceIds::<T>::get(resource_id)
+		}
+
+		fn decimals(id: &<T as pallet_assets::Config>::AssetId) -> Option<u8> {
+			RegistryInfoByIds::<T>::get(&id).map_or(None, |m| Some(m.properties.decimals))
 		}
 	}
 }

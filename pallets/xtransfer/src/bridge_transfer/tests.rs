@@ -1,6 +1,8 @@
 #![cfg(test)]
 
-use crate::assets_wrapper::pallet::{AccountId32Conversion, GetAssetRegistryInfo, CB_ASSET_KEY};
+use crate::assets_wrapper::pallet::{
+	AccountId32Conversion, AssetProperties, GetAssetRegistryInfo, CB_ASSET_KEY,
+};
 use crate::bridge;
 use crate::bridge_transfer::mock::{
 	assert_events, balances, expect_event, new_test_ext, Assets, AssetsWrapper, Balance, Balances,
@@ -43,6 +45,11 @@ fn register_asset() {
 				Origin::signed(ALICE),
 				bridge_asset_location.clone().into(),
 				0,
+				AssetProperties {
+					name: b"BridgeAsset".to_vec(),
+					symbol: b"BA".to_vec(),
+					decimals: 12,
+				},
 				ALICE,
 			),
 			DispatchError::BadOrigin
@@ -52,6 +59,11 @@ fn register_asset() {
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 
@@ -61,6 +73,11 @@ fn register_asset() {
 				Origin::root(),
 				bridge_asset_location.clone().into(),
 				1,
+				AssetProperties {
+					name: b"BridgeAsset".to_vec(),
+					symbol: b"BA".to_vec(),
+					decimals: 12,
+				},
 				ALICE,
 			),
 			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
@@ -82,6 +99,11 @@ fn register_asset() {
 				Origin::root(),
 				another_bridge_asset_location.clone().into(),
 				0,
+				AssetProperties {
+					name: b"BridgeAsset".to_vec(),
+					symbol: b"BA".to_vec(),
+					decimals: 12,
+				},
 				ALICE,
 			),
 			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
@@ -92,6 +114,11 @@ fn register_asset() {
 			Origin::root(),
 			another_bridge_asset_location.clone().into(),
 			1,
+			AssetProperties {
+				name: b"AnotherBridgeAsset".to_vec(),
+				symbol: b"ABA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 		assert_eq!(
@@ -169,6 +196,11 @@ fn transfer_assets_insufficient_balance() {
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 
@@ -219,6 +251,11 @@ fn transfer_assets_to_nonreserve() {
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 
@@ -279,6 +316,11 @@ fn transfer_assets_to_reserve() {
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 
@@ -441,6 +483,11 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 			Origin::root(),
 			bridge_asset,
 			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 
@@ -514,6 +561,11 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 			Origin::root(),
 			para_asset.clone(),
 			0,
+			AssetProperties {
+				name: b"ParaAsset".to_vec(),
+				symbol: b"PA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 

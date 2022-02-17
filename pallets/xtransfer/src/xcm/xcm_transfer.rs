@@ -9,6 +9,7 @@ pub mod pallet {
 		dispatch::DispatchResult,
 		pallet_prelude::*,
 		traits::{Currency, StorageVersion},
+		transactional,
 		weights::Weight,
 		PalletId,
 	};
@@ -115,6 +116,7 @@ pub mod pallet {
 		BalanceOf<T>: Into<u128>,
 	{
 		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
+		#[transactional]
 		pub fn transfer_asset(
 			origin: OriginFor<T>,
 			asset: Box<pallet_assets_wrapper::XTransferAsset>,
@@ -132,6 +134,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
+		#[transactional]
 		pub fn transfer_native(
 			origin: OriginFor<T>,
 			dest: MultiLocation,
@@ -509,6 +512,11 @@ mod test {
 					Some(ALICE).into(),
 					para_a_asset.clone().into(),
 					0,
+					pallet_assets_wrapper::AssetProperties {
+						name: b"ParaAAsset".to_vec(),
+						symbol: b"PAA".to_vec(),
+						decimals: 12,
+					},
 					ALICE,
 				),
 				DispatchError::BadOrigin
@@ -518,6 +526,11 @@ mod test {
 				para::Origin::root(),
 				para_a_asset.clone().into(),
 				0,
+				pallet_assets_wrapper::AssetProperties {
+					name: b"ParaAAsset".to_vec(),
+					symbol: b"PAA".to_vec(),
+					decimals: 12,
+				},
 				ALICE,
 			));
 
@@ -535,6 +548,20 @@ mod test {
 				para_a_asset
 			);
 			assert_eq!(ParaAssets::total_supply(0u32.into()), 0);
+			assert_eq!(ParaAssetsWrapper::id(&para_a_asset).unwrap(), 0u32);
+			assert_eq!(ParaAssetsWrapper::decimals(&0u32.into()).unwrap(), 12u8);
+
+			// Force set metadata
+			assert_ok!(ParaAssetsWrapper::force_set_metadata(
+				para::Origin::root(),
+				0,
+				pallet_assets_wrapper::AssetProperties {
+					name: b"ParaAAAAsset".to_vec(),
+					symbol: b"PAAAA".to_vec(),
+					decimals: 18,
+				},
+			));
+			assert_eq!(ParaAssetsWrapper::decimals(&0u32.into()).unwrap(), 18u8);
 
 			// Same asset location register again, should be failed
 			assert_noop!(
@@ -542,6 +569,11 @@ mod test {
 					para::Origin::root(),
 					para_a_asset.clone().into(),
 					1,
+					pallet_assets_wrapper::AssetProperties {
+						name: b"ParaAAsset".to_vec(),
+						symbol: b"PAA".to_vec(),
+						decimals: 12,
+					},
 					ALICE,
 				),
 				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
@@ -560,6 +592,11 @@ mod test {
 					para::Origin::root(),
 					para_b_asset.clone().into(),
 					0,
+					pallet_assets_wrapper::AssetProperties {
+						name: b"ParaBAsset".to_vec(),
+						symbol: b"PBA".to_vec(),
+						decimals: 12,
+					},
 					ALICE,
 				),
 				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
@@ -576,6 +613,11 @@ mod test {
 				para::Origin::root(),
 				para_b_asset.clone().into(),
 				1,
+				pallet_assets_wrapper::AssetProperties {
+					name: b"ParaBAsset".to_vec(),
+					symbol: b"PBA".to_vec(),
+					decimals: 12,
+				},
 				ALICE,
 			));
 			assert_eq!(ParaAssetsWrapper::id(&para_b_asset).unwrap(), 1u32);
@@ -611,6 +653,11 @@ mod test {
 				para::Origin::root(),
 				para_a_asset.clone().into(),
 				0,
+				pallet_assets_wrapper::AssetProperties {
+					name: b"ParaAAsset".to_vec(),
+					symbol: b"PAA".to_vec(),
+					decimals: 12,
+				},
 				ALICE,
 			));
 		});
@@ -659,6 +706,11 @@ mod test {
 				para::Origin::root(),
 				para_a_asset.clone().into(),
 				0,
+				pallet_assets_wrapper::AssetProperties {
+					name: b"ParaAAsset".to_vec(),
+					symbol: b"PAA".to_vec(),
+					decimals: 12,
+				},
 				ALICE,
 			));
 		});
