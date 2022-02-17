@@ -516,7 +516,7 @@ pub mod pallet {
 	{
 		fn get_fee(chain_id: bridge::BridgeChainId, asset: &MultiAsset) -> Option<u128> {
 			match (&asset.id, &asset.fun) {
-				(Concrete(asset_id), Fungible(amount)) => {
+				(Concrete(location), Fungible(amount)) => {
 					let fee_estimated_in_pha =
 						Self::estimate_fee_in_pha(chain_id, (*amount).into());
 					if T::NativeChecker::is_native_asset(asset) {
@@ -525,12 +525,28 @@ pub mod pallet {
 						let fee_in_asset;
 						let fee_prices = T::ExecutionPriceInfo::get();
 						if let Some(idx) = fee_prices.iter().position(|(fee_asset_id, _)| {
-							fee_asset_id == &Concrete(asset_id.clone())
+							fee_asset_id == &Concrete(location.clone())
 						}) {
-							fee_in_asset = Some(
-								fee_estimated_in_pha.into() * fee_prices[idx].1
-									/ T::NativeExecutionPrice::get(),
-							)
+							let id = T::AssetsWrapper::id(&XTransferAsset(location.clone()));
+							if id.is_none() {
+								fee_in_asset = None;
+							} else {
+								let decimals =
+									T::AssetsWrapper::decimals(&id.unwrap()).unwrap_or(12);
+								let fee_in_decimal_12 = fee_estimated_in_pha.into()
+									* fee_prices[idx].1
+									/ T::NativeExecutionPrice::get();
+
+								fee_in_asset = if decimals > 12 {
+									Some(fee_in_decimal_12.saturating_mul(
+										10u128.saturating_pow(decimals as u32 - 12),
+									))
+								} else {
+									Some(fee_in_decimal_12.saturating_div(
+										10u128.saturating_pow(12 - decimals as u32),
+									))
+								}
+							}
 						} else {
 							fee_in_asset = None
 						}
