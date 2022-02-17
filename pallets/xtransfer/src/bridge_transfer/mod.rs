@@ -525,7 +525,7 @@ pub mod pallet {
 						let amount_in_decimal_12 = if decimals > 12 {
 							amount.saturating_div(10u128.saturating_pow(decimals as u32 - 12))
 						} else {
-							amount.saturating_mul(10u128.saturating_pow(decimals as u32 - 12))
+							amount.saturating_mul(10u128.saturating_pow(12 - decimals as u32))
 						};
 						let fee_estimated_in_pha =
 							Self::estimate_fee_in_pha(chain_id, (amount_in_decimal_12).into());

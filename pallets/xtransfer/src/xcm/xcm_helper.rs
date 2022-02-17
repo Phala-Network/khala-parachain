@@ -242,10 +242,21 @@ pub mod xcm_helper {
 						.clone()
 						.try_into()
 						.map_err(|_| XcmError::FailedToTransactAsset("ChainIdConversionFailed"))?;
-
+					log::trace!(
+						target: LOG_TARGET,
+						"Forward transaction to chain: {:?}, with asset: {:?}",
+						dest_id,
+						&what,
+					);
 					// Deduct some fees if assets would be forwarded to solo chains.
 					let fee = BridgeFeeInfo::get_fee(dest_id, what)
 						.ok_or(XcmError::FailedToTransactAsset("FailedGetFee"))?;
+					log::trace!(
+						target: LOG_TARGET,
+						"Deduct some fees before transfer to solochain, fee: {:?}, amount: {:?}",
+						fee,
+						amount
+					);
 					ensure!(
 						amount > fee,
 						XcmError::FailedToTransactAsset("Insufficient")
@@ -258,6 +269,12 @@ pub mod xcm_helper {
 							network: NetworkId::Any,
 							id: Treasury::get().into(),
 						}),
+					);
+					log::trace!(
+						target: LOG_TARGET,
+						"Send fee to treasury, fee: {:?}, treasury: {:?}",
+						&fee_asset,
+						&treasury
 					);
 					if NativeChecker::is_native_asset(&fee_asset) {
 						NativeAdapter::deposit_asset(&fee_asset, &treasury)
