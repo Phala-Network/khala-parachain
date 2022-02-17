@@ -1,10 +1,12 @@
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
 const BN = require('bn.js');
 
+const bn1e18 = new BN(10).pow(new BN(18));
 const bn1e12 = new BN(10).pow(new BN(12));
 const bn1e8 = new BN(10).pow(new BN(8));
 const PHA_PER_SECOND = bn1e12.mul(new BN(80));
 const ASSETS = ['PHA', 'KSM', 'KAR', 'BNC', 'VSKSM', 'ZLK'];
+const ASSETS_IDs = [-1, 0, 1, 2, 3, 4];
 const FEEE_PRICES = [
     PHA_PER_SECOND,
     PHA_PER_SECOND.div(new BN(600)),
@@ -31,7 +33,14 @@ async function getBridgeSendToSoloChainFee(khalaApi, destChain, asset, amount) {
     } else {
         let index = ASSETS.findIndex(item => item === asset);
         if (index === -1) throw new Error('Unrecognized asset');
-        return feeExtimatedInPha.mul(FEEE_PRICES[index]).div(PHA_PER_SECOND);
+
+        let fee_in_decimal_12 = feeExtimatedInPha.mul(FEEE_PRICES[index]).div(PHA_PER_SECOND);
+        let decimals = (await khalaApi.query.assetsWrapper.registryInfoByIds(ASSETS_IDs[index])).toJSON().properties.decimals;
+        if (decimals > 12) {
+            return fee_in_decimal_12.mul(new BN(10).pow(new BN(decimals - 12)));
+        } else {
+            return fee_in_decimal_12.div(new BN(10).pow(new BN(12 - decimals)));
+        }
     }
 }
 
@@ -72,6 +81,11 @@ async function main() {
     console.log(`(X2)Fee of transfer PHA from khala to ethereum: ${bridgeFeeOfPHA}`);
     let bridgeFeeOfKAR = await getBridgeSendToSoloChainFee(khalaApi, 0, 'KAR', bn1e12.mul(new BN(100)))
     console.log(`(X2)Fee of transfer KAR from khala to ethereum: ${bridgeFeeOfKAR}`);
+    // Note: need to convert to decimals_12_amount when calculate asset that decimals is not 12
+    // For example, here amount we transfer is bn1e18.mul(new BN(100)), but when calculate fee,
+    // need to convert to bn1e12.mul(new BN(100))
+    let bridgeFeeOfZLK = await getBridgeSendToSoloChainFee(khalaApi, 0, 'ZLK', bn1e12.mul(new BN(100)))
+    console.log(`(X2)Fee of transfer ZLK from khala to ethereum: ${bridgeFeeOfZLK}`);
 
     console.log(`(X2)Fee of transfer PHA from ethereum to khala: ${0}`);
     console.log(`(X2)Fee of transfer KAR from ethereum to khala: ${0}`);
