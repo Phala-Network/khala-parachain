@@ -301,12 +301,12 @@ async function main() {
         // Filter x2 and x3 history
         let filterSendResult = evmHistoryFilter(khalaApi, evmSendHistory);
     
-        // x2 query history(Here we just pick the latest one to daemon)
+        // x2 query history(Here we just pick the latest one to demonstrate)
         let evmX2QueryHistory = filterSendResult.x2History[0];
         let evmX2Confirmation = await getKhalaReceiveHistory(evmX2QueryHistory.destChainId, evmX2QueryHistory.depositNonce);
         console.log(`===> X2(from EVM) confirm results on khala:\n${JSON.stringify(evmX2Confirmation, null, 4)}`);
 
-        // x3 query history(Here we just pick the latest one to daemon)
+        // x3 query history(Here we just pick the latest one to demonstrate)
         let evmX3QueryHistory = filterSendResult.x3History[0];
         let evmX3ForwardInfo = await getKhalaReceiveHistory(evmX3QueryHistory.destChainId, evmX3QueryHistory.depositNonce);
         console.log(`===> X3(from EVM) forward results on khala:\n${JSON.stringify(evmX3ForwardInfo, null, 4)}`);
@@ -328,7 +328,7 @@ async function main() {
         let karuraX3SendHistory = karuraSendHistory.x3History[0];
         // Use `recipient` to associate with BridgeOutboundingRecord in khala
         // Note: same `recipient` may received more than one asset, so we don't know which one is acctually
-        // associate the origin send transaction, so just use latest to daemon the example
+        // associate the origin send transaction, so just use latest to demonstrate the example
         let karuraX3ForwardInfo = (await getKhalaSendHistoryByRecipient(karuraX3SendHistory.recipient))[0];
         console.log(`===> X3(from karura) forward results on khala:\n${JSON.stringify(karuraX2ForwardInfo, null, 4)}`);
         let karuraX3Confirmation = await getEvmReceiveHistory(karuraX3ForwardInfo.destChainId, karuraX3ForwardInfo.depositNonce);
