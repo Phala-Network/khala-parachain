@@ -27,6 +27,8 @@ pub mod khala;
 pub mod rhala;
 #[cfg(feature = "thala-native")]
 pub mod thala;
+#[cfg(feature = "shell-native")]
+pub mod shell;
 
 /// Default `ChainSpec`.
 pub type ChainSpec = khala::ChainSpec;
