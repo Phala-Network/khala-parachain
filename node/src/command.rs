@@ -237,6 +237,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     #[cfg(feature = "shell-native")]
     if runtime_name == "shell" {
         return match profile? {
+            "dev" => Ok(Box::new(chain_spec::shell::development_config(para_id?.into()))),
             "local" => Ok(Box::new(chain_spec::shell::local_config(para_id?.into()))),
             other => Err(format!("Unknown profile {} for Shell", other)),
         };

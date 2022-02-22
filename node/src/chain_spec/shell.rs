@@ -16,19 +16,32 @@
 use cumulus_primitives_core::ParaId;
 use sc_service::ChainType;
 use crate::chain_spec::{
-    Extensions,
+    Extensions, get_account_id_from_seed
 };
+use serde::Deserialize;
+use sp_core::sr25519;
+
+use shell_parachain_runtime::AccountId;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec =
     sc_service::GenericChainSpec<shell_parachain_runtime::GenesisConfig, Extensions>;
 
-pub fn local_config(id: ParaId) -> ChainSpec {
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+struct GenesisInfo {
+    root_key: AccountId,
+}
+
+
+pub fn development_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
-        "Shell Local Testnet",
-        "shell_local_testnet",
+        "Shell Development Testnet",
+        "shell_dev_testnet",
         ChainType::Local,
-        move || testnet_genesis(id),
+        move || genesis(
+            id, get_account_id_from_seed::<sr25519::Public>("Alice")
+        ),
         Vec::new(),
         None,
         None,
@@ -42,7 +55,33 @@ pub fn local_config(id: ParaId) -> ChainSpec {
     )
 }
 
-fn testnet_genesis(parachain_id: ParaId) -> shell_parachain_runtime::GenesisConfig {
+pub fn local_config(id: ParaId) -> ChainSpec {
+    let genesis_info_bytes = include_bytes!("../../res/shell_local_genesis_info.json");
+    let genesis_info: GenesisInfo =
+        serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
+
+    ChainSpec::from_genesis(
+        "Shell Local Testnet",
+        "shell_local_testnet",
+        ChainType::Local,
+        move || genesis(id, genesis_info.root_key.clone()),
+        Vec::new(),
+        None,
+        None,
+        None,
+        None,
+        Extensions {
+            relay_chain: "westend".into(),
+            para_id: id.into(),
+            runtime: "shell".to_string(),
+        },
+    )
+}
+
+fn genesis(
+    parachain_id: ParaId,
+    root_key: AccountId,
+) -> shell_parachain_runtime::GenesisConfig {
     shell_parachain_runtime::GenesisConfig {
         system: shell_parachain_runtime::SystemConfig {
             code: shell_parachain_runtime::WASM_BINARY
@@ -51,5 +90,6 @@ fn testnet_genesis(parachain_id: ParaId) -> shell_parachain_runtime::GenesisConf
         },
         parachain_info: shell_parachain_runtime::ParachainInfoConfig { parachain_id },
         parachain_system: Default::default(),
+        sudo: shell_parachain_runtime::SudoConfig { key: Some(root_key) },
     }
 }

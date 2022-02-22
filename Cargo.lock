@@ -9849,6 +9849,7 @@ dependencies = [
  "frame-system",
  "frame-try-runtime",
  "log",
+ "pallet-sudo",
  "parachain-info",
  "parity-scale-codec",
  "scale-info",
