@@ -397,44 +397,38 @@ pub mod pallet {
 				}
 				// To relaychain or other parachain, forward it by xcm
 				(1, X1(AccountId32 { .. })) | (1, X2(Parachain(_), AccountId32 { .. })) => {
-					let dest_reserve_account = dest_reserve_location.clone().into_account();
-					if asset_reserve_location != dest_reserve_location {
-						log::trace!(
-							target: LOG_TARGET,
-							"Reserve of asset and dest dismatch, deposit asset to dest reserve location.",
+					let temporary_account =
+						MultiLocation::new(0, X1(GeneralKey(b"bridge_transfer".to_vec())))
+							.into_account();
+					log::trace!(
+						target: LOG_TARGET,
+						"Deposit withdrawn asset to a temporary account: {:?}",
+						&temporary_account,
+					);
+					if rid == Self::gen_pha_rid(src_chainid) {
+						<T as Config>::Currency::deposit_creating(
+							&temporary_account.clone().into(),
+							amount,
 						);
-						if rid == Self::gen_pha_rid(src_chainid) {
-							<T as Config>::Currency::deposit_creating(
-								&dest_reserve_account.clone().into(),
-								amount,
-							);
-						} else {
-							let asset_id = Self::rid_to_assetid(&rid)?;
-							let asset_amount =
-								T::BalanceConverter::to_asset_balance(amount, asset_id)
-									.map_err(|_| Error::<T>::BalanceConversionFailed)?;
-							// Mint asset into dest reserve account
-							pallet_assets::pallet::Pallet::<T>::mint_into(
-								asset_id,
-								&dest_reserve_account.clone().into(),
-								asset_amount,
-							)
-							.map_err(|_| Error::<T>::FailedToTransactAsset)?;
-						}
+					} else {
+						let asset_id = Self::rid_to_assetid(&rid)?;
+						let asset_amount = T::BalanceConverter::to_asset_balance(amount, asset_id)
+							.map_err(|_| Error::<T>::BalanceConversionFailed)?;
+						// Mint asset into dest temporary account
+						pallet_assets::pallet::Pallet::<T>::mint_into(
+							asset_id,
+							&temporary_account.clone().into(),
+							asset_amount,
+						)
+						.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 					}
 
-					// Two main tasks of transfer_fungible is:
-					// first) withdraw asset from reserve_id
-					// second) deposit asset into sovereign account of dest chain.(MINT OP)
-					//
-					// So if the reserve account does not have enough asset, transaction would fail.
-					// When someone transfer assets to EVM account from local chain our other parachains,
-					// assets would be deposited into reserve account, in other words, bridge transfer
-					// always based on reserve mode.
+					// After deposited asset into the temporary account, let xcm executor determine how to
+					// handle the asset.
 					T::XcmTransactor::transfer_fungible(
 						Junction::AccountId32 {
 							network: NetworkId::Any,
-							id: dest_reserve_account,
+							id: temporary_account,
 						}
 						.into(),
 						(asset_location, amount.into()).into(),
