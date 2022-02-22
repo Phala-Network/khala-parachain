@@ -64,7 +64,7 @@ use xcm_executor::{Config, XcmExecutor};
 /// This runtime version.
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("shell"),
+	spec_name: create_runtime_str!("khala"),
 	impl_name: create_runtime_str!("shell"),
 	authoring_version: 1,
 	spec_version: 2,
