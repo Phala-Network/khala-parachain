@@ -44,6 +44,8 @@ use crate::service::khala::RuntimeExecutor as KhalaParachainRuntimeExecutor;
 use crate::service::rhala::RuntimeExecutor as RhalaParachainRuntimeExecutor;
 #[cfg(feature = "thala-native")]
 use crate::service::thala::RuntimeExecutor as ThalaParachainRuntimeExecutor;
+#[cfg(feature = "shell-native")]
+use crate::service::shell::RuntimeExecutor as ShellParachainRuntimeExecutor;
 
 trait IdentifyChain {
     fn runtime_name(&self) -> String;
@@ -51,6 +53,7 @@ trait IdentifyChain {
     fn is_khala(&self) -> bool;
     fn is_rhala(&self) -> bool;
     fn is_thala(&self) -> bool;
+    fn is_shell(&self) -> bool;
 }
 
 impl IdentifyChain for dyn sc_service::ChainSpec {
@@ -71,6 +74,9 @@ impl IdentifyChain for dyn sc_service::ChainSpec {
     fn is_thala(&self) -> bool {
         self.runtime_name() == "thala"
     }
+    fn is_shell(&self) -> bool {
+        self.runtime_name() == "shell"
+    }
 }
 
 impl<T: sc_service::ChainSpec + 'static> IdentifyChain for T {
@@ -89,6 +95,9 @@ impl<T: sc_service::ChainSpec + 'static> IdentifyChain for T {
     fn is_thala(&self) -> bool {
         <dyn sc_service::ChainSpec>::is_thala(self)
     }
+    fn is_shell(&self) -> bool {
+        <dyn sc_service::ChainSpec>::is_shell(self)
+    }
 }
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
@@ -106,6 +115,8 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             "rhala" => Box::new(chain_spec::rhala::ChainSpec::from_json_file(path.into())?),
             #[cfg(feature = "thala-native")]
             "thala" => Box::new(chain_spec::thala::ChainSpec::from_json_file(path.into())?),
+            #[cfg(feature = "shell-native")]
+            "shell" => Box::new(chain_spec::shell::ChainSpec::from_json_file(path.into())?),
             _ => return Err("`chain` must starts with a known runtime name!".to_string()),
         };
         return Ok(parsed);
@@ -223,6 +234,18 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         return Err(format!("`{}` only supported with `thala-native` feature enabled.", id))
     }
 
+    #[cfg(feature = "shell-native")]
+    if runtime_name == "shell" {
+        return match profile? {
+            "dev" => Ok(Box::new(chain_spec::shell::development_config(para_id?.into()))),
+            "local" => Ok(Box::new(chain_spec::shell::local_config(para_id?.into()))),
+            other => Err(format!("Unknown profile {} for Shell", other)),
+        };
+    }
+    #[cfg(not(feature = "shell-native"))]
+    if runtime_name == "shell" {
+        return Err(format!("`{}` only supported with `shell-native` feature enabled.", id))
+    }
 
     Err(format!(
         "Invalid `--chain` arg. \
@@ -364,6 +387,18 @@ macro_rules! construct_async_run {
                 let $components = new_partial::<thala_parachain_runtime::RuntimeApi, ThalaParachainRuntimeExecutor, _>(
                     &$config,
                     crate::service::thala::parachain_build_import_queue,
+                )?;
+                let task_manager = $components.task_manager;
+                { $( $code )* }.map(|v| (v, task_manager))
+            })
+        }
+
+        #[cfg(feature = "shell-native")]
+        if runner.config().chain_spec.is_shell() {
+            return runner.async_run(|$config| {
+                let $components = new_partial::<shell_parachain_runtime::RuntimeApi, ShellParachainRuntimeExecutor, _>(
+                    &$config,
+                    crate::service::shell::parachain_build_import_queue,
                 )?;
                 let task_manager = $components.task_manager;
                 { $( $code )* }.map(|v| (v, task_manager))
@@ -540,6 +575,13 @@ pub fn run() -> Result<()> {
                     })
                 }
 
+                #[cfg(feature = "shell-native")]
+                if runner.config().chain_spec.is_shell() {
+                    return runner.async_run(|config| {
+                        Ok((cmd.run::<Block, ShellParachainRuntimeExecutor>(config), task_manager))
+                    })
+                }
+
                 Err("Can't determine runtime from chain_spec".into())
             } else {
                 Err("Try-runtime must be enabled by `--features try-runtime`.".into())
@@ -615,6 +657,14 @@ pub fn run() -> Result<()> {
                 #[cfg(feature = "thala-native")]
                 if config.chain_spec.is_thala() {
                     return crate::service::thala::start_parachain_node(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                }
+
+                #[cfg(feature = "shell-native")]
+                if config.chain_spec.is_shell() {
+                    return crate::service::shell::start_parachain_node(config, polkadot_config, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)

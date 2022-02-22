@@ -46,6 +46,7 @@ members = [
 	"runtime/khala",
 	"runtime/rhala",
 	"runtime/thala",
+	"runtime/shell",
 ]
 
 [patch."https://github.com/paritytech/polkadot"]
