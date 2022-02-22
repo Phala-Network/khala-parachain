@@ -33,7 +33,6 @@ struct GenesisInfo {
     root_key: AccountId,
 }
 
-
 pub fn development_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         "Shell Development Testnet",
@@ -42,29 +41,6 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         move || genesis(
             id, get_account_id_from_seed::<sr25519::Public>("Alice")
         ),
-        Vec::new(),
-        None,
-        None,
-        None,
-        None,
-        Extensions {
-            relay_chain: "westend".into(),
-            para_id: id.into(),
-            runtime: "shell".to_string(),
-        },
-    )
-}
-
-pub fn local_config(id: ParaId) -> ChainSpec {
-    let genesis_info_bytes = include_bytes!("../../res/shell_local_genesis_info.json");
-    let genesis_info: GenesisInfo =
-        serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
-
-    ChainSpec::from_genesis(
-        "Shell Local Testnet",
-        "shell_local_testnet",
-        ChainType::Local,
-        move || genesis(id, genesis_info.root_key.clone()),
         Vec::new(),
         None,
         None,
