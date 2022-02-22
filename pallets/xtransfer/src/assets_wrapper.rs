@@ -453,7 +453,7 @@ pub mod pallet {
 		}
 
 		fn decimals(id: &<T as pallet_assets::Config>::AssetId) -> Option<u8> {
-			RegistryInfoByIds::<T>::get(&id).map_or(None, |m| Some(m.properties.decimals))
+			RegistryInfoByIds::<T>::get(&id).map(|m| m.properties.decimals)
 		}
 	}
 }
