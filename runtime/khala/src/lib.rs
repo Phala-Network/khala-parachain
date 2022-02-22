@@ -189,7 +189,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (migrations::SchedulerMigrationV3),
+    migrations::SchedulerMigrationV3,
 >;
 
 type EnsureRootOrHalfCouncil = EnsureOneOf<

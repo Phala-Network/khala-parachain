@@ -78,6 +78,29 @@ pub fn local_config(id: ParaId) -> ChainSpec {
     )
 }
 
+pub fn staging_config() -> ChainSpec {
+    let genesis_info_bytes = include_bytes!("../../res/shell_genesis_info.json");
+    let genesis_info: GenesisInfo =
+        serde_json::from_slice(genesis_info_bytes).expect("Bad genesis info; qed.");
+
+    ChainSpec::from_genesis(
+        "Shell",
+        "shell",
+        ChainType::Live,
+        move || genesis(2111u32.into(), genesis_info.root_key.clone()),
+        Vec::new(),
+        None,
+        None,
+        None,
+        None,
+        Extensions {
+            relay_chain: "kusama".into(),
+            para_id: 2111u32.into(),
+            runtime: "shell".to_string(),
+        },
+    )
+}
+
 fn genesis(
     parachain_id: ParaId,
     root_key: AccountId,
