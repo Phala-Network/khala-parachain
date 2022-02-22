@@ -10,6 +10,8 @@ use crate::bridge_transfer::mock::{
 	SoloChain2AssetLocation, Test, ALICE, ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
 	TREASURY,
 };
+use crate::bridge_transfer::GetBridgeFee;
+
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::DispatchError;
@@ -346,7 +348,8 @@ fn transfer_assets_to_reserve() {
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), amount);
-		assert_eq!(Assets::balance(0, &TREASURY::get()), 2);
+		// Rate of PHA and SoloChain2AssetLocation accoate asset is 2:1
+		assert_eq!(Assets::balance(0, &TREASURY::get()), 4);
 
 		// The asset's reserve chain is 2, dest chain is 2,
 		// so assets just be burned from sender
@@ -727,5 +730,78 @@ fn create_successful_transfer_proposal() {
 			}),
 			Event::Bridge(bridge::Event::ProposalSucceeded(src_id, prop_id)),
 		]);
+	})
+}
+
+#[test]
+fn test_get_fee() {
+	new_test_ext().execute_with(|| {
+		let dest_chain: u8 = 2;
+		let test_asset_location = MultiLocation::new(1, X1(GeneralKey(b"test".to_vec())));
+		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 0, dest_chain));
+
+		// Register asset, decimals: 18, rate with pha: 1 : 1
+		assert_ok!(AssetsWrapper::force_register_asset(
+			Origin::root(),
+			SoloChain0AssetLocation::get().into(),
+			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 18,
+			},
+			ALICE,
+		));
+		// Register asset, decimals: 12, rate with pha: 1 : 2
+		assert_ok!(AssetsWrapper::force_register_asset(
+			Origin::root(),
+			SoloChain2AssetLocation::get().into(),
+			1,
+			AssetProperties {
+				name: b"AnotherBridgeAsset".to_vec(),
+				symbol: b"ABA".to_vec(),
+				decimals: 12,
+			},
+			ALICE,
+		));
+
+		// Register asset, decimals: 12, not set as fee payment
+		assert_ok!(AssetsWrapper::force_register_asset(
+			Origin::root(),
+			test_asset_location.clone().into(),
+			2,
+			AssetProperties {
+				name: b"TestAsset".to_vec(),
+				symbol: b"TA".to_vec(),
+				decimals: 12,
+			},
+			ALICE,
+		));
+
+		let asset0: MultiAsset = (
+			SoloChain0AssetLocation::get(),
+			Fungible(100_000_000_000_000_000_000),
+		)
+			.into();
+		let asset2: MultiAsset = (
+			SoloChain2AssetLocation::get(),
+			Fungible(100_000_000_000_000),
+		)
+			.into();
+		let test_asset: MultiAsset = (test_asset_location, Fungible(100)).into();
+
+		// Test asset not configured as fee payment in trader
+		assert_eq!(BridgeTransfer::get_fee(dest_chain, &test_asset), None);
+		// Fee in pha is 2, decimal of balance is not set so will be set as 12 when calculating fee,
+		// asset 0 decimals is 18, and rate with pha is 1:1
+		// Final fee in asset 0 is 2_000_000
+		assert_eq!(
+			BridgeTransfer::get_fee(dest_chain, &asset0),
+			Some(2_000_000),
+		);
+		// Fee in pha is 2, decimal of balance is not set so will be set as 12 when calculating fee,
+		// asset 2 decimals is 12, and rate with pha is 2:1
+		// Final fee in asset 2 is 4
+		assert_eq!(BridgeTransfer::get_fee(dest_chain, &asset2), Some(4),);
 	})
 }
