@@ -465,36 +465,25 @@ pub mod pallet {
 			}
 		}
 
-		pub fn convert_fee_from_pha(fee_in_pha: BalanceOf<T>, asset: &MultiAsset) -> Option<u128> {
-			match (&asset.id, &asset.fun) {
-				(Concrete(location), _) => {
-					let id = T::AssetsWrapper::id(&XTransferAsset(location.clone()))?;
-					let decimals = T::AssetsWrapper::decimals(&id).unwrap_or(12);
-					let fee_in_asset;
-					let fee_prices = T::ExecutionPriceInfo::get();
-					if let Some(idx) = fee_prices
-						.iter()
-						.position(|(fee_asset_id, _)| fee_asset_id == &Concrete(location.clone()))
-					{
-						let fee_e12 =
-							fee_in_pha.into() * fee_prices[idx].1 / T::NativeExecutionPrice::get();
-
-						fee_in_asset = if decimals > 12 {
-							Some(
-								fee_e12.saturating_mul(10u128.saturating_pow(decimals as u32 - 12)),
-							)
-						} else {
-							Some(
-								fee_e12.saturating_div(10u128.saturating_pow(12 - decimals as u32)),
-							)
-						};
-					} else {
-						fee_in_asset = None
-					}
-					fee_in_asset
-				}
-				_ => None,
+		pub fn to_e12(amount: u128, decimals: u8) -> u128 {
+			if decimals > 12 {
+				amount.saturating_div(10u128.saturating_pow(decimals as u32 - 12))
+			} else {
+				amount.saturating_mul(10u128.saturating_pow(12 - decimals as u32))
 			}
+		}
+
+		pub fn from_e12(amount: u128, decimals: u8) -> u128 {
+			if decimals > 12 {
+				amount.saturating_mul(10u128.saturating_pow(decimals as u32 - 12))
+			} else {
+				amount.saturating_div(10u128.saturating_pow(12 - decimals as u32))
+			}
+		}
+
+		pub fn convert_fee_from_pha(fee_in_pha: BalanceOf<T>, price: u128, decimals: u8) -> u128 {
+			let fee_e12: u128 = fee_in_pha.into() * price / T::NativeExecutionPrice::get();
+			Self::from_e12(fee_e12.into(), decimals)
 		}
 
 		pub fn rid_to_location(rid: &[u8; 32]) -> Result<MultiLocation, DispatchError> {
@@ -545,16 +534,27 @@ pub mod pallet {
 				(Concrete(location), Fungible(amount)) => {
 					let id = T::AssetsWrapper::id(&XTransferAsset(location.clone()))?;
 					let decimals = T::AssetsWrapper::decimals(&id).unwrap_or(12);
-					let amount_e12 = if decimals > 12 {
-						amount.saturating_div(10u128.saturating_pow(decimals as u32 - 12))
-					} else {
-						amount.saturating_mul(10u128.saturating_pow(12 - decimals as u32))
-					};
-					let fee_in_pha = Self::estimate_fee_in_pha(chain_id, (amount_e12).into());
+					let fee_in_pha = Self::estimate_fee_in_pha(
+						chain_id,
+						(Self::to_e12(*amount, decimals)).into(),
+					);
 					if T::NativeChecker::is_native_asset(asset) {
 						Some(fee_in_pha.into())
 					} else {
-						Self::convert_fee_from_pha(fee_in_pha, asset)
+						let fee_prices = T::ExecutionPriceInfo::get();
+						let fee_in_asset;
+						if let Some(idx) = fee_prices.iter().position(|(fee_asset_id, _)| {
+							fee_asset_id == &Concrete(location.clone())
+						}) {
+							fee_in_asset = Some(Self::convert_fee_from_pha(
+								fee_in_pha,
+								fee_prices[idx].1,
+								decimals,
+							));
+						} else {
+							fee_in_asset = None
+						}
+						fee_in_asset
 					}
 				}
 				_ => None,
