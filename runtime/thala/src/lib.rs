@@ -300,7 +300,10 @@ impl Contains<Call> for BaseCallFilter {
 
         if let Call::Assets(assets_method) = call {
             match assets_method {
-                pallet_assets::Call::create { .. } | pallet_assets::Call::force_create { .. } => {
+                pallet_assets::Call::create { .. }
+                | pallet_assets::Call::force_create { .. }
+                | pallet_assets::Call::set_metadata { .. }
+                | pallet_assets::Call::force_set_metadata { .. } => {
                     return false;
                 }
                 pallet_assets::Call::__Ignore { .. } => {

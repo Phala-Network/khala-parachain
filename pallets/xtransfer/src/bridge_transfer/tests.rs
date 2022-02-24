@@ -1,6 +1,8 @@
 #![cfg(test)]
 
-use crate::assets_wrapper::pallet::{AccountId32Conversion, GetAssetRegistryInfo, CB_ASSET_KEY};
+use crate::assets_wrapper::pallet::{
+	AccountId32Conversion, AssetProperties, GetAssetRegistryInfo, CB_ASSET_KEY,
+};
 use crate::bridge;
 use crate::bridge_transfer::mock::{
 	assert_events, balances, expect_event, new_test_ext, Assets, AssetsWrapper, Balance, Balances,
@@ -8,6 +10,8 @@ use crate::bridge_transfer::mock::{
 	SoloChain2AssetLocation, Test, ALICE, ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
 	TREASURY,
 };
+use crate::bridge_transfer::GetBridgeFee;
+
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::DispatchError;
@@ -43,6 +47,11 @@ fn register_asset() {
 				Origin::signed(ALICE),
 				bridge_asset_location.clone().into(),
 				0,
+				AssetProperties {
+					name: b"BridgeAsset".to_vec(),
+					symbol: b"BA".to_vec(),
+					decimals: 12,
+				},
 				ALICE,
 			),
 			DispatchError::BadOrigin
@@ -52,6 +61,11 @@ fn register_asset() {
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 
@@ -61,6 +75,11 @@ fn register_asset() {
 				Origin::root(),
 				bridge_asset_location.clone().into(),
 				1,
+				AssetProperties {
+					name: b"BridgeAsset".to_vec(),
+					symbol: b"BA".to_vec(),
+					decimals: 12,
+				},
 				ALICE,
 			),
 			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
@@ -82,6 +101,11 @@ fn register_asset() {
 				Origin::root(),
 				another_bridge_asset_location.clone().into(),
 				0,
+				AssetProperties {
+					name: b"BridgeAsset".to_vec(),
+					symbol: b"BA".to_vec(),
+					decimals: 12,
+				},
 				ALICE,
 			),
 			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
@@ -92,6 +116,11 @@ fn register_asset() {
 			Origin::root(),
 			another_bridge_asset_location.clone().into(),
 			1,
+			AssetProperties {
+				name: b"AnotherBridgeAsset".to_vec(),
+				symbol: b"ABA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 		assert_eq!(
@@ -169,6 +198,11 @@ fn transfer_assets_insufficient_balance() {
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 
@@ -219,6 +253,11 @@ fn transfer_assets_to_nonreserve() {
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 
@@ -279,6 +318,11 @@ fn transfer_assets_to_reserve() {
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 
@@ -304,7 +348,8 @@ fn transfer_assets_to_reserve() {
 		));
 
 		assert_eq!(Assets::balance(0, &ALICE), amount);
-		assert_eq!(Assets::balance(0, &TREASURY::get()), 2);
+		// Rate of PHA and SoloChain2AssetLocation accoate asset is 2:1
+		assert_eq!(Assets::balance(0, &TREASURY::get()), 4);
 
 		// The asset's reserve chain is 2, dest chain is 2,
 		// so assets just be burned from sender
@@ -441,6 +486,11 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 			Origin::root(),
 			bridge_asset,
 			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 
@@ -514,6 +564,11 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 			Origin::root(),
 			para_asset.clone(),
 			0,
+			AssetProperties {
+				name: b"ParaAsset".to_vec(),
+				symbol: b"PA".to_vec(),
+				decimals: 12,
+			},
 			ALICE,
 		));
 
@@ -675,5 +730,78 @@ fn create_successful_transfer_proposal() {
 			}),
 			Event::Bridge(bridge::Event::ProposalSucceeded(src_id, prop_id)),
 		]);
+	})
+}
+
+#[test]
+fn test_get_fee() {
+	new_test_ext().execute_with(|| {
+		let dest_chain: u8 = 2;
+		let test_asset_location = MultiLocation::new(1, X1(GeneralKey(b"test".to_vec())));
+		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 0, dest_chain));
+
+		// Register asset, decimals: 18, rate with pha: 1 : 1
+		assert_ok!(AssetsWrapper::force_register_asset(
+			Origin::root(),
+			SoloChain0AssetLocation::get().into(),
+			0,
+			AssetProperties {
+				name: b"BridgeAsset".to_vec(),
+				symbol: b"BA".to_vec(),
+				decimals: 18,
+			},
+			ALICE,
+		));
+		// Register asset, decimals: 12, rate with pha: 1 : 2
+		assert_ok!(AssetsWrapper::force_register_asset(
+			Origin::root(),
+			SoloChain2AssetLocation::get().into(),
+			1,
+			AssetProperties {
+				name: b"AnotherBridgeAsset".to_vec(),
+				symbol: b"ABA".to_vec(),
+				decimals: 12,
+			},
+			ALICE,
+		));
+
+		// Register asset, decimals: 12, not set as fee payment
+		assert_ok!(AssetsWrapper::force_register_asset(
+			Origin::root(),
+			test_asset_location.clone().into(),
+			2,
+			AssetProperties {
+				name: b"TestAsset".to_vec(),
+				symbol: b"TA".to_vec(),
+				decimals: 12,
+			},
+			ALICE,
+		));
+
+		let asset0: MultiAsset = (
+			SoloChain0AssetLocation::get(),
+			Fungible(100_000_000_000_000_000_000),
+		)
+			.into();
+		let asset2: MultiAsset = (
+			SoloChain2AssetLocation::get(),
+			Fungible(100_000_000_000_000),
+		)
+			.into();
+		let test_asset: MultiAsset = (test_asset_location, Fungible(100)).into();
+
+		// Test asset not configured as fee payment in trader
+		assert_eq!(BridgeTransfer::get_fee(dest_chain, &test_asset), None);
+		// Fee in pha is 2, decimal of balance is not set so will be set as 12 when calculating fee,
+		// asset 0 decimals is 18, and rate with pha is 1:1
+		// Final fee in asset 0 is 2_000_000
+		assert_eq!(
+			BridgeTransfer::get_fee(dest_chain, &asset0),
+			Some(2_000_000),
+		);
+		// Fee in pha is 2, decimal of balance is not set so will be set as 12 when calculating fee,
+		// asset 2 decimals is 12, and rate with pha is 2:1
+		// Final fee in asset 2 is 4
+		assert_eq!(BridgeTransfer::get_fee(dest_chain, &asset2), Some(4),);
 	})
 }

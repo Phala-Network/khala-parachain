@@ -131,7 +131,7 @@ parameter_types! {
 	);
 	pub ExecutionPriceInAsset2: (AssetId, u128) = (
 		AssetId2::get(),
-		1
+		2
 	);
 	pub NativeExecutionPrice: u128 = 1;
 	pub ExecutionPrices: Vec<(AssetId, u128)> = [
