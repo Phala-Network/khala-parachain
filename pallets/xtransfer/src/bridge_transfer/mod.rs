@@ -542,18 +542,14 @@ pub mod pallet {
 						Some(fee_in_pha.into())
 					} else {
 						let fee_prices = T::ExecutionPriceInfo::get();
-						let fee_in_asset;
-						if let Some(idx) = fee_prices.iter().position(|(fee_asset_id, _)| {
-							fee_asset_id == &Concrete(location.clone())
-						}) {
-							fee_in_asset = Some(Self::convert_fee_from_pha(
-								fee_in_pha,
-								fee_prices[idx].1,
-								decimals,
-							));
-						} else {
-							fee_in_asset = None
-						}
+						let fee_in_asset = fee_prices
+							.iter()
+							.position(|(fee_asset_id, _)| {
+								fee_asset_id == &Concrete(location.clone())
+							})
+							.map(|idx| {
+								Self::convert_fee_from_pha(fee_in_pha, fee_prices[idx].1, decimals)
+							});
 						fee_in_asset
 					}
 				}
