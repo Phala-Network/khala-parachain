@@ -18,7 +18,7 @@ use clap::Parser;
 use std::path::PathBuf;
 
 /// Sub-commands supported by the collator.
-#[derive(Debug, StructOpt)]
+#[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
     /// Export the genesis state of the parachain.
     #[clap(name = "export-genesis-state")]
@@ -50,6 +50,7 @@ pub enum Subcommand {
     Revert(sc_cli::RevertCmd),
 
     /// Key management CLI utilities
+    #[clap(subcommand)]
     Key(sc_cli::KeySubcommand),
 
     /// The custom benchmark subcommmand benchmarking runtime pallets.
