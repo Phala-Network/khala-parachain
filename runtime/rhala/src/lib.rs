@@ -53,7 +53,7 @@ use sp_core::{
 };
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{AccountIdLookup, Block as BlockT, ConvertInto},
+    traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto},
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
 };
@@ -1202,6 +1202,9 @@ impl pallet_bridge::Config for Runtime {
     type ProposalLifetime = ProposalLifetime;
 }
 
+parameter_types! {
+    pub RhalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
+}
 impl pallet_bridge_transfer::Config for Runtime {
     type Event = Event;
     type AssetsWrapper = AssetsWrapper;
@@ -1213,7 +1216,7 @@ impl pallet_bridge_transfer::Config for Runtime {
     type NativeChecker = xcm_helper::NativeAssetFilter<ParachainInfo>;
     type NativeExecutionPrice = NativeExecutionPrice;
     type ExecutionPriceInfo = ();
-    type TreasuryAccount = ();
+    type TreasuryAccount = RhalaTreasuryAccount;
 }
 
 pub struct MqCallMatcher;

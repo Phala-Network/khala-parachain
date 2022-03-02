@@ -828,6 +828,7 @@ parameter_types! {
     pub UnitWeightCost: Weight = 200_000_000;
     pub const MaxInstructions: u32 = 100;
     pub KhalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
+    pub CheckingAccount: AccountId = PalletId(*b"checking").into_account();
 }
 pub type Barrier = (
     TakeWeightCredit,
@@ -849,7 +850,7 @@ pub type CurrencyTransactor = CurrencyAdapter<
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     // We don't track any teleports of `Balances`.
-    (),
+    CheckingAccount,
 >;
 
 pub struct AssetChecker;
@@ -876,7 +877,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
     // We do not support teleport assets
     AssetChecker,
     // We do not support teleport assets
-    (),
+    CheckingAccount,
 >;
 
 parameter_types! {
