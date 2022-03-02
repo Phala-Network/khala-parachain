@@ -1,5 +1,6 @@
 use super::ParachainXcmRouter;
 use crate::bridge::pallet::{BridgeChainId, BridgeTransact, ResourceId};
+use crate::bridge_transfer::pallet::GetBridgeFee;
 use crate::{pallet_assets_wrapper, pallet_xcm_transfer, xcm_helper};
 
 use frame_support::{
@@ -8,13 +9,14 @@ use frame_support::{
 	parameter_types,
 	traits::{ConstU128, ConstU32, Contains, Everything},
 	weights::{IdentityFee, Weight},
+	PalletId,
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
 use sp_core::{H256, U256};
 use sp_runtime::{
 	testing::Header,
-	traits::{BlakeTwo256, IdentityLookup},
+	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
 	AccountId32,
 };
 
@@ -24,7 +26,7 @@ use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
 	EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, LocationInverter, NativeAsset,
-	ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	UsingComponents,
 };
@@ -174,7 +176,7 @@ parameter_types! {
 }
 
 pub type LocationToAccountId = (
-	ParentIsDefault<AccountId>,
+	ParentIsPreset<AccountId>,
 	SiblingParachainConvertsVia<Sibling, AccountId>,
 	AccountId32Aliases<RelayNetwork, AccountId>,
 );
@@ -189,6 +191,8 @@ parameter_types! {
 	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
 	pub UnitWeightCost: Weight = 1;
 	pub const MaxInstructions: u32 = 100;
+	pub ParaTreasuryAccount: AccountId = PalletId(*b"py/trsry").into_account();
+	pub ParaCheckingAccount: AccountId = PalletId(*b"py/check").into_account();
 }
 match_type! {
 	pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
@@ -213,7 +217,7 @@ pub type CurrencyTransactor = CurrencyAdapter<
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
 	// We don't track any teleports of `Balances`.
-	(),
+	ParaCheckingAccount,
 >;
 
 pub struct AssetChecker;
@@ -240,7 +244,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
 	// We do not support teleport assets
 	AssetChecker,
 	// We do not support teleport assets
-	(),
+	ParaCheckingAccount,
 >;
 
 impl BridgeTransact for () {
@@ -276,6 +280,12 @@ impl BridgeTransact for () {
 	}
 }
 
+impl GetBridgeFee for () {
+	fn get_fee(_chain_id: BridgeChainId, _asset: &MultiAsset) -> Option<u128> {
+		Some(0)
+	}
+}
+
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type Call = Call;
@@ -289,7 +299,7 @@ impl Config for XcmConfig {
 		(),
 		(),
 		AccountId,
-		(),
+		ParaTreasuryAccount,
 	>;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;
@@ -335,6 +345,8 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type ChannelInfo = ChannelInfo;
 	type VersionWrapper = ();
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+	type ControllerOrigin = EnsureRoot<AccountId>;
+	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
 }
 impl cumulus_pallet_dmp_queue::Config for Runtime {
 	type Event = Event;
