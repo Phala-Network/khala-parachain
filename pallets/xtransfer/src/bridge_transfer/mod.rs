@@ -98,6 +98,16 @@ pub mod pallet {
 			min_fee: BalanceOf<T>,
 			fee_scale: u32,
 		},
+		Deposited {
+			asset: XTransferAsset,
+			recipient: T::AccountId,
+			amount: BalanceOf<T>,
+		},
+		Forwarded {
+			asset: XTransferAsset,
+			dest: MultiLocation,
+			amount: BalanceOf<T>,
+		},
 	}
 
 	#[pallet::error]
@@ -391,6 +401,11 @@ pub mod pallet {
 						)
 						.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 					}
+					Self::deposit_event(Event::Deposited {
+						asset: asset_location.into(),
+						recipient: id.into(),
+						amount,
+					});
 				}
 				// To relaychain or other parachain, forward it by xcm
 				(1, X1(AccountId32 { .. })) | (1, X2(Parachain(_), AccountId32 { .. })) => {
@@ -428,10 +443,16 @@ pub mod pallet {
 							id: temporary_account,
 						}
 						.into(),
-						(asset_location, amount.into()).into(),
-						dest_location,
+						(asset_location.clone(), amount.into()).into(),
+						dest_location.clone(),
 						6000000000u64.into(),
 					)?;
+					Self::deposit_event(Event::Forwarded {
+						asset: asset_location.into(),
+						// dest_location already contains recipient account
+						dest: dest_location,
+						amount,
+					});
 				}
 				// To other evm chains
 				(
