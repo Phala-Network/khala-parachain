@@ -443,6 +443,11 @@ fn simulate_transfer_pha_from_solochain() {
 				who: RELAYER_A,
 				amount: 10,
 			}),
+			Event::BridgeTransfer(crate::bridge_transfer::Event::Deposited {
+				asset: MultiLocation::new(0, Here).into(),
+				recipient: RELAYER_A,
+				amount: 10,
+			}),
 		]);
 	})
 }
@@ -484,7 +489,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 		// Register asset, id = 0
 		assert_ok!(AssetsWrapper::force_register_asset(
 			Origin::root(),
-			bridge_asset,
+			bridge_asset.clone(),
 			0,
 			AssetProperties {
 				name: b"BridgeAsset".to_vec(),
@@ -524,6 +529,11 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 				asset_id: 0,
 				owner: ALICE,
 				total_supply: amount,
+			}),
+			Event::BridgeTransfer(crate::bridge_transfer::Event::Deposited {
+				asset: bridge_asset,
+				recipient: ALICE,
+				amount,
 			}),
 		]);
 	})
@@ -610,7 +620,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 			Origin::signed(Bridge::account_id()),
 			alice_location.encode(),
 			amount,
-			para_asset.into_rid(src_chainid),
+			para_asset.clone().into_rid(src_chainid),
 		));
 		assert_eq!(Assets::balance(0, &ALICE), amount);
 		assert_eq!(
@@ -630,6 +640,11 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 				asset_id: 0,
 				owner: ALICE,
 				total_supply: amount,
+			}),
+			Event::BridgeTransfer(crate::bridge_transfer::Event::Deposited {
+				asset: para_asset,
+				recipient: ALICE,
+				amount,
 			}),
 		]);
 	})
@@ -726,6 +741,11 @@ fn create_successful_transfer_proposal() {
 			// Deposit into recipient
 			Event::Balances(balances::Event::Deposit {
 				who: RELAYER_A,
+				amount: 10,
+			}),
+			Event::BridgeTransfer(crate::bridge_transfer::Event::Deposited {
+				asset: MultiLocation::new(0, Here).into(),
+				recipient: RELAYER_A,
 				amount: 10,
 			}),
 			Event::Bridge(bridge::Event::ProposalSucceeded(src_id, prop_id)),
