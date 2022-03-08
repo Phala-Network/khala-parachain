@@ -544,7 +544,7 @@ pub fn run() -> Result<()> {
             }
         }
         Some(Subcommand::Key(cmd)) => Ok(cmd.run(&cli)?),
-        Some(Subcommand::TryRuntime(cmd)) =>
+        Some(Subcommand::TryRuntime(cmd)) => {
             if cfg!(feature = "try-runtime") {
                 // grab the task manager.
                 let runner = cli.create_runner(cmd)?;
@@ -569,7 +569,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "rhala-native")]
                 if runner.config().chain_spec.is_rhala() {
-                   return runner.async_run(|config| {
+                    return runner.async_run(|config| {
                         Ok((cmd.run::<Block, RhalaParachainRuntimeExecutor>(config), task_manager))
                     })
                 }
@@ -591,7 +591,8 @@ pub fn run() -> Result<()> {
                 Err("Can't determine runtime from chain_spec".into())
             } else {
                 Err("Try-runtime must be enabled by `--features try-runtime`.".into())
-            },
+            }
+        },
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
 
@@ -812,5 +813,9 @@ impl CliConfiguration<Self> for RelayChainCli {
         chain_spec: &Box<dyn ChainSpec>,
     ) -> Result<Option<sc_telemetry::TelemetryEndpoints>> {
         self.base.base.telemetry_endpoints(chain_spec)
+    }
+
+    fn node_name(&self) -> Result<String> {
+        self.base.base.node_name()
     }
 }

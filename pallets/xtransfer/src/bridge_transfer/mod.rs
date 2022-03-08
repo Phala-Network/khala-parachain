@@ -578,10 +578,4 @@ pub mod pallet {
 			}
 		}
 	}
-
-	impl GetBridgeFee for () {
-		fn get_fee(_chain_id: bridge::BridgeChainId, _asset: &MultiAsset) -> Option<u128> {
-			Some(0)
-		}
-	}
 }
