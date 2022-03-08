@@ -2,7 +2,17 @@
 
 Khala parachain repo.
 
-## Development Notes
+## Build Note
+
+### For production build
+
+`cargo build --profile production`
+
+### For testnet build
+
+`cargo build --profile testnet`
+
+## Development Note
 
 ### Run a local testnet cluster
 
