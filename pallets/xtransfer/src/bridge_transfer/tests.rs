@@ -1,16 +1,16 @@
 #![cfg(test)]
 
-use crate::assets_wrapper::pallet::{
-	AccountId32Conversion, AssetProperties, GetAssetRegistryInfo, CB_ASSET_KEY,
-};
 use crate::bridge;
 use crate::bridge_transfer::mock::{
-	assert_events, balances, expect_event, new_test_ext, Assets, AssetsWrapper, Balance, Balances,
+	assert_events, balances, expect_event, new_test_ext, Assets, AssetsRegistry, Balance, Balances,
 	Bridge, BridgeTransfer, Call, Event, Origin, ProposalLifetime, SoloChain0AssetLocation,
 	SoloChain2AssetLocation, Test, ALICE, ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C,
 	TREASURY,
 };
 use crate::bridge_transfer::GetBridgeFee;
+use assets_registry::pallet::{
+	AccountId32Conversion, AssetProperties, GetAssetRegistryInfo, IntoResourceId, CB_ASSET_KEY,
+};
 
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -43,7 +43,7 @@ fn register_asset() {
 
 		// Permission denied
 		assert_noop!(
-			AssetsWrapper::force_register_asset(
+			AssetsRegistry::force_register_asset(
 				Origin::signed(ALICE),
 				bridge_asset_location.clone().into(),
 				0,
@@ -56,7 +56,7 @@ fn register_asset() {
 			DispatchError::BadOrigin
 		);
 
-		assert_ok!(AssetsWrapper::force_register_asset(
+		assert_ok!(AssetsRegistry::force_register_asset(
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
@@ -69,7 +69,7 @@ fn register_asset() {
 
 		// Same location register again, should be failed
 		assert_noop!(
-			AssetsWrapper::force_register_asset(
+			AssetsRegistry::force_register_asset(
 				Origin::root(),
 				bridge_asset_location.clone().into(),
 				1,
@@ -79,7 +79,7 @@ fn register_asset() {
 					decimals: 12,
 				},
 			),
-			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
+			assets_registry::Error::<Test>::AssetAlreadyExist
 		);
 
 		let another_bridge_asset_location = MultiLocation::new(
@@ -94,7 +94,7 @@ fn register_asset() {
 
 		// Same asset id register again, should be failed
 		assert_noop!(
-			AssetsWrapper::force_register_asset(
+			AssetsRegistry::force_register_asset(
 				Origin::root(),
 				another_bridge_asset_location.clone().into(),
 				0,
@@ -104,11 +104,11 @@ fn register_asset() {
 					decimals: 12,
 				},
 			),
-			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
+			assets_registry::Error::<Test>::AssetAlreadyExist
 		);
 
 		// Register another asset, id = 1
-		assert_ok!(AssetsWrapper::force_register_asset(
+		assert_ok!(AssetsRegistry::force_register_asset(
 			Origin::root(),
 			another_bridge_asset_location.clone().into(),
 			1,
@@ -119,21 +119,16 @@ fn register_asset() {
 			},
 		));
 		assert_eq!(
-			AssetsWrapper::id(&another_bridge_asset_location.clone().into()).unwrap(),
+			AssetsRegistry::id(&another_bridge_asset_location.clone().into()).unwrap(),
 			1u32
-		);
-		assert_eq!(
-			AssetsWrapper::asset(&1u32.into()).unwrap(),
-			another_bridge_asset_location.clone().into()
 		);
 
 		// Unregister asset
-		assert_ok!(AssetsWrapper::force_unregister_asset(Origin::root(), 1));
+		assert_ok!(AssetsRegistry::force_unregister_asset(Origin::root(), 1));
 		assert_eq!(
-			AssetsWrapper::id(&another_bridge_asset_location.into()),
+			AssetsRegistry::id(&another_bridge_asset_location.into()),
 			None
 		);
-		assert_eq!(AssetsWrapper::asset(&1u32.into()), None);
 	})
 }
 
@@ -159,7 +154,7 @@ fn transfer_assets_not_registered() {
 		assert_noop!(
 			BridgeTransfer::transfer_assets(
 				Origin::signed(ALICE),
-				bridge_asset_location.into(),
+				bridge_asset_location,
 				dest_chain,
 				recipient.clone(),
 				amount,
@@ -189,7 +184,7 @@ fn transfer_assets_insufficient_balance() {
 		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 2, dest_chain));
 
 		// Register asset, id = 0
-		assert_ok!(AssetsWrapper::force_register_asset(
+		assert_ok!(AssetsRegistry::force_register_asset(
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
@@ -201,7 +196,7 @@ fn transfer_assets_insufficient_balance() {
 		));
 
 		// Setup solo chain for this asset
-		assert_ok!(AssetsWrapper::force_enable_chainbridge(
+		assert_ok!(AssetsRegistry::force_enable_chainbridge(
 			Origin::root(),
 			0,
 			dest_chain,
@@ -213,7 +208,7 @@ fn transfer_assets_insufficient_balance() {
 		assert_noop!(
 			BridgeTransfer::transfer_assets(
 				Origin::signed(ALICE),
-				bridge_asset_location.into(),
+				bridge_asset_location,
 				dest_chain,
 				recipient.clone(),
 				amount,
@@ -243,7 +238,7 @@ fn transfer_assets_to_nonreserve() {
 		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 2, dest_chain));
 
 		// Register asset, id = 0
-		assert_ok!(AssetsWrapper::force_register_asset(
+		assert_ok!(AssetsRegistry::force_register_asset(
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
@@ -255,7 +250,7 @@ fn transfer_assets_to_nonreserve() {
 		));
 
 		// Setup solo chain for this asset
-		assert_ok!(AssetsWrapper::force_enable_chainbridge(
+		assert_ok!(AssetsRegistry::force_enable_chainbridge(
 			Origin::root(),
 			0,
 			dest_chain,
@@ -274,7 +269,7 @@ fn transfer_assets_to_nonreserve() {
 
 		assert_ok!(BridgeTransfer::transfer_assets(
 			Origin::signed(ALICE),
-			bridge_asset_location.into(),
+			bridge_asset_location,
 			dest_chain,
 			recipient.clone(),
 			amount,
@@ -312,7 +307,7 @@ fn transfer_assets_to_reserve() {
 		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 2, dest_chain));
 
 		// Register asset, id = 0
-		assert_ok!(AssetsWrapper::force_register_asset(
+		assert_ok!(AssetsRegistry::force_register_asset(
 			Origin::root(),
 			bridge_asset_location.clone().into(),
 			0,
@@ -324,7 +319,7 @@ fn transfer_assets_to_reserve() {
 		));
 
 		// Setup solo chain for this asset
-		assert_ok!(AssetsWrapper::force_enable_chainbridge(
+		assert_ok!(AssetsRegistry::force_enable_chainbridge(
 			Origin::root(),
 			0,
 			dest_chain,
@@ -343,7 +338,7 @@ fn transfer_assets_to_reserve() {
 
 		assert_ok!(BridgeTransfer::transfer_assets(
 			Origin::signed(ALICE),
-			bridge_asset_location.into(),
+			bridge_asset_location,
 			dest_chain,
 			recipient.clone(),
 			amount,
@@ -446,7 +441,7 @@ fn simulate_transfer_pha_from_solochain() {
 				amount: 10,
 			}),
 			Event::BridgeTransfer(crate::bridge_transfer::Event::Deposited {
-				asset: MultiLocation::new(0, Here).into(),
+				asset_location: MultiLocation::new(0, Here).into(),
 				recipient: RELAYER_A,
 				amount: 10,
 			}),
@@ -467,9 +462,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 				GeneralKey(b"an asset".to_vec()),
 			),
 		);
-		let bridge_asset: crate::pallet_assets_wrapper::XTransferAsset =
-			bridge_asset_location.clone().into();
-		let r_id: [u8; 32] = bridge_asset.clone().into_rid(src_chainid);
+		let r_id: [u8; 32] = bridge_asset_location.clone().into_rid(src_chainid);
 		let amount: Balance = 100;
 		let alice_location = MultiLocation::new(
 			0,
@@ -489,9 +482,9 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 			.into();
 
 		// Register asset, id = 0
-		assert_ok!(AssetsWrapper::force_register_asset(
+		assert_ok!(AssetsRegistry::force_register_asset(
 			Origin::root(),
-			bridge_asset.clone(),
+			bridge_asset_location.clone(),
 			0,
 			AssetProperties {
 				name: b"BridgeAsset".to_vec(),
@@ -501,7 +494,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 		));
 
 		// Setup solo chain for this asset
-		assert_ok!(AssetsWrapper::force_enable_chainbridge(
+		assert_ok!(AssetsRegistry::force_enable_chainbridge(
 			Origin::root(),
 			0,
 			src_chainid,
@@ -532,7 +525,7 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 				total_supply: amount,
 			}),
 			Event::BridgeTransfer(crate::bridge_transfer::Event::Deposited {
-				asset: bridge_asset,
+				asset_location: bridge_asset_location,
 				recipient: ALICE,
 				amount,
 			}),
@@ -551,8 +544,6 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 				GeneralKey(b"an asset from karura".to_vec()),
 			),
 		);
-		let para_asset: crate::pallet_assets_wrapper::XTransferAsset =
-			para_asset_location.clone().into();
 		let amount: Balance = 100;
 		let alice_location = MultiLocation::new(
 			0,
@@ -571,9 +562,9 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 			.into();
 
 		// Register asset, id = 0
-		assert_ok!(AssetsWrapper::force_register_asset(
+		assert_ok!(AssetsRegistry::force_register_asset(
 			Origin::root(),
-			para_asset.clone(),
+			para_asset_location.clone(),
 			0,
 			AssetProperties {
 				name: b"ParaAsset".to_vec(),
@@ -583,7 +574,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 		));
 
 		// Setup solo chain for this asset
-		assert_ok!(AssetsWrapper::force_enable_chainbridge(
+		assert_ok!(AssetsRegistry::force_enable_chainbridge(
 			Origin::root(),
 			0,
 			src_chainid,
@@ -620,7 +611,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 			Origin::signed(Bridge::account_id()),
 			alice_location.encode(),
 			amount,
-			para_asset.clone().into_rid(src_chainid),
+			para_asset_location.clone().into_rid(src_chainid),
 		));
 		assert_eq!(Assets::balance(0, &ALICE), amount);
 		assert_eq!(
@@ -642,7 +633,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 				total_supply: amount,
 			}),
 			Event::BridgeTransfer(crate::bridge_transfer::Event::Deposited {
-				asset: para_asset,
+				asset_location: para_asset_location,
 				recipient: ALICE,
 				amount,
 			}),
@@ -744,7 +735,7 @@ fn create_successful_transfer_proposal() {
 				amount: 10,
 			}),
 			Event::BridgeTransfer(crate::bridge_transfer::Event::Deposited {
-				asset: MultiLocation::new(0, Here).into(),
+				asset_location: MultiLocation::new(0, Here).into(),
 				recipient: RELAYER_A,
 				amount: 10,
 			}),
@@ -761,7 +752,7 @@ fn test_get_fee() {
 		assert_ok!(BridgeTransfer::update_fee(Origin::root(), 2, 0, dest_chain));
 
 		// Register asset, decimals: 18, rate with pha: 1 : 1
-		assert_ok!(AssetsWrapper::force_register_asset(
+		assert_ok!(AssetsRegistry::force_register_asset(
 			Origin::root(),
 			SoloChain0AssetLocation::get().into(),
 			0,
@@ -772,7 +763,7 @@ fn test_get_fee() {
 			},
 		));
 		// Register asset, decimals: 12, rate with pha: 1 : 2
-		assert_ok!(AssetsWrapper::force_register_asset(
+		assert_ok!(AssetsRegistry::force_register_asset(
 			Origin::root(),
 			SoloChain2AssetLocation::get().into(),
 			1,
@@ -784,7 +775,7 @@ fn test_get_fee() {
 		));
 
 		// Register asset, decimals: 12, not set as fee payment
-		assert_ok!(AssetsWrapper::force_register_asset(
+		assert_ok!(AssetsRegistry::force_register_asset(
 			Origin::root(),
 			test_asset_location.clone().into(),
 			2,

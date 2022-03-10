@@ -1,6 +1,7 @@
-pub use self::pallet::*;
+#![cfg_attr(not(feature = "std"), no_std)]
 
-#[allow(unused_variables)]
+pub use pallet::*;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use codec::{Decode, Encode};
@@ -20,19 +21,10 @@ pub mod pallet {
 	use sp_std::{boxed::Box, convert::From, vec, vec::Vec};
 	use xcm::latest::{prelude::*, MultiLocation};
 
-	pub const ASSETS_REGISTRY_ID: PalletId = PalletId(*b"phala/ar");
-
-	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
-	pub struct XTransferAsset(pub MultiLocation);
-
-	// Const used to indicate chainbridge assets. str "cb"
+	// Const used to indicate chainbridge path. str "cb"
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
-
-	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
-	pub struct XBridge {
-		config: XBridgeConfig,
-		metadata: Box<Vec<u8>>,
-	}
+	// const used to indicate celerbridge path. str "cr"
+	pub const CR_PATH_KEY: &[u8] = &[0x63, 0x72];
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub enum XBridgeConfig {
@@ -44,6 +36,12 @@ pub mod pallet {
 			is_mintable: bool,
 		},
 		// Potential other bridge solutions
+	}
+
+	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
+	pub struct XBridge {
+		config: XBridgeConfig,
+		metadata: Box<Vec<u8>>,
 	}
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
@@ -61,16 +59,18 @@ pub mod pallet {
 		properties: AssetProperties,
 	}
 
-	impl From<MultiLocation> for XTransferAsset {
-		fn from(x: MultiLocation) -> Self {
-			XTransferAsset(x)
-		}
+	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
+	pub struct UniqueRegistryInfo {
+		location: MultiLocation,
+		reserve_location: Option<MultiLocation>,
+		enabled_bridges: Vec<XBridge>,
+		properties: AssetProperties,
 	}
 
-	impl From<XTransferAsset> for MultiLocation {
-		fn from(x: XTransferAsset) -> Self {
-			x.0
-		}
+	pub trait GetAssetRegistryInfo<AssetId> {
+		fn id(location: &MultiLocation) -> Option<AssetId>;
+		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<MultiLocation>;
+		fn decimals(id: &AssetId) -> Option<u8>;
 	}
 
 	pub trait AccountId32Conversion {
@@ -80,12 +80,6 @@ pub mod pallet {
 	impl AccountId32Conversion for MultiLocation {
 		fn into_account(self) -> [u8; 32] {
 			sp_io::hashing::blake2_256(&self.encode())
-		}
-	}
-
-	impl AccountId32Conversion for XTransferAsset {
-		fn into_account(self) -> [u8; 32] {
-			sp_io::hashing::blake2_256(&self.0.encode())
 		}
 	}
 
@@ -140,18 +134,22 @@ pub mod pallet {
 		}
 	}
 
-	impl ExtractReserveLocation for XTransferAsset {
-		fn reserve_location(&self) -> Option<MultiLocation> {
-			self.0.reserve_location()
-		}
+	// Convert MultiLocation to a Chainbridge compatible resource id.
+	pub trait IntoResourceId {
+		fn into_rid(self, chain_id: u8) -> [u8; 32];
 	}
 
-	impl XTransferAsset {
-		pub fn into_rid(self, chain_id: u8) -> [u8; 32] {
-			let mut rid = sp_io::hashing::blake2_256(&self.0.encode());
+	impl IntoResourceId for MultiLocation {
+		fn into_rid(self, chain_id: u8) -> [u8; 32] {
+			let mut rid = sp_io::hashing::blake2_256(&self.encode());
 			rid[0] = chain_id;
 			rid
 		}
+	}
+
+	// Lookup asset location by its resource id.
+	trait LookupByResourceId {
+		fn lookup_by_rid(self, rid: [u8; 32]) -> Option<MultiLocation>;
 	}
 
 	#[pallet::pallet]
@@ -163,35 +161,27 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_assets::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		type AssetsCommitteeOrigin: EnsureOrigin<Self::Origin>;
-		type Currency: Currency<Self::AccountId>;
+		type RegistryCommitteeOrigin: EnsureOrigin<Self::Origin>;
 		#[pallet::constant]
 		type MinBalance: Get<<Self as pallet_assets::Config>::Balance>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+	const LOG_TARGET: &str = "runtime::asset-registry";
 
-	type BalanceOf<T> =
-		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
-	/// Mapping asset to corresponding asset id
+	/// Mapping fungible asset location to corresponding asset id
 	#[pallet::storage]
-	#[pallet::getter(fn asset_to_id)]
-	pub type IdByAssets<T: Config> =
-		StorageMap<_, Twox64Concat, XTransferAsset, <T as pallet_assets::Config>::AssetId>;
+	#[pallet::getter(fn location_to_id)]
+	pub type IdByLocation<T: Config> =
+		StorageMap<_, Twox64Concat, MultiLocation, <T as pallet_assets::Config>::AssetId>;
 
-	/// Mapping asset id to corresponding asset
+	/// Mapping fungible asset resource id to corresponding asset id
 	#[pallet::storage]
-	#[pallet::getter(fn id_to_asset)]
-	pub type AssetByIds<T: Config> =
-		StorageMap<_, Twox64Concat, <T as pallet_assets::Config>::AssetId, XTransferAsset>;
+	#[pallet::getter(fn rid_to_id)]
+	pub type IdByResourceId<T: Config> =
+		StorageMap<_, Twox64Concat, [u8; 32], <T as pallet_assets::Config>::AssetId>;
 
-	/// Mapping resource id to corresponding asset
-	#[pallet::storage]
-	#[pallet::getter(fn resource_id_to_asset)]
-	pub type AssetByResourceIds<T: Config> = StorageMap<_, Twox64Concat, [u8; 32], XTransferAsset>;
-
-	// Mapping asset id to corresponding registry info
+	// Mapping fungible assets id to corresponding registry info
 	#[pallet::storage]
 	#[pallet::getter(fn id_to_registry_info)]
 	pub type RegistryInfoByIds<T: Config> =
@@ -203,12 +193,12 @@ pub mod pallet {
 		/// Asset is registerd.
 		AssetRegistered {
 			asset_id: <T as pallet_assets::Config>::AssetId,
-			asset: XTransferAsset,
+			location: MultiLocation,
 		},
 		/// Asset is unregisterd.
 		AssetUnRegistered {
 			asset_id: <T as pallet_assets::Config>::AssetId,
-			asset: XTransferAsset,
+			location: MultiLocation,
 		},
 		/// Asset enabled chainbridge.
 		ChainbridgeEnabled {
@@ -244,19 +234,19 @@ pub mod pallet {
 		#[transactional]
 		pub fn force_register_asset(
 			origin: OriginFor<T>,
-			asset: XTransferAsset,
+			location: MultiLocation,
 			asset_id: T::AssetId,
 			properties: AssetProperties,
 		) -> DispatchResult {
-			T::AssetsCommitteeOrigin::ensure_origin(origin.clone())?;
+			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
 			// Ensure location has not been registered
 			ensure!(
-				IdByAssets::<T>::get(&asset) == None,
+				IdByLocation::<T>::get(&location) == None,
 				Error::<T>::AssetAlreadyExist
 			);
 			// Ensure asset_id has not been registered
 			ensure!(
-				AssetByIds::<T>::get(&asset_id) == None,
+				RegistryInfoByIds::<T>::get(&asset_id) == None,
 				Error::<T>::AssetAlreadyExist
 			);
 
@@ -267,14 +257,12 @@ pub mod pallet {
 				true,
 				T::MinBalance::get(),
 			)?;
-			IdByAssets::<T>::insert(&asset, asset_id);
-			AssetByIds::<T>::insert(asset_id, &asset);
-
+			IdByLocation::<T>::insert(&location, asset_id);
 			RegistryInfoByIds::<T>::insert(
 				asset_id,
 				AssetRegistryInfo {
-					location: asset.clone().into(),
-					reserve_location: asset.reserve_location(),
+					location: location.clone(),
+					reserve_location: location.clone().reserve_location(),
 					// Xcmp will be enabled when assets being registered.
 					enabled_bridges: vec![XBridge {
 						config: XBridgeConfig::Xcmp,
@@ -292,7 +280,7 @@ pub mod pallet {
 				properties.decimals,
 			)?;
 
-			Self::deposit_event(Event::AssetRegistered { asset_id, asset });
+			Self::deposit_event(Event::AssetRegistered { asset_id, location });
 			Ok(())
 		}
 
@@ -306,29 +294,35 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
 		) -> DispatchResult {
-			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
-			let asset = AssetByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
 			let info =
 				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
 
-			AssetByIds::<T>::remove(&asset_id);
-			IdByAssets::<T>::remove(&asset);
+			IdByLocation::<T>::remove(&info.location);
 
-			// Unbind resource id and asset if have chain bridge set
+			// Unbind resource id and asset id if have chain bridge set
 			for bridge in info.enabled_bridges {
 				if let XBridgeConfig::ChainBridge {
-					chain_id: _,
+					chain_id,
 					resource_id,
 					..
 				} = bridge.config
 				{
-					AssetByResourceIds::<T>::remove(&resource_id);
+					log::trace!(
+						target: LOG_TARGET,
+						"Found enabled chainbridge, chain_id ${:?}.",
+						chain_id,
+					);
+					IdByResourceId::<T>::remove(&resource_id);
 				}
 			}
 			// Delete registry info
 			RegistryInfoByIds::<T>::remove(&asset_id);
 
-			Self::deposit_event(Event::AssetUnRegistered { asset_id, asset });
+			Self::deposit_event(Event::AssetUnRegistered {
+				asset_id,
+				location: info.location,
+			});
 			Ok(())
 		}
 
@@ -339,7 +333,7 @@ pub mod pallet {
 			asset_id: T::AssetId,
 			properties: AssetProperties,
 		) -> DispatchResult {
-			T::AssetsCommitteeOrigin::ensure_origin(origin.clone())?;
+			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
 
 			let mut info =
 				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
@@ -365,17 +359,16 @@ pub mod pallet {
 			is_mintable: bool,
 			metadata: Box<Vec<u8>>,
 		) -> DispatchResult {
-			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
-			let asset = AssetByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
 			let mut info =
 				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
-			let resource_id: [u8; 32] = asset.clone().into_rid(chain_id);
+			let resource_id: [u8; 32] = info.location.clone().into_rid(chain_id);
 
 			ensure!(
-				AssetByResourceIds::<T>::get(&resource_id) == None,
+				IdByResourceId::<T>::get(&resource_id) == None,
 				Error::<T>::BridgeAlreadyEnabled,
 			);
-			AssetByResourceIds::<T>::insert(&resource_id, &asset);
+			IdByResourceId::<T>::insert(&resource_id, &asset_id);
 			// Save into registry info, here save chain id can not be added more than twice
 			let reserve_location: MultiLocation = (
 				0,
@@ -411,18 +404,18 @@ pub mod pallet {
 			asset_id: T::AssetId,
 			chain_id: u8,
 		) -> DispatchResult {
-			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
-			let asset = AssetByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
 			let mut info =
 				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
-			let resource_id: [u8; 32] = asset.clone().into_rid(chain_id);
+			let resource_id: [u8; 32] = info.location.clone().into_rid(chain_id);
 
 			ensure!(
-				AssetByResourceIds::<T>::get(&resource_id).is_some(),
+				IdByResourceId::<T>::get(&resource_id).is_some(),
 				Error::<T>::BridgeAlreadyDisabled,
 			);
-			AssetByResourceIds::<T>::remove(&resource_id);
-			// Unbind resource id and asset
+			// Unbind resource id and asset id
+			IdByResourceId::<T>::remove(&resource_id);
+			// Remove chainbridge info
 			if let Some(idx) = info
 				.enabled_bridges
 				.iter()
@@ -479,28 +472,27 @@ pub mod pallet {
 		}
 	}
 
-	pub trait GetAssetRegistryInfo<AssetId> {
-		fn id(asset: &XTransferAsset) -> Option<AssetId>;
-		fn asset(id: &AssetId) -> Option<XTransferAsset>;
-		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset>;
-		fn decimals(id: &AssetId) -> Option<u8>;
-	}
-
 	impl<T: Config> GetAssetRegistryInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
-		fn id(asset: &XTransferAsset) -> Option<<T as pallet_assets::Config>::AssetId> {
-			IdByAssets::<T>::get(asset)
+		fn id(asset: &MultiLocation) -> Option<<T as pallet_assets::Config>::AssetId> {
+			IdByLocation::<T>::get(asset)
 		}
 
-		fn asset(id: &<T as pallet_assets::Config>::AssetId) -> Option<XTransferAsset> {
-			AssetByIds::<T>::get(id)
-		}
-
-		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<XTransferAsset> {
-			AssetByResourceIds::<T>::get(resource_id)
+		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<MultiLocation> {
+			IdByResourceId::<T>::get(resource_id)
+				.and_then(|id| RegistryInfoByIds::<T>::get(&id).map(|m| m.location))
 		}
 
 		fn decimals(id: &<T as pallet_assets::Config>::AssetId) -> Option<u8> {
 			RegistryInfoByIds::<T>::get(&id).map(|m| m.properties.decimals)
+		}
+	}
+
+	#[cfg(test)]
+	mod tests {
+		#[test]
+		fn it_works() {
+			let result = 2 + 2;
+			assert_eq!(result, 4);
 		}
 	}
 }

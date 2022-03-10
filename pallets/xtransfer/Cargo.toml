@@ -35,6 +35,7 @@ cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.18", default-features = false }
 
 # Local
+assets-registry = { path = "../assets-registry", default-features = false }
 parachains-common = { path = "../../parachains-common", default-features = false }
 
 [dev-dependencies]
@@ -69,8 +70,9 @@ cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.18" }
 
 # Local
+assets-registry = { path = "../assets-registry" }
 parachains-common = { path = "../../parachains-common" }
-pallet-parachain-info = { path = "../../pallets/parachain-info" }
+pallet-parachain-info = { path = "../parachain-info" }
 
 [features]
 default = ["std"]
@@ -100,4 +102,5 @@ std = [
 	"xcm-builder/std",
 	"pallet-balances/std",
 	"parachains-common/std",
+	"assets-registry/std",
 ]
