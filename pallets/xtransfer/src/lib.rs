@@ -9,6 +9,3 @@ pub use bridge as pallet_bridge;
 
 pub mod bridge_transfer;
 pub use bridge_transfer as pallet_bridge_transfer;
-
-pub mod assets_wrapper;
-pub use assets_wrapper as pallet_assets_wrapper;

@@ -1,8 +1,9 @@
 use super::ParachainXcmRouter;
 use crate::bridge::pallet::{BridgeChainId, BridgeTransact, ResourceId};
 use crate::bridge_transfer::pallet::GetBridgeFee;
-use crate::{pallet_assets_wrapper, pallet_xcm_transfer, xcm_helper};
+use crate::{pallet_xcm_transfer, xcm_helper};
 
+use assets_registry;
 use frame_support::{
 	construct_runtime, match_type,
 	pallet_prelude::*,
@@ -54,7 +55,7 @@ construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-		AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>},
+		AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>},
 
 		// Parachain staff
 		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config},
@@ -235,7 +236,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
 	xcm_helper::ConcreteAssetsMatcher<
 		<Runtime as pallet_assets::Config>::AssetId,
 		Balance,
-		AssetsWrapper,
+		AssetsRegistry,
 	>,
 	// Convert an XCM MultiLocation into a local account id:
 	LocationToAccountId,
@@ -368,9 +369,8 @@ impl pallet_xcm_transfer::Config for Runtime {
 	type DefaultFee = DefaultDestChainXcmFee;
 }
 
-impl pallet_assets_wrapper::Config for Runtime {
+impl assets_registry::Config for Runtime {
 	type Event = Event;
-	type AssetsCommitteeOrigin = EnsureRoot<AccountId>;
-	type Currency = Balances;
+	type RegistryCommitteeOrigin = EnsureRoot<AccountId>;
 	type MinBalance = AssetDeposit;
 }

@@ -3,11 +3,11 @@ pub use self::xcm_helper::*;
 pub mod xcm_helper {
 	use crate::bridge::pallet::{BridgeChainId, BridgeTransact};
 	use crate::bridge_transfer::pallet::GetBridgeFee;
-	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, XTransferAsset,
+	use crate::xcm::xcm_transfer::{XcmOnDeposited, XcmOnWithdrawn};
+	use assets_registry::pallet::{
+		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, IntoResourceId,
 		CB_ASSET_KEY,
 	};
-	use crate::xcm::xcm_transfer::{XcmOnDeposited, XcmOnWithdrawn};
 	use cumulus_primitives_core::ParaId;
 	use frame_support::pallet_prelude::*;
 	use sp_core::U256;
@@ -65,9 +65,8 @@ pub mod xcm_helper {
 				(Fungible(ref amount), Concrete(ref id)) => (amount, id),
 				_ => return Err(MatchError::AssetNotFound),
 			};
-			let xtransfer_asset: XTransferAsset = location.clone().into();
 			let asset_id: AssetId =
-				AssetsInfo::id(&xtransfer_asset).ok_or(MatchError::AssetNotFound)?;
+				AssetsInfo::id(&location.clone()).ok_or(MatchError::AssetNotFound)?;
 			let amount = amount
 				.try_into()
 				.map_err(|_| MatchError::AmountToBalanceConversionFailed)?;
@@ -334,10 +333,9 @@ pub mod xcm_helper {
 					// When asset is native token, e.g. PHA, we need transfer the location to MultiLocation::here()
 					// from (1, X1(Parachain(id))) to match resource id registered in solo chains.
 					let rid = if NativeChecker::is_native_asset(&transfering_asset) {
-						XTransferAsset(MultiLocation::here()).into_rid(dest_id)
+						MultiLocation::here().into_rid(dest_id)
 					} else {
-						let xtransfer_asset: XTransferAsset = location.clone().into();
-						xtransfer_asset.into_rid(dest_id)
+						location.clone().into_rid(dest_id)
 					};
 
 					// This operation will not do real transfer, it just emits FungibleTransfer event
