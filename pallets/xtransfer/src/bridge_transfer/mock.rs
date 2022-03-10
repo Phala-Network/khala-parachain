@@ -15,7 +15,6 @@ use sp_runtime::{
 };
 
 use crate::bridge_transfer;
-use crate::pallet_assets_wrapper;
 use crate::pallet_bridge as bridge;
 use crate::xcm_helper::NativeAssetFilter;
 pub use pallet_balances as balances;
@@ -38,7 +37,7 @@ frame_support::construct_runtime!(
 		BridgeTransfer: bridge_transfer::{Pallet, Call, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-		AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>},
+		AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>},
 		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config},
 	}
 );
@@ -109,7 +108,7 @@ parameter_types! {
 		1,
 		X4(
 			Parachain(2004),
-			GeneralKey(pallet_assets_wrapper::CB_ASSET_KEY.to_vec()),
+			GeneralKey(assets_registry::CB_ASSET_KEY.to_vec()),
 			GeneralIndex(0),
 			GeneralKey(b"an asset".to_vec()),
 		),
@@ -118,7 +117,7 @@ parameter_types! {
 		1,
 		X4(
 			Parachain(2004),
-			GeneralKey(pallet_assets_wrapper::CB_ASSET_KEY.to_vec()),
+			GeneralKey(assets_registry::CB_ASSET_KEY.to_vec()),
 			GeneralIndex(2),
 			GeneralKey(b"an asset".to_vec()),
 		),
@@ -151,7 +150,7 @@ impl bridge::Config for Test {
 
 impl bridge_transfer::Config for Test {
 	type Event = Event;
-	type AssetsWrapper = AssetsWrapper;
+	type AssetsRegistry = AssetsRegistry;
 	type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Test, ConvertInto>;
 	type BridgeOrigin = bridge::EnsureBridge<Test>;
 	type Currency = Balances;
@@ -188,10 +187,9 @@ impl pallet_assets::Config for Test {
 	type WeightInfo = ();
 }
 
-impl pallet_assets_wrapper::Config for Test {
+impl assets_registry::Config for Test {
 	type Event = Event;
-	type AssetsCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
-	type Currency = Balances;
+	type RegistryCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type MinBalance = ExistentialDeposit;
 }
 

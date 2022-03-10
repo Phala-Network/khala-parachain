@@ -102,7 +102,7 @@ pub use parachains_common::Index;
 pub use parachains_common::*;
 
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
-pub use xtransfer_pallets::{pallet_assets_wrapper, pallet_bridge, pallet_bridge_transfer, pallet_xcm_transfer, xcm_helper};
+pub use xtransfer_pallets::{pallet_bridge, pallet_bridge_transfer, pallet_xcm_transfer, xcm_helper};
 
 #[cfg(any(feature = "std", test))]
 pub use frame_system::Call as SystemCall;
@@ -259,7 +259,7 @@ construct_runtime! {
         PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
-        AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>} = 90,
+        AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
 
         // `sudo` has been removed on production
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
@@ -867,7 +867,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
     xcm_helper::ConcreteAssetsMatcher<
         <Runtime as pallet_assets::Config>::AssetId,
         Balance,
-        AssetsWrapper,
+        AssetsRegistry,
     >,
     // Convert an XCM MultiLocation into a local account id:
     LocationToAccountId,
@@ -1140,10 +1140,9 @@ impl pallet_xcm_transfer::Config for Runtime {
     type DefaultFee = DefaultDestChainXcmFee;
 }
 
-impl pallet_assets_wrapper::Config for Runtime {
+impl assets_registry::Config for Runtime {
     type Event = Event;
-    type AssetsCommitteeOrigin = EnsureRootOrHalfCouncil;
-    type Currency = Balances;
+    type RegistryCommitteeOrigin = EnsureRootOrHalfCouncil;
     type MinBalance = ExistentialDeposit;
 }
 
@@ -1452,7 +1451,7 @@ impl pallet_bridge::Config for Runtime {
 
 impl pallet_bridge_transfer::Config for Runtime {
     type Event = Event;
-    type AssetsWrapper = AssetsWrapper;
+    type AssetsRegistry = AssetsRegistry;
     type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Runtime, ConvertInto>;
     type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;

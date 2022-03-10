@@ -6,8 +6,8 @@ mod tests;
 pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
-	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, XTransferAsset,
+	use assets_registry::pallet::{
+		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, IntoResourceId,
 		CB_ASSET_KEY,
 	};
 	use frame_support::{
@@ -55,8 +55,8 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + bridge::Config + pallet_assets::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		/// Assets register wrapper
-		type AssetsWrapper: GetAssetRegistryInfo<<Self as pallet_assets::Config>::AssetId>;
+		/// Fungible assets register
+		type AssetsRegistry: GetAssetRegistryInfo<<Self as pallet_assets::Config>::AssetId>;
 
 		/// Convert Balance of Currency to AssetId of pallet_assets
 		type BalanceConverter: BalanceConversion<
@@ -99,12 +99,12 @@ pub mod pallet {
 			fee_scale: u32,
 		},
 		Deposited {
-			asset: XTransferAsset,
+			asset_location: MultiLocation,
 			recipient: T::AccountId,
 			amount: BalanceOf<T>,
 		},
 		Forwarded {
-			asset: XTransferAsset,
+			asset_location: MultiLocation,
 			dest: MultiLocation,
 			amount: BalanceOf<T>,
 		},
@@ -161,7 +161,7 @@ pub mod pallet {
 		#[transactional]
 		pub fn transfer_assets(
 			origin: OriginFor<T>,
-			asset: XTransferAsset,
+			asset_location: MultiLocation,
 			dest_id: bridge::BridgeChainId,
 			recipient: Vec<u8>,
 			amount: BalanceOf<T>,
@@ -175,7 +175,8 @@ pub mod pallet {
 				),
 			)
 				.into();
-			let asset_reserve_location = asset
+			let asset_reserve_location = asset_location
+				.clone()
 				.reserve_location()
 				.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
 
@@ -189,9 +190,9 @@ pub mod pallet {
 			);
 
 			let asset_id: <T as pallet_assets::Config>::AssetId =
-				T::AssetsWrapper::id(&asset).ok_or(Error::<T>::AssetNotRegistered)?;
+				T::AssetsRegistry::id(&asset_location).ok_or(Error::<T>::AssetNotRegistered)?;
 
-			let rid: bridge::ResourceId = asset.clone().into_rid(dest_id);
+			let rid: bridge::ResourceId = asset_location.clone().into_rid(dest_id);
 			// Ensure asset is setup for the solo chain
 			ensure!(
 				Self::rid_to_assetid(&rid).is_ok(),
@@ -212,7 +213,11 @@ pub mod pallet {
 
 			let fee = Self::get_fee(
 				dest_id,
-				&(Concrete(asset.clone().into()), Fungible(amount.into())).into(),
+				&(
+					Concrete(asset_location.clone().into()),
+					Fungible(amount.into()),
+				)
+					.into(),
 			)
 			.ok_or(Error::<T>::CannotPayAsFee)?;
 			// Check asset balance to cover fee
@@ -402,7 +407,7 @@ pub mod pallet {
 						.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 					}
 					Self::deposit_event(Event::Deposited {
-						asset: asset_location.into(),
+						asset_location,
 						recipient: id.into(),
 						amount,
 					});
@@ -448,7 +453,7 @@ pub mod pallet {
 						6000000000u64.into(),
 					)?;
 					Self::deposit_event(Event::Forwarded {
-						asset: asset_location.into(),
+						asset_location,
 						// dest_location already contains recipient account
 						dest: dest_location,
 						amount,
@@ -509,14 +514,13 @@ pub mod pallet {
 
 		pub fn rid_to_location(rid: &[u8; 32]) -> Result<MultiLocation, DispatchError> {
 			let src_chainid: bridge::BridgeChainId = Self::get_chainid(rid);
-			let asset_location: MultiLocation = if *rid == Self::gen_pha_rid(src_chainid) {
-				MultiLocation::here()
+			if *rid == Self::gen_pha_rid(src_chainid) {
+				Ok(MultiLocation::here())
 			} else {
-				let xtransfer_asset: XTransferAsset = T::AssetsWrapper::lookup_by_resource_id(&rid)
+				let location = T::AssetsRegistry::lookup_by_resource_id(&rid)
 					.ok_or(Error::<T>::AssetConversionFailed)?;
-				xtransfer_asset.into()
-			};
-			Ok(asset_location)
+				Ok(location)
+			}
 		}
 
 		pub fn rid_to_assetid(
@@ -527,15 +531,15 @@ pub mod pallet {
 			if *rid == Self::gen_pha_rid(src_chainid) {
 				return Err(Error::<T>::AssetNotRegistered.into());
 			}
-			let xtransfer_asset: XTransferAsset = T::AssetsWrapper::lookup_by_resource_id(&rid)
+			let asset_location: MultiLocation = T::AssetsRegistry::lookup_by_resource_id(&rid)
 				.ok_or(Error::<T>::AssetConversionFailed)?;
 			let asset_id: <T as pallet_assets::Config>::AssetId =
-				T::AssetsWrapper::id(&xtransfer_asset).ok_or(Error::<T>::AssetNotRegistered)?;
+				T::AssetsRegistry::id(&asset_location).ok_or(Error::<T>::AssetNotRegistered)?;
 			Ok(asset_id)
 		}
 
 		pub fn gen_pha_rid(chain_id: bridge::BridgeChainId) -> bridge::ResourceId {
-			XTransferAsset(MultiLocation::here()).into_rid(chain_id)
+			MultiLocation::here().into_rid(chain_id)
 		}
 
 		pub fn get_chainid(rid: &bridge::ResourceId) -> bridge::BridgeChainId {
@@ -553,8 +557,8 @@ pub mod pallet {
 		fn get_fee(chain_id: bridge::BridgeChainId, asset: &MultiAsset) -> Option<u128> {
 			match (&asset.id, &asset.fun) {
 				(Concrete(location), Fungible(amount)) => {
-					let id = T::AssetsWrapper::id(&XTransferAsset(location.clone()))?;
-					let decimals = T::AssetsWrapper::decimals(&id).unwrap_or(12);
+					let id = T::AssetsRegistry::id(&location.clone())?;
+					let decimals = T::AssetsRegistry::decimals(&id).unwrap_or(12);
 					let fee_in_pha = Self::estimate_fee_in_pha(
 						chain_id,
 						(Self::to_e12(*amount, decimals)).into(),

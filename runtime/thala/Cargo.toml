@@ -85,6 +85,7 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "relea
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.18", default-features = false }
 
 # Local dependencies
+assets-registry = { path = "../../pallets/assets-registry", default-features = false }
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
 phala-pallets = { path = "../../pallets/phala", default-features = false }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }
@@ -126,6 +127,7 @@ runtime-benchmarks = [
 	"pallet-assets/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
+	"assets-registry/runtime-benchmarks",
 	"xtransfer-pallets/runtime-benchmarks",
 ]
 std = [
@@ -193,6 +195,7 @@ std = [
 	"pallet-parachain-info/std",
 	"phala-pallets/std",
 	"pallet-mq-runtime-api/std",
+	"assets-registry/std",
 	"xtransfer-pallets/std",
 ]
 

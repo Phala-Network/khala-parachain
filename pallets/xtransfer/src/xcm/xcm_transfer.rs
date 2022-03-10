@@ -3,7 +3,6 @@ pub use self::pallet::*;
 #[allow(unused_variables)]
 #[frame_support::pallet]
 pub mod pallet {
-	use crate::pallet_assets_wrapper;
 	use crate::xcm_helper::{ConcrateAsset, NativeAssetChecker};
 	use frame_support::{
 		dispatch::DispatchResult,
@@ -14,8 +13,8 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
-	use sp_runtime::DispatchError;
-	use sp_std::{convert::TryInto, prelude::*, vec};
+	use sp_runtime::{traits::AccountIdConversion, DispatchError};
+	use sp_std::{prelude::*, vec};
 	use xcm::latest::{prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation};
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
 
@@ -118,18 +117,16 @@ pub mod pallet {
 		#[transactional]
 		pub fn transfer_asset(
 			origin: OriginFor<T>,
-			asset: Box<pallet_assets_wrapper::XTransferAsset>,
-			dest: MultiLocation,
+			asset_location: Box<MultiLocation>,
+			dest: Box<MultiLocation>,
 			amount: BalanceOf<T>,
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let origin = T::ExecuteXcmOrigin::ensure_origin(origin)?;
-			// Get asset location by asset id
-			let asset_location: MultiLocation =
-				(*asset).try_into().map_err(|_| Error::<T>::AssetNotFound)?;
-			let multi_asset: MultiAsset = (asset_location, amount.into()).into();
+			// TODO: Check if asset is registered
+			let multi_asset: MultiAsset = (*asset_location, amount.into()).into();
 
-			Self::do_transfer_multiasset(origin, multi_asset, dest, dest_weight)
+			Self::do_transfer_multiasset(origin, multi_asset, *dest, dest_weight)
 		}
 
 		#[pallet::weight(195_000_000 + Pallet::<T>::estimate_transfer_weight())]
@@ -482,17 +479,15 @@ mod test {
 	use crate::xcm::mock::*;
 	use frame_support::{assert_err, assert_noop, assert_ok};
 	use polkadot_parachain::primitives::Sibling;
-	use sp_runtime::{traits::AccountIdConversion, AccountId32, DispatchError};
-	use sp_std::convert::TryInto;
+	use sp_runtime::traits::AccountIdConversion;
+	use sp_runtime::{AccountId32, DispatchError};
 
 	use xcm::latest::{prelude::*, MultiLocation};
 	use xcm_simulator::TestExt;
 
-	use crate::pallet_assets_wrapper;
-	use crate::pallet_assets_wrapper::{
-		AccountId32Conversion, GetAssetRegistryInfo, ASSETS_REGISTRY_ID,
-	};
 	use assert_matches::assert_matches;
+	use assets_registry;
+	use assets_registry::pallet::GetAssetRegistryInfo;
 
 	fn sibling_account(para_id: u32) -> AccountId32 {
 		Sibling::from(para_id).into_account()
@@ -508,16 +503,14 @@ mod test {
 				parents: 1,
 				interior: X1(Parachain(1)),
 			};
-			let para_a_asset: pallet_assets_wrapper::XTransferAsset =
-				para_a_location.try_into().unwrap();
 
 			// Should be failed if origin is from sudo user
 			assert_err!(
-				ParaAssetsWrapper::force_register_asset(
+				ParaAssetsRegistry::force_register_asset(
 					Some(ALICE).into(),
-					para_a_asset.clone().into(),
+					para_a_location.clone().into(),
 					0,
-					pallet_assets_wrapper::AssetProperties {
+					assets_registry::AssetProperties {
 						name: b"ParaAAsset".to_vec(),
 						symbol: b"PAA".to_vec(),
 						decimals: 12,
@@ -526,11 +519,11 @@ mod test {
 				DispatchError::BadOrigin
 			);
 
-			assert_ok!(ParaAssetsWrapper::force_register_asset(
+			assert_ok!(ParaAssetsRegistry::force_register_asset(
 				para::Origin::root(),
-				para_a_asset.clone().into(),
+				para_a_location.clone().into(),
 				0,
-				pallet_assets_wrapper::AssetProperties {
+				assets_registry::AssetProperties {
 					name: b"ParaAAsset".to_vec(),
 					symbol: b"PAA".to_vec(),
 					decimals: 12,
@@ -538,69 +531,62 @@ mod test {
 			));
 
 			let ev: Vec<para::Event> = para_take_events();
-			let _expected_ev: Vec<para::Event> = [pallet_assets_wrapper::Event::AssetRegistered {
+			let _expected_ev: Vec<para::Event> = [assets_registry::Event::AssetRegistered {
 				asset_id: 0u32.into(),
-				asset: para_a_asset.clone(),
+				location: para_a_location.clone(),
 			}
 			.into()]
 			.to_vec();
 			assert_matches!(ev, _expected_ev);
-			assert_eq!(ParaAssetsWrapper::id(&para_a_asset).unwrap(), 0u32);
-			assert_eq!(
-				ParaAssetsWrapper::asset(&0u32.into()).unwrap(),
-				para_a_asset
-			);
+			assert_eq!(ParaAssetsRegistry::id(&para_a_location).unwrap(), 0u32);
 			assert_eq!(ParaAssets::total_supply(0u32.into()), 0);
-			assert_eq!(ParaAssetsWrapper::id(&para_a_asset).unwrap(), 0u32);
-			assert_eq!(ParaAssetsWrapper::decimals(&0u32.into()).unwrap(), 12u8);
+			assert_eq!(ParaAssetsRegistry::decimals(&0u32.into()).unwrap(), 12u8);
 
 			// Force set metadata
-			assert_ok!(ParaAssetsWrapper::force_set_metadata(
+			assert_ok!(ParaAssetsRegistry::force_set_metadata(
 				para::Origin::root(),
 				0,
-				pallet_assets_wrapper::AssetProperties {
+				assets_registry::AssetProperties {
 					name: b"ParaAAAAsset".to_vec(),
 					symbol: b"PAAAA".to_vec(),
 					decimals: 18,
 				},
 			));
-			assert_eq!(ParaAssetsWrapper::decimals(&0u32.into()).unwrap(), 18u8);
+			assert_eq!(ParaAssetsRegistry::decimals(&0u32.into()).unwrap(), 18u8);
 
 			// Same asset location register again, should be failed
 			assert_noop!(
-				ParaAssetsWrapper::force_register_asset(
+				ParaAssetsRegistry::force_register_asset(
 					para::Origin::root(),
-					para_a_asset.clone().into(),
+					para_a_location.clone().into(),
 					1,
-					pallet_assets_wrapper::AssetProperties {
+					assets_registry::AssetProperties {
 						name: b"ParaAAsset".to_vec(),
 						symbol: b"PAA".to_vec(),
 						decimals: 12,
 					},
 				),
-				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
+				assets_registry::Error::<para::Runtime>::AssetAlreadyExist
 			);
 
 			let para_b_location: MultiLocation = MultiLocation {
 				parents: 1,
 				interior: X1(Parachain(2)),
 			};
-			let para_b_asset: pallet_assets_wrapper::XTransferAsset =
-				para_b_location.try_into().unwrap();
 
 			// Same asset id register again, should be failed
 			assert_noop!(
-				ParaAssetsWrapper::force_register_asset(
+				ParaAssetsRegistry::force_register_asset(
 					para::Origin::root(),
-					para_b_asset.clone().into(),
+					para_b_location.clone().into(),
 					0,
-					pallet_assets_wrapper::AssetProperties {
+					assets_registry::AssetProperties {
 						name: b"ParaBAsset".to_vec(),
 						symbol: b"PBA".to_vec(),
 						decimals: 12,
 					},
 				),
-				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
+				assets_registry::Error::<para::Runtime>::AssetAlreadyExist
 			);
 
 			// Register another asset, id = 1
@@ -608,31 +594,24 @@ mod test {
 				parents: 1,
 				interior: X1(Parachain(2)),
 			};
-			let para_b_asset: pallet_assets_wrapper::XTransferAsset =
-				para_b_location.try_into().unwrap();
-			assert_ok!(ParaAssetsWrapper::force_register_asset(
+			assert_ok!(ParaAssetsRegistry::force_register_asset(
 				para::Origin::root(),
-				para_b_asset.clone().into(),
+				para_b_location.clone().into(),
 				1,
-				pallet_assets_wrapper::AssetProperties {
+				assets_registry::AssetProperties {
 					name: b"ParaBAsset".to_vec(),
 					symbol: b"PBA".to_vec(),
 					decimals: 12,
 				},
 			));
-			assert_eq!(ParaAssetsWrapper::id(&para_b_asset).unwrap(), 1u32);
-			assert_eq!(
-				ParaAssetsWrapper::asset(&1u32.into()).unwrap(),
-				para_b_asset
-			);
+			assert_eq!(ParaAssetsRegistry::id(&para_b_location).unwrap(), 1u32);
 
 			// Unregister asset
-			assert_ok!(ParaAssetsWrapper::force_unregister_asset(
+			assert_ok!(ParaAssetsRegistry::force_unregister_asset(
 				para::Origin::root(),
 				1
 			));
-			assert_eq!(ParaAssetsWrapper::id(&para_b_asset), None);
-			assert_eq!(ParaAssetsWrapper::asset(&1u32.into()), None);
+			assert_eq!(ParaAssetsRegistry::id(&para_b_location), None);
 		});
 	}
 
@@ -712,16 +691,14 @@ mod test {
 			parents: 1,
 			interior: X1(Parachain(1)),
 		};
-		let para_a_asset: pallet_assets_wrapper::XTransferAsset =
-			para_a_location.try_into().unwrap();
 
 		ParaB::execute_with(|| {
 			// ParaB register the native asset of paraA
-			assert_ok!(ParaAssetsWrapper::force_register_asset(
+			assert_ok!(ParaAssetsRegistry::force_register_asset(
 				para::Origin::root(),
-				para_a_asset.clone().into(),
+				para_a_location.clone().into(),
 				0,
-				pallet_assets_wrapper::AssetProperties {
+				assets_registry::AssetProperties {
 					name: b"ParaAAsset".to_vec(),
 					symbol: b"PAA".to_vec(),
 					decimals: 12,
@@ -764,16 +741,14 @@ mod test {
 			parents: 1,
 			interior: X1(Parachain(1)),
 		};
-		let para_a_asset: pallet_assets_wrapper::XTransferAsset =
-			para_a_location.try_into().unwrap();
 
 		ParaB::execute_with(|| {
 			// ParaB register the native asset of paraA
-			assert_ok!(ParaAssetsWrapper::force_register_asset(
+			assert_ok!(ParaAssetsRegistry::force_register_asset(
 				para::Origin::root(),
-				para_a_asset.clone().into(),
+				para_a_location.clone().into(),
 				0,
-				pallet_assets_wrapper::AssetProperties {
+				assets_registry::AssetProperties {
 					name: b"ParaAAsset".to_vec(),
 					symbol: b"PAA".to_vec(),
 					decimals: 12,
@@ -812,8 +787,8 @@ mod test {
 			// ParaB send back ParaA's native asset
 			assert_ok!(XcmTransfer::transfer_asset(
 				Some(BOB).into(),
-				Box::new(para_a_asset.clone().into()),
-				MultiLocation::new(
+				Box::new(para_a_location.clone()),
+				Box::new(MultiLocation::new(
 					1,
 					X2(
 						Parachain(1u32.into()),
@@ -822,7 +797,7 @@ mod test {
 							id: ALICE.into()
 						}
 					)
-				),
+				)),
 				5,
 				1,
 			));
