@@ -1,5 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(test)]
+mod mock;
+
 pub use pallet::*;
 
 #[frame_support::pallet]
@@ -489,10 +492,129 @@ pub mod pallet {
 
 	#[cfg(test)]
 	mod tests {
+		use crate as assets_registry;
+		use assets_registry::{mock::*, AssetProperties, GetAssetRegistryInfo};
+		use frame_support::{assert_err, assert_noop, assert_ok};
+		use sp_runtime::DispatchError;
+
 		#[test]
-		fn it_works() {
-			let result = 2 + 2;
-			assert_eq!(result, 4);
+		fn test_asset_register() {
+			new_test_ext().execute_with(|| {
+				// Register first asset, id = 0
+				let para_a_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(1)),
+				};
+
+				// Should be failed if origin is from sudo user
+				assert_err!(
+					AssetsRegistry::force_register_asset(
+						Some(ALICE).into(),
+						para_a_location.clone().into(),
+						0,
+						AssetProperties {
+							name: b"ParaAAsset".to_vec(),
+							symbol: b"PAA".to_vec(),
+							decimals: 12,
+						},
+						ALICE,
+					),
+					DispatchError::BadOrigin
+				);
+
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_a_location.clone().into(),
+					0,
+					AssetProperties {
+						name: b"ParaAAsset".to_vec(),
+						symbol: b"PAA".to_vec(),
+						decimals: 12,
+					},
+					ALICE,
+				));
+
+				assert_events(vec![Event::AssetsRegistry(
+					assets_registry::Event::AssetRegistered {
+						asset_id: 0u32.into(),
+						location: para_a_location.clone(),
+					},
+				)]);
+				assert_eq!(AssetsRegistry::id(&para_a_location).unwrap(), 0u32);
+				assert_eq!(Assets::total_supply(0u32.into()), 0);
+				assert_eq!(AssetsRegistry::decimals(&0u32.into()).unwrap(), 12u8);
+
+				// Force set metadata
+				assert_ok!(AssetsRegistry::force_set_metadata(
+					Origin::root(),
+					0,
+					AssetProperties {
+						name: b"ParaAAAAsset".to_vec(),
+						symbol: b"PAAAA".to_vec(),
+						decimals: 18,
+					},
+				));
+				assert_eq!(AssetsRegistry::decimals(&0u32.into()).unwrap(), 18u8);
+
+				// Same asset location register again, should be failed
+				assert_noop!(
+					AssetsRegistry::force_register_asset(
+						Origin::root(),
+						para_a_location.clone().into(),
+						1,
+						AssetProperties {
+							name: b"ParaAAsset".to_vec(),
+							symbol: b"PAA".to_vec(),
+							decimals: 12,
+						},
+						ALICE,
+					),
+					assets_registry::Error::<Test>::AssetAlreadyExist
+				);
+
+				let para_b_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(2)),
+				};
+
+				// Same asset id register again, should be failed
+				assert_noop!(
+					AssetsRegistry::force_register_asset(
+						Origin::root(),
+						para_b_location.clone().into(),
+						0,
+						AssetProperties {
+							name: b"ParaBAsset".to_vec(),
+							symbol: b"PBA".to_vec(),
+							decimals: 12,
+						},
+						ALICE,
+					),
+					assets_registry::Error::<Test>::AssetAlreadyExist
+				);
+
+				// Register another asset, id = 1
+				let para_b_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(2)),
+				};
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_b_location.clone().into(),
+					1,
+					AssetProperties {
+						name: b"ParaBAsset".to_vec(),
+						symbol: b"PBA".to_vec(),
+						decimals: 12,
+					},
+					ALICE,
+				));
+				assert_eq!(AssetsRegistry::id(&para_b_location).unwrap(), 1u32);
+
+				// Unregister asset
+				assert_ok!(AssetsRegistry::force_unregister_asset(Origin::root(), 1));
+				assert_eq!(AssetsRegistry::id(&para_b_location), None);
+			});
 		}
 	}
 }
