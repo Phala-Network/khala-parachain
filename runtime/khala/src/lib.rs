@@ -884,6 +884,7 @@ parameter_types! {
     pub PHAAssetId: AssetId = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into()))).into();
     pub LocalPHAAssetId: AssetId = MultiLocation::new(0, Here).into();
     pub KARAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec()))).into();
+    pub KUSDAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KUSD_KEY.to_vec()))).into();
     pub BNCAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::BNC_KEY.to_vec()))).into();
     pub VSKSMAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::VSKSM_KEY.to_vec()))).into();
     pub ZLKAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::ZLK_KEY.to_vec()))).into();
@@ -904,6 +905,10 @@ parameter_types! {
         KARAssetId::get(),
         pha_per_second() / 8
     );
+    pub ExecutionPriceInKUSD: (AssetId, u128) = (
+        KUSDAssetId::get(),
+        pha_per_second() / 4
+    );
     pub ExecutionPriceInBNC: (AssetId, u128) = (
         BNCAssetId::get(),
         pha_per_second() / 4
@@ -923,6 +928,7 @@ parameter_types! {
         ExecutionPriceInPHA::get(),
         ExecutionPriceInLocalPHA::get(),
         ExecutionPriceInKAR::get(),
+        ExecutionPriceInKUSD::get(),
         ExecutionPriceInBNC::get(),
         ExecutionPriceInVSKSM::get(),
         ExecutionPriceInZLK::get(),
@@ -933,6 +939,7 @@ parameter_types! {
         PHAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         LocalPHAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         KARAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+        KUSDAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         BNCAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         VSKSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         ZLKAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
@@ -993,6 +1000,14 @@ impl Config for XcmConfig {
         >,
         FixedRateOfFungible<
             ExecutionPriceInKAR,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
+        >,
+        FixedRateOfFungible<
+            ExecutionPriceInKUSD,
             xcm_helper::XTransferTakeRevenue<
                 Self::AssetTransactor,
                 AccountId,
