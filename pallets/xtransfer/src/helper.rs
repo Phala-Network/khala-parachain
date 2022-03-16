@@ -1,0 +1,146 @@
+use crate::traits::*;
+use assets_registry::GetAssetRegistryInfo;
+use cumulus_primitives_core::ParaId;
+use frame_support::pallet_prelude::*;
+use sp_runtime::traits::CheckedConversion;
+use sp_std::{
+	convert::{Into, TryFrom, TryInto},
+	marker::PhantomData,
+	result,
+};
+use xcm::latest::{
+	prelude::*, AssetId::Concrete, Fungibility::Fungible, MultiAsset, MultiLocation,
+};
+use xcm_builder::TakeRevenue;
+use xcm_executor::traits::{
+	Error as MatchError, FilterAssetLocation, MatchesFungible, MatchesFungibles, TransactAsset,
+};
+
+pub struct NativeAssetMatcher<C>(PhantomData<C>);
+impl<C: NativeAssetChecker, B: TryFrom<u128>> MatchesFungible<B> for NativeAssetMatcher<C> {
+	fn matches_fungible(a: &MultiAsset) -> Option<B> {
+		match (&a.id, &a.fun) {
+			(Concrete(_), Fungible(ref amount)) if C::is_native_asset(a) => {
+				CheckedConversion::checked_from(*amount)
+			}
+			_ => None,
+		}
+	}
+}
+
+pub struct ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>(
+	PhantomData<(AssetId, Balance, AssetsInfo)>,
+);
+impl<AssetId, Balance: Clone + From<u128>, AssetsInfo: GetAssetRegistryInfo<AssetId>>
+	MatchesFungibles<AssetId, Balance> for ConcreteAssetsMatcher<AssetId, Balance, AssetsInfo>
+{
+	fn matches_fungibles(a: &MultiAsset) -> result::Result<(AssetId, Balance), MatchError> {
+		let (&amount, location) = match (&a.fun, &a.id) {
+			(Fungible(ref amount), Concrete(ref id)) => (amount, id),
+			_ => return Err(MatchError::AssetNotFound),
+		};
+		let asset_id: AssetId = AssetsInfo::id(&location).ok_or(MatchError::AssetNotFound)?;
+		let amount = amount
+			.try_into()
+			.map_err(|_| MatchError::AmountToBalanceConversionFailed)?;
+		Ok((asset_id.into(), amount))
+	}
+}
+
+// We only trust the origin to send us assets that they identify as their
+// sovereign assets.
+pub struct AssetOriginFilter;
+impl FilterAssetLocation for AssetOriginFilter {
+	fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
+		if let Some(ref id) = ConcrateAsset::origin(asset) {
+			if id == origin {
+				return true;
+			}
+		}
+		false
+	}
+}
+
+pub struct NativeAssetFilter<T>(PhantomData<T>);
+impl<T: Get<ParaId>> NativeAssetChecker for NativeAssetFilter<T> {
+	fn is_native_asset(asset: &MultiAsset) -> bool {
+		match (&asset.id, &asset.fun) {
+			// So far our native asset is concrete
+			(Concrete(ref id), Fungible(_)) if Self::is_native_asset_location(id) => true,
+			_ => false,
+		}
+	}
+
+	fn is_native_asset_location(id: &MultiLocation) -> bool {
+		let native_locations = [
+			MultiLocation::here(),
+			(1, X1(Parachain(T::get().into()))).into(),
+		];
+		native_locations.contains(id)
+	}
+
+	fn native_asset_location() -> MultiLocation {
+		(1, X1(Parachain(T::get().into()))).into()
+	}
+}
+
+pub struct ConcrateAsset;
+impl ConcrateAsset {
+	pub fn id(asset: &MultiAsset) -> Option<MultiLocation> {
+		match (&asset.id, &asset.fun) {
+			// So far our native asset is concrete
+			(Concrete(id), Fungible(_)) => Some(id.clone()),
+			_ => None,
+		}
+	}
+
+	pub fn origin(asset: &MultiAsset) -> Option<MultiLocation> {
+		Self::id(asset).and_then(|id| {
+			match (id.parents, id.first_interior()) {
+				// Sibling parachain
+				(1, Some(Parachain(id))) => Some(MultiLocation::new(1, X1(Parachain(*id)))),
+				// Parent
+				(1, _) => Some(MultiLocation::parent()),
+				// Children parachain
+				(0, Some(Parachain(id))) => Some(MultiLocation::new(0, X1(Parachain(*id)))),
+				// Local: (0, Here)
+				(0, None) => Some(id),
+				_ => None,
+			}
+		})
+	}
+}
+
+pub struct XTransferTakeRevenue<Adapter, AccountId, Beneficiary>(
+	PhantomData<(Adapter, AccountId, Beneficiary)>,
+);
+impl<
+		Adapter: TransactAsset,
+		AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone,
+		Beneficiary: Get<AccountId>,
+	> TakeRevenue for XTransferTakeRevenue<Adapter, AccountId, Beneficiary>
+{
+	fn take_revenue(revenue: MultiAsset) {
+		let beneficiary = MultiLocation::new(
+			0,
+			X1(AccountId32 {
+				network: NetworkId::Any,
+				id: Beneficiary::get().into(),
+			}),
+		);
+		let _ = Adapter::deposit_asset(&revenue, &beneficiary);
+	}
+}
+
+// pub struct BridgeRouter<Bridge, BridgeList>(
+//     PhantomData<(Bridge, BridgeList)>,
+// );
+
+// impl<
+//     Bridge: BridgeTransact,
+//     BridgeList: Get<Vec<Bridge>>,
+// > BridgeRoute<Bridge> for BridgeRouter<Bridge, BridgeList> {
+//     fn select_bridge(asset: MultiAsset, dest: MultiLocation) -> Option<Bridge> {
+
+//     }
+// }
