@@ -1,20 +1,16 @@
 use super::ParachainXcmRouter;
-use crate::{
-	chainbridge, fungible_adapter::XTransferAdapter, helper, traits::*, xcm_transfer, xtransfer,
-};
+use crate::{chainbridge, fungible_adapter::XTransferAdapter, helper, xcm_transfer, xtransfer};
 
 use assets_registry;
 use frame_support::{
-	construct_runtime, match_type,
-	pallet_prelude::*,
-	parameter_types,
+	construct_runtime, match_type, parameter_types,
 	traits::{ConstU128, ConstU32, Contains, Everything},
 	weights::{IdentityFee, Weight},
 	PalletId,
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
-use sp_core::{H256, U256};
+use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},

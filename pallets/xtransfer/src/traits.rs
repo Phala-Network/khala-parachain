@@ -1,4 +1,5 @@
 use frame_support::{dispatch::DispatchResult, weights::Weight};
+use sp_std::vec::Vec;
 use xcm::latest::{MultiAsset, MultiLocation};
 
 pub trait BridgeChecker {

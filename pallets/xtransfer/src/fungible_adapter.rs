@@ -1,6 +1,6 @@
 use crate::traits::*;
 use assets_registry::AccountId32Conversion;
-use sp_std::{convert::Into, marker::PhantomData, result};
+use sp_std::{convert::Into, marker::PhantomData, result, vec::Vec};
 use xcm::latest::{prelude::*, Error as XcmError, MultiAsset, MultiLocation, Result as XcmResult};
 use xcm_executor::{traits::TransactAsset, Assets};
 

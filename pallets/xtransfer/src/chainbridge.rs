@@ -263,7 +263,7 @@ pub mod pallet {
 		AssetConversionFailed,
 		/// Function unimplemented
 		Unimplemented,
-		UnsupportedDestination,
+		CannotDepositAsset,
 	}
 
 	#[pallet::storage]
@@ -828,8 +828,12 @@ pub mod pallet {
 				return None;
 			}
 			let (location, amount) = asset_extract_result.unwrap();
-			let id = T::AssetsRegistry::id(&location.clone())?;
-			let decimals = T::AssetsRegistry::decimals(&id).unwrap_or(12);
+			let decimals = if T::NativeAssetChecker::is_native_asset(asset) {
+				12
+			} else {
+				let id = T::AssetsRegistry::id(&location.clone())?;
+				T::AssetsRegistry::decimals(&id).unwrap_or(12)
+			};
 			let fee_in_pha =
 				Self::estimate_fee_in_pha(chain_id, (Self::to_e12(amount, decimals)).into());
 			if fee_in_pha.is_none() {
@@ -913,8 +917,10 @@ pub mod pallet {
 				return false;
 			}
 
-			// Verify if asset was enabled chainbridge transfer
-			if Self::rid_to_assetid(&resource_id).is_err() {
+			// Verify if asset was enabled chainbridge transfer if is not native
+			if !T::NativeAssetChecker::is_native_asset(&asset)
+				&& Self::rid_to_assetid(&resource_id).is_err()
+			{
 				return false;
 			}
 
@@ -945,7 +951,7 @@ pub mod pallet {
 			// Check if we can deposit aset into dest.
 			ensure!(
 				Self::can_deposit_asset(asset.clone(), dest.clone()),
-				Error::<T>::UnsupportedDestination
+				Error::<T>::CannotDepositAsset
 			);
 
 			let (asset_location, amount) =
@@ -1008,12 +1014,19 @@ pub mod pallet {
 				.clone()
 				.reserve_location()
 				.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
-			if asset_reserve_location != dest_reserve_location {
+			let reserve_account = if T::NativeAssetChecker::is_native_asset(&asset) {
+				MODULE_ID.into_account()
+			} else {
+				dest_reserve_location.clone().into_account()
+			};
+			if T::NativeAssetChecker::is_native_asset(&asset)
+				|| asset_reserve_location != dest_reserve_location
+			{
 				T::FungibleAdapter::deposit_asset(
 					&(asset.id.clone(), Fungible(amount.into())).into(),
 					&Junction::AccountId32 {
 						network: NetworkId::Any,
-						id: dest_reserve_location.into_account(),
+						id: reserve_account.into(),
 					}
 					.into(),
 				)
@@ -1089,13 +1102,11 @@ pub mod pallet {
 		use crate::mock::para::Runtime;
 		use crate::mock::para::*;
 		use crate::mock::{
-			para_assert_events, para_expect_event, para_ext, para_last_event, take_events, ParaA,
-			ParaB, ParaC, Relay, TestNet, ALICE, BOB, ENDOWED_BALANCE, RELAYER_A, RELAYER_B,
-			RELAYER_C, TEST_THRESHOLD,
+			para_assert_events, para_expect_event, para_ext, ParaA, TestNet, ALICE,
+			ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C, TEST_THRESHOLD,
 		};
 		use assets_registry::*;
 		use frame_support::{assert_noop, assert_ok};
-		use xcm::latest::prelude::*;
 		use xcm_simulator::TestExt;
 
 		type ChainBridge = crate::chainbridge::Pallet<Runtime>;
@@ -1255,7 +1266,8 @@ pub mod pallet {
 						),
 						None,
 					),
-					ChainbridgeError::<Runtime>::ChainNotWhitelisted
+					// Can not pass can_deposit_asset check if chain not been whitelisted
+					ChainbridgeError::<Runtime>::CannotDepositAsset
 				);
 			})
 		}
@@ -1628,7 +1640,8 @@ pub mod pallet {
 						),
 						None,
 					),
-					ChainbridgeError::<Runtime>::AssetNotRegistered
+					// Can not pass can_deposit_asset check if assets hasn't been registered.
+					ChainbridgeError::<Runtime>::CannotDepositAsset
 				);
 			})
 		}
@@ -1757,14 +1770,15 @@ pub mod pallet {
 					None,
 				));
 
-				assert_eq!(Assets::balance(0, &ALICE), amount);
+				// Withdraw (amount + fee) from ALICE
+				assert_eq!(Assets::balance(0, &ALICE), amount - 2);
 				assert_eq!(Assets::balance(0, &TREASURY::get()), 2);
 
 				// The asset's reserve chain is 0, dest chain is 2,
 				// so will save asset into reserve account of dest chain
 				assert_eq!(
 					Assets::balance(0, &dest_reserve_location.into_account().into()),
-					amount - 2 // exclude fee saved to treasury
+					amount
 				);
 			})
 		}
@@ -1830,7 +1844,8 @@ pub mod pallet {
 					None,
 				));
 
-				assert_eq!(Assets::balance(0, &ALICE), amount);
+				// Withdraw (amount + fee) from ALICE
+				assert_eq!(Assets::balance(0, &ALICE), amount - 4);
 				// Rate of PHA and SoloChain2AssetLocation accoate asset is 2:1
 				assert_eq!(Assets::balance(0, &TREASURY::get()), 4);
 
@@ -1942,6 +1957,15 @@ pub mod pallet {
 					Event::Balances(pallet_balances::Event::Withdraw {
 						who: ChainBridge::account_id(),
 						amount: 10,
+					}),
+					Event::XTransfer(crate::xtransfer::Event::Withdrawn {
+						what: (Concrete(MultiLocation::new(0, Here)), Fungible(10u128)).into(),
+						who: Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: ChainBridge::account_id().into(),
+						}
+						.into(),
+						memo: Vec::new(),
 					}),
 					// Deposit into recipient
 					Event::Balances(pallet_balances::Event::Deposit {
@@ -2145,8 +2169,17 @@ pub mod pallet {
 					// Burn asset
 					Event::Assets(pallet_assets::Event::Burned {
 						asset_id: 0,
-						owner: src_reserve_location.into_account().into(),
+						owner: src_reserve_location.clone().into_account().into(),
 						balance: amount,
+					}),
+					Event::XTransfer(crate::xtransfer::Event::Withdrawn {
+						what: (Concrete(para_asset_location.clone()), Fungible(amount)).into(),
+						who: Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: src_reserve_location.into_account().into(),
+						}
+						.into(),
+						memo: Vec::new(),
 					}),
 					// Mint asset
 					Event::Assets(pallet_assets::Event::Issued {
@@ -2256,6 +2289,15 @@ pub mod pallet {
 					Event::Balances(pallet_balances::Event::Withdraw {
 						who: ChainBridge::account_id(),
 						amount: 10,
+					}),
+					Event::XTransfer(crate::xtransfer::Event::Withdrawn {
+						what: (Concrete(MultiLocation::new(0, Here)), Fungible(10u128)).into(),
+						who: Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: ChainBridge::account_id().into(),
+						}
+						.into(),
+						memo: Vec::new(),
 					}),
 					// Deposit into recipient
 					Event::Balances(pallet_balances::Event::Deposit {
