@@ -1,10 +1,5 @@
 #![cfg(test)]
-use frame_support::{
-	ord_parameter_types, parameter_types,
-	traits::{ConstU128, ConstU32, GenesisBuild},
-	weights::Weight,
-	PalletId,
-};
+use frame_support::{traits::GenesisBuild, PalletId};
 use sp_io::TestExternalities;
 use sp_runtime::{traits::AccountIdConversion, AccountId32};
 
@@ -127,7 +122,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 }
 
 pub fn take_events() -> Vec<para::Event> {
-	use para::{Event, Runtime};
+	use para::Runtime;
 
 	let evt = frame_system::Pallet::<Runtime>::events()
 		.into_iter()
@@ -139,7 +134,7 @@ pub fn take_events() -> Vec<para::Event> {
 }
 
 pub fn para_last_event() -> para::Event {
-	use para::{Event, Runtime};
+	use para::Runtime;
 
 	frame_system::Pallet::<Runtime>::events()
 		.pop()

@@ -91,7 +91,7 @@ pub mod pallet {
 		AssetNotFound,
 		LocationInvertFailed,
 		IllegalDestination,
-		UnsupportedDestination,
+		CannotDepositAsset,
 	}
 
 	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -340,7 +340,7 @@ pub mod pallet {
 			// Check if we can deposit aset into dest.
 			ensure!(
 				Self::can_deposit_asset(asset.clone(), dest.clone()),
-				Error::<T>::UnsupportedDestination
+				Error::<T>::CannotDepositAsset
 			);
 
 			let origin_location = Junction::AccountId32 {
