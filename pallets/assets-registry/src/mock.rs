@@ -10,7 +10,7 @@ use frame_system::{self as system};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{BlakeTwo256, IdentityLookup},
+	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
 	AccountId32, Perbill,
 };
 
@@ -120,6 +120,7 @@ impl pallet_assets::Config for Test {
 impl assets_registry::Config for Test {
 	type Event = Event;
 	type RegistryCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type Currency = Balances;
 	type MinBalance = ExistentialDeposit;
 }
 
@@ -147,8 +148,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		&mut t,
 	)
 	.unwrap();
+	let assets_registry_account = assets_registry::ASSETS_REGISTRY_ID.into_account();
 	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![(ALICE, ENDOWED_BALANCE)],
+		balances: vec![
+			(ALICE, ENDOWED_BALANCE),
+			(assets_registry_account, ENDOWED_BALANCE),
+		],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

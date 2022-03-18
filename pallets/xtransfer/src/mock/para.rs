@@ -369,6 +369,7 @@ impl xcm_transfer::Config for Runtime {
 impl assets_registry::Config for Runtime {
 	type Event = Event;
 	type RegistryCommitteeOrigin = EnsureRoot<AccountId>;
+	type Currency = Balances;
 	type MinBalance = AssetDeposit;
 }
 

@@ -1677,7 +1677,6 @@ pub mod pallet {
 						symbol: b"BA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				));
 
 				// Setup solo chain for this asset
@@ -1740,7 +1739,6 @@ pub mod pallet {
 						symbol: b"BA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				));
 
 				// Setup solo chain for this asset
@@ -1753,7 +1751,12 @@ pub mod pallet {
 				));
 
 				// Mint some token to ALICE
-				assert_ok!(Assets::mint(Origin::signed(ALICE), 0, ALICE, amount * 2));
+				assert_ok!(Assets::mint(
+					Origin::signed(ASSETS_REGISTRY_ID.into_account()),
+					0,
+					ALICE,
+					amount * 2
+				));
 				assert_eq!(Assets::balance(0, &ALICE), amount * 2);
 
 				assert_ok!(ChainBridge::transfer_fungible(
@@ -1814,7 +1817,6 @@ pub mod pallet {
 						symbol: b"BA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				));
 
 				// Setup solo chain for this asset
@@ -1827,7 +1829,12 @@ pub mod pallet {
 				));
 
 				// Mint some token to ALICE
-				assert_ok!(Assets::mint(Origin::signed(ALICE), 0, ALICE, amount * 2));
+				assert_ok!(Assets::mint(
+					Origin::signed(ASSETS_REGISTRY_ID.into_account()),
+					0,
+					ALICE,
+					amount * 2
+				));
 				assert_eq!(Assets::balance(0, &ALICE), amount * 2);
 
 				assert_ok!(ChainBridge::transfer_fungible(
@@ -2029,7 +2036,6 @@ pub mod pallet {
 						symbol: b"BA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				));
 
 				// Setup solo chain for this asset
@@ -2116,7 +2122,6 @@ pub mod pallet {
 						symbol: b"PA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				));
 
 				// Setup solo chain for this asset
@@ -2132,7 +2137,7 @@ pub mod pallet {
 
 				// Mint some token to reserve account, simulate the reserve pool
 				assert_ok!(Assets::mint(
-					Origin::signed(ALICE),
+					Origin::signed(ASSETS_REGISTRY_ID.into_account()),
 					0,
 					src_reserve_location.clone().into_account().into(),
 					amount * 2
@@ -2337,7 +2342,6 @@ pub mod pallet {
 						symbol: b"BA".to_vec(),
 						decimals: 18,
 					},
-					ALICE,
 				));
 				// Register asset, decimals: 12, rate with pha: 1 : 2
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -2349,7 +2353,6 @@ pub mod pallet {
 						symbol: b"ABA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				));
 
 				// Register asset, decimals: 12, not set as fee payment
@@ -2362,7 +2365,6 @@ pub mod pallet {
 						symbol: b"TA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				));
 
 				let asset0: MultiAsset = (
