@@ -14,7 +14,7 @@ use crate::bridge_transfer::GetBridgeFee;
 
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
-use sp_runtime::DispatchError;
+use sp_runtime::{traits::AccountIdConversion, DispatchError};
 use xcm::latest::prelude::*;
 
 const TEST_THRESHOLD: u32 = 2;
@@ -265,7 +265,7 @@ fn transfer_assets_to_nonreserve() {
 
 		// Mint some token to ALICE
 		assert_ok!(Assets::mint(
-			Origin::signed(Bridge::account_id()),
+			Origin::signed(crate::pallet_assets_wrapper::ASSETS_REGISTRY_ID.into_account()),
 			0,
 			ALICE,
 			amount * 2
@@ -334,7 +334,7 @@ fn transfer_assets_to_reserve() {
 
 		// Mint some token to ALICE
 		assert_ok!(Assets::mint(
-			Origin::signed(Bridge::account_id()),
+			Origin::signed(crate::pallet_assets_wrapper::ASSETS_REGISTRY_ID.into_account()),
 			0,
 			ALICE,
 			amount * 2
@@ -595,7 +595,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 
 		// Mint some token to reserve account, simulate the reserve pool
 		assert_ok!(Assets::mint(
-			Origin::signed(Bridge::account_id()),
+			Origin::signed(crate::pallet_assets_wrapper::ASSETS_REGISTRY_ID.into_account()),
 			0,
 			src_reserve_location.clone().into_account().into(),
 			amount * 2

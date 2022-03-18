@@ -11,7 +11,6 @@ pub mod pallet {
 		traits::{Currency, StorageVersion},
 		transactional,
 		weights::Weight,
-		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
@@ -162,7 +161,7 @@ pub mod pallet {
 				fee: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
 				origin: MultiLocation::new(1, X1(Parachain(1u32))),
 				dest_location: MultiLocation::new(1, X1(Parachain(2u32))),
-				recipient: PalletId(*b"phala/bg").into_account(),
+				recipient: pallet_assets_wrapper::ASSETS_REGISTRY_ID.into_account(),
 				dest_weight: 0,
 			};
 			let mut msg = nonreserve_xcm_transfer_session

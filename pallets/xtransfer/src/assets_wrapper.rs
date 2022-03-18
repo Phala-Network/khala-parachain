@@ -17,7 +17,7 @@ pub mod pallet {
 	use sp_std::{boxed::Box, convert::From, vec, vec::Vec};
 	use xcm::latest::{prelude::*, MultiLocation};
 
-	const BRIDGE_ID: PalletId = PalletId(*b"phala/bg");
+	pub const ASSETS_REGISTRY_ID: PalletId = PalletId(*b"phala/ar");
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub struct XTransferAsset(pub MultiLocation);
@@ -253,7 +253,7 @@ pub mod pallet {
 			// Set bridge account as asset's owner/issuer/admin/freezer
 			<pallet_assets::pallet::Pallet<T> as FungibleCerate<T::AccountId>>::create(
 				asset_id,
-				BRIDGE_ID.into_account(),
+				ASSETS_REGISTRY_ID.into_account(),
 				true,
 				T::MinBalance::get(),
 			)?;
@@ -276,7 +276,7 @@ pub mod pallet {
 
 			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::set(
 				asset_id,
-				&BRIDGE_ID.into_account(),
+				&ASSETS_REGISTRY_ID.into_account(),
 				properties.name,
 				properties.symbol,
 				properties.decimals,
@@ -337,7 +337,7 @@ pub mod pallet {
 			RegistryInfoByIds::<T>::insert(&asset_id, &info);
 			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::set(
 				asset_id,
-				&BRIDGE_ID.into_account(),
+				&ASSETS_REGISTRY_ID.into_account(),
 				properties.name,
 				properties.symbol,
 				properties.decimals,
