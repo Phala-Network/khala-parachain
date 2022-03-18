@@ -1113,6 +1113,7 @@ impl pallet_xcm_transfer::Config for Runtime {
 impl pallet_assets_wrapper::Config for Runtime {
     type Event = Event;
     type AssetsCommitteeOrigin = EnsureRootOrHalfCouncil;
+    type Currency = Balances;
     type MinBalance = ExistentialDeposit;
 }
 

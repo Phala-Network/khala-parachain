@@ -191,6 +191,7 @@ impl pallet_assets::Config for Test {
 impl pallet_assets_wrapper::Config for Test {
 	type Event = Event;
 	type AssetsCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type Currency = Balances;
 	type MinBalance = ExistentialDeposit;
 }
 
@@ -211,6 +212,7 @@ pub const ENDOWED_BALANCE: Balance = 100_000_000;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let bridge_account = PalletId(*b"phala/bg").into_account();
+	let assets_registry_account = pallet_assets_wrapper::ASSETS_REGISTRY_ID.into_account();
 	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<Test>()
 		.unwrap();
@@ -225,6 +227,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
 			(bridge_account, ENDOWED_BALANCE),
+			(assets_registry_account, ENDOWED_BALANCE),
 			(RELAYER_A, ENDOWED_BALANCE),
 			(ALICE, ENDOWED_BALANCE),
 		],

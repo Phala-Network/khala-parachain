@@ -5,13 +5,22 @@ pub use self::pallet::*;
 pub mod pallet {
 	use codec::{Decode, Encode};
 	use frame_support::{
-		dispatch::DispatchResult, pallet_prelude::*, traits::StorageVersion, transactional,
+		dispatch::DispatchResult,
+		pallet_prelude::*,
+		traits::tokens::fungibles::{
+			metadata::Mutate as FungibleMutate, Create as FungibleCerate,
+			Transfer as FungibleTransfer,
+		},
+		traits::{Currency, ExistenceRequirement, StorageVersion},
+		transactional, PalletId,
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
-	use sp_runtime::traits::StaticLookup;
+	use sp_runtime::traits::AccountIdConversion;
 	use sp_std::{boxed::Box, convert::From, vec, vec::Vec};
 	use xcm::latest::{prelude::*, MultiLocation};
+
+	pub const ASSETS_REGISTRY_ID: PalletId = PalletId(*b"phala/ar");
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub struct XTransferAsset(pub MultiLocation);
@@ -155,11 +164,15 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + pallet_assets::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type AssetsCommitteeOrigin: EnsureOrigin<Self::Origin>;
+		type Currency: Currency<Self::AccountId>;
 		#[pallet::constant]
 		type MinBalance: Get<<Self as pallet_assets::Config>::Balance>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+
+	type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	/// Mapping asset to corresponding asset id
 	#[pallet::storage]
@@ -217,12 +230,15 @@ pub mod pallet {
 		AssetNotRegistered,
 		BridgeAlreadyEnabled,
 		BridgeAlreadyDisabled,
+		FailedToTransactAsset,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
 		T: pallet_assets::Config,
+		<T as pallet_assets::Config>::Balance: From<u128>,
+		BalanceOf<T>: From<u128>,
 	{
 		#[pallet::weight(195_000_000)]
 		#[transactional]
@@ -231,7 +247,6 @@ pub mod pallet {
 			asset: XTransferAsset,
 			asset_id: T::AssetId,
 			properties: AssetProperties,
-			owner: <T::Lookup as StaticLookup>::Source,
 		) -> DispatchResult {
 			T::AssetsCommitteeOrigin::ensure_origin(origin.clone())?;
 			// Ensure location has not been registered
@@ -244,10 +259,11 @@ pub mod pallet {
 				AssetByIds::<T>::get(&asset_id) == None,
 				Error::<T>::AssetAlreadyExist
 			);
-			pallet_assets::pallet::Pallet::<T>::force_create(
-				origin.clone(),
+
+			// Set bridge account as asset's owner/issuer/admin/freezer
+			<pallet_assets::pallet::Pallet<T> as FungibleCerate<T::AccountId>>::create(
 				asset_id,
-				owner,
+				ASSETS_REGISTRY_ID.into_account(),
 				true,
 				T::MinBalance::get(),
 			)?;
@@ -267,13 +283,13 @@ pub mod pallet {
 					properties: properties.clone(),
 				},
 			);
-			pallet_assets::pallet::Pallet::<T>::force_set_metadata(
-				origin,
+
+			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::set(
 				asset_id,
+				&ASSETS_REGISTRY_ID.into_account(),
 				properties.name,
 				properties.symbol,
 				properties.decimals,
-				false,
 			)?;
 
 			Self::deposit_event(Event::AssetRegistered { asset_id, asset });
@@ -329,13 +345,12 @@ pub mod pallet {
 				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
 			info.properties = properties.clone();
 			RegistryInfoByIds::<T>::insert(&asset_id, &info);
-			pallet_assets::pallet::Pallet::<T>::force_set_metadata(
-				origin,
+			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::set(
 				asset_id,
+				&ASSETS_REGISTRY_ID.into_account(),
 				properties.name,
 				properties.symbol,
 				properties.decimals,
-				false,
 			)?;
 
 			Ok(())
@@ -428,6 +443,38 @@ pub mod pallet {
 				chain_id,
 				resource_id,
 			});
+			Ok(())
+		}
+
+		/// Force withdraw some amount of assets from ASSETS_REGISTRY_ID, if the given asset_id is None,
+		/// would performance withdraw PHA from this account
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_withdraw_fund(
+			origin: OriginFor<T>,
+			asset_id: Option<T::AssetId>,
+			recipient: T::AccountId,
+			amount: u128,
+		) -> DispatchResult {
+			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
+			let fund_account = ASSETS_REGISTRY_ID.into_account();
+			if let Some(asset_id) = asset_id {
+				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
+					asset_id,
+					&fund_account,
+					&recipient,
+					amount.into(),
+					false,
+				)
+				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
+			} else {
+				<T as Config>::Currency::transfer(
+					&fund_account,
+					&recipient,
+					amount.into(),
+					ExistenceRequirement::AllowDeath,
+				)?;
+			}
 			Ok(())
 		}
 	}

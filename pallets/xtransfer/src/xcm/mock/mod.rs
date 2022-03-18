@@ -1,8 +1,9 @@
 #![cfg(test)]
 
-use frame_support::traits::GenesisBuild;
+use crate::pallet_assets_wrapper::ASSETS_REGISTRY_ID;
+use frame_support::{traits::GenesisBuild, PalletId};
 use sp_io::TestExternalities;
-use sp_runtime::AccountId32;
+use sp_runtime::{traits::AccountIdConversion, AccountId32};
 
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
@@ -79,8 +80,15 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 	)
 	.unwrap();
 
+	let bridge_account = PalletId(*b"phala/bg").into_account();
+	let assets_registry_account = ASSETS_REGISTRY_ID.into_account();
 	pallet_balances::GenesisConfig::<Runtime> {
-		balances: vec![(ALICE, 1_000), (BOB, 1_000)],
+		balances: vec![
+			(ALICE, 1_000),
+			(BOB, 1_000),
+			(bridge_account, 1_000),
+			(assets_registry_account, 1_000),
+		],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
