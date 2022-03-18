@@ -72,6 +72,7 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 	use para::{Runtime, System};
 
 	let bridge_account = PalletId(*b"phala/bg").into_account();
+	let assets_registry_account = assets_registry::ASSETS_REGISTRY_ID.into_account();
 	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<Runtime>()
 		.unwrap();
@@ -90,6 +91,7 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 	pallet_balances::GenesisConfig::<Runtime> {
 		balances: vec![
 			(bridge_account, ENDOWED_BALANCE),
+			(assets_registry_account, ENDOWED_BALANCE),
 			(RELAYER_A, ENDOWED_BALANCE),
 			(ALICE, ENDOWED_BALANCE),
 			(BOB, ENDOWED_BALANCE),
