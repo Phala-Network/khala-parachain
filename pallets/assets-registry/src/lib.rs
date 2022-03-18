@@ -24,10 +24,12 @@ pub mod pallet {
 	use sp_std::{boxed::Box, convert::From, vec, vec::Vec};
 	use xcm::latest::{prelude::*, MultiLocation};
 
-	// Const used to indicate chainbridge path. str "cb"
+	/// Const used to indicate chainbridge path. str "cb"
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
-	// const used to indicate celerbridge path. str "cr"
+	/// const used to indicate celerbridge path. str "cr"
 	pub const CR_PATH_KEY: &[u8] = &[0x63, 0x72];
+	/// Account that would be reserved when register an asset
+	pub const ASSETS_REGISTRY_ID: PalletId = PalletId(*b"phala/ar");
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub enum XBridgeConfig {
@@ -165,12 +167,16 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + pallet_assets::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type RegistryCommitteeOrigin: EnsureOrigin<Self::Origin>;
+		type Currency: Currency<Self::AccountId>;
 		#[pallet::constant]
 		type MinBalance: Get<<Self as pallet_assets::Config>::Balance>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 	const LOG_TARGET: &str = "runtime::asset-registry";
+
+	type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	/// Mapping fungible asset location to corresponding asset id
 	#[pallet::storage]
@@ -233,6 +239,38 @@ pub mod pallet {
 		<T as pallet_assets::Config>::Balance: From<u128>,
 		BalanceOf<T>: From<u128>,
 	{
+		/// Force withdraw some amount of assets from ASSETS_REGISTRY_ID, if the given asset_id is None,
+		/// would performance withdraw PHA from this account
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_withdraw_fund(
+			origin: OriginFor<T>,
+			asset_id: Option<T::AssetId>,
+			recipient: T::AccountId,
+			amount: u128,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
+			let fund_account = ASSETS_REGISTRY_ID.into_account();
+			if asset_id.is_some() {
+				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
+					asset_id.unwrap(),
+					&fund_account,
+					&recipient,
+					amount.into(),
+					true,
+				)
+				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
+			} else {
+				<T as Config>::Currency::transfer(
+					&fund_account,
+					&recipient,
+					amount.into(),
+					ExistenceRequirement::KeepAlive,
+				)?;
+			}
+			Ok(())
+		}
+
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_register_asset(
@@ -252,7 +290,6 @@ pub mod pallet {
 				RegistryInfoByIds::<T>::get(&asset_id) == None,
 				Error::<T>::AssetAlreadyExist
 			);
-
 			// Set bridge account as asset's owner/issuer/admin/freezer
 			<pallet_assets::pallet::Pallet<T> as FungibleCerate<T::AccountId>>::create(
 				asset_id,
@@ -274,7 +311,10 @@ pub mod pallet {
 					properties: properties.clone(),
 				},
 			);
+<<<<<<< HEAD
 
+=======
+>>>>>>> change way of asset registration
 			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::set(
 				asset_id,
 				&ASSETS_REGISTRY_ID.into_account(),
@@ -493,9 +533,78 @@ pub mod pallet {
 	#[cfg(test)]
 	mod tests {
 		use crate as assets_registry;
-		use assets_registry::{mock::*, AssetProperties, GetAssetRegistryInfo};
+		use assets_registry::{
+			mock::*, AccountId32Conversion, AssetProperties, GetAssetRegistryInfo,
+			ASSETS_REGISTRY_ID,
+		};
 		use frame_support::{assert_err, assert_noop, assert_ok};
-		use sp_runtime::DispatchError;
+		use sp_runtime::{traits::AccountIdConversion, AccountId32, DispatchError};
+
+		#[test]
+		fn test_withdraw_fund_of_pha() {
+			let recipient: AccountId32 =
+				MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec())))
+					.into_account()
+					.into();
+			new_test_ext().execute_with(|| {
+				assert_eq!(
+					Balances::free_balance(&ASSETS_REGISTRY_ID.into_account()),
+					ENDOWED_BALANCE
+				);
+				assert_ok!(AssetsRegistry::force_withdraw_fund(
+					Origin::root(),
+					None,
+					recipient.clone(),
+					10,
+				));
+				assert_eq!(
+					Balances::free_balance(&ASSETS_REGISTRY_ID.into_account()),
+					ENDOWED_BALANCE - 10
+				);
+				assert_eq!(Balances::free_balance(&recipient), 10);
+			});
+		}
+
+		#[test]
+		fn test_withdraw_fund_of_asset() {
+			let recipient: AccountId32 =
+				MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec())))
+					.into_account()
+					.into();
+			let fund_account: <Test as frame_system::Config>::AccountId =
+				ASSETS_REGISTRY_ID.into_account();
+
+			new_test_ext().execute_with(|| {
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					MultiLocation::new(1, Here).into(),
+					0,
+					assets_registry::AssetProperties {
+						name: b"Kusama".to_vec(),
+						symbol: b"KSM".to_vec(),
+						decimals: 12,
+					},
+				));
+
+				// Only ASSETS_REGISTRY_ID has mint permission
+				assert_ok!(Assets::mint(
+					Origin::signed(fund_account.clone()),
+					0,
+					fund_account.clone().into(),
+					1_000
+				));
+				assert_eq!(Assets::balance(0u32.into(), &fund_account), 1_000);
+
+				assert_ok!(AssetsRegistry::force_withdraw_fund(
+					Origin::root(),
+					Some(0),
+					recipient.clone(),
+					10,
+				));
+				assert_eq!(Assets::balance(0u32.into(), &fund_account), 1_000 - 10);
+				assert_eq!(Assets::balance(0u32.into(), &recipient), 10);
+			});
+		}
 
 		#[test]
 		fn test_asset_register() {
@@ -517,7 +626,6 @@ pub mod pallet {
 							symbol: b"PAA".to_vec(),
 							decimals: 12,
 						},
-						ALICE,
 					),
 					DispatchError::BadOrigin
 				);
@@ -531,7 +639,6 @@ pub mod pallet {
 						symbol: b"PAA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				));
 
 				assert_events(vec![Event::AssetsRegistry(
@@ -567,7 +674,6 @@ pub mod pallet {
 							symbol: b"PAA".to_vec(),
 							decimals: 12,
 						},
-						ALICE,
 					),
 					assets_registry::Error::<Test>::AssetAlreadyExist
 				);
@@ -588,7 +694,6 @@ pub mod pallet {
 							symbol: b"PBA".to_vec(),
 							decimals: 12,
 						},
-						ALICE,
 					),
 					assets_registry::Error::<Test>::AssetAlreadyExist
 				);
@@ -607,7 +712,6 @@ pub mod pallet {
 						symbol: b"PBA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				));
 				assert_eq!(AssetsRegistry::id(&para_b_location).unwrap(), 1u32);
 

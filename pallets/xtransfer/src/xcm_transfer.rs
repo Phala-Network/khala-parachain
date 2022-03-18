@@ -464,7 +464,6 @@ pub mod pallet {
 						symbol: b"PAA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				));
 			});
 
@@ -515,7 +514,6 @@ pub mod pallet {
 						symbol: b"PAA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				));
 			});
 
