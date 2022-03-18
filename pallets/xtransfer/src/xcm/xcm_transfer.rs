@@ -517,7 +517,6 @@ mod test {
 						symbol: b"PAA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				),
 				DispatchError::BadOrigin
 			);
@@ -531,7 +530,6 @@ mod test {
 					symbol: b"PAA".to_vec(),
 					decimals: 12,
 				},
-				ALICE,
 			));
 
 			let ev: Vec<para::Event> = para_take_events();
@@ -574,7 +572,6 @@ mod test {
 						symbol: b"PAA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				),
 				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
 			);
@@ -597,7 +594,6 @@ mod test {
 						symbol: b"PBA".to_vec(),
 						decimals: 12,
 					},
-					ALICE,
 				),
 				pallet_assets_wrapper::Error::<para::Runtime>::AssetAlreadyExist
 			);
@@ -618,7 +614,6 @@ mod test {
 					symbol: b"PBA".to_vec(),
 					decimals: 12,
 				},
-				ALICE,
 			));
 			assert_eq!(ParaAssetsWrapper::id(&para_b_asset).unwrap(), 1u32);
 			assert_eq!(
@@ -658,7 +653,6 @@ mod test {
 					symbol: b"PAA".to_vec(),
 					decimals: 12,
 				},
-				ALICE,
 			));
 		});
 
@@ -711,7 +705,6 @@ mod test {
 					symbol: b"PAA".to_vec(),
 					decimals: 12,
 				},
-				ALICE,
 			));
 		});
 

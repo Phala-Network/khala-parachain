@@ -52,7 +52,6 @@ fn register_asset() {
 					symbol: b"BA".to_vec(),
 					decimals: 12,
 				},
-				ALICE,
 			),
 			DispatchError::BadOrigin
 		);
@@ -66,7 +65,6 @@ fn register_asset() {
 				symbol: b"BA".to_vec(),
 				decimals: 12,
 			},
-			ALICE,
 		));
 
 		// Same location register again, should be failed
@@ -80,7 +78,6 @@ fn register_asset() {
 					symbol: b"BA".to_vec(),
 					decimals: 12,
 				},
-				ALICE,
 			),
 			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
 		);
@@ -106,7 +103,6 @@ fn register_asset() {
 					symbol: b"BA".to_vec(),
 					decimals: 12,
 				},
-				ALICE,
 			),
 			crate::pallet_assets_wrapper::Error::<Test>::AssetAlreadyExist
 		);
@@ -121,7 +117,6 @@ fn register_asset() {
 				symbol: b"ABA".to_vec(),
 				decimals: 12,
 			},
-			ALICE,
 		));
 		assert_eq!(
 			AssetsWrapper::id(&another_bridge_asset_location.clone().into()).unwrap(),
@@ -203,7 +198,6 @@ fn transfer_assets_insufficient_balance() {
 				symbol: b"BA".to_vec(),
 				decimals: 12,
 			},
-			ALICE,
 		));
 
 		// Setup solo chain for this asset
@@ -258,7 +252,6 @@ fn transfer_assets_to_nonreserve() {
 				symbol: b"BA".to_vec(),
 				decimals: 12,
 			},
-			ALICE,
 		));
 
 		// Setup solo chain for this asset
@@ -271,7 +264,12 @@ fn transfer_assets_to_nonreserve() {
 		));
 
 		// Mint some token to ALICE
-		assert_ok!(Assets::mint(Origin::signed(ALICE), 0, ALICE, amount * 2));
+		assert_ok!(Assets::mint(
+			Origin::signed(Bridge::account_id()),
+			0,
+			ALICE,
+			amount * 2
+		));
 		assert_eq!(Assets::balance(0, &ALICE), amount * 2);
 
 		assert_ok!(BridgeTransfer::transfer_assets(
@@ -323,7 +321,6 @@ fn transfer_assets_to_reserve() {
 				symbol: b"BA".to_vec(),
 				decimals: 12,
 			},
-			ALICE,
 		));
 
 		// Setup solo chain for this asset
@@ -336,7 +333,12 @@ fn transfer_assets_to_reserve() {
 		));
 
 		// Mint some token to ALICE
-		assert_ok!(Assets::mint(Origin::signed(ALICE), 0, ALICE, amount * 2));
+		assert_ok!(Assets::mint(
+			Origin::signed(Bridge::account_id()),
+			0,
+			ALICE,
+			amount * 2
+		));
 		assert_eq!(Assets::balance(0, &ALICE), amount * 2);
 
 		assert_ok!(BridgeTransfer::transfer_assets(
@@ -496,7 +498,6 @@ fn simulate_transfer_solochainassets_from_reserve_to_local() {
 				symbol: b"BA".to_vec(),
 				decimals: 12,
 			},
-			ALICE,
 		));
 
 		// Setup solo chain for this asset
@@ -579,7 +580,6 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 				symbol: b"PA".to_vec(),
 				decimals: 12,
 			},
-			ALICE,
 		));
 
 		// Setup solo chain for this asset
@@ -595,7 +595,7 @@ fn simulate_transfer_solochainassets_from_nonreserve_to_local() {
 
 		// Mint some token to reserve account, simulate the reserve pool
 		assert_ok!(Assets::mint(
-			Origin::signed(ALICE),
+			Origin::signed(Bridge::account_id()),
 			0,
 			src_reserve_location.clone().into_account().into(),
 			amount * 2
@@ -770,7 +770,6 @@ fn test_get_fee() {
 				symbol: b"BA".to_vec(),
 				decimals: 18,
 			},
-			ALICE,
 		));
 		// Register asset, decimals: 12, rate with pha: 1 : 2
 		assert_ok!(AssetsWrapper::force_register_asset(
@@ -782,7 +781,6 @@ fn test_get_fee() {
 				symbol: b"ABA".to_vec(),
 				decimals: 12,
 			},
-			ALICE,
 		));
 
 		// Register asset, decimals: 12, not set as fee payment
@@ -795,7 +793,6 @@ fn test_get_fee() {
 				symbol: b"TA".to_vec(),
 				decimals: 12,
 			},
-			ALICE,
 		));
 
 		let asset0: MultiAsset = (
