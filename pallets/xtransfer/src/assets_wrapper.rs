@@ -7,8 +7,11 @@ pub mod pallet {
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
-		traits::tokens::fungibles::{metadata::Mutate as FungibleMutate, Create as FungibleCerate},
-		traits::StorageVersion,
+		traits::tokens::fungibles::{
+			metadata::Mutate as FungibleMutate, Create as FungibleCerate,
+			Transfer as FungibleTransfer,
+		},
+		traits::{Currency, ExistenceRequirement, StorageVersion},
 		transactional, PalletId,
 	};
 	use frame_system::pallet_prelude::*;
@@ -161,11 +164,15 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + pallet_assets::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type AssetsCommitteeOrigin: EnsureOrigin<Self::Origin>;
+		type Currency: Currency<Self::AccountId>;
 		#[pallet::constant]
 		type MinBalance: Get<<Self as pallet_assets::Config>::Balance>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+
+	type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	/// Mapping asset to corresponding asset id
 	#[pallet::storage]
@@ -223,12 +230,15 @@ pub mod pallet {
 		AssetNotRegistered,
 		BridgeAlreadyEnabled,
 		BridgeAlreadyDisabled,
+		FailedToTransactAsset,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
 		T: pallet_assets::Config,
+		<T as pallet_assets::Config>::Balance: From<u128>,
+		BalanceOf<T>: From<u128>,
 	{
 		#[pallet::weight(195_000_000)]
 		#[transactional]
@@ -433,6 +443,38 @@ pub mod pallet {
 				chain_id,
 				resource_id,
 			});
+			Ok(())
+		}
+
+		/// Force withdraw some amount of assets from ASSETS_REGISTRY_ID, if the given asset_id is None,
+		/// would performance withdraw PHA from this account
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_withdraw_fund(
+			origin: OriginFor<T>,
+			asset_id: Option<T::AssetId>,
+			recipient: T::AccountId,
+			amount: u128,
+		) -> DispatchResult {
+			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
+			let fund_account = ASSETS_REGISTRY_ID.into_account();
+			if asset_id.is_some() {
+				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
+					asset_id.unwrap(),
+					&fund_account,
+					&recipient,
+					amount.into(),
+					true,
+				)
+				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
+			} else {
+				<T as Config>::Currency::transfer(
+					&fund_account,
+					&recipient,
+					amount.into(),
+					ExistenceRequirement::KeepAlive,
+				)?;
+			}
 			Ok(())
 		}
 	}

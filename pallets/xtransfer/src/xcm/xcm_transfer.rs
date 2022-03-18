@@ -477,15 +477,16 @@ mod test {
 	use crate::xcm::mock::*;
 	use frame_support::{assert_err, assert_noop, assert_ok};
 	use polkadot_parachain::primitives::Sibling;
-	use sp_runtime::traits::AccountIdConversion;
-	use sp_runtime::{AccountId32, DispatchError};
+	use sp_runtime::{traits::AccountIdConversion, AccountId32, DispatchError};
 	use sp_std::convert::TryInto;
 
 	use xcm::latest::{prelude::*, MultiLocation};
 	use xcm_simulator::TestExt;
 
 	use crate::pallet_assets_wrapper;
-	use crate::pallet_assets_wrapper::GetAssetRegistryInfo;
+	use crate::pallet_assets_wrapper::{
+		AccountId32Conversion, GetAssetRegistryInfo, ASSETS_REGISTRY_ID,
+	};
 	use assert_matches::assert_matches;
 
 	fn sibling_account(para_id: u32) -> AccountId32 {
@@ -627,6 +628,74 @@ mod test {
 			));
 			assert_eq!(ParaAssetsWrapper::id(&para_b_asset), None);
 			assert_eq!(ParaAssetsWrapper::asset(&1u32.into()), None);
+		});
+	}
+
+	#[test]
+	fn test_withdraw_fund_of_pha() {
+		TestNet::reset();
+
+		let recipient: AccountId32 = MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec())))
+			.into_account()
+			.into();
+		ParaA::execute_with(|| {
+			assert_eq!(
+				ParaBalances::free_balance(&ASSETS_REGISTRY_ID.into_account()),
+				1_000
+			);
+			assert_ok!(ParaAssetsWrapper::force_withdraw_fund(
+				para::Origin::root(),
+				None,
+				recipient.clone(),
+				10,
+			));
+			assert_eq!(
+				ParaBalances::free_balance(&ASSETS_REGISTRY_ID.into_account()),
+				1_000 - 10
+			);
+			assert_eq!(ParaBalances::free_balance(&recipient), 10);
+		});
+	}
+
+	#[test]
+	fn test_withdraw_fund_of_asset() {
+		TestNet::reset();
+
+		let recipient: AccountId32 = MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec())))
+			.into_account()
+			.into();
+		let fund_account: <para::Runtime as frame_system::Config>::AccountId =
+			ASSETS_REGISTRY_ID.into_account();
+
+		ParaA::execute_with(|| {
+			assert_ok!(ParaAssetsWrapper::force_register_asset(
+				para::Origin::root(),
+				MultiLocation::new(1, Here).into(),
+				0,
+				pallet_assets_wrapper::AssetProperties {
+					name: b"Kusama".to_vec(),
+					symbol: b"KSM".to_vec(),
+					decimals: 12,
+				},
+			));
+
+			// Only ASSETS_REGISTRY_ID has mint permission
+			assert_ok!(ParaAssets::mint(
+				para::Origin::signed(fund_account.clone()),
+				0,
+				fund_account.clone().into(),
+				1_000
+			));
+			assert_eq!(ParaAssets::balance(0u32.into(), &fund_account), 1_000);
+
+			assert_ok!(ParaAssetsWrapper::force_withdraw_fund(
+				para::Origin::root(),
+				Some(0),
+				recipient.clone(),
+				10,
+			));
+			assert_eq!(ParaAssets::balance(0u32.into(), &fund_account), 1_000 - 10);
+			assert_eq!(ParaAssets::balance(0u32.into(), &recipient), 10);
 		});
 	}
 

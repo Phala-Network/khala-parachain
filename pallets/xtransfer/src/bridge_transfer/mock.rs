@@ -191,6 +191,7 @@ impl pallet_assets::Config for Test {
 impl pallet_assets_wrapper::Config for Test {
 	type Event = Event;
 	type AssetsCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type Currency = Balances;
 	type MinBalance = ExistentialDeposit;
 }
 
