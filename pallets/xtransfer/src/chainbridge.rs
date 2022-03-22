@@ -502,7 +502,7 @@ pub mod pallet {
 			);
 
 			// We received asset send from non-reserve chain, which reserved
-			// in the local our other parachains/relaychain. That means we had
+			// in the local or other parachains/relaychain. That means we had
 			// reserved the asset in a reserve account while it was transfered
 			// the the source chain, so here we need withdraw/burn from the reserve
 			// account in advance.
@@ -891,6 +891,9 @@ pub mod pallet {
 		<T as pallet_assets::Config>::Balance: From<u128> + Into<u128>,
 	{
 		fn can_deposit_asset(asset: MultiAsset, dest: MultiLocation) -> bool {
+			// TODO: Will be removed when finish test
+			#[cfg(test)]
+			println!("ChainBridge can_deposit check...");
 			let asset_extract_result = Self::extract_fungible(asset.clone());
 			let dest_extract_result = Self::extract_dest(&dest);
 			if asset_extract_result.is_none() || dest_extract_result.is_none() {
@@ -953,6 +956,9 @@ pub mod pallet {
 				Self::can_deposit_asset(asset.clone(), dest.clone()),
 				Error::<T>::CannotDepositAsset
 			);
+			// TODO: Will be removed when finish test
+			#[cfg(test)]
+			println!("ChainBridge check pass, do fungible transfer...");
 
 			let (asset_location, amount) =
 				Self::extract_fungible(asset.clone()).ok_or(Error::<T>::ExtractAssetFailed)?;
@@ -1102,14 +1108,12 @@ pub mod pallet {
 		use crate::mock::para::Runtime;
 		use crate::mock::para::*;
 		use crate::mock::{
-			para_assert_events, para_expect_event, para_ext, ParaA, TestNet, ALICE,
-			ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C, TEST_THRESHOLD,
+			para_assert_events, para_expect_event, para_ext, ParaA, ParaChainBridge as ChainBridge,
+			TestNet, ALICE, ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C, TEST_THRESHOLD,
 		};
 		use assets_registry::*;
 		use frame_support::{assert_noop, assert_ok};
 		use xcm_simulator::TestExt;
-
-		type ChainBridge = crate::chainbridge::Pallet<Runtime>;
 
 		pub fn new_test_ext_initialized(
 			src_id: BridgeChainId,
