@@ -23,9 +23,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		type XcmBridge: BridgeTransact;
-		type ChainBridge: BridgeTransact;
-		// TODO: CelerBridge
+		type Bridge: BridgeTransact;
 	}
 
 	#[pallet::event]
@@ -101,13 +99,22 @@ pub mod pallet {
 			dest: MultiLocation,
 			dest_weight: Option<Weight>,
 		) -> DispatchResult {
-			Self::do_xcm_transfer(sender.clone(), what.clone(), dest.clone(), dest_weight)
-				.or_else(|_| {
-					// TODO: Will be removed when finish test
-					#[cfg(test)]
-					println!("xcm transfer failed, try chainbridge");
-					Self::do_chainbridge_transfer(sender, what, dest, dest_weight)
-				})?;
+			let bridge = T::Bridge::new();
+			match (&what.fun, &what.id) {
+				// Fungible assets
+				(Fungible(_), Concrete(_)) => {
+					bridge
+						.transfer_fungible(sender.into(), what, dest, dest_weight)
+						.map_err(|_| Error::<T>::TransactFailed)?;
+				}
+				// NonFungible assets
+				(NonFungible(_), Concrete(_)) => {
+					bridge
+						.transfer_nonfungible(sender.into(), what, dest, dest_weight)
+						.map_err(|_| Error::<T>::TransactFailed)?;
+				}
+				_ => return Err(Error::<T>::UnknownAsset.into()),
+			}
 			Ok(())
 		}
 
@@ -117,74 +124,8 @@ pub mod pallet {
 			dest: MultiLocation,
 			dest_weight: Option<Weight>,
 		) -> DispatchResult {
-			Self::do_xcm_transfer_generic(sender.clone(), data.clone(), dest.clone(), dest_weight)
-				.or_else(|_| {
-					Self::do_chainbridge_transfer_generic(sender, data, dest, dest_weight)
-				})?;
-			Ok(())
-		}
-
-		fn do_xcm_transfer(
-			sender: T::AccountId,
-			what: MultiAsset,
-			dest: MultiLocation,
-			dest_weight: Option<Weight>,
-		) -> DispatchResult {
-			match (&what.fun, &what.id) {
-				// Fungible assets
-				(Fungible(_), Concrete(_)) => {
-					T::XcmBridge::transfer_fungible(sender.into(), what, dest, dest_weight)
-						.map_err(|_| Error::<T>::TransactFailed)?;
-				}
-				// NonFungible assets
-				(NonFungible(_), Concrete(_)) => {
-					T::XcmBridge::transfer_nonfungible(sender.into(), what, dest, dest_weight)
-						.map_err(|_| Error::<T>::TransactFailed)?;
-				}
-				_ => return Err(Error::<T>::UnknownAsset.into()),
-			}
-			Ok(())
-		}
-
-		fn do_chainbridge_transfer(
-			sender: T::AccountId,
-			what: MultiAsset,
-			dest: MultiLocation,
-			dest_weight: Option<Weight>,
-		) -> DispatchResult {
-			match (&what.fun, &what.id) {
-				// Fungible assets
-				(Fungible(_), Concrete(_)) => {
-					T::ChainBridge::transfer_fungible(sender.into(), what, dest, dest_weight)
-						.map_err(|_| Error::<T>::TransactFailed)?;
-				}
-				// NonFungible assets
-				(NonFungible(_), Concrete(_)) => {
-					T::ChainBridge::transfer_nonfungible(sender.into(), what, dest, dest_weight)
-						.map_err(|_| Error::<T>::TransactFailed)?;
-				}
-				_ => return Err(Error::<T>::UnknownAsset.into()),
-			}
-			Ok(())
-		}
-
-		fn do_xcm_transfer_generic(
-			sender: T::AccountId,
-			data: Vec<u8>,
-			dest: MultiLocation,
-			dest_weight: Option<Weight>,
-		) -> DispatchResult {
-			T::XcmBridge::transfer_generic(sender.into(), &data, dest, dest_weight)?;
-			Ok(())
-		}
-
-		fn do_chainbridge_transfer_generic(
-			sender: T::AccountId,
-			data: Vec<u8>,
-			dest: MultiLocation,
-			dest_weight: Option<Weight>,
-		) -> DispatchResult {
-			T::ChainBridge::transfer_generic(sender.into(), &data, dest, dest_weight)?;
+			let bridge = T::Bridge::new();
+			bridge.transfer_generic(sender.into(), &data, dest, dest_weight)?;
 			Ok(())
 		}
 	}
@@ -232,8 +173,8 @@ pub mod pallet {
 		use crate::mock::{
 			para, para_expect_event, ParaA, ParaAssets as Assets,
 			ParaAssetsRegistry as AssetsRegistry, ParaB, ParaBalances,
-			ParaChainBridge as ChainBridge, ParaXTransfer as XTransfer,
-			ParaXcmTransfer as XcmTransfer, TestNet, ALICE, BOB, ENDOWED_BALANCE,
+			ParaChainBridge as ChainBridge, ParaXTransfer as XTransfer, TestNet, ALICE, BOB,
+			ENDOWED_BALANCE,
 		};
 		use crate::traits::*;
 		use crate::xtransfer::Error as XTransferError;
@@ -624,8 +565,9 @@ pub mod pallet {
 			});
 
 			ParaA::execute_with(|| {
+				let bridge_impl = crate::xcm_transfer::BridgeTransactImpl::<Runtime>::new();
 				// ParaA send it's own native asset to paraB
-				assert_ok!(XcmTransfer::transfer_fungible(
+				assert_ok!(bridge_impl.transfer_fungible(
 					ALICE.into(),
 					(Concrete(MultiLocation::new(0, Here)), Fungible(10u128)).into(),
 					MultiLocation::new(
