@@ -279,6 +279,9 @@ pub mod pallet {
 		<T as frame_system::Config>::AccountId: From<[u8; 32]> + Into<[u8; 32]>,
 	{
 		fn can_deposit_asset(asset: MultiAsset, dest: MultiLocation) -> bool {
+			// TODO: Will be removed when finish test
+			#[cfg(test)]
+			println!("Xcm can_deposit check...");
 			// Only support transfer to relaychain or parachain
 			let is_para_dest = match (dest.parents, &dest.interior) {
 				(1, X1(AccountId32 { .. })) | (1, X2(Parachain(_), AccountId32 { .. })) => true,
@@ -336,6 +339,9 @@ pub mod pallet {
 				Self::can_deposit_asset(asset.clone(), dest.clone()),
 				Error::<T>::CannotDepositAsset
 			);
+			// TODO: Will be removed when finish test
+			#[cfg(test)]
+			println!("XCM check pass, do fungible transfer...");
 
 			let origin_location = Junction::AccountId32 {
 				network: NetworkId::Any,
