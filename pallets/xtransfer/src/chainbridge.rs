@@ -891,9 +891,6 @@ pub mod pallet {
 		<T as pallet_assets::Config>::Balance: From<u128> + Into<u128>,
 	{
 		fn can_deposit_asset(asset: MultiAsset, dest: MultiLocation) -> bool {
-			// TODO: Will be removed when finish test
-			#[cfg(test)]
-			println!("ChainBridge can_deposit check...");
 			let asset_extract_result = Self::extract_fungible(asset.clone());
 			let dest_extract_result = Self::extract_dest(&dest);
 			if asset_extract_result.is_none() || dest_extract_result.is_none() {
@@ -938,32 +935,35 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> BridgeTransact for Pallet<T>
+	pub struct BridgeTransactImpl<T>(PhantomData<T>);
+	impl<T: Config> BridgeTransact for BridgeTransactImpl<T>
 	where
 		BalanceOf<T>: From<u128> + Into<u128>,
 		<T as frame_system::Config>::AccountId: From<[u8; 32]> + Into<[u8; 32]>,
 		<T as pallet_assets::Config>::Balance: From<u128> + Into<u128>,
 	{
+		fn new() -> Self {
+			Self(PhantomData)
+		}
+
 		/// Initiates a transfer of a fungible asset out of the chain. This should be called by another pallet.
 		fn transfer_fungible(
+			&self,
 			sender: [u8; 32],
 			asset: MultiAsset,
 			dest: MultiLocation,
 			_max_weight: Option<Weight>,
 		) -> DispatchResult {
-			// Check if we can deposit aset into dest.
+			// Check if we can deposit asset into dest.
 			ensure!(
-				Self::can_deposit_asset(asset.clone(), dest.clone()),
+				Pallet::<T>::can_deposit_asset(asset.clone(), dest.clone()),
 				Error::<T>::CannotDepositAsset
 			);
-			// TODO: Will be removed when finish test
-			#[cfg(test)]
-			println!("ChainBridge check pass, do fungible transfer...");
 
-			let (asset_location, amount) =
-				Self::extract_fungible(asset.clone()).ok_or(Error::<T>::ExtractAssetFailed)?;
+			let (asset_location, amount) = Pallet::<T>::extract_fungible(asset.clone())
+				.ok_or(Error::<T>::ExtractAssetFailed)?;
 			let (dest_id, recipient) =
-				Self::extract_dest(&dest).ok_or(Error::<T>::ExtractDestFailed)?;
+				Pallet::<T>::extract_dest(&dest).ok_or(Error::<T>::ExtractDestFailed)?;
 			let resource_id = asset_location.clone().into_rid(dest_id);
 
 			log::trace!(
@@ -974,7 +974,7 @@ pub mod pallet {
 				&dest,
 			);
 
-			let fee = Self::get_fee(
+			let fee = Pallet::<T>::get_fee(
 				dest_id,
 				&(
 					Concrete(asset_location.clone().into()),
@@ -983,7 +983,7 @@ pub mod pallet {
 					.into(),
 			)
 			.ok_or(Error::<T>::CannotPayAsFee)?;
-			Self::check_balance(sender.into(), &asset, amount, fee)?;
+			Pallet::<T>::check_balance(sender.into(), &asset, amount, fee)?;
 
 			// Withdraw `amount + fee` of asset from sender
 			T::FungibleAdapter::withdraw_asset(
@@ -1040,7 +1040,7 @@ pub mod pallet {
 			}
 
 			// Notify relayer the crosschain transfer
-			let nonce = Self::bump_nonce(dest_id);
+			let nonce = Pallet::<T>::bump_nonce(dest_id);
 			BridgeEvents::<T>::append(BridgeEvent::FungibleTransfer(
 				dest_id,
 				nonce,
@@ -1048,7 +1048,7 @@ pub mod pallet {
 				U256::from(amount),
 				recipient.clone(),
 			));
-			Self::deposit_event(Event::FungibleTransfer(
+			Pallet::<T>::deposit_event(Event::FungibleTransfer(
 				dest_id,
 				nonce,
 				resource_id,
@@ -1060,6 +1060,7 @@ pub mod pallet {
 
 		/// Initiates a transfer of a nonfungible asset out of the chain. This should be called by another pallet.
 		fn transfer_nonfungible(
+			&self,
 			_sender: [u8; 32],
 			_asset: MultiAsset,
 			_dest: MultiLocation,
@@ -1070,6 +1071,7 @@ pub mod pallet {
 
 		/// Initiates a transfer of generic data out of the chain. This should be called by another pallet.
 		fn transfer_generic(
+			&self,
 			_sender: [u8; 32],
 			_data: &Vec<u8>,
 			_dest: MultiLocation,
@@ -1103,10 +1105,8 @@ pub mod pallet {
 		use super::*;
 		use crate::chainbridge::Error as ChainbridgeError;
 		use crate::chainbridge::Event as ChainbridgeEvent;
-		use crate::mock::para::Call;
-		use crate::mock::para::Event;
-		use crate::mock::para::Runtime;
 		use crate::mock::para::*;
+		use crate::mock::para::{Call, Event, Runtime};
 		use crate::mock::{
 			para_assert_events, para_expect_event, para_ext, ParaA, ParaChainBridge as ChainBridge,
 			TestNet, ALICE, ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C, TEST_THRESHOLD,
@@ -1256,8 +1256,9 @@ pub mod pallet {
 					ChainbridgeEvent::ChainWhitelisted(chain_id.clone()),
 				)]);
 
+				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
 				assert_noop!(
-					ChainBridge::transfer_fungible(
+					bridge_impl.transfer_fungible(
 						ALICE.into(),
 						(Concrete(MultiLocation::new(0, Here)), Fungible(100u128)).into(),
 						MultiLocation::new(
@@ -1630,8 +1631,9 @@ pub mod pallet {
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
 				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 2, dest_chain));
 
+				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
 				assert_noop!(
-					ChainBridge::transfer_fungible(
+					bridge_impl.transfer_fungible(
 						ALICE.into(),
 						(Concrete(bridge_asset_location), Fungible(amount)).into(),
 						MultiLocation::new(
@@ -1692,9 +1694,10 @@ pub mod pallet {
 					Box::new(Vec::new()),
 				));
 
+				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
 				// After registered, free balance of ALICE is 0
 				assert_noop!(
-					ChainBridge::transfer_fungible(
+					bridge_impl.transfer_fungible(
 						ALICE.into(),
 						(Concrete(bridge_asset_location), Fungible(amount)).into(),
 						MultiLocation::new(
@@ -1763,7 +1766,8 @@ pub mod pallet {
 				));
 				assert_eq!(Assets::balance(0, &ALICE), amount * 2);
 
-				assert_ok!(ChainBridge::transfer_fungible(
+				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
+				assert_ok!(bridge_impl.transfer_fungible(
 					ALICE.into(),
 					(Concrete(bridge_asset_location), Fungible(amount)).into(),
 					MultiLocation::new(
@@ -1841,7 +1845,8 @@ pub mod pallet {
 				));
 				assert_eq!(Assets::balance(0, &ALICE), amount * 2);
 
-				assert_ok!(ChainBridge::transfer_fungible(
+				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
+				assert_ok!(bridge_impl.transfer_fungible(
 					ALICE.into(),
 					(Concrete(bridge_asset_location), Fungible(amount)).into(),
 					MultiLocation::new(
@@ -1882,8 +1887,9 @@ pub mod pallet {
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
 				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 2, dest_chain));
 
+				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
 				assert_noop!(
-					ChainBridge::transfer_fungible(
+					bridge_impl.transfer_fungible(
 						RELAYER_A.into(),
 						(
 							Concrete(MultiLocation::new(0, Here)),
@@ -1903,7 +1909,8 @@ pub mod pallet {
 					ChainbridgeError::<Runtime>::InsufficientBalance
 				);
 
-				assert_ok!(ChainBridge::transfer_fungible(
+				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
+				assert_ok!(bridge_impl.transfer_fungible(
 					RELAYER_A.into(),
 					(Concrete(MultiLocation::new(0, Here)), Fungible(amount)).into(),
 					MultiLocation::new(

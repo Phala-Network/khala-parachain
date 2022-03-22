@@ -396,6 +396,8 @@ impl chainbridge::Config for Runtime {
 
 impl xtransfer::Config for Runtime {
 	type Event = Event;
-	type XcmBridge = XcmTransfer;
-	type ChainBridge = ChainBridge;
+	type Bridge = (
+		xcm_transfer::BridgeTransactImpl<Runtime>,
+		chainbridge::BridgeTransactImpl<Runtime>,
+	);
 }

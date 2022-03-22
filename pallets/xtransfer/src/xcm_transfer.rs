@@ -285,9 +285,6 @@ pub mod pallet {
 		<T as frame_system::Config>::AccountId: From<[u8; 32]> + Into<[u8; 32]>,
 	{
 		fn can_deposit_asset(asset: MultiAsset, dest: MultiLocation) -> bool {
-			// TODO: Will be removed when finish test
-			#[cfg(test)]
-			println!("Xcm can_deposit check...");
 			// Only support transfer to relaychain or parachain
 			let is_para_dest = match (dest.parents, &dest.interior) {
 				(1, X1(AccountId32 { .. })) | (1, X2(Parachain(_), AccountId32 { .. })) => true,
@@ -320,13 +317,18 @@ pub mod pallet {
 			return false;
 		}
 	}
-
-	impl<T: Config> BridgeTransact for Pallet<T>
+	pub struct BridgeTransactImpl<T>(PhantomData<T>);
+	impl<T: Config> BridgeTransact for BridgeTransactImpl<T>
 	where
 		<T as frame_system::Config>::AccountId: From<[u8; 32]> + Into<[u8; 32]>,
 	{
+		fn new() -> Self {
+			Self(PhantomData)
+		}
+
 		/// Initiates a transfer of a fungible asset out of the chain. This should be called by another pallet.
 		fn transfer_fungible(
+			&self,
 			sender: [u8; 32],
 			asset: MultiAsset,
 			dest: MultiLocation,
@@ -340,14 +342,11 @@ pub mod pallet {
 				&dest,
 				max_weight,
 			);
-			// Check if we can deposit aset into dest.
+			// Check if we can deposit asset into dest.
 			ensure!(
-				Self::can_deposit_asset(asset.clone(), dest.clone()),
+				Pallet::<T>::can_deposit_asset(asset.clone(), dest.clone()),
 				Error::<T>::CannotDepositAsset
 			);
-			// TODO: Will be removed when finish test
-			#[cfg(test)]
-			println!("XCM check pass, do fungible transfer...");
 
 			let origin_location = Junction::AccountId32 {
 				network: NetworkId::Any,
@@ -406,7 +405,7 @@ pub mod pallet {
 
 			xcm_session.execute(&mut msg)?;
 
-			Self::deposit_event(Event::AssetTransfered {
+			Pallet::<T>::deposit_event(Event::AssetTransfered {
 				asset,
 				origin: origin_location,
 				dest,
@@ -417,6 +416,7 @@ pub mod pallet {
 
 		/// Initiates a transfer of a nonfungible asset out of the chain. This should be called by another pallet.
 		fn transfer_nonfungible(
+			&self,
 			sender: [u8; 32],
 			asset: MultiAsset,
 			dest: MultiLocation,
@@ -427,6 +427,7 @@ pub mod pallet {
 
 		/// Initiates a transfer of generic data out of the chain. This should be called by another pallet.
 		fn transfer_generic(
+			&self,
 			sender: [u8; 32],
 			data: &Vec<u8>,
 			dest: MultiLocation,
@@ -438,18 +439,19 @@ pub mod pallet {
 
 	#[cfg(test)]
 	mod test {
+		use super::*;
+		use crate::mock::para::Runtime;
 		use crate::mock::{
 			para, ParaA, ParaAssets as Assets, ParaAssetsRegistry as AssetsRegistry, ParaB,
-			ParaBalances, ParaXcmTransfer as XcmTransfer, TestNet, ALICE, BOB, ENDOWED_BALANCE,
+			ParaBalances, TestNet, ALICE, BOB, ENDOWED_BALANCE,
 		};
-		use crate::traits::*;
 		use frame_support::assert_ok;
 		use polkadot_parachain::primitives::Sibling;
 		use sp_runtime::traits::AccountIdConversion;
 		use sp_runtime::AccountId32;
 
 		use assets_registry::AssetProperties;
-		use xcm::latest::{prelude::*, MultiLocation};
+		use xcm::latest::MultiLocation;
 		use xcm_simulator::TestExt;
 
 		fn sibling_account(para_id: u32) -> AccountId32 {
@@ -480,8 +482,9 @@ pub mod pallet {
 			});
 
 			ParaA::execute_with(|| {
+				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
 				// ParaA send it's own native asset to paraB
-				assert_ok!(XcmTransfer::transfer_fungible(
+				assert_ok!(bridge_impl.transfer_fungible(
 					ALICE.into(),
 					(Concrete(MultiLocation::new(0, Here)), Fungible(10u128)).into(),
 					MultiLocation::new(
@@ -530,8 +533,9 @@ pub mod pallet {
 			});
 
 			ParaA::execute_with(|| {
+				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
 				// ParaA send it's own native asset to paraB
-				assert_ok!(XcmTransfer::transfer_fungible(
+				assert_ok!(bridge_impl.transfer_fungible(
 					ALICE.into(),
 					(Concrete(MultiLocation::new(0, Here)), Fungible(10u128)).into(),
 					MultiLocation::new(
@@ -557,8 +561,9 @@ pub mod pallet {
 
 			// Now, let's transfer back to paraA
 			ParaB::execute_with(|| {
+				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
 				// ParaB send back ParaA's native asset
-				assert_ok!(XcmTransfer::transfer_fungible(
+				assert_ok!(bridge_impl.transfer_fungible(
 					BOB.into(),
 					(Concrete(para_a_location.clone()), Fungible(5u128)).into(),
 					MultiLocation::new(
