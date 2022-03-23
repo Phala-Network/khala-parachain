@@ -216,8 +216,6 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Relayer threshold not set
-		ThresholdNotSet,
 		/// Provided chain Id is not valid
 		InvalidChainId,
 		/// Relayer threshold cannot be 0
@@ -226,8 +224,6 @@ pub mod pallet {
 		ChainNotWhitelisted,
 		/// Chain has already been enabled
 		ChainAlreadyWhitelisted,
-		/// Resource ID provided isn't mapped to anything
-		ResourceDoesNotExist,
 		/// Relayer already in set
 		RelayerAlreadyExists,
 		/// Provided accountId is not a relayer
@@ -248,22 +244,29 @@ pub mod pallet {
 		ProposalExpired,
 		/// Got wrong paremeter when update fee
 		InvalidFeeOption,
-		/// Fee config misiing for the specific chain
-		FeeOptionsMissing,
 		/// Unkonwn asset
 		ExtractAssetFailed,
 		/// Unknown destnation
 		ExtractDestFailed,
+		/// Asset can not pay as fee
 		CannotPayAsFee,
+		/// Transfer failed
 		TransactFailed,
+		/// Infusficient balance to withdraw
 		InsufficientBalance,
+		/// Too expensive fee for withdrawn asset 
 		FeeTooExpensive,
+		/// Can not extract asset reserve location
 		CannotDetermineReservedLocation,
+		/// Can not extract dest location
 		DestUnrecognized,
+		/// Assets not registered through pallet-assets or pallet-uniques
 		AssetNotRegistered,
+		/// Convertion failed from resource id
 		AssetConversionFailed,
 		/// Function unimplemented
 		Unimplemented,
+		/// Can not transfer assets to dest due to some reasons
 		CannotDepositAsset,
 	}
 
