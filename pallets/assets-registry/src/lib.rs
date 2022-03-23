@@ -251,9 +251,9 @@ pub mod pallet {
 		) -> DispatchResult {
 			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
 			let fund_account = ASSETS_REGISTRY_ID.into_account();
-			if asset_id.is_some() {
+			if let Some(asset_id) = asset_id {
 				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
-					asset_id.unwrap(),
+					asset_id,
 					&fund_account,
 					&recipient,
 					amount.into(),
