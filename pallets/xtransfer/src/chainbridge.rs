@@ -257,6 +257,7 @@ pub mod pallet {
 		CannotPayAsFee,
 		TransactFailed,
 		InsufficientBalance,
+		FeeTooExpensive,
 		CannotDetermineReservedLocation,
 		DestUnrecognized,
 		AssetNotRegistered,
@@ -739,12 +740,11 @@ pub mod pallet {
 					0,
 					Junctions::X3(GeneralKey(_), GeneralIndex(chain_id), GeneralKey(recipient)),
 				) => {
-					let chain_id: Option<BridgeChainId> = (*chain_id).try_into().ok();
-					if chain_id.is_none() {
-						None
-					} else {
+					if let Some(chain_id) = TryInto::<BridgeChainId>::try_into(*chain_id).ok() {
 						// We don't verify cb_key here because can_deposit_asset did it.
-						Some((chain_id.unwrap(), recipient.to_vec()))
+						Some((chain_id, recipient.to_vec()))
+					} else {
+						None
 					}
 				}
 				_ => None,
@@ -823,44 +823,40 @@ pub mod pallet {
 		}
 
 		fn get_fee(chain_id: BridgeChainId, asset: &MultiAsset) -> Option<u128> {
-			let asset_extract_result = Self::extract_fungible(asset.clone());
-			if asset_extract_result.is_none() {
-				return None;
-			}
-			let (location, amount) = asset_extract_result.unwrap();
-			let decimals = if T::NativeAssetChecker::is_native_asset(asset) {
-				12
+			if let Some((location, amount)) = Self::extract_fungible(asset.clone()) {
+				let decimals = if T::NativeAssetChecker::is_native_asset(asset) {
+					12
+				} else {
+					let id = T::AssetsRegistry::id(&location.clone())?;
+					T::AssetsRegistry::decimals(&id).unwrap_or(12)
+				};
+				if let Some(fee_in_pha) =
+					Self::estimate_fee_in_pha(chain_id, (Self::to_e12(amount, decimals)).into())
+				{
+					if T::NativeAssetChecker::is_native_asset(asset) {
+						Some(fee_in_pha)
+					} else {
+						let fee_prices = T::ExecutionPriceInfo::get();
+						let fee_in_asset = fee_prices
+							.iter()
+							.position(|(fee_asset_id, _)| {
+								fee_asset_id == &Concrete(location.clone())
+							})
+							.map(|idx| {
+								Self::convert_fee_from_pha(fee_in_pha, fee_prices[idx].1, decimals)
+							});
+						fee_in_asset
+					}
+				} else {
+					None
+				}
 			} else {
-				let id = T::AssetsRegistry::id(&location.clone())?;
-				T::AssetsRegistry::decimals(&id).unwrap_or(12)
-			};
-			let fee_in_pha =
-				Self::estimate_fee_in_pha(chain_id, (Self::to_e12(amount, decimals)).into());
-			if fee_in_pha.is_none() {
-				return None;
+				None
 			}
-			if T::NativeAssetChecker::is_native_asset(asset) {
-				fee_in_pha
-			} else {
-				let fee_prices = T::ExecutionPriceInfo::get();
-				let fee_in_asset = fee_prices
-					.iter()
-					.position(|(fee_asset_id, _)| fee_asset_id == &Concrete(location.clone()))
-					.map(|idx| {
-						Self::convert_fee_from_pha(fee_in_pha.unwrap(), fee_prices[idx].1, decimals)
-					});
-				fee_in_asset
-			}
-
 			// TODO: Calculate NonFungible asset fee
 		}
 
-		fn check_balance(
-			sender: T::AccountId,
-			asset: &MultiAsset,
-			amount: u128,
-			fee: u128,
-		) -> DispatchResult {
+		fn check_balance(sender: T::AccountId, asset: &MultiAsset, amount: u128) -> DispatchResult {
 			let balance: u128 = if T::NativeAssetChecker::is_native_asset(asset) {
 				<T as Config>::Currency::free_balance(&sender).into()
 			} else {
@@ -876,7 +872,7 @@ pub mod pallet {
 				reducible_balance.into()
 			};
 
-			if balance > (amount + fee) {
+			if balance >= amount {
 				Ok(())
 			} else {
 				Err(Error::<T>::InsufficientBalance.into())
@@ -891,41 +887,40 @@ pub mod pallet {
 		<T as pallet_assets::Config>::Balance: From<u128> + Into<u128>,
 	{
 		fn can_deposit_asset(asset: MultiAsset, dest: MultiLocation) -> bool {
-			let asset_extract_result = Self::extract_fungible(asset.clone());
-			let dest_extract_result = Self::extract_dest(&dest);
-			if asset_extract_result.is_none() || dest_extract_result.is_none() {
-				return false;
-			}
-			let (asset_location, _) = asset_extract_result.unwrap();
-			let (dest_id, _) = dest_extract_result.unwrap();
-			let resource_id = asset_location.clone().into_rid(dest_id);
+			return match (
+				Self::extract_fungible(asset.clone()),
+				Self::extract_dest(&dest),
+			) {
+				(Some((asset_location, _)), Some((dest_id, _))) => {
+					let rid = asset_location.clone().into_rid(dest_id);
+					// Verify if dest chain has been whitelisted
+					if Self::chain_whitelisted(dest_id) == false {
+						return false;
+					}
 
-			// Verify if dest chain has been whitelisted
-			if Self::chain_whitelisted(dest_id) == false {
-				return false;
-			}
+					// Verify if destination has fee set
+					if BridgeFee::<T>::contains_key(&dest_id) == false {
+						return false;
+					}
 
-			// Verify if destination has fee set
-			if BridgeFee::<T>::contains_key(&dest_id) == false {
-				return false;
-			}
+					// Verify if asset was registered if is not native.
+					if !T::NativeAssetChecker::is_native_asset(&asset)
+						&& T::AssetsRegistry::id(&asset_location) == None
+					{
+						return false;
+					}
 
-			// Verify if asset was registered if is not native.
-			if !T::NativeAssetChecker::is_native_asset(&asset)
-				&& T::AssetsRegistry::id(&asset_location) == None
-			{
-				return false;
-			}
+					// Verify if asset was enabled chainbridge transfer if is not native
+					if !T::NativeAssetChecker::is_native_asset(&asset)
+						&& Self::rid_to_assetid(&rid).is_err()
+					{
+						return false;
+					}
 
-			// Verify if asset was enabled chainbridge transfer if is not native
-			if !T::NativeAssetChecker::is_native_asset(&asset)
-				&& Self::rid_to_assetid(&resource_id).is_err()
-			{
-				return false;
-			}
-
-			true
-
+					true
+				}
+				_ => false,
+			};
 			// TODO: NonFungible verification
 		}
 
@@ -983,11 +978,14 @@ pub mod pallet {
 					.into(),
 			)
 			.ok_or(Error::<T>::CannotPayAsFee)?;
-			Pallet::<T>::check_balance(sender.into(), &asset, amount, fee)?;
+			// No need to transfer to to dest chains if it's not enough to pay fee.
+			ensure!(amount > fee, Error::<T>::FeeTooExpensive);
+			// Ensure we have sufficient free balance
+			Pallet::<T>::check_balance(sender.into(), &asset, amount)?;
 
-			// Withdraw `amount + fee` of asset from sender
+			// Withdraw `amount` of asset from sender
 			T::FungibleAdapter::withdraw_asset(
-				&(asset.id.clone(), Fungible((amount + fee).into())).into(),
+				&(asset.id.clone(), Fungible(amount.into())).into(),
 				&Junction::AccountId32 {
 					network: NetworkId::Any,
 					id: sender,
@@ -1007,7 +1005,7 @@ pub mod pallet {
 			)
 			.map_err(|_| Error::<T>::TransactFailed)?;
 
-			// Deposit `amount` of asset to reserve account if asset is not reserved in dest.
+			// Deposit `amount - fee` of asset to reserve account if asset is not reserved in dest.
 			let dest_reserve_location: MultiLocation = (
 				0,
 				X2(
@@ -1029,7 +1027,7 @@ pub mod pallet {
 				|| asset_reserve_location != dest_reserve_location
 			{
 				T::FungibleAdapter::deposit_asset(
-					&(asset.id.clone(), Fungible(amount.into())).into(),
+					&(asset.id.clone(), Fungible((amount - fee).into())).into(),
 					&Junction::AccountId32 {
 						network: NetworkId::Any,
 						id: reserve_account.into(),
@@ -1045,14 +1043,14 @@ pub mod pallet {
 				dest_id,
 				nonce,
 				resource_id,
-				U256::from(amount),
+				U256::from(amount - fee),
 				recipient.clone(),
 			));
 			Pallet::<T>::deposit_event(Event::FungibleTransfer(
 				dest_id,
 				nonce,
 				resource_id,
-				U256::from(amount),
+				U256::from(amount - fee),
 				recipient,
 			));
 			Ok(())
@@ -1781,15 +1779,15 @@ pub mod pallet {
 					None,
 				));
 
-				// Withdraw (amount + fee) from ALICE
-				assert_eq!(Assets::balance(0, &ALICE), amount - 2);
+				// Withdraw amount from ALICE
+				assert_eq!(Assets::balance(0, &ALICE), amount);
 				assert_eq!(Assets::balance(0, &TREASURY::get()), 2);
 
 				// The asset's reserve chain is 0, dest chain is 2,
-				// so will save asset into reserve account of dest chain
+				// so will save (amount - fee) asset into reserve account of dest chain,
 				assert_eq!(
 					Assets::balance(0, &dest_reserve_location.into_account().into()),
-					amount
+					amount - 2
 				);
 			})
 		}
@@ -1860,8 +1858,8 @@ pub mod pallet {
 					None,
 				));
 
-				// Withdraw (amount + fee) from ALICE
-				assert_eq!(Assets::balance(0, &ALICE), amount - 4);
+				// Withdraw amount from ALICE
+				assert_eq!(Assets::balance(0, &ALICE), amount);
 				// Rate of PHA and SoloChain2AssetLocation accoate asset is 2:1
 				assert_eq!(Assets::balance(0, &TREASURY::get()), 4);
 
@@ -1881,6 +1879,7 @@ pub mod pallet {
 			ParaA::execute_with(|| {
 				let dest_chain = 0;
 				let resource_id = ChainBridge::gen_pha_rid(dest_chain);
+				let free_balance: u128 = Balances::free_balance(RELAYER_A).into();
 				let amount: Balance = 100;
 				let recipient = vec![99];
 
@@ -1893,7 +1892,7 @@ pub mod pallet {
 						RELAYER_A.into(),
 						(
 							Concrete(MultiLocation::new(0, Here)),
-							Fungible(Balances::free_balance(RELAYER_A).into()),
+							Fungible(free_balance + 1),
 						)
 							.into(),
 						MultiLocation::new(
@@ -1928,13 +1927,13 @@ pub mod pallet {
 					dest_chain,
 					1,
 					resource_id,
-					amount.into(),
+					(amount - 2).into(),
 					recipient,
 				));
 
 				assert_eq!(
 					Balances::free_balance(&ChainBridge::account_id()),
-					ENDOWED_BALANCE + amount
+					ENDOWED_BALANCE + amount - 2
 				)
 			})
 		}
