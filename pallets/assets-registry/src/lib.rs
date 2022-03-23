@@ -311,10 +311,6 @@ pub mod pallet {
 					properties: properties.clone(),
 				},
 			);
-<<<<<<< HEAD
-
-=======
->>>>>>> change way of asset registration
 			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::set(
 				asset_id,
 				&ASSETS_REGISTRY_ID.into_account(),
@@ -479,38 +475,6 @@ pub mod pallet {
 				chain_id,
 				resource_id,
 			});
-			Ok(())
-		}
-
-		/// Force withdraw some amount of assets from ASSETS_REGISTRY_ID, if the given asset_id is None,
-		/// would performance withdraw PHA from this account
-		#[pallet::weight(195_000_000)]
-		#[transactional]
-		pub fn force_withdraw_fund(
-			origin: OriginFor<T>,
-			asset_id: Option<T::AssetId>,
-			recipient: T::AccountId,
-			amount: u128,
-		) -> DispatchResult {
-			T::AssetsCommitteeOrigin::ensure_origin(origin)?;
-			let fund_account = ASSETS_REGISTRY_ID.into_account();
-			if let Some(asset_id) = asset_id {
-				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
-					asset_id,
-					&fund_account,
-					&recipient,
-					amount.into(),
-					false,
-				)
-				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
-			} else {
-				<T as Config>::Currency::transfer(
-					&fund_account,
-					&recipient,
-					amount.into(),
-					ExistenceRequirement::AllowDeath,
-				)?;
-			}
 			Ok(())
 		}
 	}

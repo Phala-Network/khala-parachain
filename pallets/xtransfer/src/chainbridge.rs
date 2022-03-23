@@ -254,7 +254,7 @@ pub mod pallet {
 		TransactFailed,
 		/// Infusficient balance to withdraw
 		InsufficientBalance,
-		/// Too expensive fee for withdrawn asset 
+		/// Too expensive fee for withdrawn asset
 		FeeTooExpensive,
 		/// Can not extract asset reserve location
 		CannotDetermineReservedLocation,

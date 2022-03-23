@@ -1022,7 +1022,7 @@ impl Config for XcmConfig {
         >,
         FixedRateOfFungible<
             ExecutionPriceInKUSD,
-            xcm_helper::XTransferTakeRevenue<
+            helper::XTransferTakeRevenue<
                 Self::AssetTransactor,
                 AccountId,
                 KhalaTreasuryAccount,
