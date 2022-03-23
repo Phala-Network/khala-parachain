@@ -81,16 +81,21 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		UnknownError,
+		/// Unimplemented function
 		Unimplemented,
+		/// Can not reanchor asset location according dest
 		CannotReanchor,
+		/// Failed to measure weight of a XCM message
 		UnweighableMessage,
-		FeePaymentEmpty,
+		/// XCM message executeion failed due to some reasons
 		ExecutionFailed,
-		UnknownTransfer,
+		/// Transfer type not valid
+		UnknownTransferType,
+		/// Asset not been registered or not been supported
 		AssetNotFound,
-		LocationInvertFailed,
+		/// Extract dest location failed
 		IllegalDestination,
+		/// Can not transfer asset to dest
 		CannotDepositAsset,
 	}
 
@@ -212,7 +217,7 @@ pub mod pallet {
 				beneficiary: beneficiary.into(),
 			};
 
-			let kind = self.kind().ok_or(Error::<T>::UnknownTransfer)?;
+			let kind = self.kind().ok_or(Error::<T>::UnknownTransferType)?;
 			log::trace!(target: LOG_TARGET, "Transfer type is {:?}.", kind.clone(),);
 			let message = match kind {
 				TransferType::FromNative => Xcm(vec![
