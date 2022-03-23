@@ -236,29 +236,32 @@ pub mod pallet {
 					])
 				}
 				TransferType::ToNonReserve => {
-					let asset_reserve_location = ConcrateAsset::origin(&self.asset).unwrap();
-					Xcm(vec![
-						withdraw_asset,
-						InitiateReserveWithdraw {
-							assets: Wild(All),
-							reserve: asset_reserve_location.clone(),
-							xcm: Xcm(vec![
-								self.buy_execution_on(&asset_reserve_location)?,
-								DepositReserveAsset {
-									assets: Wild(All),
-									max_assets,
-									dest: self.invert_based_reserve(
-										asset_reserve_location.clone(),
-										self.dest_location.clone(),
-									),
-									xcm: Xcm(vec![
-										self.buy_execution_on(&self.dest_location)?,
-										deposit_asset,
-									]),
-								},
-							]),
-						},
-					])
+					if let Some(asset_reserve_location) = ConcrateAsset::origin(&self.asset) {
+						Xcm(vec![
+							withdraw_asset,
+							InitiateReserveWithdraw {
+								assets: Wild(All),
+								reserve: asset_reserve_location.clone(),
+								xcm: Xcm(vec![
+									self.buy_execution_on(&asset_reserve_location)?,
+									DepositReserveAsset {
+										assets: Wild(All),
+										max_assets,
+										dest: self.invert_based_reserve(
+											asset_reserve_location.clone(),
+											self.dest_location.clone(),
+										),
+										xcm: Xcm(vec![
+											self.buy_execution_on(&self.dest_location)?,
+											deposit_asset,
+										]),
+									},
+								]),
+							},
+						])
+					} else {
+						return Err(Error::<T>::AssetNotFound.into());
+					}
 				}
 			};
 			Ok(message)
@@ -288,21 +291,18 @@ pub mod pallet {
 				return false;
 			}
 
-			let asset_extract_result = Self::extract_fungible(asset.clone());
-			if asset_extract_result.is_none() {
-				return false;
-			}
-			let (asset_location, amount) = asset_extract_result.unwrap();
-
-			// Verify if asset was registered if is not native.
-			if !T::NativeAssetChecker::is_native_asset(&asset)
-				&& T::AssetsRegistry::id(&asset_location) == None
-			{
+			if let Some((asset_location, amount)) = Self::extract_fungible(asset.clone()) {
+				// Verify if asset was registered if is not native.
+				if !T::NativeAssetChecker::is_native_asset(&asset)
+					&& T::AssetsRegistry::id(&asset_location) == None
+				{
+					return false;
+				}
+			} else {
 				return false;
 			}
 
 			true
-
 			// TODO: NonFungible verification
 		}
 
@@ -311,6 +311,7 @@ pub mod pallet {
 			return false;
 		}
 	}
+
 	pub struct BridgeTransactImpl<T>(PhantomData<T>);
 	impl<T: Config> BridgeTransact for BridgeTransactImpl<T>
 	where
