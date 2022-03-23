@@ -395,18 +395,15 @@ pub mod pallet {
 					0, // dest chain
 					1, // deposit nonce
 					pha_location.into_rid(0),
-					100u128.into(),
+					98u128.into(), // deducted fee: 2
 					recipient.into(),
 				));
 
-				assert_eq!(
-					ParaBalances::free_balance(&ALICE),
-					ENDOWED_BALANCE - 100 - 2
-				);
+				assert_eq!(ParaBalances::free_balance(&ALICE), ENDOWED_BALANCE - 100);
 				assert_eq!(ParaBalances::free_balance(&para::TREASURY::get()), 2);
 				assert_eq!(
 					ParaBalances::free_balance(&ChainBridge::account_id()),
-					ENDOWED_BALANCE + 100
+					ENDOWED_BALANCE + 100 - 2
 				);
 			});
 		}
@@ -479,17 +476,17 @@ pub mod pallet {
 					0, // dest chain
 					1, // deposit nonce
 					registered_asset_location.into_rid(0),
-					100u128.into(),
+					96u128.into(), // deducted fee: 4
 					recipient.into(),
 				));
 
+				assert_eq!(Assets::balance(0, &ALICE), ENDOWED_BALANCE - 100);
 				// Fee ratio: PHA : SoloChain2AssetLocation = 1 : 2
-				assert_eq!(Assets::balance(0, &ALICE), ENDOWED_BALANCE - 100 - 4);
 				assert_eq!(Assets::balance(0, &para::TREASURY::get()), 4);
 				// Transfer to non-reserve dest, asset will be saved in reserved account
 				assert_eq!(
 					Assets::balance(0, &dest.reserve_location().unwrap().into_account().into()),
-					100
+					96 // deducted fee: 4
 				);
 			});
 		}
