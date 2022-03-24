@@ -64,14 +64,6 @@ pub mod pallet {
 		properties: AssetProperties,
 	}
 
-	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
-	pub struct UniqueRegistryInfo {
-		location: MultiLocation,
-		reserve_location: Option<MultiLocation>,
-		enabled_bridges: Vec<XBridge>,
-		properties: AssetProperties,
-	}
-
 	pub trait GetAssetRegistryInfo<AssetId> {
 		fn id(location: &MultiLocation) -> Option<AssetId>;
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<MultiLocation>;
