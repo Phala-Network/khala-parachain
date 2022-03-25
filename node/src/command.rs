@@ -595,6 +595,7 @@ pub fn run() -> Result<()> {
         },
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
+            let collator_options = cli.run.collator_options();
 
             runner.run_node_until_exit(|config| async move {
                 let para_id =
@@ -639,7 +640,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "phala-native")]
                 if config.chain_spec.is_phala() {
-                    return crate::service::phala::start_parachain_node(config, polkadot_config, id)
+                    return crate::service::phala::start_parachain_node(config, polkadot_config, collator_options, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -647,7 +648,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "khala-native")]
                 if config.chain_spec.is_khala() {
-                    return crate::service::khala::start_parachain_node(config, polkadot_config, id)
+                    return crate::service::khala::start_parachain_node(config, polkadot_config, collator_options, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -655,7 +656,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "rhala-native")]
                 if config.chain_spec.is_rhala() {
-                    return crate::service::rhala::start_parachain_node(config, polkadot_config, id)
+                    return crate::service::rhala::start_parachain_node(config, polkadot_config, collator_options, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -663,7 +664,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "thala-native")]
                 if config.chain_spec.is_thala() {
-                    return crate::service::thala::start_parachain_node(config, polkadot_config, id)
+                    return crate::service::thala::start_parachain_node(config, polkadot_config, collator_options, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -671,7 +672,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "shell-native")]
                 if config.chain_spec.is_shell() {
-                    return crate::service::shell::start_parachain_node(config, polkadot_config, id)
+                    return crate::service::shell::start_parachain_node(config, polkadot_config, collator_options, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)

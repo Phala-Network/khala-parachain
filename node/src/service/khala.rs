@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use cumulus_client_cli::CollatorOptions;
 use cumulus_client_consensus_aura::{
     AuraConsensus, BuildAuraConsensusParams, SlotProportion
 };
@@ -13,7 +14,6 @@ use sc_service::{
     Configuration, TFullClient, TaskManager,
 };
 use sc_telemetry::TelemetryHandle;
-use sp_consensus::SlotData;
 
 use khala_parachain_runtime::RuntimeApi;
 
@@ -62,9 +62,9 @@ pub fn parachain_build_import_queue(
             let time = sp_timestamp::InherentDataProvider::from_system_time();
 
             let slot =
-                sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+                sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
                     *time,
-                    slot_duration.slot_duration(),
+                    slot_duration,
                 );
 
             Ok((time, slot))
@@ -81,6 +81,7 @@ pub fn parachain_build_import_queue(
 pub async fn start_parachain_node(
     parachain_config: Configuration,
     polkadot_config: Configuration,
+    collator_options: CollatorOptions,
     id: ParaId,
 ) -> sc_service::error::Result<(
     TaskManager,
@@ -89,6 +90,7 @@ pub async fn start_parachain_node(
     crate::service::start_node_impl::<RuntimeApi, RuntimeExecutor, _, _, _>(
         parachain_config,
         polkadot_config,
+        collator_options,
         id,
         |_| Ok(Default::default()),
         parachain_build_import_queue,
@@ -127,9 +129,9 @@ pub async fn start_parachain_node(
                             let time = sp_timestamp::InherentDataProvider::from_system_time();
 
                             let slot =
-                                sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+                                sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
                                     *time,
-                                    slot_duration.slot_duration(),
+                                    slot_duration,
                                 );
 
                             let parachain_inherent = parachain_inherent.ok_or_else(|| {
