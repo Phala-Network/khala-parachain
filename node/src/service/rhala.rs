@@ -7,9 +7,8 @@ use cumulus_client_consensus_aura::{
 use cumulus_primitives_core::ParaId;
 
 pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
-use sc_executor::NativeElseWasmExecutor;
+use sc_executor::WasmExecutor;
 
-use sc_client_api::ExecutorProvider;
 use sc_service::{
     Configuration, TFullClient, TaskManager,
 };
@@ -34,14 +33,14 @@ impl sc_executor::NativeExecutionDispatch for RuntimeExecutor {
 /// Build the import queue for the parachain runtime.
 #[allow(clippy::type_complexity)]
 pub fn parachain_build_import_queue(
-    client: Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<RuntimeExecutor>>>,
+    client: Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
     config: &Configuration,
     telemetry: Option<TelemetryHandle>,
     task_manager: &TaskManager,
 ) -> Result<
     sc_consensus::DefaultImportQueue<
         Block,
-        TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<RuntimeExecutor>>,
+        TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>,
     >,
     sc_service::Error,
 > {
@@ -70,7 +69,7 @@ pub fn parachain_build_import_queue(
             Ok((time, slot))
         },
         registry: config.prometheus_registry(),
-        can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
+        can_author_with: sp_consensus::AlwaysCanAuthor,
         spawner: &task_manager.spawn_essential_handle(),
         telemetry,
     })
@@ -85,9 +84,9 @@ pub async fn start_parachain_node(
     id: ParaId,
 ) -> sc_service::error::Result<(
     TaskManager,
-    Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<RuntimeExecutor>>>,
+    Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
 )> {
-    crate::service::start_node_impl::<RuntimeApi, RuntimeExecutor, _, _, _>(
+    crate::service::start_node_impl::<RuntimeApi, _, _, _>(
         parachain_config,
         polkadot_config,
         collator_options,
@@ -118,6 +117,7 @@ pub async fn start_parachain_node(
                     proposer_factory,
                     create_inherent_data_providers: move |_, (relay_parent, validation_data)| {
                         let relay_chain_interface = relay_chain_interface.clone();
+
                         async move {
                             let parachain_inherent =
                                 cumulus_primitives_parachain_inherent::ParachainInherentData::create_at(
@@ -126,11 +126,12 @@ pub async fn start_parachain_node(
                                     &validation_data,
                                     id,
                                 ).await;
-                            let time = sp_timestamp::InherentDataProvider::from_system_time();
+
+                            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
                             let slot =
                                 sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-                                    *time,
+                                    *timestamp,
                                     slot_duration,
                                 );
 
@@ -139,11 +140,12 @@ pub async fn start_parachain_node(
                                     "Failed to create parachain inherent",
                                 )
                             })?;
-                            Ok((time, slot, parachain_inherent))
+
+                            Ok((timestamp, slot, parachain_inherent))
                         }
                     },
                     block_import: client.clone(),
-                    para_client: client,
+                    para_client: client.clone(),
                     backoff_authoring_blocks: Option::<()>::None,
                     sync_oracle,
                     keystore,

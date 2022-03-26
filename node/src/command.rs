@@ -354,7 +354,7 @@ macro_rules! construct_async_run {
         #[cfg(feature = "phala-native")]
         if runner.config().chain_spec.is_phala() {
             return runner.async_run(|$config| {
-                let $components = new_partial::<phala_parachain_runtime::RuntimeApi, PhalaParachainRuntimeExecutor, _>(
+                let $components = new_partial::<phala_parachain_runtime::RuntimeApi, _>(
                     &$config,
                     crate::service::phala::parachain_build_import_queue,
                 )?;
@@ -366,7 +366,7 @@ macro_rules! construct_async_run {
         #[cfg(feature = "khala-native")]
         if runner.config().chain_spec.is_khala() {
             return runner.async_run(|$config| {
-                let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
+                let $components = new_partial::<khala_parachain_runtime::RuntimeApi, _>(
                     &$config,
                     crate::service::khala::parachain_build_import_queue,
                 )?;
@@ -378,7 +378,7 @@ macro_rules! construct_async_run {
         #[cfg(feature = "rhala-native")]
         if runner.config().chain_spec.is_rhala() {
             return runner.async_run(|$config| {
-                let $components = new_partial::<rhala_parachain_runtime::RuntimeApi, RhalaParachainRuntimeExecutor, _>(
+                let $components = new_partial::<rhala_parachain_runtime::RuntimeApi, _>(
                     &$config,
                     crate::service::rhala::parachain_build_import_queue,
                 )?;
@@ -390,7 +390,7 @@ macro_rules! construct_async_run {
         #[cfg(feature = "thala-native")]
         if runner.config().chain_spec.is_thala() {
             return runner.async_run(|$config| {
-                let $components = new_partial::<thala_parachain_runtime::RuntimeApi, ThalaParachainRuntimeExecutor, _>(
+                let $components = new_partial::<thala_parachain_runtime::RuntimeApi, _>(
                     &$config,
                     crate::service::thala::parachain_build_import_queue,
                 )?;
@@ -402,7 +402,7 @@ macro_rules! construct_async_run {
         #[cfg(feature = "shell-native")]
         if runner.config().chain_spec.is_shell() {
             return runner.async_run(|$config| {
-                let $components = new_partial::<shell_parachain_runtime::RuntimeApi, ShellParachainRuntimeExecutor, _>(
+                let $components = new_partial::<shell_parachain_runtime::RuntimeApi, _>(
                     &$config,
                     crate::service::shell::parachain_build_import_queue,
                 )?;

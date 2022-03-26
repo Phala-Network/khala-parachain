@@ -7,11 +7,10 @@ use cumulus_client_service::{
     prepare_node_config, start_collator, start_full_node, StartCollatorParams, StartFullNodeParams,
 };
 use cumulus_primitives_core::ParaId;
-use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
 use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface};
 
 pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
-use sc_executor::NativeElseWasmExecutor;
+use sc_executor::WasmExecutor;
 
 use sc_network::NetworkService;
 use sc_service::{
@@ -40,20 +39,20 @@ impl sc_executor::NativeExecutionDispatch for RuntimeExecutor {
 }
 
 /// Build the import queue for the shell runtime.
-pub fn parachain_build_import_queue<RuntimeApi, Executor>(
-    client: Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>,
+pub fn parachain_build_import_queue<RuntimeApi>(
+    client: Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
     config: &Configuration,
     _: Option<TelemetryHandle>,
     task_manager: &TaskManager,
 ) -> Result<
     sc_consensus::DefaultImportQueue<
         Block,
-        TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>,
+        TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>,
     >,
     sc_service::Error,
 >
     where
-        RuntimeApi: ConstructRuntimeApi<Block, TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>
+        RuntimeApi: ConstructRuntimeApi<Block, TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>
         + Send
         + Sync
         + 'static,
@@ -66,7 +65,6 @@ pub fn parachain_build_import_queue<RuntimeApi, Executor>(
         > + sp_offchain::OffchainWorkerApi<Block>
         + sp_block_builder::BlockBuilder<Block>,
         sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
-        Executor: sc_executor::NativeExecutionDispatch + 'static,
 {
     cumulus_client_consensus_relay_chain::import_queue(
         client.clone(),
@@ -82,7 +80,7 @@ pub fn parachain_build_import_queue<RuntimeApi, Executor>(
 ///
 /// This is the actual implementation that is abstract over the executor and the runtime api for shell nodes.
 #[sc_tracing::logging::prefix_logs_with("Parachain")]
-async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
+async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
     parachain_config: Configuration,
     polkadot_config: Configuration,
     collator_options: CollatorOptions,
@@ -92,10 +90,10 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
     build_consensus: BIC,
 ) -> sc_service::error::Result<(
     TaskManager,
-    Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>,
+    Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
 )>
     where
-        RuntimeApi: ConstructRuntimeApi<Block, TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>
+        RuntimeApi: ConstructRuntimeApi<Block, TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>
         + Send
         + Sync
         + 'static,
@@ -109,26 +107,25 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
         + sp_block_builder::BlockBuilder<Block>
         + cumulus_primitives_core::CollectCollationInfo<Block>,
         sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
-        Executor: sc_executor::NativeExecutionDispatch + 'static,
         RB: Fn(
-            Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>,
+            Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
         ) -> Result<jsonrpc_core::IoHandler<sc_rpc::Metadata>, sc_service::Error>
         + Send
         + 'static,
         BIQ: FnOnce(
-            Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>,
+            Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
             &Configuration,
             Option<TelemetryHandle>,
             &TaskManager,
         ) -> Result<
             sc_consensus::DefaultImportQueue<
                 Block,
-                TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>,
+                TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>,
             >,
             sc_service::Error,
         >,
         BIC: FnOnce(
-            Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>,
+            Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
             Option<&Registry>,
             Option<TelemetryHandle>,
             &TaskManager,
@@ -136,7 +133,7 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
             Arc<
                 sc_transaction_pool::FullPool<
                     Block,
-                    TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>,
+                    TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>,
                 >,
             >,
             Arc<NetworkService<Block, Hash>>,
@@ -150,13 +147,14 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
 
     let parachain_config = prepare_node_config(parachain_config);
 
-    let params = crate::service::new_partial::<RuntimeApi, Executor, BIQ>(&parachain_config, build_import_queue)?;
+    let params = crate::service::new_partial::<RuntimeApi, BIQ>(&parachain_config, build_import_queue)?;
     let (mut telemetry, telemetry_worker_handle) = params.other;
 
     let client = params.client.clone();
     let backend = params.backend.clone();
 
     let mut task_manager = params.task_manager;
+
     let (relay_chain_interface, collator_key) = crate::service::build_relay_chain_interface(
         polkadot_config,
         &parachain_config,
@@ -164,11 +162,11 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
         &mut task_manager,
         collator_options.clone(),
     )
-    .await
-    .map_err(|e| match e {
-        RelayChainError::ServiceError(polkadot_service::Error::Sub(x)) => x,
-        s => s.to_string().into(),
-    })?;
+        .await
+        .map_err(|e| match e {
+            RelayChainError::ServiceError(polkadot_service::Error::Sub(x)) => x,
+            s => s.to_string().into(),
+        })?;
 
     let block_announce_validator = BlockAnnounceValidator::new(relay_chain_interface.clone(), id);
 
@@ -263,6 +261,7 @@ async fn start_node_impl<RuntimeApi, Executor, RB, BIQ, BIC>(
     Ok((task_manager, client))
 }
 
+
 /// Start a polkadot-shell parachain node.
 pub async fn start_parachain_node(
     parachain_config: Configuration,
@@ -271,9 +270,10 @@ pub async fn start_parachain_node(
     id: ParaId,
 ) -> sc_service::error::Result<(
     TaskManager,
-    Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<RuntimeExecutor>>>,
-)> {
-    start_node_impl::<RuntimeApi, RuntimeExecutor, _, _, _>(
+    Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
+)>
+{
+    start_node_impl::<RuntimeApi, _, _, _>(
         parachain_config,
         polkadot_config,
         collator_options,
