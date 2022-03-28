@@ -12518,6 +12518,8 @@ dependencies = [
  "polkadot-parachain",
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
+ "prost 0.9.0",
+ "prost-types",
  "scale-info",
  "sp-arithmetic",
  "sp-core",

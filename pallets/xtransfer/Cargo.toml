@@ -12,6 +12,8 @@ impl-trait-for-tuples = "0.2.2"
 codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
 scale-info = { version = "1.0", default-features = false, features = ["derive", "serde", "decode"] }
 log = { version = "0.4.14", default-features = false }
+prost = { version = "0.9", default-features = false, features = ["prost-derive"] }
+prost-types = { version = "0.9", default-features = false }
 
 # Substrate
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
