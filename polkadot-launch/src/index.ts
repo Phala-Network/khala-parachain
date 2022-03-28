@@ -1,3 +1,5 @@
+import "@polkadot/api-augment";
+
 export * from "./check";
 export * from "./parachain";
 export * from "./rpc";
