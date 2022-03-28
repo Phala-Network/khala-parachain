@@ -15,5 +15,5 @@ mkdir -p tmp/kernels
 ./target/release/khala-node export-genesis-wasm -r --chain khala-local-2000 > ./tmp/kernels/local-code-2000.wasm
 ./target/release/khala-node export-genesis-state --chain khala-local-2000 > ./tmp/kernels/local-state-2000.hex
 
-./target/release/khala-node export-genesis-wasm -r --chain whala > ./tmp/kernels/whala-code.wasm
-./target/release/khala-node export-genesis-state --chain whala > ./tmp/kernels/whala-state.hex
+./target/release/khala-node export-genesis-wasm -r --chain rhala-staging > ./tmp/kernels/rhala-staging-code.wasm
+./target/release/khala-node export-genesis-state --chain rhala-staging > ./tmp/kernels/rhala-staging-state.hex
