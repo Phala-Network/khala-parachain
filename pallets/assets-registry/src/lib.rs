@@ -40,7 +40,11 @@ pub mod pallet {
 			reserve_account: [u8; 32],
 			is_mintable: bool,
 		},
-		// Potential other bridge solutions
+		CelerBridge {
+			chain_id: u64,
+			evm_address: [u8; 20],
+			reserve_account: [u8; 32],
+		}, // Potential other bridge solutions
 	}
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
@@ -68,6 +72,8 @@ pub mod pallet {
 		fn id(location: &MultiLocation) -> Option<AssetId>;
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<MultiLocation>;
 		fn decimals(id: &AssetId) -> Option<u8>;
+		fn evm_address(id: &AssetId) -> Option<[u8; 20]>;
+		fn lookup_by_evm_address(token: [u8; 20]) -> Option<MultiLocation>;
 	}
 
 	pub trait AccountId32Conversion {
@@ -144,11 +150,6 @@ pub mod pallet {
 		}
 	}
 
-	// Lookup asset location by its resource id.
-	trait LookupByResourceId {
-		fn lookup_by_rid(self, rid: [u8; 32]) -> Option<MultiLocation>;
-	}
-
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
@@ -182,6 +183,12 @@ pub mod pallet {
 	pub type IdByResourceId<T: Config> =
 		StorageMap<_, Twox64Concat, [u8; 32], <T as pallet_assets::Config>::AssetId>;
 
+	/// Mapping fungible asset evm address to corresponding asset id
+	#[pallet::storage]
+	#[pallet::getter(fn evm_to_id)]
+	pub type IdByEvmAddress<T: Config> =
+		StorageMap<_, Twox64Concat, [u8; 20], <T as pallet_assets::Config>::AssetId>;
+
 	// Mapping fungible assets id to corresponding registry info
 	#[pallet::storage]
 	#[pallet::getter(fn id_to_registry_info)]
@@ -212,6 +219,18 @@ pub mod pallet {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			chain_id: u8,
 			resource_id: [u8; 32],
+		},
+		/// Asset enabled celerbridge.
+		CelerbridgeEnabled {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			chain_id: u64,
+			evm_address: [u8; 20],
+		},
+		/// Asset disabled celerbridge.
+		CelerbridgeDisabled {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			chain_id: u64,
+			evm_address: [u8; 20],
 		},
 	}
 
@@ -469,6 +488,93 @@ pub mod pallet {
 			});
 			Ok(())
 		}
+
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_enable_celerbridge(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			chain_id: u64,
+			evm_address: [u8; 20],
+			metadata: Box<Vec<u8>>,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+
+			ensure!(
+				IdByEvmAddress::<T>::get(&evm_address) == None,
+				Error::<T>::BridgeAlreadyEnabled,
+			);
+			IdByEvmAddress::<T>::insert(&evm_address, &asset_id);
+			// Save into registry info, here save chain id can not be added more than twice
+			let reserve_location: MultiLocation = (
+				0,
+				X2(
+					GeneralKey(CR_PATH_KEY.to_vec()),
+					GeneralIndex(chain_id as u128),
+				),
+			)
+				.into();
+			info.enabled_bridges.push(XBridge {
+				config: XBridgeConfig::CelerBridge {
+					chain_id,
+					evm_address: evm_address.clone(),
+					reserve_account: reserve_location.into_account(),
+				},
+				metadata,
+			});
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
+
+			Self::deposit_event(Event::CelerbridgeEnabled {
+				asset_id,
+				chain_id,
+				evm_address,
+			});
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_disable_celerbridge(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			chain_id: u64,
+			evm_address: [u8; 20],
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+
+			ensure!(
+				IdByEvmAddress::<T>::get(&evm_address).is_some(),
+				Error::<T>::BridgeAlreadyDisabled,
+			);
+			// Unbind evm address and asset id
+			IdByEvmAddress::<T>::remove(&evm_address);
+			// Remove Celerbridge info
+			if let Some(idx) = info
+				.enabled_bridges
+				.iter()
+				.position(|item| match item.config {
+					XBridgeConfig::CelerBridge {
+						chain_id: cid,
+						evm_address: addr,
+						..
+					} => cid == chain_id && addr == evm_address,
+					_ => false,
+				}) {
+				info.enabled_bridges.remove(idx);
+			}
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
+
+			Self::deposit_event(Event::CelerbridgeDisabled {
+				asset_id,
+				chain_id,
+				evm_address,
+			});
+			Ok(())
+		}
 	}
 
 	impl<T: Config> GetAssetRegistryInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
@@ -483,6 +589,14 @@ pub mod pallet {
 
 		fn decimals(id: &<T as pallet_assets::Config>::AssetId) -> Option<u8> {
 			RegistryInfoByIds::<T>::get(&id).map(|m| m.properties.decimals)
+		}
+
+		fn evm_address(id: &<T as pallet_assets::Config>::AssetId) -> Option<[u8; 20]> {
+			None
+		}
+
+		fn lookup_by_evm_address(token: [u8; 20]) -> Option<MultiLocation> {
+			None
 		}
 	}
 
