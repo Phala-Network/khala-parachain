@@ -354,7 +354,7 @@ macro_rules! construct_async_run {
         #[cfg(feature = "phala-native")]
         if runner.config().chain_spec.is_phala() {
             return runner.async_run(|$config| {
-                let $components = new_partial::<phala_parachain_runtime::RuntimeApi, PhalaParachainRuntimeExecutor, _>(
+                let $components = new_partial::<phala_parachain_runtime::RuntimeApi, _>(
                     &$config,
                     crate::service::phala::parachain_build_import_queue,
                 )?;
@@ -366,7 +366,7 @@ macro_rules! construct_async_run {
         #[cfg(feature = "khala-native")]
         if runner.config().chain_spec.is_khala() {
             return runner.async_run(|$config| {
-                let $components = new_partial::<khala_parachain_runtime::RuntimeApi, KhalaParachainRuntimeExecutor, _>(
+                let $components = new_partial::<khala_parachain_runtime::RuntimeApi, _>(
                     &$config,
                     crate::service::khala::parachain_build_import_queue,
                 )?;
@@ -378,7 +378,7 @@ macro_rules! construct_async_run {
         #[cfg(feature = "rhala-native")]
         if runner.config().chain_spec.is_rhala() {
             return runner.async_run(|$config| {
-                let $components = new_partial::<rhala_parachain_runtime::RuntimeApi, RhalaParachainRuntimeExecutor, _>(
+                let $components = new_partial::<rhala_parachain_runtime::RuntimeApi, _>(
                     &$config,
                     crate::service::rhala::parachain_build_import_queue,
                 )?;
@@ -390,7 +390,7 @@ macro_rules! construct_async_run {
         #[cfg(feature = "thala-native")]
         if runner.config().chain_spec.is_thala() {
             return runner.async_run(|$config| {
-                let $components = new_partial::<thala_parachain_runtime::RuntimeApi, ThalaParachainRuntimeExecutor, _>(
+                let $components = new_partial::<thala_parachain_runtime::RuntimeApi, _>(
                     &$config,
                     crate::service::thala::parachain_build_import_queue,
                 )?;
@@ -402,7 +402,7 @@ macro_rules! construct_async_run {
         #[cfg(feature = "shell-native")]
         if runner.config().chain_spec.is_shell() {
             return runner.async_run(|$config| {
-                let $components = new_partial::<shell_parachain_runtime::RuntimeApi, ShellParachainRuntimeExecutor, _>(
+                let $components = new_partial::<shell_parachain_runtime::RuntimeApi, _>(
                     &$config,
                     crate::service::shell::parachain_build_import_queue,
                 )?;
@@ -595,6 +595,7 @@ pub fn run() -> Result<()> {
         },
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
+            let collator_options = cli.run.collator_options();
 
             runner.run_node_until_exit(|config| async move {
                 let para_id =
@@ -639,7 +640,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "phala-native")]
                 if config.chain_spec.is_phala() {
-                    return crate::service::phala::start_parachain_node(config, polkadot_config, id)
+                    return crate::service::phala::start_parachain_node(config, polkadot_config, collator_options, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -647,7 +648,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "khala-native")]
                 if config.chain_spec.is_khala() {
-                    return crate::service::khala::start_parachain_node(config, polkadot_config, id)
+                    return crate::service::khala::start_parachain_node(config, polkadot_config, collator_options, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -655,7 +656,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "rhala-native")]
                 if config.chain_spec.is_rhala() {
-                    return crate::service::rhala::start_parachain_node(config, polkadot_config, id)
+                    return crate::service::rhala::start_parachain_node(config, polkadot_config, collator_options, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -663,7 +664,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "thala-native")]
                 if config.chain_spec.is_thala() {
-                    return crate::service::thala::start_parachain_node(config, polkadot_config, id)
+                    return crate::service::thala::start_parachain_node(config, polkadot_config, collator_options, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
@@ -671,7 +672,7 @@ pub fn run() -> Result<()> {
 
                 #[cfg(feature = "shell-native")]
                 if config.chain_spec.is_shell() {
-                    return crate::service::shell::start_parachain_node(config, polkadot_config, id)
+                    return crate::service::shell::start_parachain_node(config, polkadot_config, collator_options, id)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
