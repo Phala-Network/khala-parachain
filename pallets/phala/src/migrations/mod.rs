@@ -25,11 +25,9 @@ pub mod v4 {
 		StorageVersion,
 		StorageVersion,
 		StorageVersion,
-		StorageVersion,
 	);
 
 	const EXPECTED_STORAGE_VERSION: Versions = (
-		StorageVersion::new(1),
 		StorageVersion::new(3),
 		StorageVersion::new(0),
 		StorageVersion::new(1),
@@ -41,15 +39,13 @@ pub mod v4 {
 		StorageVersion::new(4),
 		StorageVersion::new(4),
 		StorageVersion::new(4),
-		StorageVersion::new(4),
 	);
 
 	fn get_versions<T>() -> Versions
 	where
-		T: fat::Config + mining::Config + mq::Config + registry::Config + stakepool::Config,
+		T: mining::Config + mq::Config + registry::Config + stakepool::Config,
 	{
 		(
-			StorageVersion::get::<fat::Pallet<T>>(),
 			StorageVersion::get::<mining::Pallet<T>>(),
 			StorageVersion::get::<mq::Pallet<T>>(),
 			StorageVersion::get::<registry::Pallet<T>>(),
@@ -60,7 +56,7 @@ pub mod v4 {
 	#[cfg(feature = "try-runtime")]
 	pub fn pre_migrate<T>() -> Result<(), &'static str>
 	where
-		T: fat::Config + mining::Config + mq::Config + registry::Config + stakepool::Config,
+		T: mining::Config + mq::Config + registry::Config + stakepool::Config,
 	{
 		frame_support::ensure!(
 			get_versions::<T>() == EXPECTED_STORAGE_VERSION,
@@ -71,7 +67,7 @@ pub mod v4 {
 
 	pub fn migrate<T>() -> Weight
 	where
-		T: fat::Config + mining::Config + mq::Config + registry::Config + stakepool::Config,
+		T: mining::Config + mq::Config + registry::Config + stakepool::Config,
 		MiningBalanceOf<T>: balance_convert::FixedPointConvert,
 	{
 		if get_versions::<T>() == EXPECTED_STORAGE_VERSION {
@@ -81,7 +77,6 @@ pub mod v4 {
 			weight += mining::migrations::enable_phala_tokenomic::<T>();
 			log::info!("Ᵽ pallets migrated to v4");
 
-			StorageVersion::new(4).put::<fat::Pallet<T>>();
 			StorageVersion::new(4).put::<mining::Pallet<T>>();
 			StorageVersion::new(4).put::<mq::Pallet<T>>();
 			StorageVersion::new(4).put::<registry::Pallet<T>>();
@@ -96,7 +91,7 @@ pub mod v4 {
 	#[cfg(feature = "try-runtime")]
 	pub fn post_migrate<T>() -> Result<(), &'static str>
 	where
-		T: fat::Config + mining::Config + mq::Config + registry::Config + stakepool::Config,
+		T: mining::Config + mq::Config + registry::Config + stakepool::Config,
 	{
 		frame_support::ensure!(
 			get_versions::<T>() == FINAL_STORAGE_VERSION,
