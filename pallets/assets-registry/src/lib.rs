@@ -166,7 +166,6 @@ pub mod pallet {
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
-	const LOG_TARGET: &str = "runtime::asset-registry";
 
 	type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -188,6 +187,12 @@ pub mod pallet {
 	#[pallet::getter(fn evm_to_id)]
 	pub type IdByEvmAddress<T: Config> =
 		StorageMap<_, Twox64Concat, [u8; 20], <T as pallet_assets::Config>::AssetId>;
+
+	/// Mapping fungible asset id to corresponding evm address if they have
+	#[pallet::storage]
+	#[pallet::getter(fn id_to_evm)]
+	pub type EvmAddressById<T: Config> =
+		StorageMap<_, Twox64Concat, <T as pallet_assets::Config>::AssetId, [u8; 20]>;
 
 	// Mapping fungible assets id to corresponding registry info
 	#[pallet::storage]
@@ -352,18 +357,17 @@ pub mod pallet {
 
 			// Unbind resource id and asset id if have chain bridge set
 			for bridge in info.enabled_bridges {
-				if let XBridgeConfig::ChainBridge {
-					chain_id,
-					resource_id,
-					..
-				} = bridge.config
-				{
-					log::trace!(
-						target: LOG_TARGET,
-						"Found enabled chainbridge, chain_id ${:?}.",
-						chain_id,
-					);
-					IdByResourceId::<T>::remove(&resource_id);
+				match bridge.config {
+					XBridgeConfig::ChainBridge { resource_id, .. } => {
+						IdByResourceId::<T>::remove(&resource_id);
+					}
+					XBridgeConfig::CelerBridge { evm_address, .. } => {
+						IdByEvmAddress::<T>::remove(&evm_address);
+						EvmAddressById::<T>::remove(&asset_id)
+					}
+					_ => {
+						// do nothing
+					}
 				}
 			}
 			// Delete registry info
@@ -507,6 +511,7 @@ pub mod pallet {
 				Error::<T>::BridgeAlreadyEnabled,
 			);
 			IdByEvmAddress::<T>::insert(&evm_address, &asset_id);
+			EvmAddressById::<T>::insert(&asset_id, &evm_address);
 			// Save into registry info, here save chain id can not be added more than twice
 			let reserve_location: MultiLocation = (
 				0,
@@ -552,6 +557,7 @@ pub mod pallet {
 			);
 			// Unbind evm address and asset id
 			IdByEvmAddress::<T>::remove(&evm_address);
+			EvmAddressById::<T>::remove(&asset_id);
 			// Remove Celerbridge info
 			if let Some(idx) = info
 				.enabled_bridges
@@ -592,11 +598,12 @@ pub mod pallet {
 		}
 
 		fn evm_address(id: &<T as pallet_assets::Config>::AssetId) -> Option<[u8; 20]> {
-			None
+			EvmAddressById::<T>::get(id)
 		}
 
-		fn lookup_by_evm_address(token: [u8; 20]) -> Option<MultiLocation> {
-			None
+		fn lookup_by_evm_address(evm_address: [u8; 20]) -> Option<MultiLocation> {
+			IdByEvmAddress::<T>::get(evm_address)
+				.and_then(|id| RegistryInfoByIds::<T>::get(&id).map(|m| m.location))
 		}
 	}
 
