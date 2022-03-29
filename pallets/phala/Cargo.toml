@@ -2,7 +2,7 @@
 authors = ["Phala Network"]
 edition = "2018"
 name = "phala-pallets"
-version = "3.3.0"
+version = "4.0.0"
 license = "Apache 2.0"
 homepage = "https://phala.network/"
 repository = "https://github.com/Phala-Network/phala-blockchain"
@@ -33,6 +33,7 @@ chrono = { version = "0.4", default-features = false }
 untrusted = { version = "0.7" }
 base64 = { version = "0.11", default-features = false, features = ["alloc"] }
 hex = { version = "0.4", default-features = false }
+hex-literal = "0.3.1"
 serde_json = { version = "1.0.41", default-features = false, features = ["alloc"] }
 fixed = { version = "1.9", default-features = false }
 fixed-macro = { git = "https://github.com/kvinwang/fixed-macro.git", version = "1.1", default-features = false }
@@ -48,7 +49,6 @@ webpki_wasm = { package = "webpki", path = "../../vendor/webpki", default-featur
 frame-support-test = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18" }
 assert_matches = "1.4.0"
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18" }
-hex-literal = "0.3.1"
 libsecp256k1 = { version = "0.3.2", default-features = false }
 rand = "0.7.3"
 
