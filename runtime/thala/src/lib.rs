@@ -909,6 +909,8 @@ parameter_types! {
     pub BNCAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::BNC_KEY.to_vec()))).into();
     pub VSKSMAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::VSKSM_KEY.to_vec()))).into();
     pub ZLKAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::ZLK_KEY.to_vec()))).into();
+    pub MOVRAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::moonbase::ID), PalletInstance(parachains::moonbase::DEV_INSTANCE))).into();
+    pub HKOAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::heiko::ID), GeneralKey(parachains::heiko::HKO_KEY.to_vec()))).into();
 
     pub ExecutionPriceInKSM: (AssetId, u128) = (
         KSMAssetId::get(),
@@ -942,6 +944,14 @@ parameter_types! {
         ZLKAssetId::get(),
         pha_per_second() / 4
     );
+    pub ExecutionPriceInMOVR: (AssetId, u128) = (
+        MOVRAssetId::get(),
+        pha_per_second() / 240
+    );
+    pub ExecutionPriceInHKO: (AssetId, u128) = (
+        HKOAssetId::get(),
+        pha_per_second()
+    );
 
     pub NativeExecutionPrice: u128 = pha_per_second();
     pub ExecutionPrices: Vec<(AssetId, u128)> = [
@@ -953,6 +963,8 @@ parameter_types! {
         ExecutionPriceInBNC::get(),
         ExecutionPriceInVSKSM::get(),
         ExecutionPriceInZLK::get(),
+        ExecutionPriceInMOVR::get(),
+        ExecutionPriceInHKO::get(),
     ].to_vec().into();
 
     pub FeeAssets: MultiAssets = [
@@ -964,6 +976,8 @@ parameter_types! {
         BNCAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         VSKSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         ZLKAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+        MOVRAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+        HKOAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
     ].to_vec().into();
 
     // This fee is set when we trying to send assets that dest chain not support
