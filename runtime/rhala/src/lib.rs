@@ -326,7 +326,6 @@ impl Contains<Call> for BaseCallFilter {
             // XCM
             Call::XcmpQueue { .. } |
             Call::DmpQueue { .. } |
-            Call::XcmTransfer { .. } |
             // Governance
             Call::Identity { .. } | Call::Treasury { .. } |
             Call::Democracy { .. } | Call::PhragmenElection { .. } |
