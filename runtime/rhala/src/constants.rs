@@ -93,9 +93,9 @@ pub mod parachains {
         pub const ZLK_KEY: &[u8] = &[2, 7];
     }
 
-    pub mod moonriver {
-        pub const ID: u32 = 2023;
-        pub const MOVR_INSTANCE: u8 = 10;
+    pub mod moonbase {
+        pub const ID: u32 = 1000;
+        pub const DEV_INSTANCE: u8 = 3;
     }
 
     pub mod heiko {

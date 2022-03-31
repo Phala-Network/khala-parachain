@@ -909,7 +909,7 @@ parameter_types! {
     pub BNCAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::BNC_KEY.to_vec()))).into();
     pub VSKSMAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::VSKSM_KEY.to_vec()))).into();
     pub ZLKAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::ZLK_KEY.to_vec()))).into();
-    pub MOVRAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::moonriver::ID), PalletInstance(parachains::moonriver::MOVR_INSTANCE))).into();
+    pub MOVRAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::moonbase::ID), PalletInstance(parachains::moonbase::DEV_INSTANCE))).into();
     pub HKOAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::heiko::ID), GeneralKey(parachains::heiko::HKO_KEY.to_vec()))).into();
 
     pub ExecutionPriceInKSM: (AssetId, u128) = (
