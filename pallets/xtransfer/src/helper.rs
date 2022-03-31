@@ -131,16 +131,3 @@ impl<
 		let _ = Adapter::deposit_asset(&revenue, &beneficiary);
 	}
 }
-
-// pub struct BridgeRouter<Bridge, BridgeList>(
-//     PhantomData<(Bridge, BridgeList)>,
-// );
-
-// impl<
-//     Bridge: BridgeTransact,
-//     BridgeList: Get<Vec<Bridge>>,
-// > BridgeRoute<Bridge> for BridgeRouter<Bridge, BridgeList> {
-//     fn select_bridge(asset: MultiAsset, dest: MultiLocation) -> Option<Bridge> {
-
-//     }
-// }
