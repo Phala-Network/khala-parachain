@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod celerbridge;
 pub mod chainbridge;
 pub mod fungible_adapter;
 pub mod helper;
