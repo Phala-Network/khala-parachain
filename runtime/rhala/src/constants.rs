@@ -92,4 +92,14 @@ pub mod parachains {
         pub const VSKSM_KEY: &[u8] = &[4, 4];
         pub const ZLK_KEY: &[u8] = &[2, 7];
     }
+
+    pub mod moonriver {
+        pub const ID: u32 = 2023;
+        pub const MOVR_INSTANCE: u8 = 10;
+    }
+
+    pub mod heiko {
+        pub const ID: u32 = 2085;
+        pub const HKO_KEY: &[u8] = &[72, 75, 79];   // "HKO"
+    }
 }
