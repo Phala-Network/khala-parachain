@@ -1111,6 +1111,7 @@ impl assets_registry::Config for Runtime {
     type RegistryCommitteeOrigin = EnsureRootOrHalfCouncil;
     type Currency = Balances;
     type MinBalance = ExistentialDeposit;
+    type NativeExecutionPrice = NativeExecutionPrice;
 }
 
 parameter_types! {

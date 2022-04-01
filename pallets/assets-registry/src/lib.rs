@@ -22,7 +22,7 @@ pub mod pallet {
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::AccountIdConversion;
 	use sp_std::{boxed::Box, convert::From, vec, vec::Vec};
-	use xcm::latest::{AssetId as XcmAssetId, prelude::*, MultiLocation};
+	use xcm::latest::{prelude::*, AssetId as XcmAssetId, MultiLocation};
 
 	/// Const used to indicate chainbridge path. str "cb"
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
@@ -62,6 +62,7 @@ pub mod pallet {
 		reserve_location: Option<MultiLocation>,
 		enabled_bridges: Vec<XBridge>,
 		properties: AssetProperties,
+		execution_price: Option<u128>,
 	}
 
 	pub trait GetAssetRegistryInfo<AssetId> {
@@ -163,6 +164,8 @@ pub mod pallet {
 		type Currency: Currency<Self::AccountId>;
 		#[pallet::constant]
 		type MinBalance: Get<<Self as pallet_assets::Config>::Balance>;
+		#[pallet::constant]
+		type NativeExecutionPrice: Get<u128>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
@@ -302,6 +305,7 @@ pub mod pallet {
 						metadata: Box::new(Vec::new()),
 					}],
 					properties: properties.clone(),
+					execution_price: None,
 				},
 			);
 			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::set(
@@ -379,6 +383,22 @@ pub mod pallet {
 				properties.decimals,
 			)?;
 
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_set_price(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			execution_price: u128,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
+
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			info.execution_price = Some(execution_price);
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
 			Ok(())
 		}
 
@@ -486,8 +506,15 @@ pub mod pallet {
 			RegistryInfoByIds::<T>::get(&id).map(|m| m.properties.decimals)
 		}
 
-		fn price(_location: &MultiLocation) -> Option<(XcmAssetId, u128)> {
-			None
+		fn price(location: &MultiLocation) -> Option<(XcmAssetId, u128)> {
+			IdByLocation::<T>::get(location).and_then(|id| {
+				RegistryInfoByIds::<T>::get(&id).map(|m| {
+					(
+						m.location.into(),
+						m.execution_price.unwrap_or(T::NativeExecutionPrice::get()),
+					)
+				})
+			})
 		}
 	}
 

@@ -1,6 +1,6 @@
 use assets_registry::GetAssetRegistryInfo;
 use frame_support::weights::{constants::WEIGHT_PER_SECOND, Weight};
-use sp_std::{marker::PhantomData, result::Result};
+use sp_std::{marker::PhantomData, result::Result, vec::Vec};
 use xcm::latest::{prelude::*, AssetId};
 use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, Assets};
