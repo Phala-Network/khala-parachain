@@ -25,7 +25,7 @@ pub mod pallet {
 		prelude::*,
 	};
 	use xcm::latest::{
-		prelude::*, AssetId as XcmAssetId, Fungibility::Fungible, MultiAsset, MultiLocation,
+		prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation,
 	};
 	use xcm_executor::traits::TransactAsset;
 
@@ -158,9 +158,6 @@ pub mod pallet {
 		/// Execution price in PHA
 		type NativeExecutionPrice: Get<u128>;
 
-		/// Execution price information
-		type ExecutionPriceInfo: Get<Vec<(XcmAssetId, u128)>>;
-
 		/// Treasury account to receive assets fee
 		type TreasuryAccount: Get<Self::AccountId>;
 
@@ -209,8 +206,7 @@ pub mod pallet {
 		ProposalFailed(BridgeChainId, DepositNonce),
 		FeeUpdated {
 			dest_id: BridgeChainId,
-			min_fee: u128,
-			fee_scale: u32,
+			fee: u128,
 		},
 	}
 
@@ -308,7 +304,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_fee)]
-	pub type BridgeFee<T: Config> = StorageMap<_, Twox64Concat, BridgeChainId, (u128, u32)>;
+	pub type BridgeFee<T: Config> = StorageMap<_, Twox64Concat, BridgeChainId, u128>;
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
@@ -381,18 +377,16 @@ pub mod pallet {
 		#[pallet::weight(195_000_000)]
 		pub fn update_fee(
 			origin: OriginFor<T>,
-			min_fee: u128,
-			fee_scale: u32,
+			fee: u128,
 			dest_id: BridgeChainId,
 		) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
-			ensure!(fee_scale <= 1000u32, Error::<T>::InvalidFeeOption);
-			BridgeFee::<T>::insert(dest_id, (min_fee, fee_scale));
-			Self::deposit_event(Event::FeeUpdated {
-				dest_id,
-				min_fee,
-				fee_scale,
-			});
+			ensure!(
+				fee >= T::NativeExecutionPrice::get(),
+				Error::<T>::InvalidFeeOption
+			);
+			BridgeFee::<T>::insert(dest_id, fee);
+			Self::deposit_event(Event::FeeUpdated { dest_id, fee });
 			Ok(())
 		}
 
@@ -754,20 +748,8 @@ pub mod pallet {
 			};
 		}
 
-		pub fn estimate_fee_in_pha(dest_id: BridgeChainId, amount: u128) -> Option<u128> {
-			return match Self::bridge_fee(dest_id) {
-				Some((min_fee, fee_scale)) => {
-					let fee_estimated = amount
-						.saturating_mul(fee_scale as u128)
-						.saturating_div(1000u128);
-					if fee_estimated > min_fee {
-						Some(fee_estimated)
-					} else {
-						Some(min_fee)
-					}
-				}
-				_ => None,
-			};
+		pub fn estimate_fee_in_pha(dest_id: BridgeChainId) -> Option<u128> {
+			Self::bridge_fee(dest_id)
 		}
 
 		pub fn to_e12(amount: u128, decimals: u8) -> u128 {
@@ -786,9 +768,8 @@ pub mod pallet {
 			}
 		}
 
-		pub fn convert_fee_from_pha(fee_in_pha: u128, price: u128, decimals: u8) -> u128 {
-			let fee_e12: u128 = fee_in_pha * price / T::NativeExecutionPrice::get();
-			Self::from_e12(fee_e12, decimals)
+		pub fn convert_fee_from_pha(fee_in_pha: u128, price: u128) -> u128 {
+			fee_in_pha * price / T::NativeExecutionPrice::get()
 		}
 
 		pub fn rid_to_location(rid: &[u8; 32]) -> Result<MultiLocation, DispatchError> {
@@ -827,28 +808,15 @@ pub mod pallet {
 
 		fn get_fee(chain_id: BridgeChainId, asset: &MultiAsset) -> Option<u128> {
 			if let Some((location, amount)) = Self::extract_fungible(asset.clone()) {
-				let decimals = if T::NativeAssetChecker::is_native_asset(asset) {
-					12
-				} else {
-					let id = T::AssetsRegistry::id(&location.clone())?;
-					T::AssetsRegistry::decimals(&id).unwrap_or(12)
-				};
-				if let Some(fee_in_pha) =
-					Self::estimate_fee_in_pha(chain_id, (Self::to_e12(amount, decimals)).into())
-				{
+				if let Some(fee_in_pha) = Self::estimate_fee_in_pha(chain_id) {
 					if T::NativeAssetChecker::is_native_asset(asset) {
 						Some(fee_in_pha)
 					} else {
-						let fee_prices = T::ExecutionPriceInfo::get();
-						let fee_in_asset = fee_prices
-							.iter()
-							.position(|(fee_asset_id, _)| {
-								fee_asset_id == &Concrete(location.clone())
-							})
-							.map(|idx| {
-								Self::convert_fee_from_pha(fee_in_pha, fee_prices[idx].1, decimals)
-							});
-						fee_in_asset
+						if let Some((_, execution_price)) = T::AssetsRegistry::price(&location) {
+							Some(Self::convert_fee_from_pha(fee_in_pha, execution_price))
+						} else {
+							None
+						}
 					}
 				} else {
 					None
@@ -1630,7 +1598,7 @@ pub mod pallet {
 				let recipient = vec![99];
 
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
-				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 2, dest_chain));
+				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, dest_chain));
 
 				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
 				assert_noop!(
@@ -1672,7 +1640,7 @@ pub mod pallet {
 				let recipient = vec![99];
 
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
-				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 2, dest_chain));
+				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, dest_chain));
 
 				// Register asset, id = 0
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -1735,7 +1703,7 @@ pub mod pallet {
 				let recipient = vec![99];
 
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
-				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 2, dest_chain));
+				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, dest_chain));
 
 				// Register asset, id = 0
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -1814,7 +1782,7 @@ pub mod pallet {
 				let recipient = vec![99];
 
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
-				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 2, dest_chain));
+				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, dest_chain));
 
 				// Register asset, id = 0
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -1826,6 +1794,12 @@ pub mod pallet {
 						symbol: b"BA".to_vec(),
 						decimals: 12,
 					},
+				));
+				// Set execution price of asset, price is 2 * NativeExecutionPrice * 10^(12 - 12)
+				assert_ok!(AssetsRegistry::force_set_price(
+					Origin::root(),
+					0,
+					NativeExecutionPrice::get() * 2,
 				));
 
 				// Setup solo chain for this asset
@@ -1887,7 +1861,7 @@ pub mod pallet {
 				let recipient = vec![99];
 
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
-				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 2, dest_chain));
+				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, dest_chain));
 
 				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
 				assert_noop!(
@@ -2342,8 +2316,15 @@ pub mod pallet {
 
 			ParaA::execute_with(|| {
 				let dest_chain: u8 = 2;
+				let bridge_fee = 2;
 				let test_asset_location = MultiLocation::new(1, X1(GeneralKey(b"test".to_vec())));
-				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 0, dest_chain));
+				let unregistered_asset_location =
+					MultiLocation::new(1, X1(GeneralKey(b"unregistered".to_vec())));
+				assert_ok!(ChainBridge::update_fee(
+					Origin::root(),
+					bridge_fee,
+					dest_chain
+				));
 
 				// Register asset, decimals: 18, rate with pha: 1 : 1
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -2356,6 +2337,12 @@ pub mod pallet {
 						decimals: 18,
 					},
 				));
+				// Set execution price of asset, price is 1 * NativeExecutionPrice * 10^(18-12)
+				assert_ok!(AssetsRegistry::force_set_price(
+					Origin::root(),
+					0,
+					NativeExecutionPrice::get() * 1_000_000,
+				));
 				// Register asset, decimals: 12, rate with pha: 1 : 2
 				assert_ok!(AssetsRegistry::force_register_asset(
 					Origin::root(),
@@ -2367,8 +2354,14 @@ pub mod pallet {
 						decimals: 12,
 					},
 				));
+				// Set execution price of asset, price is 2 * NativeExecutionPrice * 10^(12 - 12)
+				assert_ok!(AssetsRegistry::force_set_price(
+					Origin::root(),
+					1,
+					NativeExecutionPrice::get() * 2,
+				));
 
-				// Register asset, decimals: 12, not set as fee payment
+				// Register asset, decimals: 12, not set as fee payment, should be treat same as PHA
 				assert_ok!(AssetsRegistry::force_register_asset(
 					Origin::root(),
 					test_asset_location.clone().into(),
@@ -2391,9 +2384,16 @@ pub mod pallet {
 				)
 					.into();
 				let test_asset: MultiAsset = (test_asset_location, Fungible(100)).into();
+				let unregistered_asset: MultiAsset =
+					(unregistered_asset_location, Fungible(100)).into();
 
-				// Test asset not configured as fee payment in trader
-				assert_eq!(ChainBridge::get_fee(dest_chain, &test_asset), None);
+				// Unregistered asset fee should return None
+				assert_eq!(ChainBridge::get_fee(dest_chain, &unregistered_asset), None);
+				// Test asset not configured as fee payment in trader, execution price would would be set same with PHA
+				assert_eq!(
+					ChainBridge::get_fee(dest_chain, &test_asset),
+					Some(bridge_fee)
+				);
 				// Fee in pha is 2, decimal of balance is not set so will be set as 12 when calculating fee,
 				// asset 0 decimals is 18, and rate with pha is 1:1
 				// Final fee in asset 0 is 2_000_000
