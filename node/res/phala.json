@@ -2,8 +2,17 @@
   "name": "Phala",
   "id": "phala",
   "chainType": "Live",
-  "bootNodes": [],
-  "telemetryEndpoints": null,
+  "bootNodes": [
+    "/dns4/phala-node-hk.phala.network/tcp/30333/ws/p2p/12D3KooWAPkEheyc7QcP3Mhf4iJdmCaPN9aHUofyKTE1an4g2PCK",
+    "/dns4/phala-node-eu.phala.network/tcp/30333/ws/p2p/12D3KooWGSQvEFii28GeN1EKG7vWj6VEfM3Md8Z25nEpbzR6k3yc",
+    "/dns4/phala-node-us.phala.network/tcp/30333/ws/p2p/12D3KooWKzDSCdMpLEKCR9nEfS7arW7mmH2VyVur4XM4GgaffjeY"
+  ],
+  "telemetryEndpoints": [
+    [
+      "wss://telemetry.polkadot.io/submit/",
+      0
+    ]
+  ],
   "protocolId": "phala",
   "properties": {
     "ss58Format": 30,
