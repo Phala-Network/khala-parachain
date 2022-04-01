@@ -161,21 +161,6 @@ parameter_types! {
 	pub ParaBLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(2)));
 	pub ParaCLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(3)));
 
-	pub KSMAssetId: AssetId = KSMLocation::get().into();
-	pub LocalAssetId: AssetId = LocalParaLocation::get().into();
-	pub ParaAAssetId: AssetId = ParaALocation::get().into();
-	pub ParaBAssetId: AssetId = ParaBLocation::get().into();
-	pub ParaCAssetId: AssetId = ParaCLocation::get().into();
-
-	pub FeeAssets: MultiAssets = [
-		KSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-		LocalAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-		ParaAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-		ParaBAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-		ParaCAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-	].to_vec().into();
-
-	pub const DefaultDestChainXcmFee: Balance = 10;
 	pub TREASURY: AccountId32 = AccountId32::new([4u8; 32]);
 		// We define two test assets to simulate tranfer assets to reserve location and unreserve location,
 	// we must defiend here because those need be configed as fee payment assets
@@ -362,8 +347,6 @@ impl xcmbridge::Config for Runtime {
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type LocationInverter = LocationInverter<Ancestry>;
 	type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
-	type FeeAssets = FeeAssets;
-	type DefaultFee = DefaultDestChainXcmFee;
 	type AssetsRegistry = AssetsRegistry;
 }
 
@@ -384,7 +367,6 @@ impl chainbridge::Config for Runtime {
 	type ProposalLifetime = ProposalLifetime;
 	type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
 	type NativeExecutionPrice = NativeExecutionPrice;
-	type ExecutionPriceInfo = ExecutionPrices;
 	type TreasuryAccount = TREASURY;
 	type FungibleAdapter = XTransferAdapter<
 		CurrencyTransactor,

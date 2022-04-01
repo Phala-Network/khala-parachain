@@ -377,7 +377,7 @@ pub mod pallet {
 			ParaA::execute_with(|| {
 				// Set bridge fee and whitelist chain for the dest chain
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), 0));
-				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 0, 0));
+				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 0));
 
 				// To solochains via Chainbridge(according to the dest)
 				assert_ok!(XTransfer::transfer(
@@ -438,6 +438,12 @@ pub mod pallet {
 						decimals: 12,
 					},
 				));
+				// Set execution price of asset, price is 2 * NativeExecutionPrice * 10^(12 - 12)
+				assert_ok!(AssetsRegistry::force_set_price(
+					Origin::root(),
+					0,
+					para::NativeExecutionPrice::get() * 2,
+				));
 
 				// Enable Chainbridge bridge for the asset
 				assert_ok!(AssetsRegistry::force_enable_chainbridge(
@@ -459,7 +465,7 @@ pub mod pallet {
 
 				// Set bridge fee and whitelist chain for the dest chain
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), 0));
-				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 0, 0));
+				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 0));
 
 				// To solochains via Chainbridge(according to the dest)
 				assert_ok!(XTransfer::transfer(

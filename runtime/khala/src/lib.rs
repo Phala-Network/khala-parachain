@@ -931,38 +931,6 @@ parameter_types! {
     );
 
     pub NativeExecutionPrice: u128 = pha_per_second();
-    pub ExecutionPrices: Vec<(AssetId, u128)> = [
-        ExecutionPriceInKSM::get(),
-        ExecutionPriceInPHA::get(),
-        ExecutionPriceInLocalPHA::get(),
-        ExecutionPriceInKAR::get(),
-        ExecutionPriceInKUSD::get(),
-        ExecutionPriceInBNC::get(),
-        ExecutionPriceInVSKSM::get(),
-        ExecutionPriceInZLK::get(),
-        ExecutionPriceInMOVR::get(),
-        ExecutionPriceInHKO::get(),
-        ExecutionPriceInBSX::get(),
-    ].to_vec().into();
-
-    pub FeeAssets: MultiAssets = [
-        KSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        PHAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        LocalPHAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        KARAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        KUSDAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        BNCAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        VSKSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        ZLKAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        MOVRAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        HKOAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        BSXAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-    ].to_vec().into();
-
-    // This fee is set when we trying to send assets that dest chain not support
-    // it as trade fee, thus we set PHA as the fee asset, and give this default
-    // amount to pay fee.
-    pub const DefaultDestChainXcmFee: Balance = 10 * CENTS;
 }
 
 pub struct XcmConfig;
@@ -1085,19 +1053,17 @@ impl pallet_xcm::Config for Runtime {
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
 
-impl xcmbridge::Config for Runtime {
-    type Event = Event;
-    type Currency = Balances;
-    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-    type XcmRouter = XcmRouter;
-    type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-    type XcmExecutor = XcmExecutor<XcmConfig>;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
-    type LocationInverter = LocationInverter<Ancestry>;
-    type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
-    type FeeAssets = FeeAssets;
-    type DefaultFee = DefaultDestChainXcmFee;
-    type AssetsRegistry = AssetsRegistry;
+impl xcm_transfer::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+	type XcmRouter = XcmRouter;
+	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+	type XcmExecutor = XcmExecutor<XcmConfig>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+	type LocationInverter = LocationInverter<Ancestry>;
+	type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+	type AssetsRegistry = AssetsRegistry;
 }
 
 impl assets_registry::Config for Runtime {
@@ -1420,16 +1386,15 @@ impl chainbridge::Config for Runtime {
     type Currency = Balances;
     type ProposalLifetime = ProposalLifetime;
     type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
-    type NativeExecutionPrice = NativeExecutionPrice;
-    type ExecutionPriceInfo = ExecutionPrices;
-    type TreasuryAccount = KhalaTreasuryAccount;
-    type FungibleAdapter = XTransferAdapter<
-        CurrencyTransactor,
-        FungiblesTransactor,
-        XTransfer,
-        helper::NativeAssetFilter<ParachainInfo>,
-    >;
-    type AssetsRegistry = AssetsRegistry;
+	type NativeExecutionPrice = NativeExecutionPrice;
+	type TreasuryAccount = KhalaTreasuryAccount;
+	type FungibleAdapter = XTransferAdapter<
+		CurrencyTransactor,
+		FungiblesTransactor,
+		XTransfer,
+		helper::NativeAssetFilter<ParachainInfo>,
+	>;
+	type AssetsRegistry = AssetsRegistry;
 }
 
 impl xtransfer::Config for Runtime {
