@@ -372,6 +372,7 @@ impl assets_registry::Config for Runtime {
 	type RegistryCommitteeOrigin = EnsureRoot<AccountId>;
 	type Currency = Balances;
 	type MinBalance = AssetDeposit;
+	type NativeExecutionPrice = NativeExecutionPrice;
 }
 
 impl chainbridge::Config for Runtime {

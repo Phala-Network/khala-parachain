@@ -117,11 +117,15 @@ impl pallet_assets::Config for Test {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub NativeExecutionPrice: u128 = 1;
+}
 impl assets_registry::Config for Test {
 	type Event = Event;
 	type RegistryCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type Currency = Balances;
 	type MinBalance = ExistentialDeposit;
+	type NativeExecutionPrice = NativeExecutionPrice;
 }
 
 impl pallet_timestamp::Config for Test {
