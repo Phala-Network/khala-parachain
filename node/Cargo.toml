@@ -26,8 +26,6 @@ thiserror = "1.0"
 serde = { version = "1.0.132", features = ["derive"] }
 serde_json = { version = "1.0" }
 
-crossbeam-epoch = "=0.9.7"
-
 # RPC related dependencies
 jsonrpc-core = "18.0.0"
 

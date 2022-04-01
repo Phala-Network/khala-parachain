@@ -3929,7 +3929,6 @@ version = "0.1.13-dev"
 dependencies = [
  "async-trait",
  "clap",
- "crossbeam-epoch",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",
  "cumulus-client-consensus-common",
