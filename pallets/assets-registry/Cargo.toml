@@ -93,6 +93,7 @@ std = [
 	"frame-system/std",
 	"frame-benchmarking/std",
 	"pallet-balances/std",
+	"pallet-assets/std",
 	"parachains-common/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",

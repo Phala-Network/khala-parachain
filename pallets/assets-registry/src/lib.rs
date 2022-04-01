@@ -24,7 +24,7 @@ pub mod pallet {
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::AccountIdConversion;
 	use sp_std::{boxed::Box, convert::From, vec, vec::Vec};
-	use xcm::latest::{prelude::*, MultiLocation};
+	use xcm::latest::{AssetId as XcmAssetId, prelude::*, MultiLocation};
 
 	/// Const used to indicate chainbridge path. str "cb"
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
@@ -70,6 +70,7 @@ pub mod pallet {
 		fn id(location: &MultiLocation) -> Option<AssetId>;
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<MultiLocation>;
 		fn decimals(id: &AssetId) -> Option<u8>;
+		fn price(location: &MultiLocation) -> Option<(XcmAssetId, u128)>;
 	}
 
 	pub trait AccountId32Conversion {
@@ -485,6 +486,10 @@ pub mod pallet {
 
 		fn decimals(id: &<T as pallet_assets::Config>::AssetId) -> Option<u8> {
 			RegistryInfoByIds::<T>::get(&id).map(|m| m.properties.decimals)
+		}
+
+		fn price(_location: &MultiLocation) -> Option<(XcmAssetId, u128)> {
+			None
 		}
 	}
 
