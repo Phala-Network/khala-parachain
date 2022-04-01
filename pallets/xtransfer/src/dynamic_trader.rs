@@ -5,7 +5,11 @@ use xcm::latest::{prelude::*, AssetId};
 use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, Assets};
 
-pub struct DynamicWeightTrader<FungibleAssetId, FungibleAssetsInfo, R>(
+pub struct DynamicWeightTrader<
+	FungibleAssetId,
+	FungibleAssetsInfo: GetAssetRegistryInfo<FungibleAssetId>,
+	R: TakeRevenue,
+>(
 	Weight,
 	u128,
 	Option<(AssetId, u128)>,
@@ -61,7 +65,7 @@ where
 						last_error = Some(XcmError::TooExpensive);
 					}
 				}
-                // Only fungible assets can be used to by weight
+				// Only fungible assets can be used to by weight
 				_ => last_error = Some(XcmError::TooExpensive),
 			}
 		}
@@ -97,7 +101,10 @@ where
 {
 	fn drop(&mut self) {
 		if self.1 > 0 {
-			let (id, _) = self.2.expect("Unexpected weight payment result; qed.");
+			let (id, _) = self
+				.2
+				.clone()
+				.expect("Unexpected weight payment result; qed.");
 			R::take_revenue((id, self.1).into());
 		}
 	}
