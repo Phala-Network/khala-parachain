@@ -1046,10 +1046,10 @@ pub mod pallet {
 			T::DbWeight::get().writes(2)
 		}
 
-		pub(crate) fn fix_676<T: Config>() -> Weight {
+		pub(crate) fn signal_phala_launch<T: Config>() -> Weight {
 			use crate::mq::pallet::MessageOriginInfo;
 			use phala_types::messaging::GatekeeperEvent;
-			Pallet::<T>::queue_message(GatekeeperEvent::Fix676);
+			Pallet::<T>::queue_message(GatekeeperEvent::PhalaLaunched);
 			T::DbWeight::get().writes(1)
 		}
 
@@ -1061,7 +1061,12 @@ pub mod pallet {
 			let phala_params = TokenomicParams::decode(&mut &encoded_params[..])
 				.expect("Hardcoded TokenomicParams is valid; qed.");
 			super::ScheduledTokenomicUpdate::<T>::put(phala_params);
-			T::DbWeight::get().writes(1)
+			// Update the halving schedule
+			let now = frame_system::Pallet::<T>::block_number();
+			let interval: T::BlockNumber = 1296000_u32.into(); // 180 days in 12s
+			super::MiningStartBlock::<T>::put(now);
+			super::MiningHalvingInterval::<T>::put(interval);
+			T::DbWeight::get().reads_writes(1, 3)
 		}
 	}
 

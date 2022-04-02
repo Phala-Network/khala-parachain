@@ -73,7 +73,7 @@ pub mod v4 {
 		if get_versions::<T>() == EXPECTED_STORAGE_VERSION {
 			let mut weight: Weight = 0;
 			log::info!("Ᵽ migrating phala-pallets to v4");
-			weight += mining::migrations::fix_676::<T>();
+			weight += mining::migrations::signal_phala_launch::<T>();
 			weight += mining::migrations::enable_phala_tokenomic::<T>();
 			log::info!("Ᵽ pallets migrated to v4");
 
@@ -96,6 +96,10 @@ pub mod v4 {
 		frame_support::ensure!(
 			get_versions::<T>() == FINAL_STORAGE_VERSION,
 			"incorrect pallet versions postmigrate"
+		);
+		log::info!(
+			"Ᵽ phala mining start time is reset to {:?}",
+			mining::MiningStartBlock::<T>::get().unwrap_or_default()
 		);
 		log::info!("Ᵽ phala pallet migration passes POST migrate checks ✅",);
 		Ok(())
