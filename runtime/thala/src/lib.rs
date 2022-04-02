@@ -45,15 +45,12 @@ use constants::{
     parachains,
 };
 
-mod msg_routing;
 mod migrations;
+mod msg_routing;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use sp_api::impl_runtime_apis;
-use sp_core::{
-    crypto::KeyTypeId,
-    OpaqueMetadata,
-};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto},
@@ -70,9 +67,9 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
-        Contains, Currency, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
-        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
-        EnsureOneOf,
+        Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter,
+        IsInVec, KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness,
+        U128CurrencyToVote,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -592,10 +589,10 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const PreimageMaxSize: u32 = 4096 * 1024;
-	pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
-	// One cent: $10,000 / MB
-	pub const PreimageByteDeposit: Balance = 1 * CENTS;
+    pub const PreimageMaxSize: u32 = 4096 * 1024;
+    pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
+    // One cent: $10,000 / MB
+    pub const PreimageByteDeposit: Balance = 1 * CENTS;
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -989,10 +986,10 @@ impl Config for XcmConfig {
     type XcmSender = XcmRouter;
     // How to withdraw and deposit an asset.
     type AssetTransactor = XTransferAdapter<
-		CurrencyTransactor,
-		FungiblesTransactor,
-		XTransfer,
-		helper::NativeAssetFilter<ParachainInfo>,
+        CurrencyTransactor,
+        FungiblesTransactor,
+        XTransfer,
+        helper::NativeAssetFilter<ParachainInfo>,
     >;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = helper::AssetOriginFilter;
@@ -1003,67 +1000,35 @@ impl Config for XcmConfig {
     type Trader = (
         FixedRateOfFungible<
             ExecutionPriceInKSM,
-            helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInPHA,
-            helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInLocalPHA,
-            helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInKAR,
-            helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInKUSD,
-            helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInBNC,
-            helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInVSKSM,
-            helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInZLK,
-            helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInHKO,
@@ -1140,18 +1105,18 @@ impl pallet_xcm::Config for Runtime {
 }
 
 impl xcm_transfer::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-	type XcmRouter = XcmRouter;
-	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
-	type LocationInverter = LocationInverter<Ancestry>;
-	type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
-	type FeeAssets = FeeAssets;
-	type DefaultFee = DefaultDestChainXcmFee;
-	type AssetsRegistry = AssetsRegistry;
+    type Event = Event;
+    type Currency = Balances;
+    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmRouter = XcmRouter;
+    type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+    type LocationInverter = LocationInverter<Ancestry>;
+    type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+    type FeeAssets = FeeAssets;
+    type DefaultFee = DefaultDestChainXcmFee;
+    type AssetsRegistry = AssetsRegistry;
 }
 
 impl assets_registry::Config for Runtime {
@@ -1464,24 +1429,24 @@ impl chainbridge::Config for Runtime {
     type Currency = Balances;
     type ProposalLifetime = ProposalLifetime;
     type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
-	type NativeExecutionPrice = NativeExecutionPrice;
-	type ExecutionPriceInfo = ExecutionPrices;
-	type TreasuryAccount = KhalaTreasuryAccount;
-	type FungibleAdapter = XTransferAdapter<
-		CurrencyTransactor,
-		FungiblesTransactor,
-		XTransfer,
-		helper::NativeAssetFilter<ParachainInfo>,
-	>;
-	type AssetsRegistry = AssetsRegistry;
+    type NativeExecutionPrice = NativeExecutionPrice;
+    type ExecutionPriceInfo = ExecutionPrices;
+    type TreasuryAccount = KhalaTreasuryAccount;
+    type FungibleAdapter = XTransferAdapter<
+        CurrencyTransactor,
+        FungiblesTransactor,
+        XTransfer,
+        helper::NativeAssetFilter<ParachainInfo>,
+    >;
+    type AssetsRegistry = AssetsRegistry;
 }
 
 impl xtransfer::Config for Runtime {
-	type Event = Event;
-	type Bridge = (
-		xcm_transfer::BridgeTransactImpl<Runtime>,
-		chainbridge::BridgeTransactImpl<Runtime>,
-	);
+    type Event = Event;
+    type Bridge = (
+        xcm_transfer::BridgeTransactImpl<Runtime>,
+        chainbridge::BridgeTransactImpl<Runtime>,
+    );
 }
 
 pub struct MqCallMatcher;

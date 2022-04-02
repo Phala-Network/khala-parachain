@@ -45,10 +45,7 @@ mod migrations;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use sp_api::impl_runtime_apis;
-use sp_core::{
-    crypto::KeyTypeId,
-    OpaqueMetadata,
-};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{AccountIdLookup, Block as BlockT, ConvertInto},
@@ -65,9 +62,8 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
-        Contains, Currency, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
-        KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, Randomness, U128CurrencyToVote,
-        EnsureOneOf,
+        Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter,
+        IsInVec, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, Randomness, U128CurrencyToVote,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -258,11 +254,10 @@ impl Contains<Call> for BaseCallFilter {
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // Governance
-            Call::Identity { .. } | Call::Treasury { .. }
-            // Call::Democracy { .. } | Call::PhragmenElection { .. } |
-            // Call::Council { .. } | Call::TechnicalCommittee { .. } | Call::TechnicalMembership { .. } |
-            // Call::Bounties { .. } | Call::ChildBounties { .. } |
-            // Call::Lottery { .. } | Call::Tips { .. }
+            Call::Identity { .. } | Call::Treasury { .. } // Call::Democracy { .. } | Call::PhragmenElection { .. } |
+                                                          // Call::Council { .. } | Call::TechnicalCommittee { .. } | Call::TechnicalMembership { .. } |
+                                                          // Call::Bounties { .. } | Call::ChildBounties { .. } |
+                                                          // Call::Lottery { .. } | Call::Tips { .. }
         )
     }
 }
@@ -507,10 +502,10 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const PreimageMaxSize: u32 = 4096 * 1024;
-	pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
-	// One cent: $10,000 / MB
-	pub const PreimageByteDeposit: Balance = 1 * CENTS;
+    pub const PreimageMaxSize: u32 = 4096 * 1024;
+    pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
+    // One cent: $10,000 / MB
+    pub const PreimageByteDeposit: Balance = 1 * CENTS;
 }
 
 impl pallet_preimage::Config for Runtime {
