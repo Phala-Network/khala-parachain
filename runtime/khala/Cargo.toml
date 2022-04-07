@@ -89,7 +89,7 @@ assets-registry = { path = "../../pallets/assets-registry", default-features = f
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
 phala-pallets = { path = "../../pallets/phala", default-features = false }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }
-xtransfer-pallets = { path = "../../pallets/xtransfer", default-features = false }
+subbridge-pallets = { path = "../../pallets/subbridge", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18" }
@@ -194,7 +194,7 @@ std = [
 	"phala-pallets/std",
 	"pallet-mq-runtime-api/std",
 	"assets-registry/std",
-	"xtransfer-pallets/std",
+	"subbridge-pallets/std",
 ]
 
 try-runtime = [

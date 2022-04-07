@@ -41,7 +41,7 @@ members = [
 	"pallets/assets-registry",
 	"pallets/phala",
 	"pallets/phala/mq-runtime-api",
-	"pallets/xtransfer",
+	"pallets/subbridge",
 	"pallets/parachain-info",
 	"runtime/phala",
 	"runtime/khala",

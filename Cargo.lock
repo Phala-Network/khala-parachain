@@ -4112,11 +4112,11 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "static_assertions",
+ "subbridge-pallets",
  "substrate-wasm-builder",
  "xcm",
  "xcm-builder",
  "xcm-executor",
- "xtransfer-pallets",
 ]
 
 [[package]]
@@ -8846,11 +8846,11 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "static_assertions",
+ "subbridge-pallets",
  "substrate-wasm-builder",
  "xcm",
  "xcm-builder",
  "xcm-executor",
- "xtransfer-pallets",
 ]
 
 [[package]]
@@ -11438,6 +11438,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "subbridge-pallets"
+version = "0.1.0"
+dependencies = [
+ "assert_matches",
+ "assets-registry",
+ "cumulus-pallet-dmp-queue",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "cumulus-primitives-utility",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex-literal",
+ "impl-trait-for-tuples",
+ "log",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-parachain-info",
+ "pallet-timestamp",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-parachain",
+ "polkadot-runtime-common",
+ "polkadot-runtime-parachains",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
+ "xcm-simulator",
+]
+
+[[package]]
 name = "substrate-bip39"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11653,11 +11693,11 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "static_assertions",
+ "subbridge-pallets",
  "substrate-wasm-builder",
  "xcm",
  "xcm-builder",
  "xcm-executor",
- "xtransfer-pallets",
 ]
 
 [[package]]
@@ -12951,46 +12991,6 @@ dependencies = [
  "sp-std",
  "xcm",
  "xcm-executor",
-]
-
-[[package]]
-name = "xtransfer-pallets"
-version = "0.1.0"
-dependencies = [
- "assert_matches",
- "assets-registry",
- "cumulus-pallet-dmp-queue",
- "cumulus-pallet-parachain-system",
- "cumulus-pallet-xcm",
- "cumulus-pallet-xcmp-queue",
- "cumulus-primitives-core",
- "cumulus-primitives-utility",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "hex-literal",
- "impl-trait-for-tuples",
- "log",
- "pallet-assets",
- "pallet-balances",
- "pallet-parachain-info",
- "pallet-timestamp",
- "pallet-xcm",
- "parachains-common",
- "parity-scale-codec",
- "polkadot-parachain",
- "polkadot-runtime-common",
- "polkadot-runtime-parachains",
- "scale-info",
- "sp-arithmetic",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "xcm",
- "xcm-builder",
- "xcm-executor",
- "xcm-simulator",
 ]
 
 [[package]]

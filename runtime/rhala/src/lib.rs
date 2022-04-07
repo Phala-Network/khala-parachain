@@ -99,7 +99,7 @@ pub use parachains_common::Index;
 pub use parachains_common::*;
 
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
-pub use xtransfer_pallets::{
+pub use subbridge_pallets::{
     chainbridge, fungible_adapter::XTransferAdapter, helper, xcm_transfer, xtransfer,
 };
 

@@ -152,6 +152,8 @@ pub mod pallet {
 		fn on_forwarded(what: MultiAsset, who: MultiLocation, memo: Vec<u8>) -> DispatchResult {
 			// Every forwarded transfer will deposit asset into temporary account in advance, so here we
 			// use it as sender, asset will be withdrawn from this account.
+			// TODO: Handle the sitution when forwarding failed. Maybe need to have something like `AssesTrap`
+			// and `AssetsClaim`.
 			let temporary_account =
 				MultiLocation::new(0, X1(GeneralKey(b"bridge_transfer".to_vec()))).into_account();
 			Self::do_transfer(
