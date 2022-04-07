@@ -1,6 +1,5 @@
 pub use self::pallet::*;
 
-#[allow(unused_variables)]
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::traits::*;

@@ -1,6 +1,5 @@
 pub use self::pallet::*;
 
-#[allow(unused_variables)]
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::helper::*;
@@ -191,7 +190,7 @@ pub mod pallet {
 				weight,
 			)
 			.ensure_complete()
-			.map_err(|e| Error::<T>::ExecutionFailed)?;
+			.map_err(|_| Error::<T>::ExecutionFailed)?;
 			Ok(())
 		}
 
@@ -282,7 +281,7 @@ pub mod pallet {
 				None
 			} else {
 				match dest.last() {
-					Some(last) => {
+					Some(_) => {
 						let mut dest_location = dest.clone();
 						let beneficiary = dest_location.take_last().unwrap().into();
 						Some((dest_location, beneficiary))
@@ -334,7 +333,7 @@ pub mod pallet {
 				return false;
 			}
 
-			if let Some((asset_location, amount)) = Self::extract_fungible(asset.clone()) {
+			if let Some((asset_location, _)) = Self::extract_fungible(asset.clone()) {
 				// Reject all non-native assets that are not registered in the registry
 				if !T::NativeAssetChecker::is_native_asset(&asset)
 					&& T::AssetsRegistry::id(&asset_location) == None
@@ -349,7 +348,7 @@ pub mod pallet {
 			// TODO: NonFungible verification
 		}
 
-		fn can_send_data(data: &Vec<u8>, dest: MultiLocation) -> bool {
+		fn can_send_data(_data: &Vec<u8>, _dest: MultiLocation) -> bool {
 			// TODO: impl
 			false
 		}
@@ -426,10 +425,10 @@ pub mod pallet {
 		/// Initiates a transfer of a nonfungible asset out of the chain. This should be called by another pallet.
 		fn transfer_nonfungible(
 			&self,
-			sender: [u8; 32],
-			asset: MultiAsset,
-			dest: MultiLocation,
-			max_weight: Option<Weight>,
+			_sender: [u8; 32],
+			_asset: MultiAsset,
+			_dest: MultiLocation,
+			_max_weight: Option<Weight>,
 		) -> DispatchResult {
 			Err(Error::<T>::Unimplemented.into())
 		}
@@ -437,10 +436,10 @@ pub mod pallet {
 		/// Initiates a transfer of generic data out of the chain. This should be called by another pallet.
 		fn transfer_generic(
 			&self,
-			sender: [u8; 32],
-			data: &Vec<u8>,
-			dest: MultiLocation,
-			max_weight: Option<Weight>,
+			_sender: [u8; 32],
+			_data: &Vec<u8>,
+			_dest: MultiLocation,
+			_max_weight: Option<Weight>,
 		) -> DispatchResult {
 			Err(Error::<T>::Unimplemented.into())
 		}
