@@ -274,6 +274,22 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		// Return dest chain and beneficiary on dest chain
+		pub fn extract_dest(dest: &MultiLocation) -> Option<(MultiLocation, MultiLocation)> {
+			if dest.is_here() {
+				None
+			} else {
+				match dest.last() {
+					Some(last) => {
+						let mut dest_location = dest.clone();
+						let beneficiary = dest_location.take_last().unwrap().into();
+						Some((dest_location, beneficiary))
+					}
+					_ => None,
+				}
+			}
+		}
+
 		fn extract_fungible(asset: MultiAsset) -> Option<(MultiLocation, u128)> {
 			return match (asset.fun, asset.id) {
 				(Fungible(amount), Concrete(location)) => Some((location, amount)),
@@ -373,19 +389,8 @@ pub mod pallet {
 				id: sender,
 			}
 			.into();
-			let mut dest_location = dest.clone();
-			// Make sure we are processing crosschain transfer and we got correct path
-			ensure!(!dest_location.is_here(), Error::<T>::IllegalDestination);
-			// FIXME: what if someone give a Parachain junction at the end?
-			// After take_last(), dest only contains reserve location of the recipient.
-			let recipient = match dest_location.take_last() {
-				Some(Junction::AccountId32 {
-					network: _,
-					id: recipient,
-				}) => Some(recipient),
-				_ => None,
-			};
-			ensure!(!recipient.is_none(), Error::<T>::IllegalDestination);
+			let (dest_location, beneficiary) =
+				Pallet::<T>::extract_dest(&dest).ok_or(Error::<T>::IllegalDestination)?;
 
 			let fee = Pallet::<T>::get_fee(&asset).ok_or(Error::<T>::AssetNotFound)?;
 
@@ -394,8 +399,9 @@ pub mod pallet {
 				fee,
 				origin: origin_location.clone(),
 				dest_location,
-				recipient: recipient.unwrap().into(),
+				beneficiary,
 				dest_weight: max_weight.unwrap_or(6_000_000_000u64.into()),
+				_marker: PhantomData,
 			};
 			let mut msg = xcm_session.message()?;
 			log::trace!(
