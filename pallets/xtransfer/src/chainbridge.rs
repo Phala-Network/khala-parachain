@@ -40,18 +40,6 @@ pub mod pallet {
 	type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-	/// Helper function to concatenate a chain ID and some bytes to produce a resource ID.
-	/// The common format is (31 bytes unique ID + 1 byte chain ID).
-	pub fn derive_resource_id(chain: u8, id: &[u8]) -> ResourceId {
-		let mut r_id: ResourceId = [0; 32];
-		r_id[31] = chain; // last byte is chain id
-		let range = if id.len() > 31 { 31 } else { id.len() }; // Use at most 31 bytes
-		for i in 0..range {
-			r_id[30 - i] = id[range - 1 - i]; // Ensure left padding for eth compatibility
-		}
-		r_id
-	}
-
 	#[derive(PartialEq, Eq, Clone, Encode, Decode, TypeInfo, RuntimeDebug)]
 	pub enum ProposalStatus {
 		Initiated,
@@ -1135,22 +1123,6 @@ pub mod pallet {
 		}
 
 		#[test]
-		fn derive_ids() {
-			let chain = 1;
-			let id = [
-				0x21, 0x60, 0x5f, 0x71, 0x84, 0x5f, 0x37, 0x2a, 0x9e, 0xd8, 0x42, 0x53, 0xd2, 0xd0,
-				0x24, 0xb7, 0xb1, 0x09, 0x99, 0xf4,
-			];
-			let r_id = derive_resource_id(chain, &id);
-			let expected = [
-				0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x21, 0x60, 0x5f, 0x71,
-				0x84, 0x5f, 0x37, 0x2a, 0x9e, 0xd8, 0x42, 0x53, 0xd2, 0xd0, 0x24, 0xb7, 0xb1, 0x09,
-				0x99, 0xf4, chain,
-			];
-			assert_eq!(r_id, expected);
-		}
-
-		#[test]
 		fn complete_proposal_approved() {
 			let mut prop = ProposalVotes {
 				votes_for: vec![1, 2],
@@ -1320,7 +1292,7 @@ pub mod pallet {
 		#[test]
 		fn create_sucessful_proposal() {
 			let src_id = 1;
-			let r_id = derive_resource_id(src_id, b"remark");
+			let r_id = MultiLocation::new(1, X1(GeneralKey(b"remark".to_vec()))).into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1390,7 +1362,7 @@ pub mod pallet {
 		#[test]
 		fn create_unsucessful_proposal() {
 			let src_id = 1;
-			let r_id = derive_resource_id(src_id, b"transfer");
+			let r_id = MultiLocation::new(1, X1(GeneralKey(b"transfer".to_vec()))).into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1465,7 +1437,7 @@ pub mod pallet {
 		#[test]
 		fn execute_after_threshold_change() {
 			let src_id = 1;
-			let r_id = derive_resource_id(src_id, b"transfer");
+			let r_id = MultiLocation::new(1, X1(GeneralKey(b"transfer".to_vec()))).into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1526,7 +1498,7 @@ pub mod pallet {
 		#[test]
 		fn proposal_expires() {
 			let src_id = 1;
-			let r_id = derive_resource_id(src_id, b"remark");
+			let r_id = MultiLocation::new(1, X1(GeneralKey(b"remark".to_vec()))).into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
