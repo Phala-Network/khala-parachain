@@ -280,6 +280,26 @@ pub mod pallet {
 				_ => None,
 			};
 		}
+
+		pub fn get_fee(asset: &MultiAsset) -> Option<MultiAsset> {
+			if T::FeeAssets::get().contains(&asset)
+				|| T::NativeAssetChecker::is_native_asset(&asset)
+			{
+				match asset.fun {
+					// Whole transfer amount be set as fee, actually fee spend depends one dest chain config
+					Fungible(_) => Some(asset.clone()),
+					// We do not support nonfungible asset transfer, nor support it as fee
+					_ => None,
+				}
+			} else {
+				// Basiclly, if the asset is supported as fee in our system, it should be also supported in the dest
+				// parachain, so if we are not support use this asset as fee, try use PHA as fee asset instead
+				Some(MultiAsset {
+					fun: Fungible(T::DefaultFee::get()),
+					id: T::NativeAssetChecker::native_asset_location().into(),
+				})
+			}
+		}
 	}
 
 	impl<T: Config> BridgeChecker for Pallet<T>
@@ -367,26 +387,7 @@ pub mod pallet {
 			};
 			ensure!(!recipient.is_none(), Error::<T>::IllegalDestination);
 
-			let fee = if T::FeeAssets::get().contains(&asset)
-				|| T::NativeAssetChecker::is_native_asset(&asset)
-			{
-				match asset.fun {
-					// So far only half of amount are allowed to be used as fee
-					Fungible(amount) => MultiAsset {
-						fun: Fungible(amount / 2),
-						id: asset.id.clone(),
-					},
-					// We do not support unfungible asset transfer, nor support it as fee
-					_ => return Err(Error::<T>::AssetNotFound.into()),
-				}
-			} else {
-				// Basiclly, if the asset is supported as fee in our system, it should be also supported in the dest
-				// parachain, so if we are not support use this asset as fee, try use PHA as fee asset instead
-				MultiAsset {
-					fun: Fungible(T::DefaultFee::get()),
-					id: T::NativeAssetChecker::native_asset_location().into(),
-				}
-			};
+			let fee = Pallet::<T>::get_fee(&asset).ok_or(Error::<T>::AssetNotFound)?;
 
 			let xcm_session = XCMSession::<T> {
 				asset: asset.clone(),
