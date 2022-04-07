@@ -1,5 +1,5 @@
 use super::ParachainXcmRouter;
-use crate::{chainbridge, fungible_adapter::XTransferAdapter, helper, xcm_transfer, xtransfer};
+use crate::{chainbridge, fungible_adapter::XTransferAdapter, helper, xcmbridge, xtransfer};
 
 use assets_registry;
 use frame_support::{
@@ -62,7 +62,7 @@ construct_runtime!(
 
 		// Local palelts
 		AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>},
-		XcmTransfer: xcm_transfer::{Pallet, Storage, Event<T>},
+		XcmBridge: xcmbridge::{Pallet, Storage, Event<T>},
 		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
 		XTransfer: xtransfer::{Pallet, Call, Storage, Event<T>},
 	}
@@ -352,7 +352,7 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
 
-impl xcm_transfer::Config for Runtime {
+impl xcmbridge::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
@@ -397,7 +397,7 @@ impl chainbridge::Config for Runtime {
 impl xtransfer::Config for Runtime {
 	type Event = Event;
 	type Bridge = (
-		xcm_transfer::BridgeTransactImpl<Runtime>,
+		xcmbridge::BridgeTransactImpl<Runtime>,
 		chainbridge::BridgeTransactImpl<Runtime>,
 	);
 }

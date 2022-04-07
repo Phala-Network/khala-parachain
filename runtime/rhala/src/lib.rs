@@ -100,7 +100,7 @@ pub use parachains_common::*;
 
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
 pub use subbridge_pallets::{
-    chainbridge, fungible_adapter::XTransferAdapter, helper, xcm_transfer, xtransfer,
+    chainbridge, fungible_adapter::XTransferAdapter, helper, xcmbridge, xtransfer,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -251,7 +251,7 @@ construct_runtime! {
 
         // ChainBridge
         ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>} = 80,
-        XcmTransfer: xcm_transfer::{Pallet, Event<T>, Storage} = 81,
+        XcmBridge: xcmbridge::{Pallet, Event<T>, Storage} = 81,
         XTransfer: xtransfer::{Pallet, Call, Storage, Event<T>} = 82,
 
         // Phala
@@ -1084,7 +1084,7 @@ impl pallet_xcm::Config for Runtime {
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
 
-impl xcm_transfer::Config for Runtime {
+impl xcmbridge::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
@@ -1424,7 +1424,7 @@ impl chainbridge::Config for Runtime {
 impl xtransfer::Config for Runtime {
     type Event = Event;
     type Bridge = (
-        xcm_transfer::BridgeTransactImpl<Runtime>,
+        xcmbridge::BridgeTransactImpl<Runtime>,
         chainbridge::BridgeTransactImpl<Runtime>,
     );
 }

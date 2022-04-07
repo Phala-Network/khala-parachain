@@ -5,5 +5,5 @@ pub mod fungible_adapter;
 pub mod helper;
 mod mock;
 pub mod traits;
-pub mod xcm_transfer;
+pub mod xcmbridge;
 pub mod xtransfer;

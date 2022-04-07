@@ -565,7 +565,7 @@ pub mod pallet {
 			});
 
 			ParaA::execute_with(|| {
-				let bridge_impl = crate::xcm_transfer::BridgeTransactImpl::<Runtime>::new();
+				let bridge_impl = crate::xcmbridge::BridgeTransactImpl::<Runtime>::new();
 				// ParaA send it's own native asset to paraB
 				assert_ok!(bridge_impl.transfer_fungible(
 					ALICE.into(),
