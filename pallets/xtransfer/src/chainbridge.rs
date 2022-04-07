@@ -204,6 +204,8 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
+		/// Relayer threshold not set
+		_ThresholdNotSet,
 		/// Provided chain Id is not valid
 		InvalidChainId,
 		/// Relayer threshold cannot be 0
@@ -212,6 +214,8 @@ pub mod pallet {
 		ChainNotWhitelisted,
 		/// Chain has already been enabled
 		ChainAlreadyWhitelisted,
+		/// Resource ID provided isn't mapped to anything
+		_ResourceDoesNotExist,
 		/// Relayer already in set
 		RelayerAlreadyExists,
 		/// Provided accountId is not a relayer
@@ -1216,7 +1220,6 @@ pub mod pallet {
 			ParaA::execute_with(|| {
 				let chain_id: BridgeChainId = 2;
 				let bad_dest_id: BridgeChainId = 3;
-				let resource_id = [4; 32];
 
 				assert_ok!(ChainBridge::whitelist_chain(
 					Origin::root(),

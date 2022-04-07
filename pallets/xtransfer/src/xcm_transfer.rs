@@ -81,22 +81,26 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Unimplemented function
-		Unimplemented,
+		_UnknownError,
 		/// Can not reanchor asset location according dest
 		CannotReanchor,
 		/// Failed to measure weight of a XCM message
 		UnweighableMessage,
+		_FeePaymentEmpty,
 		/// XCM message executeion failed due to some reasons
 		ExecutionFailed,
-		/// Transfer type not valid
-		UnknownTransferType,
+		_UnknownTransfer,
 		/// Asset not been registered or not been supported
 		AssetNotFound,
+		_LocationInvertFailed,
 		/// Extract dest location failed
 		IllegalDestination,
 		/// Can not transfer asset to dest
 		CannotDepositAsset,
+		/// Transfer type not valid
+		UnknownTransferType,
+		/// Unimplemented function
+		Unimplemented,
 	}
 
 	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
