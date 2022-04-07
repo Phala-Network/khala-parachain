@@ -173,7 +173,7 @@ pub mod pallet {
 	/// Mapping fungible asset location to corresponding asset id
 	#[pallet::storage]
 	#[pallet::getter(fn location_to_id)]
-	pub type IdByLocation<T: Config> =
+	pub type IdByLocations<T: Config> =
 		StorageMap<_, Twox64Concat, MultiLocation, <T as pallet_assets::Config>::AssetId>;
 
 	/// Mapping fungible asset resource id to corresponding asset id
@@ -197,7 +197,7 @@ pub mod pallet {
 			location: MultiLocation,
 		},
 		/// Asset is unregisterd.
-		AssetUnRegistered {
+		AssetUnregistered {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			location: MultiLocation,
 		},
@@ -257,7 +257,7 @@ pub mod pallet {
 					&fund_account,
 					&recipient,
 					amount.into(),
-					ExistenceRequirement::KeepAlive,
+					ExistenceRequirement::AllowDeath,
 				)?;
 			}
 			Ok(())
@@ -274,7 +274,7 @@ pub mod pallet {
 			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
 			// Ensure location has not been registered
 			ensure!(
-				IdByLocation::<T>::get(&location) == None,
+				IdByLocations::<T>::get(&location) == None,
 				Error::<T>::AssetAlreadyExist
 			);
 			// Ensure asset_id has not been registered
@@ -289,7 +289,7 @@ pub mod pallet {
 				true,
 				T::MinBalance::get(),
 			)?;
-			IdByLocation::<T>::insert(&location, asset_id);
+			IdByLocations::<T>::insert(&location, asset_id);
 			RegistryInfoByIds::<T>::insert(
 				asset_id,
 				AssetRegistryInfo {
@@ -329,7 +329,7 @@ pub mod pallet {
 			let info =
 				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
 
-			IdByLocation::<T>::remove(&info.location);
+			IdByLocations::<T>::remove(&info.location);
 
 			// Unbind resource id and asset id if have chain bridge set
 			for bridge in info.enabled_bridges {
@@ -350,7 +350,7 @@ pub mod pallet {
 			// Delete registry info
 			RegistryInfoByIds::<T>::remove(&asset_id);
 
-			Self::deposit_event(Event::AssetUnRegistered {
+			Self::deposit_event(Event::AssetUnregistered {
 				asset_id,
 				location: info.location,
 			});
@@ -473,7 +473,7 @@ pub mod pallet {
 
 	impl<T: Config> GetAssetRegistryInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
 		fn id(asset: &MultiLocation) -> Option<<T as pallet_assets::Config>::AssetId> {
-			IdByLocation::<T>::get(asset)
+			IdByLocations::<T>::get(asset)
 		}
 
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<MultiLocation> {
@@ -493,7 +493,7 @@ pub mod pallet {
 			mock::*, AccountId32Conversion, AssetProperties, GetAssetRegistryInfo,
 			ASSETS_REGISTRY_ID,
 		};
-		use frame_support::{assert_err, assert_noop, assert_ok};
+		use frame_support::{assert_noop, assert_ok};
 		use sp_runtime::{traits::AccountIdConversion, AccountId32, DispatchError};
 
 		#[test]
@@ -571,8 +571,8 @@ pub mod pallet {
 					interior: X1(Parachain(1)),
 				};
 
-				// Should be failed if origin is from sudo user
-				assert_err!(
+				// Should be failed if origin is not sudo user
+				assert_noop!(
 					AssetsRegistry::force_register_asset(
 						Some(ALICE).into(),
 						para_a_location.clone().into(),

@@ -122,17 +122,15 @@ pub mod pallet {
 
 	impl<T: Config> XCMSession<T> {
 		fn kind(&self) -> Option<TransferType> {
-			let mut transfer_type = None;
 			ConcrateAsset::origin(&self.asset).map(|asset_reserve_location| {
 				if T::NativeAssetChecker::is_native_asset_location(&asset_reserve_location) {
-					transfer_type = Some(TransferType::FromNative);
+					TransferType::FromNative
 				} else if asset_reserve_location == self.dest_location {
-					transfer_type = Some(TransferType::ToReserve);
+					TransferType::ToReserve
 				} else {
-					transfer_type = Some(TransferType::ToNonReserve);
+					TransferType::ToNonReserve
 				}
-			});
-			transfer_type
+			})
 		}
 
 		// The buy execution xcm instructions always executed on the relative dest chain,
@@ -156,6 +154,9 @@ pub mod pallet {
 			})
 		}
 
+		/// For relaychain, parachian location always have 0 `parents`, that means
+		/// when we transfer assets that reserved in relaychain to parachains, we need
+		/// reanchore the dest location, e.g. set `parents` field to 0.
 		fn invert_based_reserve(
 			&self,
 			reserve: MultiLocation,
@@ -291,10 +292,10 @@ pub mod pallet {
 		}
 
 		fn extract_fungible(asset: MultiAsset) -> Option<(MultiLocation, u128)> {
-			return match (asset.fun, asset.id) {
+			match (asset.fun, asset.id) {
 				(Fungible(amount), Concrete(location)) => Some((location, amount)),
 				_ => None,
-			};
+			}
 		}
 
 		pub fn get_fee(asset: &MultiAsset) -> Option<MultiAsset> {
@@ -333,7 +334,7 @@ pub mod pallet {
 			}
 
 			if let Some((asset_location, amount)) = Self::extract_fungible(asset.clone()) {
-				// Verify if asset was registered if is not native.
+				// Reject all non-native assets that are not registered in the registry
 				if !T::NativeAssetChecker::is_native_asset(&asset)
 					&& T::AssetsRegistry::id(&asset_location) == None
 				{
@@ -349,7 +350,7 @@ pub mod pallet {
 
 		fn can_send_data(data: &Vec<u8>, dest: MultiLocation) -> bool {
 			// TODO: impl
-			return false;
+			false
 		}
 	}
 
@@ -372,7 +373,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			log::trace!(
 				target: LOG_TARGET,
-				" Xcm fungible transfer, sender: {:?}, asset: {:?}, dest: {:?}, max_weight: {:?}.",
+				"Xcm fungible transfer, sender: {:?}, asset: {:?}, dest: {:?}, max_weight: {:?}.",
 				sender,
 				&asset,
 				&dest,
@@ -469,7 +470,7 @@ pub mod pallet {
 		fn test_transfer_native_to_parachain() {
 			TestNet::reset();
 
-			let para_a_location: MultiLocation = MultiLocation {
+			let para_a_location = MultiLocation {
 				parents: 1,
 				interior: X1(Parachain(1)),
 			};
@@ -520,7 +521,7 @@ pub mod pallet {
 		fn test_transfer_to_reserve_parachain() {
 			TestNet::reset();
 
-			let para_a_location: MultiLocation = MultiLocation {
+			let para_a_location = MultiLocation {
 				parents: 1,
 				interior: X1(Parachain(1)),
 			};

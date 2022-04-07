@@ -61,7 +61,7 @@ impl BridgeTransact for Tuple {
             }
         )* );
 		let last_error = last_error.unwrap_or(DispatchError::Other("TransactFailed"));
-		log::trace!(target: "BridgeTransact::transfer_fungible", "last_error: {:?}", last_error);
+		log::trace!(target: "runtime::BridgeTransact::transfer_fungible", "last_error: {:?}", last_error);
 		Err(last_error)
 	}
 
@@ -80,7 +80,7 @@ impl BridgeTransact for Tuple {
             }
         )* );
 		let last_error = last_error.unwrap_or(DispatchError::Other("TransactFailed"));
-		log::trace!(target: "BridgeTransact::transfer_nonfungible", "last_error: {:?}", last_error);
+		log::trace!(target: "runtime::BridgeTransact::transfer_nonfungible", "last_error: {:?}", last_error);
 		Err(last_error)
 	}
 
@@ -99,7 +99,7 @@ impl BridgeTransact for Tuple {
             }
         )* );
 		let last_error = last_error.unwrap_or(DispatchError::Other("TransactFailed"));
-		log::trace!(target: "BridgeTransact::transfer_generic", "last_error: {:?}", last_error);
+		log::trace!(target: "runtime::BridgeTransact::transfer_generic", "last_error: {:?}", last_error);
 		Err(last_error)
 	}
 }

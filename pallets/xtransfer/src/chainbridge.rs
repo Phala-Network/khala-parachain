@@ -730,14 +730,14 @@ pub mod pallet {
 		}
 
 		fn extract_fungible(asset: MultiAsset) -> Option<(MultiLocation, u128)> {
-			return match (asset.fun, asset.id) {
+			match (asset.fun, asset.id) {
 				(Fungible(amount), Concrete(location)) => Some((location, amount)),
 				_ => None,
-			};
+			}
 		}
 
 		fn extract_dest(dest: &MultiLocation) -> Option<(BridgeChainId, Vec<u8>)> {
-			return match (dest.parents, &dest.interior) {
+			match (dest.parents, &dest.interior) {
 				// Destnation is a foreign chain. Forward it through the bridge
 				(
 					0,
@@ -751,23 +751,20 @@ pub mod pallet {
 					}
 				}
 				_ => None,
-			};
+			}
 		}
 
 		pub fn estimate_fee_in_pha(dest_id: BridgeChainId, amount: u128) -> Option<u128> {
-			return match Self::bridge_fee(dest_id) {
-				Some((min_fee, fee_scale)) => {
-					let fee_estimated = amount
-						.saturating_mul(fee_scale as u128)
-						.saturating_div(1000u128);
-					if fee_estimated > min_fee {
-						Some(fee_estimated)
-					} else {
-						Some(min_fee)
-					}
+			Self::bridge_fee(dest_id).map(|(min_fee, fee_scale)| {
+				let fee_estimated = amount
+					.saturating_mul(fee_scale as u128)
+					.saturating_div(1000u128);
+				if fee_estimated > min_fee {
+					fee_estimated
+				} else {
+					min_fee
 				}
-				_ => None,
-			};
+			})
 		}
 
 		pub fn to_e12(amount: u128, decimals: u8) -> u128 {
@@ -897,7 +894,7 @@ pub mod pallet {
 				(Some((asset_location, _)), Some((dest_id, _))) => {
 					let rid = asset_location.clone().into_rid(dest_id);
 					// Verify if dest chain has been whitelisted
-					if Self::chain_whitelisted(dest_id) == false {
+					if !Self::chain_whitelisted(dest_id) {
 						return false;
 					}
 
@@ -906,7 +903,7 @@ pub mod pallet {
 						return false;
 					}
 
-					// Verify if asset was registered if is not native.
+					// Reject all non-native assets that are not registered in the registry
 					if !T::NativeAssetChecker::is_native_asset(&asset)
 						&& T::AssetsRegistry::id(&asset_location) == None
 					{
@@ -929,7 +926,7 @@ pub mod pallet {
 
 		fn can_send_data(_data: &Vec<u8>, _dest: MultiLocation) -> bool {
 			// TODO: impl
-			return false;
+			false
 		}
 	}
 
