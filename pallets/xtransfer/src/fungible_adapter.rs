@@ -17,30 +17,6 @@ impl<
 		NativeChecker: NativeAssetChecker,
 	> TransactAsset for XTransferAdapter<NativeAdapter, AssetsAdapter, Transactor, NativeChecker>
 {
-	fn can_check_in(_origin: &MultiLocation, what: &MultiAsset) -> XcmResult {
-		if NativeChecker::is_native_asset(what) {
-			NativeAdapter::can_check_in(_origin, what)
-		} else {
-			AssetsAdapter::can_check_in(_origin, what)
-		}
-	}
-
-	fn check_in(_origin: &MultiLocation, what: &MultiAsset) {
-		if NativeChecker::is_native_asset(what) {
-			NativeAdapter::check_in(_origin, what)
-		} else {
-			AssetsAdapter::check_in(_origin, what)
-		}
-	}
-
-	fn check_out(_dest: &MultiLocation, what: &MultiAsset) {
-		if NativeChecker::is_native_asset(what) {
-			NativeAdapter::check_out(_dest, what)
-		} else {
-			AssetsAdapter::check_out(_dest, what)
-		}
-	}
-
 	fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult {
 		match (who.parents, &who.interior) {
 			// Deposit to local accounts or sibling parachain sovereign accounts
