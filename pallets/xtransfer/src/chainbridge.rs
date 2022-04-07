@@ -128,6 +128,7 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
+	// TODO: remove when we Vec get replaced by BoundedVec
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
@@ -887,7 +888,7 @@ pub mod pallet {
 		<T as pallet_assets::Config>::Balance: From<u128> + Into<u128>,
 	{
 		fn can_deposit_asset(asset: MultiAsset, dest: MultiLocation) -> bool {
-			return match (
+			match (
 				Self::extract_fungible(asset.clone()),
 				Self::extract_dest(&dest),
 			) {
@@ -920,7 +921,7 @@ pub mod pallet {
 					true
 				}
 				_ => false,
-			};
+			}
 			// TODO: NonFungible verification
 		}
 
