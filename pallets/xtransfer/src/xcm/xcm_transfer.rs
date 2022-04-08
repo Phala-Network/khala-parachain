@@ -14,7 +14,7 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
-	use sp_runtime::{traits::AccountIdConversion, DispatchError};
+	use sp_runtime::DispatchError;
 	use sp_std::{convert::TryInto, prelude::*, vec};
 	use xcm::latest::{prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation};
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
@@ -161,7 +161,11 @@ pub mod pallet {
 				fee: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
 				origin: MultiLocation::new(1, X1(Parachain(1u32))),
 				dest_location: MultiLocation::new(1, X1(Parachain(2u32))),
-				beneficiary: GeneralKey(b"recipient".to_vec()).into(),
+				beneficiary: Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: [0u8; 32],
+				}
+				.into(),
 				dest_weight: 0,
 				_marker: PhantomData,
 			};
@@ -325,7 +329,7 @@ pub mod pallet {
 		dest_location: MultiLocation,
 		beneficiary: MultiLocation,
 		dest_weight: Weight,
-		_marker: PhantomData<*const T>,
+		_marker: PhantomData<T>,
 	}
 
 	impl<T: Config> XCMSession<T> {
