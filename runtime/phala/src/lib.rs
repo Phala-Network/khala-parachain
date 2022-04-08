@@ -245,6 +245,8 @@ impl Contains<Call> for BaseCallFilter {
 
         matches!(
             call,
+            // Sudo
+            Call::Sudo { .. } |
             // System
             Call::System { .. } | Call::Timestamp { .. } | Call::Utility { .. } |
             Call::Multisig { .. } | Call::Proxy { .. } | Call::Scheduler { .. } |
