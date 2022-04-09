@@ -1058,6 +1058,22 @@ impl Config for XcmConfig {
                 KhalaTreasuryAccount,
             >,
         >,
+        FixedRateOfFungible<
+            ExecutionPriceInHKO,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
+        >,
+        FixedRateOfFungible<
+            ExecutionPriceInMOVR,
+            xcm_helper::XTransferTakeRevenue<
+                Self::AssetTransactor,
+                AccountId,
+                KhalaTreasuryAccount,
+            >,
+        >,
     );
     type ResponseHandler = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
