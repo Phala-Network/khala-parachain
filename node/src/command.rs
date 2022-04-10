@@ -196,12 +196,11 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 
     #[cfg(feature = "rhala-native")]
     if runtime_name == "rhala" {
-        // TODO: Export when we preparing for Rococo
-        // if profile.is_err() && para_id.is_err() {
-        //     return Ok(Box::new(chain_spec::rhala::ChainSpec::from_json_bytes(
-        //         &include_bytes!("../res/rhala.json")[..],
-        //     )?));
-        // }
+        if profile.is_err() && para_id.is_err() {
+            return Ok(Box::new(chain_spec::rhala::ChainSpec::from_json_bytes(
+                &include_bytes!("../res/rhala.json")[..],
+            )?));
+        }
 
         return match profile? {
             "dev" => Ok(Box::new(chain_spec::rhala::development_config(
