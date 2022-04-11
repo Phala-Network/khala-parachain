@@ -99,5 +99,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-builder/std",
 	"pallet-balances/std",
+	"pallet-assets/std",
 	"parachains-common/std",
 ]

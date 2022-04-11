@@ -14,7 +14,7 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
-	use sp_runtime::{traits::AccountIdConversion, DispatchError};
+	use sp_runtime::DispatchError;
 	use sp_std::{convert::TryInto, prelude::*, vec};
 	use xcm::latest::{prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation};
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
@@ -161,8 +161,13 @@ pub mod pallet {
 				fee: (MultiLocation::new(1, Here), Fungible(0u128)).into(),
 				origin: MultiLocation::new(1, X1(Parachain(1u32))),
 				dest_location: MultiLocation::new(1, X1(Parachain(2u32))),
-				recipient: pallet_assets_wrapper::ASSETS_REGISTRY_ID.into_account(),
+				beneficiary: Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: [0u8; 32],
+				}
+				.into(),
 				dest_weight: 0,
+				_marker: PhantomData,
 			};
 			let mut msg = nonreserve_xcm_transfer_session
 				.message()
@@ -197,28 +202,17 @@ pub mod pallet {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			let mut dest_location = dest.clone();
-			// Make sure we are processing crosschain transfer and we got correct path
-			ensure!(!dest_location.is_here(), Error::<T>::IllegalDestination);
-			// FIXME: what if someone give a Parachain junction at the end?
-			// After take_last(), dest only contains reserve location of the recipient.
-			let recipient = match dest_location.take_last() {
-				Some(Junction::AccountId32 {
-					network: _,
-					id: recipient,
-				}) => Some(recipient),
-				_ => None,
-			};
-			ensure!(!recipient.is_none(), Error::<T>::IllegalDestination);
-
+			let (dest_location, beneficiary) =
+				Self::extract_dest(&dest).ok_or(Error::<T>::IllegalDestination)?;
 			let fee = Self::get_fee(&asset).ok_or(Error::<T>::AssetNotFound)?;
 			let xcm_session = XCMSession::<T> {
 				asset: asset.clone(),
 				fee,
 				origin: origin.clone(),
 				dest_location,
-				recipient: recipient.unwrap().into(),
+				beneficiary,
 				dest_weight,
+				_marker: PhantomData,
 			};
 			let mut msg = xcm_session.message()?;
 			log::trace!(
@@ -236,6 +230,22 @@ pub mod pallet {
 			});
 
 			Ok(())
+		}
+
+		// Return dest chain and beneficiary on dest chain
+		pub fn extract_dest(dest: &MultiLocation) -> Option<(MultiLocation, MultiLocation)> {
+			if dest.is_here() {
+				None
+			} else {
+				match dest.last() {
+					Some(last) => {
+						let mut dest_location = dest.clone();
+						let beneficiary = dest_location.take_last().unwrap().into();
+						Some((dest_location, beneficiary))
+					}
+					_ => None,
+				}
+			}
 		}
 	}
 
@@ -316,10 +326,10 @@ pub mod pallet {
 		asset: MultiAsset,
 		fee: MultiAsset,
 		origin: MultiLocation,
-		// Where recipient located in
 		dest_location: MultiLocation,
-		recipient: T::AccountId,
+		beneficiary: MultiLocation,
 		dest_weight: Weight,
+		_marker: PhantomData<T>,
 	}
 
 	impl<T: Config> XCMSession<T> {
@@ -390,12 +400,6 @@ pub mod pallet {
 		}
 
 		fn message(&self) -> Result<Xcm<T::Call>, DispatchError> {
-			let beneficiary: MultiLocation = Junction::AccountId32 {
-				network: NetworkId::Any,
-				id: self.recipient.clone().into(),
-			}
-			.into();
-
 			// If self.asset.id == self.fee.id, self.asset must contains self.fee
 			let (withdraw_asset, max_assets) = if self.asset.contains(&self.fee) {
 				// The assets to pay the fee is the same as the main assets. Only one withdraw is required.
@@ -410,7 +414,7 @@ pub mod pallet {
 			let deposit_asset = DepositAsset {
 				assets: Wild(All),
 				max_assets,
-				beneficiary: beneficiary.into(),
+				beneficiary: self.beneficiary.clone(),
 			};
 
 			let kind = self.kind().ok_or(Error::<T>::UnknownTransfer)?;
