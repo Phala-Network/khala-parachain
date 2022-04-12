@@ -19,7 +19,7 @@ pub mod pallet {
 
 	/// The logging target.
 	const LOG_TARGET: &str = "runtime::xcm-transfer";
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]

@@ -18,3 +18,39 @@ use frame_support::traits::OnRuntimeUpgrade;
 // The final decision is to just skip the pre_upgrade checks. We have carefully checked all the
 // pre_upgrade checks and confirmed that only the prefix checks are skipped. All the other checks
 // are still performed in an offline try-runtime test.
+
+pub struct SubbridgeMigrations;
+
+impl OnRuntimeUpgrade for SubbridgeMigrations {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        subbridge_pallets::migration::subbridge_migration::migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<(), &'static str> {
+        subbridge_pallets::migration::subbridge_migration::pre_migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade() -> Result<(), &'static str> {
+        subbridge_pallets::migration::subbridge_migration::post_migrate::<Runtime>()
+    }
+}
+
+pub struct AssetsRegistryMigrations;
+
+impl OnRuntimeUpgrade for AssetsRegistryMigrations {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        assets_registry::migration::assets_registry_migration::migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<(), &'static str> {
+        assets_registry::migration::assets_registry_migration::pre_migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade() -> Result<(), &'static str> {
+        assets_registry::migration::assets_registry_migration::post_migrate::<Runtime>()
+    }
+}

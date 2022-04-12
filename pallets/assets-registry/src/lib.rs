@@ -3,6 +3,8 @@
 #[cfg(test)]
 mod mock;
 
+pub mod migration;
+
 pub use pallet::*;
 
 #[frame_support::pallet]
@@ -45,8 +47,8 @@ pub mod pallet {
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub struct XBridge {
-		config: XBridgeConfig,
-		metadata: Box<Vec<u8>>,
+		pub config: XBridgeConfig,
+		pub metadata: Box<Vec<u8>>,
 	}
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
@@ -58,10 +60,10 @@ pub mod pallet {
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub struct AssetRegistryInfo {
-		location: MultiLocation,
-		reserve_location: Option<MultiLocation>,
-		enabled_bridges: Vec<XBridge>,
-		properties: AssetProperties,
+		pub location: MultiLocation,
+		pub reserve_location: Option<MultiLocation>,
+		pub enabled_bridges: Vec<XBridge>,
+		pub properties: AssetProperties,
 	}
 
 	pub trait GetAssetRegistryInfo<AssetId> {
@@ -164,7 +166,7 @@ pub mod pallet {
 		type MinBalance: Get<<Self as pallet_assets::Config>::Balance>;
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 	const LOG_TARGET: &str = "runtime::asset-registry";
 
 	type BalanceOf<T> =

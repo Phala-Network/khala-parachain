@@ -7,3 +7,5 @@ mod mock;
 pub mod traits;
 pub mod xcmbridge;
 pub mod xtransfer;
+
+pub mod migration;
