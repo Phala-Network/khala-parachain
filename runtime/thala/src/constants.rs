@@ -100,6 +100,6 @@ pub mod parachains {
 
     pub mod heiko {
         pub const ID: u32 = 2085;
-        pub const HKO_KEY: &[u8] = &[72, 75, 79];   // "HKO"
+        pub const HKO_KEY: &[u8] = &[72, 75, 79]; // "HKO"
     }
 }

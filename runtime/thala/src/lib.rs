@@ -192,7 +192,7 @@ pub type Executive = frame_executive::Executive<
     (
         migrations::SubbridgeMigrations,
         migrations::AssetsRegistryMigrations,
-    )
+    ),
 >;
 
 type EnsureRootOrHalfCouncil = EnsureOneOf<
@@ -1036,19 +1036,11 @@ impl Config for XcmConfig {
         >,
         FixedRateOfFungible<
             ExecutionPriceInHKO,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInMOVR,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
     );
     type ResponseHandler = PolkadotXcm;

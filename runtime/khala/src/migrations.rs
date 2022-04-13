@@ -37,4 +37,3 @@ impl OnRuntimeUpgrade for AssetsRegistryMigrations {
         assets_registry::migration::assets_registry_migration::post_migrate::<Runtime>()
     }
 }
->>>>>>> migration
