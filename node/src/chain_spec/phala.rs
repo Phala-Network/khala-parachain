@@ -145,7 +145,7 @@ pub fn staging_config() -> ChainSpec {
                     .into_iter()
                     .map(|(k, amount)| (k, u128::from_str(&amount).expect("Bad amount; qed.")))
                     .collect(),
-                2035u32.into(),
+                2041u32.into(),
             )
         },
         Vec::new(),
@@ -155,7 +155,7 @@ pub fn staging_config() -> ChainSpec {
         chain_properties(),
         Extensions {
             relay_chain: "polkadot".into(),
-            para_id: 2035,
+            para_id: 2041,
             runtime: "phala".to_string(),
         },
     )
