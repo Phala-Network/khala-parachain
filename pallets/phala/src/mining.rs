@@ -772,7 +772,13 @@ pub mod pallet {
 					init_p: p,
 				},
 			));
-			Self::deposit_event(Event::<T>::MinerStarted(miner));
+			Self::deposit_event(Event::<T>::MinerStarted(miner.clone()));
+            {
+                log::warn!("mining::start_mining()");
+                log::warn!("v = {}", ve);
+                let m = Miners::<T>::get(&miner);
+                log::warn!("miner = {:?}", m);
+            }
 			Ok(())
 		}
 
@@ -889,7 +895,16 @@ pub mod pallet {
 			let tweaked_re = (re - f1) * score + f1;
 			let s = s.to_fixed();
 			let c = self.rig_cost(p);
-			tweaked_re * (s + c)
+			let res = tweaked_re * (s + c);
+
+            log::warn!("f1 = {}", f1);
+            log::warn!("score = {}", score);
+            log::warn!("re = {}", re);
+            log::warn!("tweaked_re = {}", tweaked_re);
+            log::warn!("s = {}", s);
+            log::warn!("c = {}", c);
+            log::warn!("res = {}", res);
+            res
 		}
 
 		/// Gets the max v in fixed point
