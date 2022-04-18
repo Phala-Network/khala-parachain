@@ -127,7 +127,7 @@ runtime-benchmarks = [
 	"phala-pallets/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
-	"xtransfer-pallets/runtime-benchmarks",
+	"subbridge-pallets/runtime-benchmarks",
 ]
 std = [
 	"codec/std",
