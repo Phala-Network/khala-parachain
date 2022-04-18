@@ -1,24 +1,19 @@
 #![cfg(test)]
 
+use crate as assets_registry;
 use frame_support::{
 	ord_parameter_types, parameter_types,
 	traits::{ConstU128, ConstU32, GenesisBuild},
 	weights::Weight,
-	PalletId,
 };
 use frame_system::{self as system};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{AccountIdConversion, BlakeTwo256, ConvertInto, IdentityLookup},
+	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
 	AccountId32, Perbill,
 };
 
-use crate::bridge_transfer;
-use crate::pallet_assets_wrapper;
-use crate::pallet_bridge as bridge;
-use crate::xcm_helper::NativeAssetFilter;
-pub use pallet_balances as balances;
 pub use xcm::latest::{prelude::*, AssetId, MultiAsset, MultiLocation};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -34,11 +29,9 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Bridge: bridge::{Pallet, Call, Storage, Event<T>},
-		BridgeTransfer: bridge_transfer::{Pallet, Call, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-		AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>},
+		AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>},
 		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config},
 	}
 );
@@ -100,70 +93,6 @@ impl pallet_balances::Config for Test {
 }
 
 parameter_types! {
-	pub const TestChainId: u8 = 5;
-	pub const ProposalLifetime: u64 = 100;
-
-	// We define two test assets to simulate tranfer assets to reserve location and unreserve location,
-	// we must defiend here because those need be configed as fee payment assets
-	pub SoloChain0AssetLocation: MultiLocation = MultiLocation::new(
-		1,
-		X4(
-			Parachain(2004),
-			GeneralKey(pallet_assets_wrapper::CB_ASSET_KEY.to_vec()),
-			GeneralIndex(0),
-			GeneralKey(b"an asset".to_vec()),
-		),
-	);
-	pub SoloChain2AssetLocation: MultiLocation = MultiLocation::new(
-		1,
-		X4(
-			Parachain(2004),
-			GeneralKey(pallet_assets_wrapper::CB_ASSET_KEY.to_vec()),
-			GeneralIndex(2),
-			GeneralKey(b"an asset".to_vec()),
-		),
-	);
-	pub AssetId0: AssetId = SoloChain0AssetLocation::get().into();
-	pub AssetId2: AssetId = SoloChain2AssetLocation::get().into();
-	pub ExecutionPriceInAsset0: (AssetId, u128) = (
-		AssetId0::get(),
-		1
-	);
-	pub ExecutionPriceInAsset2: (AssetId, u128) = (
-		AssetId2::get(),
-		2
-	);
-	pub NativeExecutionPrice: u128 = 1;
-	pub ExecutionPrices: Vec<(AssetId, u128)> = [
-		ExecutionPriceInAsset0::get(),
-		ExecutionPriceInAsset2::get(),
-	].to_vec().into();
-	pub TREASURY: AccountId32 = AccountId32::new([4u8; 32]);
-}
-
-impl bridge::Config for Test {
-	type Event = Event;
-	type BridgeCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
-	type Proposal = Call;
-	type BridgeChainId = TestChainId;
-	type ProposalLifetime = ProposalLifetime;
-}
-
-impl bridge_transfer::Config for Test {
-	type Event = Event;
-	type AssetsWrapper = AssetsWrapper;
-	type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Test, ConvertInto>;
-	type BridgeOrigin = bridge::EnsureBridge<Test>;
-	type Currency = Balances;
-	type XcmTransactor = ();
-	type OnFeePay = ();
-	type NativeChecker = NativeAssetFilter<ParachainInfo>;
-	type NativeExecutionPrice = NativeExecutionPrice;
-	type ExecutionPriceInfo = ExecutionPrices;
-	type TreasuryAccount = TREASURY;
-}
-
-parameter_types! {
 	pub const AssetDeposit: Balance = 1; // 1 Unit deposit to create asset
 	pub const ApprovalDeposit: Balance = 1;
 	pub const AssetsStringLimit: u32 = 50;
@@ -188,9 +117,9 @@ impl pallet_assets::Config for Test {
 	type WeightInfo = ();
 }
 
-impl pallet_assets_wrapper::Config for Test {
+impl assets_registry::Config for Test {
 	type Event = Event;
-	type AssetsCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type RegistryCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type Currency = Balances;
 	type MinBalance = ExistentialDeposit;
 }
@@ -205,14 +134,9 @@ impl pallet_timestamp::Config for Test {
 impl pallet_parachain_info::Config for Test {}
 
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
-pub const RELAYER_A: AccountId32 = AccountId32::new([1u8; 32]);
-pub const RELAYER_B: AccountId32 = AccountId32::new([2u8; 32]);
-pub const RELAYER_C: AccountId32 = AccountId32::new([3u8; 32]);
 pub const ENDOWED_BALANCE: Balance = 100_000_000;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let bridge_account = PalletId(*b"phala/bg").into_account();
-	let assets_registry_account = pallet_assets_wrapper::ASSETS_REGISTRY_ID.into_account();
 	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<Test>()
 		.unwrap();
@@ -224,12 +148,11 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		&mut t,
 	)
 	.unwrap();
+	let assets_registry_account = assets_registry::ASSETS_REGISTRY_ID.into_account();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
-			(bridge_account, ENDOWED_BALANCE),
-			(assets_registry_account, ENDOWED_BALANCE),
-			(RELAYER_A, ENDOWED_BALANCE),
 			(ALICE, ENDOWED_BALANCE),
+			(assets_registry_account, ENDOWED_BALANCE),
 		],
 	}
 	.assimilate_storage(&mut t)
@@ -237,17 +160,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
 	ext
-}
-
-fn last_event() -> Event {
-	system::Pallet::<Test>::events()
-		.pop()
-		.map(|e| e.event)
-		.expect("Event expected")
-}
-
-pub fn expect_event<E: Into<Event>>(e: E) {
-	assert_eq!(last_event(), e.into());
 }
 
 // Checks events against the latest. A contiguous set of events must be provided. They must

@@ -45,15 +45,12 @@ use constants::{
     parachains,
 };
 
-mod msg_routing;
 mod migrations;
+mod msg_routing;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use sp_api::impl_runtime_apis;
-use sp_core::{
-    crypto::KeyTypeId,
-    OpaqueMetadata,
-};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto},
@@ -70,9 +67,9 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
-        Contains, Currency, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
-        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
-        EnsureOneOf,
+        Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter,
+        IsInVec, KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness,
+        U128CurrencyToVote,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -102,9 +99,8 @@ pub use parachains_common::Index;
 pub use parachains_common::*;
 
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
-
-pub use xtransfer_pallets::{
-    pallet_assets_wrapper, pallet_bridge, pallet_bridge_transfer, pallet_xcm_transfer, xcm_helper,
+pub use subbridge_pallets::{
+    chainbridge, fungible_adapter::XTransferAdapter, helper, xcmbridge, xtransfer,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -193,6 +189,10 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
+    (
+        migrations::SubbridgeMigrations,
+        migrations::AssetsRegistryMigrations,
+    ),
 >;
 
 type EnsureRootOrHalfCouncil = EnsureOneOf<
@@ -253,10 +253,10 @@ construct_runtime! {
 
         // Main, starts from 80
 
-        // ChainBridge
-        ChainBridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 80,
-        BridgeTransfer: pallet_bridge_transfer::{Pallet, Call, Event<T>, Storage} = 81,
-        XcmTransfer: pallet_xcm_transfer::{Pallet, Call, Event<T>, Storage} = 82,
+        // Bridges
+        ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>} = 80,
+        XcmBridge: xcmbridge::{Pallet, Event<T>, Storage} = 81,
+        XTransfer: xtransfer::{Pallet, Call, Storage, Event<T>} = 82,
 
         // Phala
         PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
@@ -264,7 +264,7 @@ construct_runtime! {
         PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
-        AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>} = 90,
+        AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` was used in Khala, we avoid to use the index
@@ -322,16 +322,15 @@ impl Contains<Call> for BaseCallFilter {
             // Parachain
             Call::ParachainSystem { .. } |
             // Monetary
-            Call::AssetsWrapper { .. } |
+            Call::AssetsRegistry { .. } |
             Call::Balances { .. }  |
             Call::ChainBridge { .. } |
-            Call::BridgeTransfer { .. } |
+            Call::XTransfer { .. } |
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // XCM
             Call::XcmpQueue { .. } |
             Call::DmpQueue { .. } |
-            Call::XcmTransfer { .. } |
             // Governance
             Call::Identity { .. } | Call::Treasury { .. } |
             Call::Democracy { .. } | Call::PhragmenElection { .. } |
@@ -594,10 +593,10 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const PreimageMaxSize: u32 = 4096 * 1024;
-	pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
-	// One cent: $10,000 / MB
-	pub const PreimageByteDeposit: Balance = 1 * CENTS;
+    pub const PreimageMaxSize: u32 = 4096 * 1024;
+    pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
+    // One cent: $10,000 / MB
+    pub const PreimageByteDeposit: Balance = 1 * CENTS;
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -863,7 +862,7 @@ pub type CurrencyTransactor = CurrencyAdapter<
     // Use this currency:
     Balances,
     // Use this currency when it is a fungible asset matching the given location or name:
-    xcm_helper::NativeAssetMatcher<xcm_helper::NativeAssetFilter<ParachainInfo>>,
+    helper::NativeAssetMatcher<helper::NativeAssetFilter<ParachainInfo>>,
     // Convert an XCM MultiLocation into a local account id:
     LocationToAccountId,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -884,10 +883,10 @@ pub type FungiblesTransactor = FungiblesAdapter<
     // Use this fungibles implementation:
     Assets,
     // Use this currency when it is a fungible asset matching the given location or name:
-    xcm_helper::ConcreteAssetsMatcher<
+    helper::ConcreteAssetsMatcher<
         <Runtime as pallet_assets::Config>::AssetId,
         Balance,
-        AssetsWrapper,
+        AssetsRegistry,
     >,
     // Convert an XCM MultiLocation into a local account id:
     LocationToAccountId,
@@ -990,19 +989,14 @@ impl Config for XcmConfig {
     type Call = Call;
     type XcmSender = XcmRouter;
     // How to withdraw and deposit an asset.
-    type AssetTransactor = xcm_helper::XTransferAdapter<
+    type AssetTransactor = XTransferAdapter<
         CurrencyTransactor,
         FungiblesTransactor,
-        XcmTransfer,
-        XcmTransfer,
-        xcm_helper::NativeAssetFilter<ParachainInfo>,
-        ChainBridge,
-        BridgeTransfer,
-        AccountId,
-        KhalaTreasuryAccount,
+        XTransfer,
+        helper::NativeAssetFilter<ParachainInfo>,
     >;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
-    type IsReserve = xcm_helper::AssetOriginFilter;
+    type IsReserve = helper::AssetOriginFilter;
     type IsTeleporter = ();
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
@@ -1010,83 +1004,43 @@ impl Config for XcmConfig {
     type Trader = (
         FixedRateOfFungible<
             ExecutionPriceInKSM,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInPHA,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInLocalPHA,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInKAR,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInKUSD,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInBNC,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInVSKSM,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInZLK,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInHKO,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
         FixedRateOfFungible<
             ExecutionPriceInMOVR,
-            xcm_helper::XTransferTakeRevenue<
-                Self::AssetTransactor,
-                AccountId,
-                KhalaTreasuryAccount,
-            >,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
     );
     type ResponseHandler = PolkadotXcm;
@@ -1146,7 +1100,7 @@ impl pallet_xcm::Config for Runtime {
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
 
-impl pallet_xcm_transfer::Config for Runtime {
+impl xcmbridge::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
@@ -1155,14 +1109,15 @@ impl pallet_xcm_transfer::Config for Runtime {
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type LocationInverter = LocationInverter<Ancestry>;
-    type NativeAssetChecker = xcm_helper::NativeAssetFilter<ParachainInfo>;
+    type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
     type FeeAssets = FeeAssets;
     type DefaultFee = DefaultDestChainXcmFee;
+    type AssetsRegistry = AssetsRegistry;
 }
 
-impl pallet_assets_wrapper::Config for Runtime {
+impl assets_registry::Config for Runtime {
     type Event = Event;
-    type AssetsCommitteeOrigin = EnsureRootOrHalfCouncil;
+    type RegistryCommitteeOrigin = EnsureRootOrHalfCouncil;
     type Currency = Balances;
     type MinBalance = ExistentialDeposit;
 }
@@ -1462,31 +1417,32 @@ parameter_types! {
     pub const ProposalLifetime: BlockNumber = 50400; // ~7 days
 }
 
-impl pallet_bridge::Config for Runtime {
+impl chainbridge::Config for Runtime {
     type Event = Event;
     type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type Proposal = Call;
     type BridgeChainId = BridgeChainId;
-    type ProposalLifetime = ProposalLifetime;
-}
-
-parameter_types! {
-    // first byte is 0x00, chain id of ethereum mainnet
-    pub const NativeTokenResourceId: [u8; 32] = hex_literal::hex!("0096dcf98ada5bc4d4b647e4d9636b8ea78487421e1f156af8b47830aab82844");
-}
-
-impl pallet_bridge_transfer::Config for Runtime {
-    type Event = Event;
-    type AssetsWrapper = AssetsWrapper;
-    type BalanceConverter = pallet_assets::BalanceToAssetBalance<Balances, Runtime, ConvertInto>;
-    type BridgeOrigin = pallet_bridge::EnsureBridge<Runtime>;
     type Currency = Balances;
-    type XcmTransactor = XcmTransfer;
-    type OnFeePay = Treasury;
-    type NativeChecker = xcm_helper::NativeAssetFilter<ParachainInfo>;
+    type ProposalLifetime = ProposalLifetime;
+    type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
     type NativeExecutionPrice = NativeExecutionPrice;
     type ExecutionPriceInfo = ExecutionPrices;
     type TreasuryAccount = KhalaTreasuryAccount;
+    type FungibleAdapter = XTransferAdapter<
+        CurrencyTransactor,
+        FungiblesTransactor,
+        XTransfer,
+        helper::NativeAssetFilter<ParachainInfo>,
+    >;
+    type AssetsRegistry = AssetsRegistry;
+}
+
+impl xtransfer::Config for Runtime {
+    type Event = Event;
+    type Bridge = (
+        xcmbridge::BridgeTransactImpl<Runtime>,
+        chainbridge::BridgeTransactImpl<Runtime>,
+    );
 }
 
 pub struct MqCallMatcher;

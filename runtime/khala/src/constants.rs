@@ -34,8 +34,8 @@ pub mod currency {
 /// Fee-related.
 pub mod fee {
     use frame_support::weights::{
-        constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND}, WeightToFeeCoefficient, WeightToFeeCoefficients,
-        WeightToFeePolynomial,
+        constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
+        WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
     };
     use parachains_common::Balance;
     use smallvec::smallvec;
@@ -100,6 +100,6 @@ pub mod parachains {
 
     pub mod heiko {
         pub const ID: u32 = 2085;
-        pub const HKO_KEY: &[u8] = &[72, 75, 79];   // "HKO"
+        pub const HKO_KEY: &[u8] = &[72, 75, 79]; // "HKO"
     }
 }

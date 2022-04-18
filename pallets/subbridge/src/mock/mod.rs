@@ -1,6 +1,5 @@
 #![cfg(test)]
-
-use crate::pallet_assets_wrapper::ASSETS_REGISTRY_ID;
+use assets_registry::ASSETS_REGISTRY_ID;
 use frame_support::{traits::GenesisBuild, PalletId};
 use sp_io::TestExternalities;
 use sp_runtime::{traits::AccountIdConversion, AccountId32};
@@ -12,6 +11,11 @@ pub mod relay;
 
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([1u8; 32]);
+pub const RELAYER_A: AccountId32 = AccountId32::new([2u8; 32]);
+pub const RELAYER_B: AccountId32 = AccountId32::new([3u8; 32]);
+pub const RELAYER_C: AccountId32 = AccountId32::new([4u8; 32]);
+pub const ENDOWED_BALANCE: u128 = 100_000_000;
+pub const TEST_THRESHOLD: u32 = 2;
 
 decl_test_parachain! {
 	pub struct ParaA {
@@ -61,8 +65,9 @@ decl_test_network! {
 
 pub type ParaBalances = pallet_balances::Pallet<para::Runtime>;
 pub type ParaAssets = pallet_assets::Pallet<para::Runtime>;
-pub type XcmTransfer = crate::pallet_xcm_transfer::Pallet<para::Runtime>;
-pub type ParaAssetsWrapper = crate::pallet_assets_wrapper::Pallet<para::Runtime>;
+pub type ParaAssetsRegistry = assets_registry::Pallet<para::Runtime>;
+pub type ParaChainBridge = crate::chainbridge::Pallet<para::Runtime>;
+pub type ParaXTransfer = crate::xtransfer::Pallet<para::Runtime>;
 
 pub fn para_ext(para_id: u32) -> TestExternalities {
 	use para::{Runtime, System};
@@ -80,14 +85,15 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 	)
 	.unwrap();
 
-	let bridge_account = PalletId(*b"phala/bg").into_account();
-	let assets_registry_account = ASSETS_REGISTRY_ID.into_account();
+	let bridge_account: AccountId32 = PalletId(*b"phala/bg").into_account();
+	let assets_registry_account: AccountId32 = ASSETS_REGISTRY_ID.into_account();
 	pallet_balances::GenesisConfig::<Runtime> {
 		balances: vec![
-			(ALICE, 1_000),
-			(BOB, 1_000),
-			(bridge_account, 1_000),
-			(assets_registry_account, 1_000),
+			(bridge_account, ENDOWED_BALANCE),
+			(assets_registry_account, ENDOWED_BALANCE),
+			(RELAYER_A, ENDOWED_BALANCE),
+			(ALICE, ENDOWED_BALANCE),
+			(BOB, ENDOWED_BALANCE),
 		],
 	}
 	.assimilate_storage(&mut t)
@@ -116,7 +122,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 	ext
 }
 
-pub fn para_take_events() -> Vec<para::Event> {
+pub fn take_events() -> Vec<para::Event> {
 	use para::Runtime;
 
 	let evt = frame_system::Pallet::<Runtime>::events()
@@ -126,4 +132,35 @@ pub fn para_take_events() -> Vec<para::Event> {
 	println!("event(): {:?}", evt);
 	frame_system::Pallet::<Runtime>::reset_events();
 	evt
+}
+
+pub fn para_last_event() -> para::Event {
+	use para::Runtime;
+
+	frame_system::Pallet::<Runtime>::events()
+		.pop()
+		.map(|e| e.event)
+		.expect("Event expected")
+}
+
+pub fn para_expect_event<E: Into<para::Event>>(e: E) {
+	assert_eq!(para_last_event(), e.into());
+}
+
+// Checks events against the latest. A contiguous set of events must be provided. They must
+// include the most recent event, but do not have to include every past event.
+pub fn para_assert_events(mut expected: Vec<para::Event>) {
+	use para::{Event, Runtime};
+
+	let mut actual: Vec<Event> = frame_system::Pallet::<Runtime>::events()
+		.iter()
+		.map(|e| e.event.clone())
+		.collect();
+
+	expected.reverse();
+
+	for evt in expected {
+		let next = actual.pop().expect("event expected");
+		assert_eq!(next, evt.into(), "Events don't match");
+	}
 }

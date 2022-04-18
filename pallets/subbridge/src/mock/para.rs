@@ -1,19 +1,16 @@
 use super::ParachainXcmRouter;
-use crate::bridge::pallet::{BridgeChainId, BridgeTransact, ResourceId};
-use crate::bridge_transfer::pallet::GetBridgeFee;
-use crate::{pallet_assets_wrapper, pallet_xcm_transfer, xcm_helper};
+use crate::{chainbridge, fungible_adapter::XTransferAdapter, helper, xcmbridge, xtransfer};
 
+use assets_registry;
 use frame_support::{
-	construct_runtime, match_type,
-	pallet_prelude::*,
-	parameter_types,
+	construct_runtime, match_type, parameter_types,
 	traits::{ConstU128, ConstU32, Contains, Everything},
 	weights::{IdentityFee, Weight},
 	PalletId,
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
-use sp_core::{H256, U256};
+use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
@@ -54,7 +51,6 @@ construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-		AssetsWrapper: pallet_assets_wrapper::{Pallet, Call, Storage, Event<T>},
 
 		// Parachain staff
 		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config},
@@ -65,7 +61,10 @@ construct_runtime!(
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
 
 		// Local palelts
-		XcmTransfer: pallet_xcm_transfer::{Pallet, Call, Event<T>, Storage},
+		AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>},
+		XcmBridge: xcmbridge::{Pallet, Storage, Event<T>},
+		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
+		XTransfer: xtransfer::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -150,6 +149,8 @@ parameter_types! {
 impl pallet_parachain_info::Config for Runtime {}
 
 parameter_types! {
+	pub const TestChainId: u8 = 5;
+	pub const ProposalLifetime: u64 = 100;
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
@@ -161,18 +162,56 @@ parameter_types! {
 	pub ParaCLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(3)));
 
 	pub KSMAssetId: AssetId = KSMLocation::get().into();
+	pub LocalAssetId: AssetId = LocalParaLocation::get().into();
 	pub ParaAAssetId: AssetId = ParaALocation::get().into();
 	pub ParaBAssetId: AssetId = ParaBLocation::get().into();
 	pub ParaCAssetId: AssetId = ParaCLocation::get().into();
 
 	pub FeeAssets: MultiAssets = [
 		KSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+		LocalAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
 		ParaAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
 		ParaBAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
 		ParaCAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
 	].to_vec().into();
 
 	pub const DefaultDestChainXcmFee: Balance = 10;
+	pub TREASURY: AccountId32 = AccountId32::new([4u8; 32]);
+		// We define two test assets to simulate tranfer assets to reserve location and unreserve location,
+	// we must defiend here because those need be configed as fee payment assets
+	pub SoloChain0AssetLocation: MultiLocation = MultiLocation::new(
+		1,
+		X4(
+			Parachain(2004),
+			GeneralKey(assets_registry::CB_ASSET_KEY.to_vec()),
+			GeneralIndex(0),
+			GeneralKey(b"an asset".to_vec()),
+		),
+	);
+	pub SoloChain2AssetLocation: MultiLocation = MultiLocation::new(
+		1,
+		X4(
+			Parachain(2004),
+			GeneralKey(assets_registry::CB_ASSET_KEY.to_vec()),
+			GeneralIndex(2),
+			GeneralKey(b"an asset".to_vec()),
+		),
+	);
+	pub AssetId0: AssetId = SoloChain0AssetLocation::get().into();
+	pub AssetId2: AssetId = SoloChain2AssetLocation::get().into();
+	pub ExecutionPriceInAsset0: (AssetId, u128) = (
+		AssetId0::get(),
+		1
+	);
+	pub ExecutionPriceInAsset2: (AssetId, u128) = (
+		AssetId2::get(),
+		2
+	);
+	pub NativeExecutionPrice: u128 = 1;
+	pub ExecutionPrices: Vec<(AssetId, u128)> = [
+		ExecutionPriceInAsset0::get(),
+		ExecutionPriceInAsset2::get(),
+	].to_vec().into();
 }
 
 pub type LocationToAccountId = (
@@ -211,7 +250,7 @@ pub type CurrencyTransactor = CurrencyAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	xcm_helper::NativeAssetMatcher<xcm_helper::NativeAssetFilter<ParachainInfo>>,
+	helper::NativeAssetMatcher<helper::NativeAssetFilter<ParachainInfo>>,
 	// Convert an XCM MultiLocation into a local account id:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -232,10 +271,10 @@ pub type FungiblesTransactor = FungiblesAdapter<
 	// Use this fungibles implementation:
 	Assets,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	xcm_helper::ConcreteAssetsMatcher<
+	helper::ConcreteAssetsMatcher<
 		<Runtime as pallet_assets::Config>::AssetId,
 		Balance,
-		AssetsWrapper,
+		AssetsRegistry,
 	>,
 	// Convert an XCM MultiLocation into a local account id:
 	LocationToAccountId,
@@ -247,59 +286,15 @@ pub type FungiblesTransactor = FungiblesAdapter<
 	ParaCheckingAccount,
 >;
 
-impl BridgeTransact for () {
-	fn transfer_fungible(
-		_dest_id: BridgeChainId,
-		_resource_id: ResourceId,
-		_to: Vec<u8>,
-		_amount: U256,
-	) -> DispatchResult {
-		Ok(())
-	}
-
-	fn transfer_nonfungible(
-		_dest_id: BridgeChainId,
-		_resource_id: ResourceId,
-		_token_id: Vec<u8>,
-		_to: Vec<u8>,
-		_metadata: Vec<u8>,
-	) -> DispatchResult {
-		Ok(())
-	}
-
-	fn transfer_generic(
-		_dest_id: BridgeChainId,
-		_resource_id: ResourceId,
-		_metadata: Vec<u8>,
-	) -> DispatchResult {
-		Ok(())
-	}
-
-	fn reservation_account() -> [u8; 32] {
-		[0; 32]
-	}
-}
-
-impl GetBridgeFee for () {
-	fn get_fee(_chain_id: BridgeChainId, _asset: &MultiAsset) -> Option<u128> {
-		Some(0)
-	}
-}
-
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type Call = Call;
 	type XcmSender = XcmRouter;
-	type AssetTransactor = xcm_helper::XTransferAdapter<
+	type AssetTransactor = XTransferAdapter<
 		CurrencyTransactor,
 		FungiblesTransactor,
-		XcmTransfer,
-		XcmTransfer,
-		xcm_helper::NativeAssetFilter<ParachainInfo>,
-		(),
-		(),
-		AccountId,
-		ParaTreasuryAccount,
+		XTransfer,
+		helper::NativeAssetFilter<ParachainInfo>,
 	>;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;
@@ -313,6 +308,8 @@ impl Config for XcmConfig {
 		UsingComponents<IdentityFee<Balance>, ParaALocation, AccountId, Balances, ()>,
 		UsingComponents<IdentityFee<Balance>, ParaBLocation, AccountId, Balances, ()>,
 		UsingComponents<IdentityFee<Balance>, ParaCLocation, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, SoloChain0AssetLocation, AccountId, Balances, ()>,
+		UsingComponents<IdentityFee<Balance>, SoloChain2AssetLocation, AccountId, Balances, ()>,
 	);
 	type ResponseHandler = ();
 	type AssetTrap = ();
@@ -355,7 +352,7 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
 
-impl pallet_xcm_transfer::Config for Runtime {
+impl xcmbridge::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
@@ -364,14 +361,43 @@ impl pallet_xcm_transfer::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type LocationInverter = LocationInverter<Ancestry>;
-	type NativeAssetChecker = xcm_helper::NativeAssetFilter<ParachainInfo>;
+	type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
 	type FeeAssets = FeeAssets;
 	type DefaultFee = DefaultDestChainXcmFee;
+	type AssetsRegistry = AssetsRegistry;
 }
 
-impl pallet_assets_wrapper::Config for Runtime {
+impl assets_registry::Config for Runtime {
 	type Event = Event;
-	type AssetsCommitteeOrigin = EnsureRoot<AccountId>;
+	type RegistryCommitteeOrigin = EnsureRoot<AccountId>;
 	type Currency = Balances;
 	type MinBalance = AssetDeposit;
+}
+
+impl chainbridge::Config for Runtime {
+	type Event = Event;
+	type BridgeCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type Proposal = Call;
+	type BridgeChainId = TestChainId;
+	type Currency = Balances;
+	type ProposalLifetime = ProposalLifetime;
+	type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+	type NativeExecutionPrice = NativeExecutionPrice;
+	type ExecutionPriceInfo = ExecutionPrices;
+	type TreasuryAccount = TREASURY;
+	type FungibleAdapter = XTransferAdapter<
+		CurrencyTransactor,
+		FungiblesTransactor,
+		XTransfer,
+		helper::NativeAssetFilter<ParachainInfo>,
+	>;
+	type AssetsRegistry = AssetsRegistry;
+}
+
+impl xtransfer::Config for Runtime {
+	type Event = Event;
+	type Bridge = (
+		xcmbridge::BridgeTransactImpl<Runtime>,
+		chainbridge::BridgeTransactImpl<Runtime>,
+	);
 }
