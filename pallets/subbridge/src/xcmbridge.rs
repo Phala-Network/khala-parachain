@@ -328,12 +328,8 @@ pub mod pallet {
 		<T as frame_system::Config>::AccountId: From<[u8; 32]> + Into<[u8; 32]>,
 	{
 		fn can_deposit_asset(asset: MultiAsset, dest: MultiLocation) -> bool {
-			// Only support transfer to relaychain or parachain
-			let is_para_dest = match (dest.parents, &dest.interior) {
-				(1, X1(AccountId32 { .. })) | (1, X2(Parachain(_), AccountId32 { .. })) => true,
-				_ => false,
-			};
-			if !is_para_dest {
+			// Only support transfer to non-local destination.
+			if dest.parents == 0 {
 				return false;
 			}
 
