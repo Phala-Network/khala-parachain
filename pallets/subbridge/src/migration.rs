@@ -17,7 +17,7 @@ pub mod subbridge_migration {
 	);
 
 	const EXPECTED_STORAGE_VERSION: Versions = (
-		StorageVersion::new(0),
+		StorageVersion::new(1),
 		StorageVersion::new(0),
 		StorageVersion::new(0),
 	);
