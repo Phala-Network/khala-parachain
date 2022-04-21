@@ -3,7 +3,7 @@ use crate::{chainbridge, fungible_adapter::XTransferAdapter, helper, xcmbridge, 
 
 use assets_registry;
 use frame_support::{
-	construct_runtime, match_type, parameter_types,
+	construct_runtime, match_types, parameter_types,
 	traits::{ConstU128, ConstU32, Contains, Everything},
 	weights::{IdentityFee, Weight},
 	PalletId,
@@ -233,7 +233,7 @@ parameter_types! {
 	pub ParaTreasuryAccount: AccountId = PalletId(*b"py/trsry").into_account();
 	pub ParaCheckingAccount: AccountId = PalletId(*b"py/check").into_account();
 }
-match_type! {
+match_types! {
 	pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
 		MultiLocation { parents: 1, interior: Here } |
 		MultiLocation { parents: 1, interior: X1(Plurality { id: BodyId::Executive, .. }) }

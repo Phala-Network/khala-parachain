@@ -17,6 +17,8 @@
 
 #![allow(clippy::identity_op)]
 
+pub mod xcm_config;
+
 pub use constants::*;
 pub use opaque::*;
 pub use types::*;
