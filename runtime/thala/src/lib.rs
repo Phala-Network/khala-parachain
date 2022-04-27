@@ -849,17 +849,14 @@ match_types! {
     };
 }
 
-pub type Barrier = xcm_config::DenyThenTry<
-    xcm_config::DenyReserveTransferToRelayChain,
-    (
-        TakeWeightCredit,
-        AllowTopLevelPaidExecutionFrom<Everything>,
-        // Expected responses are OK.
-        AllowKnownQueryResponses<PolkadotXcm>,
-        // Subscriptions for version tracking are OK.
-        AllowSubscriptionsFrom<Everything>,
-    ),
->;
+pub type Barrier = (
+    TakeWeightCredit,
+    AllowTopLevelPaidExecutionFrom<Everything>,
+    // Expected responses are OK.
+    AllowKnownQueryResponses<PolkadotXcm>,
+    // Subscriptions for version tracking are OK.
+    AllowSubscriptionsFrom<Everything>,
+);
 
 /// Means for transacting the native currency on this chain.
 pub type CurrencyTransactor = CurrencyAdapter<
