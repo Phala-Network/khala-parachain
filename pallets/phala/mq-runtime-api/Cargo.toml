@@ -1,7 +1,7 @@
 [package]
 name = "pallet-mq-runtime-api"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false}

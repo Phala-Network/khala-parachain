@@ -141,12 +141,14 @@ pub mod v5 {
 	pub fn migrate<T>() -> Weight
 	where
 		T: mining::Config + mq::Config + registry::Config + stakepool::Config,
-		MiningBalanceOf<T>: balance_convert::FixedPointConvert,
+		MiningBalanceOf<T>: balance_convert::FixedPointConvert + sp_std::fmt::Display,
+		T: mining::pallet::Config<Currency = <T as stakepool::pallet::Config>::Currency>,
 	{
 		if get_versions::<T>() == EXPECTED_STORAGE_VERSION {
 			let mut weight: Weight = 0;
 			log::info!("Ᵽ migrating phala-pallets to v5");
 			weight += mining::migrations::trigger_unresp_fix::<T>();
+			weight += stakepool::Pallet::<T>::migration_remove_assignments();
 			log::info!("Ᵽ pallets migrated to v5");
 
 			StorageVersion::new(5).put::<mining::Pallet<T>>();
