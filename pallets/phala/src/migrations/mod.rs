@@ -129,7 +129,7 @@ pub mod v5 {
 	#[cfg(feature = "try-runtime")]
 	pub fn pre_migrate<T>() -> Result<(), &'static str>
 	where
-		T: fat::Config + mining::Config + mq::Config + registry::Config + stakepool::Config,
+		T: mining::Config + mq::Config + registry::Config + stakepool::Config,
 	{
 		frame_support::ensure!(
 			get_versions::<T>() == EXPECTED_STORAGE_VERSION,
