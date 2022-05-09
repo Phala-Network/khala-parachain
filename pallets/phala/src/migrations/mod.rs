@@ -17,10 +17,9 @@ type Versions = (
 
 fn get_versions<T>() -> Versions
 where
-	T: fat::Config + mining::Config + mq::Config + registry::Config + stakepool::Config,
+	T: mining::Config + mq::Config + registry::Config + stakepool::Config,
 {
 	(
-		StorageVersion::get::<fat::Pallet<T>>(),
 		StorageVersion::get::<mining::Pallet<T>>(),
 		StorageVersion::get::<mq::Pallet<T>>(),
 		StorageVersion::get::<registry::Pallet<T>>(),
