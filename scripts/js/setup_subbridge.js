@@ -279,7 +279,7 @@ async function main() {
     await enableChainbridge(khalaApi, 3, 2, false, 0x00, false);
 
     // Config ChainBridge of Ethereum(chainId 0)
-    await configChainBridge(khalaApi, relayerAccount, bn1e12.mul(new BN(300)), 0, false);
+    await configChainBridge(khalaApi, relayerAccount, bn1e12.mul(new BN(1)), 0, false);
 
     // Config ChainBridge of Moonriver EVM(chainId 2)
     await configChainBridge(khalaApi, relayerAccount, bn1e12.mul(new BN(1)), 2, false);

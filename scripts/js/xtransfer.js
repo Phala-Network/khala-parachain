@@ -10,12 +10,71 @@ const bn1e12 = new BN(10).pow(new BN(12));
 const bn1e18 = new BN(10).pow(new BN(18));
 const khalaParaId = 2004;
 const karuraParaId = 2000;
+const moonriverParaId = 2023;
 const bridgeAddressOnRinkeby = '0x0712Cf53B9fA1A33018d180a4AbcC7f1803F55f4';
+
+function getPhaAssetId(khalaApi) {
+    return khalaApi.createType('XcmV1MultiassetAssetId', {
+        Concrete: khalaApi.createType('XcmV1MultiLocation', {
+            parents: 1,
+            interior: khalaApi.createType('Junctions', {
+                X1: khalaApi.createType('XcmV1Junction', {
+                        Parachain: khalaApi.createType('Compact<U32>', khalaParaId)
+                    }),
+            })
+        })
+    })
+}
+
+
+
+function getKarAssetId(khalaApi) {
+    return khalaApi.createType('XcmV1MultiassetAssetId', {
+        Concrete: khalaApi.createType('XcmV1MultiLocation', {
+            parents: 1,
+            interior: khalaApi.createType('Junctions', {
+                X2: [
+                    khalaApi.createType('XcmV1Junction', {
+                        Parachain: khalaApi.createType('Compact<U32>', karuraParaId)
+                    }),
+                    khalaApi.createType('XcmV1Junction', {
+                        // 0x0080 is general key of KAR defined in karura runtime
+                        GeneralKey: '0x0080'
+                    }),
+                ]
+            })
+        })
+    })
+}
+
+function getMovrAssetId(khalaApi) {
+    return khalaApi.createType('XcmV1MultiassetAssetId', {
+        Concrete: khalaApi.createType('XcmV1MultiLocation', {
+            parents: 1,
+            interior: khalaApi.createType('Junctions', {
+                X2: [
+                    khalaApi.createType('XcmV1Junction', {
+                        Parachain: khalaApi.createType('Compact<U32>', moonriverParaId)
+                    }),
+                    khalaApi.createType('XcmV1Junction', {
+                        PalletInstance: 10
+                    }),
+                ]
+            })
+        })
+    })
+}
 
 async function transferPhaFromKhalaToKarura(khalaApi, sender, recipient, amount) {
     console.log(`Transfer PHA from Khala to Karura...`);
     return new Promise(async (resolve) => {
-        const unsub = await khalaApi.tx.xcmTransfer.transferNative(
+        const unsub = await khalaApi.tx.xTransfer.transfer(
+            khalaApi.createType('XcmV1MultiAsset', {
+                id: getPhaAssetId(khalaApi),
+                fun: khalaApi.createType('XcmV1MultiassetFungibility', {
+                    Fungible: khalaApi.createType('Compact<U128>', amount)
+                })
+            }),
             khalaApi.createType('XcmV1MultiLocation', {
                 parents: 1,
                 interior: khalaApi.createType('Junctions', {
@@ -32,8 +91,108 @@ async function transferPhaFromKhalaToKarura(khalaApi, sender, recipient, amount)
                     ]
                 })
             }),
-            amount,
             6000000000
+        ).signAndSend(sender, (result) => {
+            if (result.status.isInBlock) {
+                console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
+            } else if (result.status.isFinalized) {
+                console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
+                unsub();
+                resolve();
+            }
+        });
+    });
+}
+
+async function transferKarFromKhalaToKarura(khalaApi, sender, recipient, amount) {
+    console.log(`Transfer KAR from Khala to Karura...`);
+    return new Promise(async (resolve) => {
+        const unsub = await khalaApi.tx.xTransfer.transfer(
+            khalaApi.createType('XcmV1MultiAsset', {
+                id: getKarAssetId(khalaApi),
+                fun: khalaApi.createType('XcmV1MultiassetFungibility', {
+                    Fungible: khalaApi.createType('Compact<U128>', amount)
+                })
+            }),
+            khalaApi.createType('XcmV1MultiLocation', {
+                parents: 1,
+                interior: khalaApi.createType('Junctions', {
+                    X2: [
+                        khalaApi.createType('XcmV1Junction', {
+                            Parachain: khalaApi.createType('Compact<U32>', karuraParaId)
+                        }),
+                        khalaApi.createType('XcmV1Junction', {
+                            AccountId32: {
+                                network: khalaApi.createType('XcmV0JunctionNetworkId', 'Any'),
+                                id: '0x' + Buffer.from(recipient.publicKey).toString('hex'),
+                            }
+                        }),
+                    ]
+                })
+            }),
+            6000000000
+        ).signAndSend(sender, (result) => {
+            if (result.status.isInBlock) {
+                console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
+            } else if (result.status.isFinalized) {
+                console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
+                unsub();
+                resolve();
+            }
+        });
+    });
+}
+
+// Make sure amount > bridge fee
+async function transferPhaFromKhalaToEvm(khalaApi, sender, recipient, amount) {
+    console.log(`Transfer PHA from Khala to EVM...`);
+    return new Promise(async (resolve) => {
+        const unsub = await khalaApi.tx.xTransfer.transfer(
+            khalaApi.createType('XcmV1MultiAsset', {
+                id: getPhaAssetId(khalaApi),
+                fun: khalaApi.createType('XcmV1MultiassetFungibility', {
+                    Fungible: khalaApi.createType('Compact<U128>', amount)
+                })
+            }),
+            khalaApi.createType('XcmV1MultiLocation', {
+                parents: 0,
+                interior: khalaApi.createType('Junctions', {
+                    X3: [
+                        khalaApi.createType('XcmV1Junction', {
+                            GeneralKey: '0x6362'    // string "cb"
+                        }),
+                        khalaApi.createType('XcmV1Junction', {
+                            GeneralIndex: 0 // 0 is chainid of ethereum
+                        }),
+                        khalaApi.createType('XcmV1Junction', {
+                            GeneralKey: recipient
+                        }),
+                    ]
+                })
+            }),
+            null,   // No need to specify a certain weight if transfer will not through XCM
+        ).signAndSend(sender, (result) => {
+            if (result.status.isInBlock) {
+                console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
+            } else if (result.status.isFinalized) {
+                console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
+                unsub();
+                resolve();
+            }
+        });
+    });
+}
+
+// transfer assets except PHA between accounts on khala network
+async function transferAssetsKhalaAccounts(khalaApi, sender, recipient, amount) {
+    console.log(`Transfer KAR between accounts on khala network...`);
+    return new Promise(async (resolve) => {
+        const unsub = await khalaApi.tx.assets.transfer(
+            // 0 is assetid that KAR registered on khala network,
+            // should confirm this with maintainer before run script
+            0,
+            recipient.address,
+            amount,
         ).signAndSend(sender, (result) => {
             if (result.status.isInBlock) {
                 console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
@@ -114,78 +273,6 @@ async function transferKarFromKaruraToKhala(karuraApi, sender, recipient, amount
                 })
             }),
             6000000000
-        ).signAndSend(sender, (result) => {
-            if (result.status.isInBlock) {
-                console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
-            } else if (result.status.isFinalized) {
-                console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
-                unsub();
-                resolve();
-            }
-        });
-    });
-}
-
-async function transferKarFromKhalaToKarura(khalaApi, sender, recipient, amount) {
-    console.log(`Transfer KAR from Khala to Karura...`);
-    return new Promise(async (resolve) => {
-        const unsub = await khalaApi.tx.xcmTransfer.transferAsset(
-            khalaApi.createType('XtransferPalletsAssetsWrapperPalletXTransferAsset',
-                khalaApi.createType('XcmV1MultiLocation', {
-                    parents: 1,
-                    interior: khalaApi.createType('Junctions', {
-                        X2: [
-                            khalaApi.createType('XcmV1Junction', {
-                                Parachain: khalaApi.createType('Compact<U32>', karuraParaId)
-                            }),
-                            khalaApi.createType('XcmV1Junction', {
-                                // 0x0080 is general key of KAR defined in karura runtime
-                                GeneralKey: '0x0080'
-                            }),
-                        ]
-                    })
-                })
-            ),
-            khalaApi.createType('XcmV1MultiLocation', {
-                parents: 1,
-                interior: khalaApi.createType('Junctions', {
-                    X2: [
-                        khalaApi.createType('XcmV1Junction', {
-                            Parachain: khalaApi.createType('Compact<U32>', karuraParaId)
-                        }),
-                        khalaApi.createType('XcmV1Junction', {
-                            AccountId32: {
-                                network: khalaApi.createType('XcmV0JunctionNetworkId', 'Any'),
-                                id: '0x' + Buffer.from(recipient.publicKey).toString('hex'),
-                            }
-                        }),
-                    ]
-                })
-            }),
-            amount,
-            6000000000
-        ).signAndSend(sender, (result) => {
-            if (result.status.isInBlock) {
-                console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
-            } else if (result.status.isFinalized) {
-                console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
-                unsub();
-                resolve();
-            }
-        });
-    });
-}
-
-// transfer assets except PHA between accounts on khala network
-async function transferAssetsKhalaAccounts(khalaApi, sender, recipient, amount) {
-    console.log(`Transfer KAR between accounts on khala network...`);
-    return new Promise(async (resolve) => {
-        const unsub = await khalaApi.tx.assets.transfer(
-            // 0 is assetid that KAR registered on khala network,
-            // should confirm this with maintainer before run script
-            0,
-            recipient.address,
-            amount,
         ).signAndSend(sender, (result) => {
             if (result.status.isInBlock) {
                 console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
@@ -291,6 +378,7 @@ async function main() {
     const anotherKaruraAccount = keyring.addFromUri('//Charlie');
     // replace it with your owns, make sure private key used to sign transaction matchs address
     const evmSender = "0xA29D4E0F035cb50C0d78c8CeBb56Ca292616Ab20";
+    const evmRecipient = evmSender;
 
     // transfer 100 PHA from khalaAccount on khala network to karuraAccount on karura network
     await transferPhaFromKhalaToKarura(khalaApi, khalaAccount, karuraAccount, bn1e12.mul(new BN(100)));
@@ -305,6 +393,8 @@ async function main() {
     // now, khalaAccount has reserved 100 KAR on khala network(actually with small fee being deducted, so < 100)
     // transfer 50 KAR back from khalaAccount on khala network to karuraAccount on karura network
     await transferKarFromKhalaToKarura(khalaApi, khalaAccount, karuraAccount, bn1e12.mul(new BN(50)));
+
+    await transferPhaFromKhalaToEvm(khalaApi, khalaAccount, evmRecipient, bn1e12.mul(new BN(50)));
 
     // so far, khalaAccount has 50 KAR on khala network, transfer 10 KAR to another account on khala network.
     await transferAssetsKhalaAccounts(khalaApi, khalaAccount, anotherKaruraAccount, bn1e12.mul(new BN(10)));

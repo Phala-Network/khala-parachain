@@ -60,7 +60,8 @@ async function transferPhaFromEvmToKarura(khalaApi, bridge, recipient, amount) {
         ethers.utils.hexZeroPad(ethers.utils.hexlify((dest.length - 2) / 2), 32).substr(2) +
         dest.substr(2);
 
-    await bridge.deposit(khalaChainId, phaResourceId, data);
+    const tx = await bridge.deposit(khalaChainId, phaResourceId, data);
+    console.log(`Transfer PHA from EVM to Karura: ${tx.hash}`);
 }
 
 
