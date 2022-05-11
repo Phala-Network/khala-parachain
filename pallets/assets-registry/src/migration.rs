@@ -138,13 +138,13 @@ pub mod assets_registry_migration {
 	{
 		if StorageVersion::get::<Pallet<T>>() == EXPECTED_STORAGE_VERSION {
 			log::info!("Start assets-registry migration");
-			let mut weight = 0;
+			let mut write_count = 0;
 
 			// Clean storage items in old pallet
-			weight += remove_assetswrapper_storage();
+			write_count += remove_assetswrapper_storage();
 
 			// Migrate KSM registry
-			weight += migrate_asset_register::<T>(
+			write_count += migrate_asset_register::<T>(
 				MultiLocation::new(1, Here),
 				0u32.into(),
 				AssetProperties {
@@ -155,7 +155,7 @@ pub mod assets_registry_migration {
 			);
 
 			// Migrate KAR registry
-			weight += migrate_asset_register::<T>(
+			write_count += migrate_asset_register::<T>(
 				MultiLocation::new(1, X2(Parachain(2000), GeneralKey([0x0, 0x80].to_vec()))),
 				1u32.into(),
 				AssetProperties {
@@ -166,7 +166,7 @@ pub mod assets_registry_migration {
 			);
 
 			// Migrate BNC registry
-			weight += migrate_asset_register::<T>(
+			write_count += migrate_asset_register::<T>(
 				MultiLocation::new(1, X2(Parachain(2001), GeneralKey([0x0, 0x01].to_vec()))),
 				2u32.into(),
 				AssetProperties {
@@ -177,7 +177,7 @@ pub mod assets_registry_migration {
 			);
 
 			// Migrate ZLK registry
-			weight += migrate_asset_register::<T>(
+			write_count += migrate_asset_register::<T>(
 				MultiLocation::new(1, X2(Parachain(2001), GeneralKey([0x02, 0x07].to_vec()))),
 				3u32.into(),
 				AssetProperties {
@@ -188,7 +188,7 @@ pub mod assets_registry_migration {
 			);
 
 			// Migrate aUSD registry
-			weight += migrate_asset_register::<T>(
+			write_count += migrate_asset_register::<T>(
 				MultiLocation::new(1, X2(Parachain(2000), GeneralKey([0x0, 0x81].to_vec()))),
 				4u32.into(),
 				AssetProperties {
@@ -199,7 +199,7 @@ pub mod assets_registry_migration {
 			);
 
 			// Enable ZLK Chainbridge transfer
-			weight += migrate_chainbridge::<T>(
+			write_count += migrate_chainbridge::<T>(
 				3u32.into(),
 				2, // Moonriver
 				false,
@@ -211,8 +211,7 @@ pub mod assets_registry_migration {
 
 			log::info!("Assets registry migration done👏");
 
-			weight += T::DbWeight::get().writes(weight + 1);
-			weight
+			T::DbWeight::get().writes(write_count + 1)
 		} else {
 			T::DbWeight::get().reads(1)
 		}

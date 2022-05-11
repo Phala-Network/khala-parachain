@@ -888,6 +888,7 @@ parameter_types! {
     pub ZLKAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::ZLK_KEY.to_vec()))).into();
     pub MOVRAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::moonriver::ID), PalletInstance(parachains::moonriver::MOVR_INSTANCE))).into();
     pub HKOAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::heiko::ID), GeneralKey(parachains::heiko::HKO_KEY.to_vec()))).into();
+    pub BSXAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::basilisk::ID), GeneralKey(parachains::basilisk::BSX_KEY.to_vec()))).into();
 
     pub ExecutionPriceInKSM: (AssetId, u128) = (
         KSMAssetId::get(),
@@ -929,6 +930,10 @@ parameter_types! {
         HKOAssetId::get(),
         pha_per_second()
     );
+    pub ExecutionPriceInBSX: (AssetId, u128) = (
+        BSXAssetId::get(),
+        pha_per_second()
+    );
 
     pub NativeExecutionPrice: u128 = pha_per_second();
     pub ExecutionPrices: Vec<(AssetId, u128)> = [
@@ -942,6 +947,7 @@ parameter_types! {
         ExecutionPriceInZLK::get(),
         ExecutionPriceInMOVR::get(),
         ExecutionPriceInHKO::get(),
+        ExecutionPriceInBSX::get(),
     ].to_vec().into();
 
     pub FeeAssets: MultiAssets = [
@@ -955,6 +961,7 @@ parameter_types! {
         ZLKAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         MOVRAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
         HKOAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
+        BSXAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
     ].to_vec().into();
 
     // This fee is set when we trying to send assets that dest chain not support
@@ -1019,6 +1026,10 @@ impl Config for XcmConfig {
         >,
         FixedRateOfFungible<
             ExecutionPriceInMOVR,
+            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+        >,
+        FixedRateOfFungible<
+            ExecutionPriceInBSX,
             helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
         >,
     );

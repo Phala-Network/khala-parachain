@@ -102,4 +102,9 @@ pub mod parachains {
         pub const ID: u32 = 2085;
         pub const HKO_KEY: &[u8] = &[72, 75, 79]; // "HKO"
     }
+
+    pub mod basilisk {
+        pub const ID: u32 = 2090;
+        pub const BSX_KEY: &[u8] = &[0, 0, 0, 0];
+    }
 }
