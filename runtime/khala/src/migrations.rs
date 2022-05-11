@@ -37,3 +37,21 @@ impl OnRuntimeUpgrade for AssetsRegistryMigrations {
         assets_registry::migration::assets_registry_migration::post_migrate::<Runtime>()
     }
 }
+
+pub struct PhalaPalletV6Migrations;
+
+impl OnRuntimeUpgrade for PhalaPalletV6Migrations {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        phala_pallets::migrations::v6::migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<(), &'static str> {
+        phala_pallets::migrations::v6::pre_migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade() -> Result<(), &'static str> {
+        phala_pallets::migrations::v6::post_migrate::<Runtime>()
+    }
+}
