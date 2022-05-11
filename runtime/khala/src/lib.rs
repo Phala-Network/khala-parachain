@@ -190,6 +190,7 @@ pub type Executive = frame_executive::Executive<
     (
         migrations::SubbridgeMigrations,
         migrations::AssetsRegistryMigrations,
+        migrations::PhalaPalletV6Migrations,
     ),
 >;
 
