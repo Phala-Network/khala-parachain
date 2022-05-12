@@ -951,7 +951,14 @@ pub mod pallet {
 				.ok_or(Error::<T>::ExtractAssetFailed)?;
 			let (dest_id, recipient) =
 				Pallet::<T>::extract_dest(&dest).ok_or(Error::<T>::ExtractDestFailed)?;
-			let resource_id = asset_location.clone().into_rid(dest_id);
+			let resource_id = if T::NativeAssetChecker::is_native_asset(&asset) {
+				// Both MultiLocation::Here and MultiLocation::new(1, X1(Parachain(phala_paraid)))
+				// represent location of PHA, but we only use MultiLocation::Here to generate
+				// resource id to avoid ambiguity.
+				Pallet::<T>::gen_pha_rid(dest_id)
+			} else {
+				asset_location.clone().into_rid(dest_id)
+			};
 
 			log::trace!(
 				target: LOG_TARGET,
