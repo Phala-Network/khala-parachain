@@ -16,12 +16,8 @@ const bridgeAddressOnRinkeby = '0x0712Cf53B9fA1A33018d180a4AbcC7f1803F55f4';
 function getPhaAssetId(khalaApi) {
     return khalaApi.createType('XcmV1MultiassetAssetId', {
         Concrete: khalaApi.createType('XcmV1MultiLocation', {
-            parents: 1,
-            interior: khalaApi.createType('Junctions', {
-                X1: khalaApi.createType('XcmV1Junction', {
-                        Parachain: khalaApi.createType('Compact<U32>', khalaParaId)
-                    }),
-            })
+            parents: 0,
+            interior: khalaApi.createType('Junctions', 'Here')
         })
     })
 }
