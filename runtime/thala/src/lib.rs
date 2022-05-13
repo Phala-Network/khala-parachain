@@ -1077,16 +1077,16 @@ impl pallet_xcm::Config for Runtime {
 }
 
 impl xcm_transfer::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-	type XcmRouter = XcmRouter;
-	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
-	type LocationInverter = LocationInverter<Ancestry>;
-	type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
-	type AssetsRegistry = AssetsRegistry;
+    type Event = Event;
+    type Currency = Balances;
+    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmRouter = XcmRouter;
+    type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+    type LocationInverter = LocationInverter<Ancestry>;
+    type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+    type AssetsRegistry = AssetsRegistry;
 }
 
 impl assets_registry::Config for Runtime {
@@ -1409,15 +1409,15 @@ impl chainbridge::Config for Runtime {
     type Currency = Balances;
     type ProposalLifetime = ProposalLifetime;
     type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
-	type NativeExecutionPrice = NativeExecutionPrice;
-	type TreasuryAccount = KhalaTreasuryAccount;
-	type FungibleAdapter = XTransferAdapter<
-		CurrencyTransactor,
-		FungiblesTransactor,
-		XTransfer,
-		helper::NativeAssetFilter<ParachainInfo>,
-	>;
-	type AssetsRegistry = AssetsRegistry;
+    type NativeExecutionPrice = NativeExecutionPrice;
+    type TreasuryAccount = KhalaTreasuryAccount;
+    type FungibleAdapter = XTransferAdapter<
+        CurrencyTransactor,
+        FungiblesTransactor,
+        XTransfer,
+        helper::NativeAssetFilter<ParachainInfo>,
+    >;
+    type AssetsRegistry = AssetsRegistry;
 }
 
 impl xtransfer::Config for Runtime {

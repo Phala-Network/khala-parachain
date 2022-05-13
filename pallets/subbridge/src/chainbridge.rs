@@ -23,9 +23,7 @@ pub mod pallet {
 		convert::{From, Into, TryInto},
 		prelude::*,
 	};
-	use xcm::latest::{
-		prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation,
-	};
+	use xcm::latest::{prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation};
 	use xcm_executor::traits::TransactAsset;
 
 	const LOG_TARGET: &str = "runtime::chainbridge";
