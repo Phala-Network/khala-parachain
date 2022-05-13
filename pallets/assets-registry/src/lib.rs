@@ -509,7 +509,7 @@ pub mod pallet {
 		}
 
 		fn price(location: &MultiLocation) -> Option<(XcmAssetId, u128)> {
-			IdByLocation::<T>::get(location).and_then(|id| {
+			IdByLocations::<T>::get(location).and_then(|id| {
 				RegistryInfoByIds::<T>::get(&id).map(|m| {
 					(
 						m.location.into(),

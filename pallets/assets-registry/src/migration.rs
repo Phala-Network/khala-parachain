@@ -47,6 +47,7 @@ pub mod assets_registry_migration {
 					metadata: Box::new(Vec::new()),
 				}],
 				properties: properties.clone(),
+				execution_price: None,
 			},
 		);
 

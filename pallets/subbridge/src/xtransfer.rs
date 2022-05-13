@@ -597,7 +597,7 @@ pub mod pallet {
 				assert_eq!(Assets::balance(0u32.into(), &BOB), 10 - 1);
 			});
 
-			// Now, let's transfer back to paraA use xtransfer instread of xcm_transfer
+			// Now, let's transfer back to paraA use xtransfer instread of xcm bridge
 			ParaB::execute_with(|| {
 				// ParaB send back ParaA's native asset
 				assert_ok!(XTransfer::transfer(

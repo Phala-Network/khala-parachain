@@ -66,8 +66,8 @@ pub mod subbridge_migration {
 			frame_support::migration::remove_storage_prefix(b"ChainBridge", b"Resources", &[]);
 
 			// Create new storage items of fee setting in pallet ChainBridge
-			chainbridge::BridgeFee::<T>::insert(0, (300_000_000_000_000, 0));
-			chainbridge::BridgeFee::<T>::insert(2, (1_000_000_000_000, 0));
+			chainbridge::BridgeFee::<T>::insert(0, 300_000_000_000_000);
+			chainbridge::BridgeFee::<T>::insert(2, 1_000_000_000_000);
 
 			// Set new storage version
 			StorageVersion::new(2).put::<chainbridge::Pallet<T>>();

@@ -1076,7 +1076,7 @@ impl pallet_xcm::Config for Runtime {
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
 
-impl xcm_transfer::Config for Runtime {
+impl xcmbridge::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
