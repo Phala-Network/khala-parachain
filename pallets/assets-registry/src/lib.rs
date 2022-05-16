@@ -170,7 +170,7 @@ pub mod pallet {
 		type NativeExecutionPrice: Get<u128>;
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 	const LOG_TARGET: &str = "runtime::asset-registry";
 
 	type BalanceOf<T> =

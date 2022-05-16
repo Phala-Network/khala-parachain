@@ -108,7 +108,7 @@ pub mod pallet {
 		}
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]

@@ -12,7 +12,7 @@ pub mod pallet {
 	use sp_std::{boxed::Box, convert::From, vec::Vec};
 	use xcm::latest::{prelude::*, MultiAsset, MultiLocation};
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
