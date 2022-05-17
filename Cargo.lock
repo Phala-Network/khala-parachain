@@ -3925,7 +3925,7 @@ dependencies = [
 
 [[package]]
 name = "khala-node"
-version = "0.1.14"
+version = "0.1.14-1"
 dependencies = [
  "async-trait",
  "clap",
