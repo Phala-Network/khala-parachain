@@ -1,0 +1,79 @@
+{
+    "PHA": {
+        "name": "PHA",
+        "symbol": "PHA",
+        "decimals": 12,
+        "xcmFees": {
+            "khala": "64000000000",
+            "bifrost": "25600000000",
+            "karura": "51200000000",
+            "moonriver": "58685120000",
+            "heiko": "38400000000"
+        },
+        "cbEthFee": "300000000000000",
+        "paraEds": {
+            "khala": "10000000000"
+        }
+    },
+    "KAR": {
+        "name": "Karura",
+        "symbol": "KAR",
+        "decimals": 12,
+        "xcmFees": {
+            "karura": "6400000000",
+            "khala": "8000000000"
+        },
+        "paraEds": {
+            "karura": "100000000000"
+        }
+    },
+    "MOVR": {
+        "name": "Moonriver Token",
+        "symbol": "MOVR",
+        "decimals": 18,
+        "xcmFees": {
+            "moonriver": "100000000000000",
+            "khala": "1000000000"
+        },
+        "paraEds": {
+            "moonriver": "0"
+        }
+    },
+    "BNC": {
+        "name": "Bifrost",
+        "symbol": "BNC",
+        "decimals": 12,
+        "xcmFees": {
+            "bifrost": "5100000000",
+            "khala": "16000000000"
+        },
+        "paraEds": {
+            "bifrost": "10000000000"
+        }
+    },
+    "ZLK": {
+        "name": "Zenlink",
+        "symbol": "ZLK",
+        "decimals": 18,
+        "xcmFees": {
+            "bifrost": "5100000000",
+            "khala": "16000000000"
+        },
+        "cbMovrFee": "250000000000000000",
+        "paraEds": {
+            "bifrost": "10000000000000000"
+        }
+    },
+    "HKO": {
+        "name": "HKO",
+        "symbol": "HKO",
+        "decimals": 12,
+        "xcmFees": {
+            "heiko": "2900000000",
+            "khala": "64000000000"
+        },
+        "paraEds": {
+            "heiko": "10000000000"
+        }
+    }
+}
