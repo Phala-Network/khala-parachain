@@ -525,6 +525,16 @@ pub mod pallet {
 		}
 	}
 
+	impl<T: Config> Pallet<T> {
+		fn default_price(native_price: u128, decimals: u8) -> u128 {
+			if decimals >= 12 {
+				native_price.saturating_mul(10u128.saturating_pow(decimals as u32 - 12))
+			} else {
+				native_price.saturating_div(10u128.saturating_pow(12 - decimals as u32))
+			}
+		}
+	}
+
 	impl<T: Config> GetAssetRegistryInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
 		fn id(asset: &MultiLocation) -> Option<<T as pallet_assets::Config>::AssetId> {
 			IdByLocations::<T>::get(asset)
@@ -549,7 +559,11 @@ pub mod pallet {
 				RegistryInfoByIds::<T>::get(&id).map(|m| {
 					(
 						m.location.into(),
-						m.execution_price.unwrap_or(T::NativeExecutionPrice::get()),
+						// If the registered asset has not set a price, return default price according to native asset price and its decimals
+						m.execution_price.unwrap_or(Self::default_price(
+							T::NativeExecutionPrice::get(),
+							m.properties.decimals,
+						)),
 					)
 				})
 			})
@@ -745,6 +759,170 @@ pub mod pallet {
 				assert_ok!(AssetsRegistry::force_unregister_asset(Origin::root(), 1));
 				assert_eq!(AssetsRegistry::id(&para_b_location), None);
 			});
+		}
+
+		#[test]
+		fn test_non_registered_asset_price() {
+			new_test_ext().execute_with(|| {
+				let para_a_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(1)),
+				};
+
+				assert_eq!(AssetsRegistry::price(&para_a_location), None);
+			})
+		}
+
+		#[test]
+		fn test_registered_asset_with_default_price() {
+			new_test_ext().execute_with(|| {
+				let para_a_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(1)),
+				};
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_a_location.clone().into(),
+					0,
+					AssetProperties {
+						name: b"ParaAAsset".to_vec(),
+						symbol: b"PAA".to_vec(),
+						decimals: 12,
+					},
+				));
+				assert_eq!(
+					AssetsRegistry::price(&para_a_location),
+					Some((para_a_location.into(), NativeExecutionPrice::get()))
+				);
+
+				let para_b_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(2)),
+				};
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_b_location.clone().into(),
+					1,
+					AssetProperties {
+						name: b"ParaBAsset".to_vec(),
+						symbol: b"PBA".to_vec(),
+						decimals: 18,
+					},
+				));
+				assert_eq!(
+					AssetsRegistry::price(&para_b_location),
+					Some((
+						para_b_location.into(),
+						NativeExecutionPrice::get().saturating_mul(10u128.saturating_pow(6))
+					))
+				);
+
+				let para_c_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(3)),
+				};
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_c_location.clone().into(),
+					2,
+					AssetProperties {
+						name: b"ParaCAsset".to_vec(),
+						symbol: b"PCA".to_vec(),
+						decimals: 6,
+					},
+				));
+				assert_eq!(
+					AssetsRegistry::price(&para_c_location),
+					Some((
+						para_c_location.into(),
+						NativeExecutionPrice::get().saturating_div(10u128.saturating_pow(6))
+					))
+				);
+			})
+		}
+
+		#[test]
+		fn test_registered_asset_with_specific_price() {
+			new_test_ext().execute_with(|| {
+				let para_a_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(1)),
+				};
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_a_location.clone().into(),
+					0,
+					AssetProperties {
+						name: b"ParaAAsset".to_vec(),
+						symbol: b"PAA".to_vec(),
+						decimals: 12,
+					},
+				));
+				assert_ok!(AssetsRegistry::force_set_price(
+					Origin::root(),
+					0,
+					NativeExecutionPrice::get() * 2,
+				));
+				assert_eq!(
+					AssetsRegistry::price(&para_a_location),
+					Some((
+						para_a_location.clone().into(),
+						NativeExecutionPrice::get().saturating_mul(2)
+					))
+				);
+				assert_ok!(AssetsRegistry::force_set_price(
+					Origin::root(),
+					0,
+					NativeExecutionPrice::get() * 4,
+				));
+				assert_eq!(
+					AssetsRegistry::price(&para_a_location),
+					Some((
+						para_a_location.into(),
+						NativeExecutionPrice::get().saturating_mul(4)
+					))
+				);
+
+				let para_b_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(2)),
+				};
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_b_location.clone().into(),
+					1,
+					AssetProperties {
+						name: b"ParaBAsset".to_vec(),
+						symbol: b"PBA".to_vec(),
+						decimals: 18,
+					},
+				));
+				assert_ok!(AssetsRegistry::force_set_price(
+					Origin::root(),
+					1,
+					NativeExecutionPrice::get() * 2,
+				));
+				assert_eq!(
+					AssetsRegistry::price(&para_b_location),
+					Some((
+						para_b_location.clone().into(),
+						NativeExecutionPrice::get().saturating_mul(2)
+					))
+				);
+				assert_ok!(AssetsRegistry::force_set_price(
+					Origin::root(),
+					1,
+					NativeExecutionPrice::get() * 2u128.saturating_mul(10u128.saturating_pow(6)),
+				));
+				assert_eq!(
+					AssetsRegistry::price(&para_b_location),
+					Some((
+						para_b_location.into(),
+						NativeExecutionPrice::get()
+							* 2u128.saturating_mul(10u128.saturating_pow(6))
+					))
+				);
+			})
 		}
 	}
 }

@@ -51,6 +51,7 @@ impl OnRuntimeUpgrade for AssetsRegistryV2Migrations {
 
     #[cfg(feature = "try-runtime")]
     fn post_upgrade() -> Result<(), &'static str> {
-        assets_registry::migration::assets_registry_v3_migration_for_rhala::post_migrate::<Runtime>()
+        assets_registry::migration::assets_registry_v3_migration_for_rhala::post_migrate::<Runtime>(
+        )
     }
 }

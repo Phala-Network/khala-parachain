@@ -126,6 +126,7 @@ impl assets_registry::Config for Test {
 	type Currency = Balances;
 	type MinBalance = ExistentialDeposit;
 	type NativeExecutionPrice = NativeExecutionPrice;
+	type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
 }
 
 impl pallet_timestamp::Config for Test {

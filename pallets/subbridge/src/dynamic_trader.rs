@@ -73,11 +73,7 @@ where
 				_ => last_error = Some(XcmError::TooExpensive),
 			}
 		}
-		println!(
-			"DynamicWeightTrader::buy_weight failed, weight: {:?}, payment: {:?}",
-			weight,
-			payment.clone(),
-		);
+
 		Err(last_error.unwrap_or(XcmError::AssetNotFound))
 	}
 

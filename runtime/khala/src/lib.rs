@@ -840,7 +840,7 @@ pub type CurrencyTransactor = CurrencyAdapter<
     // Use this currency:
     Balances,
     // Use this currency when it is a fungible asset matching the given location or name:
-    helper::NativeAssetMatcher<helper::NativeAssetFilter<ParachainInfo>>,
+    helper::NativeAssetMatcher<assets_registry::NativeAssetFilter<ParachainInfo>>,
     // Convert an XCM MultiLocation into a local account id:
     LocationToAccountId,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -946,7 +946,7 @@ impl Config for XcmConfig {
         CurrencyTransactor,
         FungiblesTransactor,
         XTransfer,
-        helper::NativeAssetFilter<ParachainInfo>,
+        assets_registry::NativeAssetFilter<ParachainInfo>,
     >;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = helper::AssetOriginFilter;
@@ -1066,7 +1066,7 @@ impl xcmbridge::Config for Runtime {
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type LocationInverter = LocationInverter<Ancestry>;
-    type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+    type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
     type AssetsRegistry = AssetsRegistry;
 }
 
@@ -1076,6 +1076,7 @@ impl assets_registry::Config for Runtime {
     type Currency = Balances;
     type MinBalance = ExistentialDeposit;
     type NativeExecutionPrice = NativeExecutionPrice;
+    type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
 }
 
 parameter_types! {
@@ -1389,14 +1390,14 @@ impl chainbridge::Config for Runtime {
     type BridgeChainId = BridgeChainId;
     type Currency = Balances;
     type ProposalLifetime = ProposalLifetime;
-    type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+    type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
     type NativeExecutionPrice = NativeExecutionPrice;
     type TreasuryAccount = KhalaTreasuryAccount;
     type FungibleAdapter = XTransferAdapter<
         CurrencyTransactor,
         FungiblesTransactor,
         XTransfer,
-        helper::NativeAssetFilter<ParachainInfo>,
+        assets_registry::NativeAssetFilter<ParachainInfo>,
     >;
     type AssetsRegistry = AssetsRegistry;
 }
