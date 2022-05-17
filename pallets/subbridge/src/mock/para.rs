@@ -1,11 +1,14 @@
 use super::ParachainXcmRouter;
-use crate::{chainbridge, fungible_adapter::XTransferAdapter, helper, xcmbridge, xtransfer};
+use crate::{
+	chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
+	xcmbridge, xtransfer,
+};
 
 use assets_registry;
 use frame_support::{
 	construct_runtime, match_types, parameter_types,
 	traits::{ConstU128, ConstU32, Contains, Everything},
-	weights::{IdentityFee, Weight},
+	weights::Weight,
 	PalletId,
 };
 use frame_system as system;
@@ -25,7 +28,6 @@ use xcm_builder::{
 	EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, LocationInverter, NativeAsset,
 	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -155,12 +157,6 @@ parameter_types! {
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 
-	pub KSMLocation: MultiLocation = MultiLocation::new(1, Here);
-	pub LocalParaLocation: MultiLocation = MultiLocation::new(0, Here);
-	pub ParaALocation: MultiLocation = MultiLocation::new(1, X1(Parachain(1)));
-	pub ParaBLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(2)));
-	pub ParaCLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(3)));
-
 	pub TREASURY: AccountId32 = AccountId32::new([4u8; 32]);
 		// We define two test assets to simulate tranfer assets to reserve location and unreserve location,
 	// we must defiend here because those need be configed as fee payment assets
@@ -182,21 +178,8 @@ parameter_types! {
 			GeneralKey(b"an asset".to_vec()),
 		),
 	);
-	pub AssetId0: AssetId = SoloChain0AssetLocation::get().into();
-	pub AssetId2: AssetId = SoloChain2AssetLocation::get().into();
-	pub ExecutionPriceInAsset0: (AssetId, u128) = (
-		AssetId0::get(),
-		1
-	);
-	pub ExecutionPriceInAsset2: (AssetId, u128) = (
-		AssetId2::get(),
-		2
-	);
 	pub NativeExecutionPrice: u128 = 1;
-	pub ExecutionPrices: Vec<(AssetId, u128)> = [
-		ExecutionPriceInAsset0::get(),
-		ExecutionPriceInAsset2::get(),
-	].to_vec().into();
+	pub WeightPerSecond: u128 = 1;
 }
 
 pub type LocationToAccountId = (
@@ -235,7 +218,7 @@ pub type CurrencyTransactor = CurrencyAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	helper::NativeAssetMatcher<helper::NativeAssetFilter<ParachainInfo>>,
+	helper::NativeAssetMatcher<assets_registry::NativeAssetFilter<ParachainInfo>>,
 	// Convert an XCM MultiLocation into a local account id:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -279,7 +262,7 @@ impl Config for XcmConfig {
 		CurrencyTransactor,
 		FungiblesTransactor,
 		XTransfer,
-		helper::NativeAssetFilter<ParachainInfo>,
+		assets_registry::NativeAssetFilter<ParachainInfo>,
 	>;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;
@@ -287,15 +270,12 @@ impl Config for XcmConfig {
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
-	type Trader = (
-		UsingComponents<IdentityFee<Balance>, KSMLocation, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, LocalParaLocation, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, ParaALocation, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, ParaBLocation, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, ParaCLocation, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, SoloChain0AssetLocation, AccountId, Balances, ()>,
-		UsingComponents<IdentityFee<Balance>, SoloChain2AssetLocation, AccountId, Balances, ()>,
-	);
+	type Trader = DynamicWeightTrader<
+		WeightPerSecond,
+		<Runtime as pallet_assets::Config>::AssetId,
+		AssetsRegistry,
+		helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, TREASURY>,
+	>;
 	type ResponseHandler = ();
 	type AssetTrap = ();
 	type AssetClaims = ();
@@ -346,7 +326,7 @@ impl xcmbridge::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type LocationInverter = LocationInverter<Ancestry>;
-	type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+	type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
 	type AssetsRegistry = AssetsRegistry;
 }
 
@@ -356,6 +336,7 @@ impl assets_registry::Config for Runtime {
 	type Currency = Balances;
 	type MinBalance = AssetDeposit;
 	type NativeExecutionPrice = NativeExecutionPrice;
+	type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
 }
 
 impl chainbridge::Config for Runtime {
@@ -365,14 +346,14 @@ impl chainbridge::Config for Runtime {
 	type BridgeChainId = TestChainId;
 	type Currency = Balances;
 	type ProposalLifetime = ProposalLifetime;
-	type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+	type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
 	type NativeExecutionPrice = NativeExecutionPrice;
 	type TreasuryAccount = TREASURY;
 	type FungibleAdapter = XTransferAdapter<
 		CurrencyTransactor,
 		FungiblesTransactor,
 		XTransfer,
-		helper::NativeAssetFilter<ParachainInfo>,
+		assets_registry::NativeAssetFilter<ParachainInfo>,
 	>;
 	type AssetsRegistry = AssetsRegistry;
 }

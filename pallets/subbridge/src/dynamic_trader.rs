@@ -1,11 +1,15 @@
 use assets_registry::GetAssetRegistryInfo;
-use frame_support::weights::{constants::WEIGHT_PER_SECOND, Weight};
+use frame_support::{
+	traits::Get,
+	weights::{constants::WEIGHT_PER_SECOND, Weight},
+};
 use sp_std::{marker::PhantomData, result::Result, vec::Vec};
 use xcm::latest::{prelude::*, AssetId};
 use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, Assets};
 
 pub struct DynamicWeightTrader<
+	WeightPerSecond,
 	FungibleAssetId,
 	FungibleAssetsInfo: GetAssetRegistryInfo<FungibleAssetId>,
 	R: TakeRevenue,
@@ -13,11 +17,12 @@ pub struct DynamicWeightTrader<
 	Weight,
 	u128,
 	Option<(AssetId, u128)>,
-	PhantomData<(FungibleAssetId, FungibleAssetsInfo, R)>,
+	PhantomData<(WeightPerSecond, FungibleAssetId, FungibleAssetsInfo, R)>,
 );
-impl<FungibleAssetId, FungibleAssetsInfo, R> WeightTrader
-	for DynamicWeightTrader<FungibleAssetId, FungibleAssetsInfo, R>
+impl<WeightPerSecond, FungibleAssetId, FungibleAssetsInfo, R> WeightTrader
+	for DynamicWeightTrader<WeightPerSecond, FungibleAssetId, FungibleAssetsInfo, R>
 where
+	WeightPerSecond: Get<u128>,
 	FungibleAssetsInfo: GetAssetRegistryInfo<FungibleAssetId>,
 	R: TakeRevenue,
 {
@@ -39,8 +44,7 @@ where
 				(Concrete(ref location), Fungible(_)) => {
 					// We found an asset that can be pay as fee from the registered asset list
 					if let Some((id, units_per_second)) = FungibleAssetsInfo::price(&location) {
-						let amount =
-							units_per_second * (weight as u128) / (WEIGHT_PER_SECOND as u128);
+						let amount = units_per_second * (weight as u128) / WeightPerSecond::get();
 						if amount == 0 {
 							return Ok(payment.clone());
 						}
@@ -69,7 +73,11 @@ where
 				_ => last_error = Some(XcmError::TooExpensive),
 			}
 		}
-
+		println!(
+			"DynamicWeightTrader::buy_weight failed, weight: {:?}, payment: {:?}",
+			weight,
+			payment.clone(),
+		);
 		Err(last_error.unwrap_or(XcmError::AssetNotFound))
 	}
 
@@ -93,8 +101,8 @@ where
 	}
 }
 
-impl<FungibleAssetId, FungibleAssetsInfo, R> Drop
-	for DynamicWeightTrader<FungibleAssetId, FungibleAssetsInfo, R>
+impl<WeightPerSecond, FungibleAssetId, FungibleAssetsInfo, R> Drop
+	for DynamicWeightTrader<WeightPerSecond, FungibleAssetId, FungibleAssetsInfo, R>
 where
 	FungibleAssetsInfo: GetAssetRegistryInfo<FungibleAssetId>,
 	R: TakeRevenue,

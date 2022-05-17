@@ -5,7 +5,7 @@ pub mod pallet {
 	use crate::traits::*;
 	use assets_registry::{
 		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, IntoResourceId,
-		CB_ASSET_KEY,
+		NativeAssetChecker, CB_ASSET_KEY,
 	};
 	use codec::{Decode, Encode, EncodeLike};
 	pub use frame_support::{

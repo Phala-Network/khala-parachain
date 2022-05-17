@@ -115,8 +115,3 @@ pub trait OnDeposited {
 pub trait OnForwarded {
 	fn on_forwarded(what: MultiAsset, who: MultiLocation, memo: Vec<u8>) -> DispatchResult;
 }
-pub trait NativeAssetChecker {
-	fn is_native_asset(asset: &MultiAsset) -> bool;
-	fn is_native_asset_location(id: &MultiLocation) -> bool;
-	fn native_asset_location() -> MultiLocation;
-}

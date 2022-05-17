@@ -10,6 +10,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use codec::{Decode, Encode};
+	use cumulus_primitives_core::ParaId;
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
@@ -153,6 +154,35 @@ pub mod pallet {
 		fn lookup_by_rid(self, rid: [u8; 32]) -> Option<MultiLocation>;
 	}
 
+	pub trait NativeAssetChecker {
+		fn is_native_asset(asset: &MultiAsset) -> bool;
+		fn is_native_asset_location(id: &MultiLocation) -> bool;
+		fn native_asset_location() -> MultiLocation;
+	}
+
+	pub struct NativeAssetFilter<T>(PhantomData<T>);
+	impl<T: Get<ParaId>> NativeAssetChecker for NativeAssetFilter<T> {
+		fn is_native_asset(asset: &MultiAsset) -> bool {
+			match (&asset.id, &asset.fun) {
+				// So far our native asset is concrete
+				(Concrete(ref id), Fungible(_)) if Self::is_native_asset_location(id) => true,
+				_ => false,
+			}
+		}
+
+		fn is_native_asset_location(id: &MultiLocation) -> bool {
+			let native_locations = [
+				MultiLocation::here(),
+				(1, X1(Parachain(T::get().into()))).into(),
+			];
+			native_locations.contains(id)
+		}
+
+		fn native_asset_location() -> MultiLocation {
+			(1, X1(Parachain(T::get().into()))).into()
+		}
+	}
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
@@ -168,6 +198,7 @@ pub mod pallet {
 		type MinBalance: Get<<Self as pallet_assets::Config>::Balance>;
 		#[pallet::constant]
 		type NativeExecutionPrice: Get<u128>;
+		type NativeAssetChecker: NativeAssetChecker;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
@@ -509,6 +540,11 @@ pub mod pallet {
 		}
 
 		fn price(location: &MultiLocation) -> Option<(XcmAssetId, u128)> {
+			// We should handle native asset specially because we never register it
+			if T::NativeAssetChecker::is_native_asset_location(location) {
+				return Some((MultiLocation::here().into(), T::NativeExecutionPrice::get()));
+			}
+
 			IdByLocations::<T>::get(location).and_then(|id| {
 				RegistryInfoByIds::<T>::get(&id).map(|m| {
 					(
