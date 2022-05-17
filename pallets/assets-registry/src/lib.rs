@@ -542,7 +542,7 @@ pub mod pallet {
 		fn price(location: &MultiLocation) -> Option<(XcmAssetId, u128)> {
 			// We should handle native asset specially because we never register it
 			if T::NativeAssetChecker::is_native_asset_location(location) {
-				return Some((MultiLocation::here().into(), T::NativeExecutionPrice::get()));
+				return Some((location.clone().into(), T::NativeExecutionPrice::get()));
 			}
 
 			IdByLocations::<T>::get(location).and_then(|id| {
