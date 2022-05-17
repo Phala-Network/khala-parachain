@@ -10,7 +10,11 @@ const bn1e12 = new BN(10).pow(new BN(12));
 const bn1e18 = new BN(10).pow(new BN(18));
 const khalaParaId = 2004;
 const karuraParaId = 2000;
+const bifrostParaId = 2001;
 const moonriverParaId = 2023;
+const heikoParaId = 2085;
+const basiliskParaId = 2090;
+
 const bridgeAddressOnRinkeby = '0x0712Cf53B9fA1A33018d180a4AbcC7f1803F55f4';
 
 function getPhaAssetId(khalaApi) {
@@ -21,8 +25,6 @@ function getPhaAssetId(khalaApi) {
         })
     })
 }
-
-
 
 function getKarAssetId(khalaApi) {
     return khalaApi.createType('XcmV1MultiassetAssetId', {
@@ -57,6 +59,98 @@ function getMovrAssetId(khalaApi) {
                     }),
                 ]
             })
+        })
+    })
+}
+
+function getBncAssetId(khalaApi) {
+    return khalaApi.createType('XcmV1MultiassetAssetId', {
+        Concrete: khalaApi.createType('XcmV1MultiLocation', {
+            parents: 1,
+            interior: khalaApi.createType('Junctions', {
+                X2: [
+                    khalaApi.createType('XcmV1Junction', {
+                        Parachain: khalaApi.createType('Compact<U32>', bifrostParaId)
+                    }),
+                    khalaApi.createType('XcmV1Junction', {
+                        GeneralKey: '0x0001'
+                    }),
+                ]
+            })
+        })
+    })
+}
+
+function getZlkAssetId(khalaApi) {
+    return khalaApi.createType('XcmV1MultiassetAssetId', {
+        Concrete: khalaApi.createType('XcmV1MultiLocation', {
+            parents: 1,
+            interior: khalaApi.createType('Junctions', {
+                X2: [
+                    khalaApi.createType('XcmV1Junction', {
+                        Parachain: khalaApi.createType('Compact<U32>', bifrostParaId)
+                    }),
+                    khalaApi.createType('XcmV1Junction', {
+                        GeneralKey: '0x0207'
+                    }),
+                ]
+            })
+        })
+    })
+}
+
+function getBsxAssetId(khalaApi) {
+    return khalaApi.createType('XcmV1MultiassetAssetId', {
+        Concrete: khalaApi.createType('XcmV1MultiLocation', {
+            parents: 1,
+            interior: khalaApi.createType('Junctions', {
+                X2: [
+                    khalaApi.createType('XcmV1Junction', {
+                        Parachain: khalaApi.createType('Compact<U32>', basiliskParaId)
+                    }),
+                    khalaApi.createType('XcmV1Junction', {
+                        GeneralKey: '0x00000000'
+                    }),
+                ]
+            })
+        })
+    })
+}
+
+function getHkoAssetId(khalaApi) {
+    return khalaApi.createType('XcmV1MultiassetAssetId', {
+        Concrete: khalaApi.createType('XcmV1MultiLocation', {
+            parents: 1,
+            interior: khalaApi.createType('Junctions', {
+                X2: [
+                    khalaApi.createType('XcmV1Junction', {
+                        Parachain: khalaApi.createType('Compact<U32>', heikoParaId)
+                    }),
+                    khalaApi.createType('XcmV1Junction', {
+                        GeneralKey: '0x484B4F'
+                    }),
+                ]
+            })
+        })
+    })
+}
+
+// example evmAddress: 0xA29D4E0F035cb50C0d78c8CeBb56Ca292616Ab20
+function generateMoonriverDest(khalaApi, evmAddress) {
+    return khalaApi.createType('XcmV1MultiLocation', {
+        parents: 1,
+        interior: khalaApi.createType('Junctions', {
+            X2: [
+                khalaApi.createType('XcmV1Junction', {
+                    Parachain: khalaApi.createType('Compact<U32>', moonriverParaId)
+                }),
+                khalaApi.createType('XcmV1Junction', {
+                    AccountKey20: {
+                        network: khalaApi.createType('XcmV0JunctionNetworkId', 'Any'),
+                        key: evmAddress,
+                    }
+                }),
+            ]
         })
     })
 }
