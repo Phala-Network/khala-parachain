@@ -797,7 +797,7 @@ pub mod pallet {
 		}
 
 		fn get_fee(chain_id: BridgeChainId, asset: &MultiAsset) -> Option<u128> {
-			if let Some((location, amount)) = Self::extract_fungible(asset.clone()) {
+			if let Some((location, _amount)) = Self::extract_fungible(asset.clone()) {
 				if let Some(fee_in_pha) = Self::estimate_fee_in_pha(chain_id) {
 					if T::NativeAssetChecker::is_native_asset(asset) {
 						Some(fee_in_pha)

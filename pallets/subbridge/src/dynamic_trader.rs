@@ -22,7 +22,7 @@ pub struct DynamicWeightTrader<
 impl<WeightPerSecond, FungibleAssetId, FungibleAssetsInfo, R> WeightTrader
 	for DynamicWeightTrader<WeightPerSecond, FungibleAssetId, FungibleAssetsInfo, R>
 where
-	WeightPerSecond: Get<u128>,
+	WeightPerSecond: Get<u64>,
 	FungibleAssetsInfo: GetAssetRegistryInfo<FungibleAssetId>,
 	R: TakeRevenue,
 {
@@ -44,7 +44,8 @@ where
 				(Concrete(ref location), Fungible(_)) => {
 					// We found an asset that can be pay as fee from the registered asset list
 					if let Some((id, units_per_second)) = FungibleAssetsInfo::price(&location) {
-						let amount = units_per_second * (weight as u128) / WeightPerSecond::get();
+						let amount =
+							units_per_second * (weight as u128) / (WeightPerSecond::get() as u128);
 						if amount == 0 {
 							return Ok(payment.clone());
 						}

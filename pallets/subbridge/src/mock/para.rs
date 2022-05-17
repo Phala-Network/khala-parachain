@@ -179,7 +179,7 @@ parameter_types! {
 		),
 	);
 	pub NativeExecutionPrice: u128 = 1;
-	pub WeightPerSecond: u128 = 1;
+	pub WeightPerSecond: u64 = 1;
 }
 
 pub type LocationToAccountId = (

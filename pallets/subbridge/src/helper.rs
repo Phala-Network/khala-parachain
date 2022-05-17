@@ -1,4 +1,3 @@
-use crate::traits::*;
 use assets_registry::{GetAssetRegistryInfo, NativeAssetChecker};
 use frame_support::pallet_prelude::*;
 use sp_runtime::traits::CheckedConversion;
