@@ -544,9 +544,8 @@ pub mod pallet {
 					.saturating_mul(10u128.saturating_pow(decimals as u32 - 12))
 					.into()
 			} else {
-				native_ed
-					.saturating_div(10u128.saturating_pow(12 - decimals as u32))
-					.into()
+				// + 1 make sure min balance always > 0
+				(native_ed.saturating_div(10u128.saturating_pow(12 - decimals as u32)) + 1).into()
 			}
 		}
 	}
