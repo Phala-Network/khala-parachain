@@ -265,7 +265,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T>
 	where
 		T: pallet_assets::Config,
-		<T as pallet_assets::Config>::Balance: From<u128>,
+		<T as pallet_assets::Config>::Balance: From<u128> + Into<u128>,
 		BalanceOf<T>: From<u128>,
 	{
 		/// Force withdraw some amount of assets from ASSETS_REGISTRY_ID, if the given asset_id is None,
@@ -324,7 +324,7 @@ pub mod pallet {
 				asset_id,
 				ASSETS_REGISTRY_ID.into_account(),
 				true,
-				T::MinBalance::get(),
+				Self::asset_ed(properties.decimals),
 			)?;
 			IdByLocations::<T>::insert(&location, asset_id);
 			RegistryInfoByIds::<T>::insert(
@@ -525,7 +525,10 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> Pallet<T> {
+	impl<T: Config> Pallet<T>
+	where
+		<T as pallet_assets::Config>::Balance: From<u128> + Into<u128>,
+	{
 		fn default_price(native_price: u128, decimals: u8) -> u128 {
 			if decimals >= 12 {
 				native_price.saturating_mul(10u128.saturating_pow(decimals as u32 - 12))
@@ -533,9 +536,25 @@ pub mod pallet {
 				native_price.saturating_div(10u128.saturating_pow(12 - decimals as u32))
 			}
 		}
+
+		fn asset_ed(decimals: u8) -> <T as pallet_assets::Config>::Balance {
+			let native_ed: u128 = T::MinBalance::get().into();
+			if decimals >= 12 {
+				native_ed
+					.saturating_mul(10u128.saturating_pow(decimals as u32 - 12))
+					.into()
+			} else {
+				native_ed
+					.saturating_div(10u128.saturating_pow(12 - decimals as u32))
+					.into()
+			}
+		}
 	}
 
-	impl<T: Config> GetAssetRegistryInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T> {
+	impl<T: Config> GetAssetRegistryInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T>
+	where
+		<T as pallet_assets::Config>::Balance: From<u128> + Into<u128>,
+	{
 		fn id(asset: &MultiLocation) -> Option<<T as pallet_assets::Config>::AssetId> {
 			IdByLocations::<T>::get(asset)
 		}
