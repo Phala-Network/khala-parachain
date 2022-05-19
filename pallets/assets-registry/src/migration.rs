@@ -18,7 +18,9 @@ mod assets_registry_v3_migration_common {
 
 	pub const EXPECTED_STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 	pub const FINAL_STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
-	pub const PHA_PER_SECOND: u128 = 8_000_000_000;
+
+	// Calculated according to https://github.com/Phala-Network/khala-parachain/blob/06a0f84815d0666f72c4db65f7f794a854e5ee20/runtime/khala/src/constants.rs#L73
+	pub const PHA_PER_SECOND: u128 = 80_000_000_000_000;
 	pub const KSM_PRICE: u128 = PHA_PER_SECOND / 600;
 	pub const KAR_PRICE: u128 = PHA_PER_SECOND / 8;
 	pub const BNC_PRICE: u128 = PHA_PER_SECOND / 4;

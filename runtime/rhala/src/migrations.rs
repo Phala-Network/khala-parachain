@@ -23,17 +23,17 @@ pub struct SubbridgeV3Migrations;
 
 impl OnRuntimeUpgrade for SubbridgeV3Migrations {
     fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        subbridge_pallets::migration::subbridge_v3_migration::migrate::<Runtime>()
+        subbridge_pallets::migration::subbridge_v3_migration_for_rhala::migrate::<Runtime>()
     }
 
     #[cfg(feature = "try-runtime")]
     fn pre_upgrade() -> Result<(), &'static str> {
-        subbridge_pallets::migration::subbridge_v3_migration::pre_migrate::<Runtime>()
+        subbridge_pallets::migration::subbridge_v3_migration_for_rhala::pre_migrate::<Runtime>()
     }
 
     #[cfg(feature = "try-runtime")]
     fn post_upgrade() -> Result<(), &'static str> {
-        subbridge_pallets::migration::subbridge_v3_migration::post_migrate::<Runtime>()
+        subbridge_pallets::migration::subbridge_v3_migration_for_rhala::post_migrate::<Runtime>()
     }
 }
 
