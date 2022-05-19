@@ -187,11 +187,6 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (
-        migrations::SubbridgeMigrations,
-        migrations::AssetsRegistryMigrations,
-        migrations::PhalaPalletV6Migrations,
-    ),
 >;
 
 type EnsureRootOrHalfCouncil = EnsureOneOf<
