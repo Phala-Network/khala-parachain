@@ -1,0 +1,2937 @@
+{
+  "contractName": "Xtokens",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "currency_address",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "parents",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes[]",
+              "name": "interior",
+              "type": "bytes[]"
+            }
+          ],
+          "internalType": "struct Xtokens.Multilocation",
+          "name": "destination",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint64",
+          "name": "weight",
+          "type": "uint64"
+        }
+      ],
+      "name": "transfer",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "currency_address",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fee",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "parents",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes[]",
+              "name": "interior",
+              "type": "bytes[]"
+            }
+          ],
+          "internalType": "struct Xtokens.Multilocation",
+          "name": "destination",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint64",
+          "name": "weight",
+          "type": "uint64"
+        }
+      ],
+      "name": "transfer_with_fee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "parents",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes[]",
+              "name": "interior",
+              "type": "bytes[]"
+            }
+          ],
+          "internalType": "struct Xtokens.Multilocation",
+          "name": "asset",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "parents",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes[]",
+              "name": "interior",
+              "type": "bytes[]"
+            }
+          ],
+          "internalType": "struct Xtokens.Multilocation",
+          "name": "destination",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint64",
+          "name": "weight",
+          "type": "uint64"
+        }
+      ],
+      "name": "transfer_multiasset",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "parents",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes[]",
+              "name": "interior",
+              "type": "bytes[]"
+            }
+          ],
+          "internalType": "struct Xtokens.Multilocation",
+          "name": "asset",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fee",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "parents",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes[]",
+              "name": "interior",
+              "type": "bytes[]"
+            }
+          ],
+          "internalType": "struct Xtokens.Multilocation",
+          "name": "destination",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint64",
+          "name": "weight",
+          "type": "uint64"
+        }
+      ],
+      "name": "transfer_multiasset_with_fee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "currency_address",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct Xtokens.Currency[]",
+          "name": "currencies",
+          "type": "tuple[]"
+        },
+        {
+          "internalType": "uint32",
+          "name": "fee_item",
+          "type": "uint32"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "parents",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes[]",
+              "name": "interior",
+              "type": "bytes[]"
+            }
+          ],
+          "internalType": "struct Xtokens.Multilocation",
+          "name": "destination",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint64",
+          "name": "weight",
+          "type": "uint64"
+        }
+      ],
+      "name": "transfer_multi_currencies",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "components": [
+                {
+                  "internalType": "uint8",
+                  "name": "parents",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "bytes[]",
+                  "name": "interior",
+                  "type": "bytes[]"
+                }
+              ],
+              "internalType": "struct Xtokens.Multilocation",
+              "name": "location",
+              "type": "tuple"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct Xtokens.MultiAsset[]",
+          "name": "assets",
+          "type": "tuple[]"
+        },
+        {
+          "internalType": "uint32",
+          "name": "fee_item",
+          "type": "uint32"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "parents",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes[]",
+              "name": "interior",
+              "type": "bytes[]"
+            }
+          ],
+          "internalType": "struct Xtokens.Multilocation",
+          "name": "destination",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint64",
+          "name": "weight",
+          "type": "uint64"
+        }
+      ],
+      "name": "transfer_multi_assets",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.8.10+commit.fc410830\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"currency_address\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint8\",\"name\":\"parents\",\"type\":\"uint8\"},{\"internalType\":\"bytes[]\",\"name\":\"interior\",\"type\":\"bytes[]\"}],\"internalType\":\"struct Xtokens.Multilocation\",\"name\":\"destination\",\"type\":\"tuple\"},{\"internalType\":\"uint64\",\"name\":\"weight\",\"type\":\"uint64\"}],\"name\":\"transfer\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"components\":[{\"internalType\":\"uint8\",\"name\":\"parents\",\"type\":\"uint8\"},{\"internalType\":\"bytes[]\",\"name\":\"interior\",\"type\":\"bytes[]\"}],\"internalType\":\"struct Xtokens.Multilocation\",\"name\":\"location\",\"type\":\"tuple\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"internalType\":\"struct Xtokens.MultiAsset[]\",\"name\":\"assets\",\"type\":\"tuple[]\"},{\"internalType\":\"uint32\",\"name\":\"fee_item\",\"type\":\"uint32\"},{\"components\":[{\"internalType\":\"uint8\",\"name\":\"parents\",\"type\":\"uint8\"},{\"internalType\":\"bytes[]\",\"name\":\"interior\",\"type\":\"bytes[]\"}],\"internalType\":\"struct Xtokens.Multilocation\",\"name\":\"destination\",\"type\":\"tuple\"},{\"internalType\":\"uint64\",\"name\":\"weight\",\"type\":\"uint64\"}],\"name\":\"transfer_multi_assets\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"currency_address\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"internalType\":\"struct Xtokens.Currency[]\",\"name\":\"currencies\",\"type\":\"tuple[]\"},{\"internalType\":\"uint32\",\"name\":\"fee_item\",\"type\":\"uint32\"},{\"components\":[{\"internalType\":\"uint8\",\"name\":\"parents\",\"type\":\"uint8\"},{\"internalType\":\"bytes[]\",\"name\":\"interior\",\"type\":\"bytes[]\"}],\"internalType\":\"struct Xtokens.Multilocation\",\"name\":\"destination\",\"type\":\"tuple\"},{\"internalType\":\"uint64\",\"name\":\"weight\",\"type\":\"uint64\"}],\"name\":\"transfer_multi_currencies\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"uint8\",\"name\":\"parents\",\"type\":\"uint8\"},{\"internalType\":\"bytes[]\",\"name\":\"interior\",\"type\":\"bytes[]\"}],\"internalType\":\"struct Xtokens.Multilocation\",\"name\":\"asset\",\"type\":\"tuple\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint8\",\"name\":\"parents\",\"type\":\"uint8\"},{\"internalType\":\"bytes[]\",\"name\":\"interior\",\"type\":\"bytes[]\"}],\"internalType\":\"struct Xtokens.Multilocation\",\"name\":\"destination\",\"type\":\"tuple\"},{\"internalType\":\"uint64\",\"name\":\"weight\",\"type\":\"uint64\"}],\"name\":\"transfer_multiasset\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"uint8\",\"name\":\"parents\",\"type\":\"uint8\"},{\"internalType\":\"bytes[]\",\"name\":\"interior\",\"type\":\"bytes[]\"}],\"internalType\":\"struct Xtokens.Multilocation\",\"name\":\"asset\",\"type\":\"tuple\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint8\",\"name\":\"parents\",\"type\":\"uint8\"},{\"internalType\":\"bytes[]\",\"name\":\"interior\",\"type\":\"bytes[]\"}],\"internalType\":\"struct Xtokens.Multilocation\",\"name\":\"destination\",\"type\":\"tuple\"},{\"internalType\":\"uint64\",\"name\":\"weight\",\"type\":\"uint64\"}],\"name\":\"transfer_multiasset_with_fee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"currency_address\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint8\",\"name\":\"parents\",\"type\":\"uint8\"},{\"internalType\":\"bytes[]\",\"name\":\"interior\",\"type\":\"bytes[]\"}],\"internalType\":\"struct Xtokens.Multilocation\",\"name\":\"destination\",\"type\":\"tuple\"},{\"internalType\":\"uint64\",\"name\":\"weight\",\"type\":\"uint64\"}],\"name\":\"transfer_with_fee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"transfer(address,uint256,(uint8,bytes[]),uint64)\":{\"details\":\"The token transfer burns/transfers the corresponding amount before sending\",\"params\":{\"amount\":\"The amount of tokens we want to transfer\",\"currency_address\":\"The ERC20 address of the currency we want to transfer\",\"destination\":\"The weight we want to buy in the destination chain\"}},\"transfer_multi_assets(((uint8,bytes[]),uint256)[],uint32,(uint8,bytes[]),uint64)\":{\"details\":\"The token transfer burns/transfers the corresponding amount before sending\",\"params\":{\"assets\":\"The assets we want to transfer, defined by their location and amount. \",\"destination\":\"The Multilocation to which we want to send the tokens\",\"fee_item\":\"Which of the currencies to be used as fee\",\"weight\":\"The weight we want to buy in the destination chain\"}},\"transfer_multi_currencies((address,uint256)[],uint32,(uint8,bytes[]),uint64)\":{\"details\":\"The token transfer burns/transfers the corresponding amount before sending\",\"params\":{\"currencies\":\"The currencies we want to transfer, defined by their address and amount. \",\"destination\":\"The Multilocation to which we want to send the tokens\",\"fee_item\":\"Which of the currencies to be used as fee\",\"weight\":\"The weight we want to buy in the destination chain\"}},\"transfer_multiasset((uint8,bytes[]),uint256,(uint8,bytes[]),uint64)\":{\"details\":\"The token transfer burns/transfers the corresponding amount before sending\",\"params\":{\"amount\":\"The amount of tokens we want to transfer\",\"asset\":\"The asset we want to transfer, defined by its multilocation.  Currently only Concrete Fungible assets\",\"destination\":\"The weight we want to buy in the destination chain\"}},\"transfer_multiasset_with_fee((uint8,bytes[]),uint256,uint256,(uint8,bytes[]),uint64)\":{\"details\":\"The token transfer burns/transfers the corresponding amount before sending\",\"params\":{\"amount\":\"The amount of tokens we want to transfer\",\"asset\":\"The asset we want to transfer, defined by its multilocation.  Currently only Concrete Fungible assets\",\"destination\":\"The weight we want to buy in the destination chain\"}},\"transfer_with_fee(address,uint256,uint256,(uint8,bytes[]),uint64)\":{\"details\":\"The token transfer burns/transfers the corresponding amount before sending\",\"params\":{\"amount\":\"The amount of tokens we want to transfer\",\"currency_address\":\"The ERC20 address of the currency we want to transfer\",\"destination\":\"The weight we want to buy in the destination chain\"}}},\"title\":\"Xtokens Interface The interface through which solidity contracts will interact with xtokens pallet Address :    0x0000000000000000000000000000000000000804\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"transfer(address,uint256,(uint8,bytes[]),uint64)\":{\"notice\":\"Transfer a token through XCM based on its currencyId\"},\"transfer_multi_assets(((uint8,bytes[]),uint256)[],uint32,(uint8,bytes[]),uint64)\":{\"notice\":\"Transfer several tokens at once through XCM based on its location specifying fee\"},\"transfer_multi_currencies((address,uint256)[],uint32,(uint8,bytes[]),uint64)\":{\"notice\":\"Transfer several tokens at once through XCM based on its address specifying fee\"},\"transfer_multiasset((uint8,bytes[]),uint256,(uint8,bytes[]),uint64)\":{\"notice\":\"Transfer a token through XCM based on its MultiLocation\"},\"transfer_multiasset_with_fee((uint8,bytes[]),uint256,uint256,(uint8,bytes[]),uint64)\":{\"notice\":\"Transfer a token through XCM based on its MultiLocation specifying fee\"},\"transfer_with_fee(address,uint256,uint256,(uint8,bytes[]),uint64)\":{\"notice\":\"Transfer a token through XCM based on its currencyId specifying fee\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/Xtokens.sol\":\"Xtokens\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"project:/contracts/Xtokens.sol\":{\"keccak256\":\"0x7fd7db07eeacf1707113ed566fe087742c90ea176d9197ddd872ed320afd6f30\",\"license\":\"GPL-3.0-only\",\"urls\":[\"bzz-raw://e81b288a2c575186e9b171e778c145c335328a91d81bda4738751f95db121596\",\"dweb:/ipfs/QmRucYjB5q8hF5D9M6Zy8k3Prki6CD238ryigkFk2KSGfx\"]}},\"version\":1}",
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "immutableReferences": {},
+  "generatedSources": [],
+  "deployedGeneratedSources": [],
+  "sourceMap": "",
+  "deployedSourceMap": "",
+  "source": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >=0.8.0;\n\n/**\n * @title Xtokens Interface\n * The interface through which solidity contracts will interact with xtokens pallet\n * Address :    0x0000000000000000000000000000000000000804\n */\n\ninterface Xtokens {\n    // A multilocation is defined by its number of parents and the encoded junctions (interior)\n    struct Multilocation {\n        uint8 parents;\n        bytes [] interior;\n    }\n\n    // A MultiAsset is defined by a multilocation and an amount\n    struct MultiAsset {\n        Multilocation location;\n        uint256 amount;\n    }\n\n    // A Currency is defined by address and the amount to be transferred\n    struct Currency {\n        address currency_address;\n        uint256 amount;\n    }\n\n    /** Transfer a token through XCM based on its currencyId\n    *\n    * @dev The token transfer burns/transfers the corresponding amount before sending\n    * @param currency_address The ERC20 address of the currency we want to transfer\n    * @param amount The amount of tokens we want to transfer\n    * @param destination The Multilocation to which we want to send the tokens\n    * @param destination The weight we want to buy in the destination chain\n    */\n    function transfer(\n        address currency_address,\n        uint256 amount,\n        Multilocation memory destination,\n        uint64 weight\n    ) external;\n\n    /** Transfer a token through XCM based on its currencyId specifying fee\n    *\n    * @dev The token transfer burns/transfers the corresponding amount before sending\n    * @param currency_address The ERC20 address of the currency we want to transfer\n    * @param amount The amount of tokens we want to transfer\n    * @param destination The Multilocation to which we want to send the tokens\n    * @param destination The weight we want to buy in the destination chain\n    */\n    function transfer_with_fee(\n        address currency_address,\n        uint256 amount,\n        uint256 fee,\n        Multilocation memory destination,\n        uint64 weight\n    ) external;\n\n    /** Transfer a token through XCM based on its MultiLocation\n    *\n    * @dev The token transfer burns/transfers the corresponding amount before sending\n    * @param asset The asset we want to transfer, defined by its multilocation. \n    * Currently only Concrete Fungible assets\n    * @param amount The amount of tokens we want to transfer\n    * @param destination The Multilocation to which we want to send the tokens\n    * @param destination The weight we want to buy in the destination chain\n    */\n    function transfer_multiasset(\n        Multilocation memory asset,\n        uint256 amount,\n        Multilocation memory destination, uint64 weight) external;\n            \n    /** Transfer a token through XCM based on its MultiLocation specifying fee\n    *\n    * @dev The token transfer burns/transfers the corresponding amount before sending\n    * @param asset The asset we want to transfer, defined by its multilocation. \n    * Currently only Concrete Fungible assets\n    * @param amount The amount of tokens we want to transfer\n    * @param destination The Multilocation to which we want to send the tokens\n    * @param destination The weight we want to buy in the destination chain\n    */\n    function transfer_multiasset_with_fee(\n        Multilocation memory asset,\n        uint256 amount,\n        uint256 fee,\n        Multilocation memory destination, uint64 weight) external;\n\n    /** Transfer several tokens at once through XCM based on its address specifying fee\n    *\n    * @dev The token transfer burns/transfers the corresponding amount before sending\n    * @param currencies The currencies we want to transfer, defined by their address and amount. \n    * @param fee_item Which of the currencies to be used as fee\n    * @param destination The Multilocation to which we want to send the tokens\n    * @param weight The weight we want to buy in the destination chain\n    */\n    function transfer_multi_currencies(\n        Currency[] memory currencies,\n        uint32 fee_item,\n        Multilocation memory destination,\n        uint64 weight\n    ) external;\n\n    /** Transfer several tokens at once through XCM based on its location specifying fee\n    *\n    * @dev The token transfer burns/transfers the corresponding amount before sending\n    * @param assets The assets we want to transfer, defined by their location and amount. \n    * @param fee_item Which of the currencies to be used as fee\n    * @param destination The Multilocation to which we want to send the tokens\n    * @param weight The weight we want to buy in the destination chain\n    */\n    function transfer_multi_assets(\n        MultiAsset[] memory assets,\n        uint32 fee_item,\n        Multilocation memory destination,\n        uint64 weight\n    ) external;\n}",
+  "sourcePath": "/Users/wwf/workspace/PhalaProjects/xtoken.sol/contracts/Xtokens.sol",
+  "ast": {
+    "absolutePath": "project:/contracts/Xtokens.sol",
+    "exportedSymbols": {
+      "Xtokens": [
+        141
+      ]
+    },
+    "id": 142,
+    "license": "GPL-3.0-only",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 34,
+        "literals": [
+          "solidity",
+          ">=",
+          "0.8",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "41:24:1"
+      },
+      {
+        "abstract": false,
+        "baseContracts": [],
+        "canonicalName": "Xtokens",
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "documentation": {
+          "id": 35,
+          "nodeType": "StructuredDocumentation",
+          "src": "67:178:1",
+          "text": " @title Xtokens Interface\n The interface through which solidity contracts will interact with xtokens pallet\n Address :    0x0000000000000000000000000000000000000804"
+        },
+        "fullyImplemented": false,
+        "id": 141,
+        "linearizedBaseContracts": [
+          141
+        ],
+        "name": "Xtokens",
+        "nameLocation": "257:7:1",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "canonicalName": "Xtokens.Multilocation",
+            "id": 41,
+            "members": [
+              {
+                "constant": false,
+                "id": 37,
+                "mutability": "mutable",
+                "name": "parents",
+                "nameLocation": "404:7:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 41,
+                "src": "398:13:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint8",
+                  "typeString": "uint8"
+                },
+                "typeName": {
+                  "id": 36,
+                  "name": "uint8",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "398:5:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint8",
+                    "typeString": "uint8"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 40,
+                "mutability": "mutable",
+                "name": "interior",
+                "nameLocation": "430:8:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 41,
+                "src": "421:17:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_array$_t_bytes_storage_$dyn_storage_ptr",
+                  "typeString": "bytes[]"
+                },
+                "typeName": {
+                  "baseType": {
+                    "id": 38,
+                    "name": "bytes",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "421:5:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes_storage_ptr",
+                      "typeString": "bytes"
+                    }
+                  },
+                  "id": 39,
+                  "nodeType": "ArrayTypeName",
+                  "src": "421:8:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_bytes_storage_$dyn_storage_ptr",
+                    "typeString": "bytes[]"
+                  }
+                },
+                "visibility": "internal"
+              }
+            ],
+            "name": "Multilocation",
+            "nameLocation": "374:13:1",
+            "nodeType": "StructDefinition",
+            "scope": 141,
+            "src": "367:78:1",
+            "visibility": "public"
+          },
+          {
+            "canonicalName": "Xtokens.MultiAsset",
+            "id": 47,
+            "members": [
+              {
+                "constant": false,
+                "id": 44,
+                "mutability": "mutable",
+                "name": "location",
+                "nameLocation": "557:8:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 47,
+                "src": "543:22:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                  "typeString": "struct Xtokens.Multilocation"
+                },
+                "typeName": {
+                  "id": 43,
+                  "nodeType": "UserDefinedTypeName",
+                  "pathNode": {
+                    "id": 42,
+                    "name": "Multilocation",
+                    "nodeType": "IdentifierPath",
+                    "referencedDeclaration": 41,
+                    "src": "543:13:1"
+                  },
+                  "referencedDeclaration": 41,
+                  "src": "543:13:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 46,
+                "mutability": "mutable",
+                "name": "amount",
+                "nameLocation": "583:6:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 47,
+                "src": "575:14:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                },
+                "typeName": {
+                  "id": 45,
+                  "name": "uint256",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "575:7:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  }
+                },
+                "visibility": "internal"
+              }
+            ],
+            "name": "MultiAsset",
+            "nameLocation": "522:10:1",
+            "nodeType": "StructDefinition",
+            "scope": 141,
+            "src": "515:81:1",
+            "visibility": "public"
+          },
+          {
+            "canonicalName": "Xtokens.Currency",
+            "id": 52,
+            "members": [
+              {
+                "constant": false,
+                "id": 49,
+                "mutability": "mutable",
+                "name": "currency_address",
+                "nameLocation": "709:16:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 52,
+                "src": "701:24:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_address",
+                  "typeString": "address"
+                },
+                "typeName": {
+                  "id": 48,
+                  "name": "address",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "701:7:1",
+                  "stateMutability": "nonpayable",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 51,
+                "mutability": "mutable",
+                "name": "amount",
+                "nameLocation": "743:6:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 52,
+                "src": "735:14:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                },
+                "typeName": {
+                  "id": 50,
+                  "name": "uint256",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "735:7:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  }
+                },
+                "visibility": "internal"
+              }
+            ],
+            "name": "Currency",
+            "nameLocation": "682:8:1",
+            "nodeType": "StructDefinition",
+            "scope": 141,
+            "src": "675:81:1",
+            "visibility": "public"
+          },
+          {
+            "documentation": {
+              "id": 53,
+              "nodeType": "StructuredDocumentation",
+              "src": "762:455:1",
+              "text": "Transfer a token through XCM based on its currencyId\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param currency_address The ERC20 address of the currency we want to transfer\n @param amount The amount of tokens we want to transfer\n @param destination The Multilocation to which we want to send the tokens\n @param destination The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "b9f813ff",
+            "id": 65,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer",
+            "nameLocation": "1231:8:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 63,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 55,
+                  "mutability": "mutable",
+                  "name": "currency_address",
+                  "nameLocation": "1257:16:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 65,
+                  "src": "1249:24:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 54,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1249:7:1",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 57,
+                  "mutability": "mutable",
+                  "name": "amount",
+                  "nameLocation": "1291:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 65,
+                  "src": "1283:14:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 56,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1283:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 60,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "1328:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 65,
+                  "src": "1307:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 59,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 58,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "1307:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "1307:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 62,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "1356:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 65,
+                  "src": "1349:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 61,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1349:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1239:129:1"
+            },
+            "returnParameters": {
+              "id": 64,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1377:0:1"
+            },
+            "scope": 141,
+            "src": "1222:156:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 66,
+              "nodeType": "StructuredDocumentation",
+              "src": "1384:470:1",
+              "text": "Transfer a token through XCM based on its currencyId specifying fee\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param currency_address The ERC20 address of the currency we want to transfer\n @param amount The amount of tokens we want to transfer\n @param destination The Multilocation to which we want to send the tokens\n @param destination The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "94f69115",
+            "id": 80,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer_with_fee",
+            "nameLocation": "1868:17:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 78,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 68,
+                  "mutability": "mutable",
+                  "name": "currency_address",
+                  "nameLocation": "1903:16:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 80,
+                  "src": "1895:24:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 67,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1895:7:1",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 70,
+                  "mutability": "mutable",
+                  "name": "amount",
+                  "nameLocation": "1937:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 80,
+                  "src": "1929:14:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 69,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1929:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 72,
+                  "mutability": "mutable",
+                  "name": "fee",
+                  "nameLocation": "1961:3:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 80,
+                  "src": "1953:11:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 71,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1953:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 75,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "1995:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 80,
+                  "src": "1974:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 74,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 73,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "1974:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "1974:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 77,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "2023:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 80,
+                  "src": "2016:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 76,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2016:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1885:150:1"
+            },
+            "returnParameters": {
+              "id": 79,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "2044:0:1"
+            },
+            "scope": 141,
+            "src": "1859:186:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 81,
+              "nodeType": "StructuredDocumentation",
+              "src": "2051:501:1",
+              "text": "Transfer a token through XCM based on its MultiLocation\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param asset The asset we want to transfer, defined by its multilocation. \n Currently only Concrete Fungible assets\n @param amount The amount of tokens we want to transfer\n @param destination The Multilocation to which we want to send the tokens\n @param destination The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "b38c60fa",
+            "id": 94,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer_multiasset",
+            "nameLocation": "2566:19:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 92,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 84,
+                  "mutability": "mutable",
+                  "name": "asset",
+                  "nameLocation": "2616:5:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 94,
+                  "src": "2595:26:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 83,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 82,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "2595:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "2595:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 86,
+                  "mutability": "mutable",
+                  "name": "amount",
+                  "nameLocation": "2639:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 94,
+                  "src": "2631:14:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 85,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2631:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 89,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "2676:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 94,
+                  "src": "2655:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 88,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 87,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "2655:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "2655:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 91,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "2696:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 94,
+                  "src": "2689:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 90,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2689:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "2585:118:1"
+            },
+            "returnParameters": {
+              "id": 93,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "2712:0:1"
+            },
+            "scope": 141,
+            "src": "2557:156:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 95,
+              "nodeType": "StructuredDocumentation",
+              "src": "2731:516:1",
+              "text": "Transfer a token through XCM based on its MultiLocation specifying fee\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param asset The asset we want to transfer, defined by its multilocation. \n Currently only Concrete Fungible assets\n @param amount The amount of tokens we want to transfer\n @param destination The Multilocation to which we want to send the tokens\n @param destination The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "89a570fc",
+            "id": 110,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer_multiasset_with_fee",
+            "nameLocation": "3261:28:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 108,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 98,
+                  "mutability": "mutable",
+                  "name": "asset",
+                  "nameLocation": "3320:5:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 110,
+                  "src": "3299:26:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 97,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 96,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "3299:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "3299:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 100,
+                  "mutability": "mutable",
+                  "name": "amount",
+                  "nameLocation": "3343:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 110,
+                  "src": "3335:14:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 99,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3335:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 102,
+                  "mutability": "mutable",
+                  "name": "fee",
+                  "nameLocation": "3367:3:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 110,
+                  "src": "3359:11:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 101,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3359:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 105,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "3401:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 110,
+                  "src": "3380:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 104,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 103,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "3380:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "3380:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 107,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "3421:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 110,
+                  "src": "3414:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 106,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3414:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3289:139:1"
+            },
+            "returnParameters": {
+              "id": 109,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "3437:0:1"
+            },
+            "scope": 141,
+            "src": "3252:186:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 111,
+              "nodeType": "StructuredDocumentation",
+              "src": "3444:494:1",
+              "text": "Transfer several tokens at once through XCM based on its address specifying fee\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param currencies The currencies we want to transfer, defined by their address and amount. \n @param fee_item Which of the currencies to be used as fee\n @param destination The Multilocation to which we want to send the tokens\n @param weight The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "8a362d5c",
+            "id": 125,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer_multi_currencies",
+            "nameLocation": "3952:25:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 123,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 115,
+                  "mutability": "mutable",
+                  "name": "currencies",
+                  "nameLocation": "4005:10:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 125,
+                  "src": "3987:28:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_struct$_Currency_$52_memory_ptr_$dyn_memory_ptr",
+                    "typeString": "struct Xtokens.Currency[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 113,
+                      "nodeType": "UserDefinedTypeName",
+                      "pathNode": {
+                        "id": 112,
+                        "name": "Currency",
+                        "nodeType": "IdentifierPath",
+                        "referencedDeclaration": 52,
+                        "src": "3987:8:1"
+                      },
+                      "referencedDeclaration": 52,
+                      "src": "3987:8:1",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_Currency_$52_storage_ptr",
+                        "typeString": "struct Xtokens.Currency"
+                      }
+                    },
+                    "id": 114,
+                    "nodeType": "ArrayTypeName",
+                    "src": "3987:10:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_struct$_Currency_$52_storage_$dyn_storage_ptr",
+                      "typeString": "struct Xtokens.Currency[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 117,
+                  "mutability": "mutable",
+                  "name": "fee_item",
+                  "nameLocation": "4032:8:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 125,
+                  "src": "4025:15:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint32",
+                    "typeString": "uint32"
+                  },
+                  "typeName": {
+                    "id": 116,
+                    "name": "uint32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4025:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint32",
+                      "typeString": "uint32"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 120,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "4071:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 125,
+                  "src": "4050:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 119,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 118,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "4050:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "4050:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 122,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "4099:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 125,
+                  "src": "4092:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 121,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4092:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3977:134:1"
+            },
+            "returnParameters": {
+              "id": 124,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "4120:0:1"
+            },
+            "scope": 141,
+            "src": "3943:178:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 126,
+              "nodeType": "StructuredDocumentation",
+              "src": "4127:488:1",
+              "text": "Transfer several tokens at once through XCM based on its location specifying fee\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param assets The assets we want to transfer, defined by their location and amount. \n @param fee_item Which of the currencies to be used as fee\n @param destination The Multilocation to which we want to send the tokens\n @param weight The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "dab20fdc",
+            "id": 140,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer_multi_assets",
+            "nameLocation": "4629:21:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 138,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 130,
+                  "mutability": "mutable",
+                  "name": "assets",
+                  "nameLocation": "4680:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 140,
+                  "src": "4660:26:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_struct$_MultiAsset_$47_memory_ptr_$dyn_memory_ptr",
+                    "typeString": "struct Xtokens.MultiAsset[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 128,
+                      "nodeType": "UserDefinedTypeName",
+                      "pathNode": {
+                        "id": 127,
+                        "name": "MultiAsset",
+                        "nodeType": "IdentifierPath",
+                        "referencedDeclaration": 47,
+                        "src": "4660:10:1"
+                      },
+                      "referencedDeclaration": 47,
+                      "src": "4660:10:1",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_MultiAsset_$47_storage_ptr",
+                        "typeString": "struct Xtokens.MultiAsset"
+                      }
+                    },
+                    "id": 129,
+                    "nodeType": "ArrayTypeName",
+                    "src": "4660:12:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_struct$_MultiAsset_$47_storage_$dyn_storage_ptr",
+                      "typeString": "struct Xtokens.MultiAsset[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 132,
+                  "mutability": "mutable",
+                  "name": "fee_item",
+                  "nameLocation": "4703:8:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 140,
+                  "src": "4696:15:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint32",
+                    "typeString": "uint32"
+                  },
+                  "typeName": {
+                    "id": 131,
+                    "name": "uint32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4696:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint32",
+                      "typeString": "uint32"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 135,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "4742:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 140,
+                  "src": "4721:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 134,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 133,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "4721:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "4721:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 137,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "4770:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 140,
+                  "src": "4763:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 136,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4763:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "4650:132:1"
+            },
+            "returnParameters": {
+              "id": 139,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "4791:0:1"
+            },
+            "scope": 141,
+            "src": "4620:172:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          }
+        ],
+        "scope": 142,
+        "src": "247:4547:1",
+        "usedErrors": []
+      }
+    ],
+    "src": "41:4753:1"
+  },
+  "legacyAST": {
+    "absolutePath": "project:/contracts/Xtokens.sol",
+    "exportedSymbols": {
+      "Xtokens": [
+        141
+      ]
+    },
+    "id": 142,
+    "license": "GPL-3.0-only",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 34,
+        "literals": [
+          "solidity",
+          ">=",
+          "0.8",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "41:24:1"
+      },
+      {
+        "abstract": false,
+        "baseContracts": [],
+        "canonicalName": "Xtokens",
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "documentation": {
+          "id": 35,
+          "nodeType": "StructuredDocumentation",
+          "src": "67:178:1",
+          "text": " @title Xtokens Interface\n The interface through which solidity contracts will interact with xtokens pallet\n Address :    0x0000000000000000000000000000000000000804"
+        },
+        "fullyImplemented": false,
+        "id": 141,
+        "linearizedBaseContracts": [
+          141
+        ],
+        "name": "Xtokens",
+        "nameLocation": "257:7:1",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "canonicalName": "Xtokens.Multilocation",
+            "id": 41,
+            "members": [
+              {
+                "constant": false,
+                "id": 37,
+                "mutability": "mutable",
+                "name": "parents",
+                "nameLocation": "404:7:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 41,
+                "src": "398:13:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint8",
+                  "typeString": "uint8"
+                },
+                "typeName": {
+                  "id": 36,
+                  "name": "uint8",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "398:5:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint8",
+                    "typeString": "uint8"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 40,
+                "mutability": "mutable",
+                "name": "interior",
+                "nameLocation": "430:8:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 41,
+                "src": "421:17:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_array$_t_bytes_storage_$dyn_storage_ptr",
+                  "typeString": "bytes[]"
+                },
+                "typeName": {
+                  "baseType": {
+                    "id": 38,
+                    "name": "bytes",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "421:5:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes_storage_ptr",
+                      "typeString": "bytes"
+                    }
+                  },
+                  "id": 39,
+                  "nodeType": "ArrayTypeName",
+                  "src": "421:8:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_bytes_storage_$dyn_storage_ptr",
+                    "typeString": "bytes[]"
+                  }
+                },
+                "visibility": "internal"
+              }
+            ],
+            "name": "Multilocation",
+            "nameLocation": "374:13:1",
+            "nodeType": "StructDefinition",
+            "scope": 141,
+            "src": "367:78:1",
+            "visibility": "public"
+          },
+          {
+            "canonicalName": "Xtokens.MultiAsset",
+            "id": 47,
+            "members": [
+              {
+                "constant": false,
+                "id": 44,
+                "mutability": "mutable",
+                "name": "location",
+                "nameLocation": "557:8:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 47,
+                "src": "543:22:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                  "typeString": "struct Xtokens.Multilocation"
+                },
+                "typeName": {
+                  "id": 43,
+                  "nodeType": "UserDefinedTypeName",
+                  "pathNode": {
+                    "id": 42,
+                    "name": "Multilocation",
+                    "nodeType": "IdentifierPath",
+                    "referencedDeclaration": 41,
+                    "src": "543:13:1"
+                  },
+                  "referencedDeclaration": 41,
+                  "src": "543:13:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 46,
+                "mutability": "mutable",
+                "name": "amount",
+                "nameLocation": "583:6:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 47,
+                "src": "575:14:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                },
+                "typeName": {
+                  "id": 45,
+                  "name": "uint256",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "575:7:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  }
+                },
+                "visibility": "internal"
+              }
+            ],
+            "name": "MultiAsset",
+            "nameLocation": "522:10:1",
+            "nodeType": "StructDefinition",
+            "scope": 141,
+            "src": "515:81:1",
+            "visibility": "public"
+          },
+          {
+            "canonicalName": "Xtokens.Currency",
+            "id": 52,
+            "members": [
+              {
+                "constant": false,
+                "id": 49,
+                "mutability": "mutable",
+                "name": "currency_address",
+                "nameLocation": "709:16:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 52,
+                "src": "701:24:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_address",
+                  "typeString": "address"
+                },
+                "typeName": {
+                  "id": 48,
+                  "name": "address",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "701:7:1",
+                  "stateMutability": "nonpayable",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 51,
+                "mutability": "mutable",
+                "name": "amount",
+                "nameLocation": "743:6:1",
+                "nodeType": "VariableDeclaration",
+                "scope": 52,
+                "src": "735:14:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                },
+                "typeName": {
+                  "id": 50,
+                  "name": "uint256",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "735:7:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  }
+                },
+                "visibility": "internal"
+              }
+            ],
+            "name": "Currency",
+            "nameLocation": "682:8:1",
+            "nodeType": "StructDefinition",
+            "scope": 141,
+            "src": "675:81:1",
+            "visibility": "public"
+          },
+          {
+            "documentation": {
+              "id": 53,
+              "nodeType": "StructuredDocumentation",
+              "src": "762:455:1",
+              "text": "Transfer a token through XCM based on its currencyId\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param currency_address The ERC20 address of the currency we want to transfer\n @param amount The amount of tokens we want to transfer\n @param destination The Multilocation to which we want to send the tokens\n @param destination The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "b9f813ff",
+            "id": 65,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer",
+            "nameLocation": "1231:8:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 63,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 55,
+                  "mutability": "mutable",
+                  "name": "currency_address",
+                  "nameLocation": "1257:16:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 65,
+                  "src": "1249:24:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 54,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1249:7:1",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 57,
+                  "mutability": "mutable",
+                  "name": "amount",
+                  "nameLocation": "1291:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 65,
+                  "src": "1283:14:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 56,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1283:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 60,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "1328:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 65,
+                  "src": "1307:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 59,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 58,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "1307:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "1307:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 62,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "1356:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 65,
+                  "src": "1349:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 61,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1349:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1239:129:1"
+            },
+            "returnParameters": {
+              "id": 64,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1377:0:1"
+            },
+            "scope": 141,
+            "src": "1222:156:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 66,
+              "nodeType": "StructuredDocumentation",
+              "src": "1384:470:1",
+              "text": "Transfer a token through XCM based on its currencyId specifying fee\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param currency_address The ERC20 address of the currency we want to transfer\n @param amount The amount of tokens we want to transfer\n @param destination The Multilocation to which we want to send the tokens\n @param destination The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "94f69115",
+            "id": 80,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer_with_fee",
+            "nameLocation": "1868:17:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 78,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 68,
+                  "mutability": "mutable",
+                  "name": "currency_address",
+                  "nameLocation": "1903:16:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 80,
+                  "src": "1895:24:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 67,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1895:7:1",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 70,
+                  "mutability": "mutable",
+                  "name": "amount",
+                  "nameLocation": "1937:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 80,
+                  "src": "1929:14:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 69,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1929:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 72,
+                  "mutability": "mutable",
+                  "name": "fee",
+                  "nameLocation": "1961:3:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 80,
+                  "src": "1953:11:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 71,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1953:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 75,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "1995:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 80,
+                  "src": "1974:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 74,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 73,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "1974:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "1974:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 77,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "2023:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 80,
+                  "src": "2016:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 76,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2016:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1885:150:1"
+            },
+            "returnParameters": {
+              "id": 79,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "2044:0:1"
+            },
+            "scope": 141,
+            "src": "1859:186:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 81,
+              "nodeType": "StructuredDocumentation",
+              "src": "2051:501:1",
+              "text": "Transfer a token through XCM based on its MultiLocation\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param asset The asset we want to transfer, defined by its multilocation. \n Currently only Concrete Fungible assets\n @param amount The amount of tokens we want to transfer\n @param destination The Multilocation to which we want to send the tokens\n @param destination The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "b38c60fa",
+            "id": 94,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer_multiasset",
+            "nameLocation": "2566:19:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 92,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 84,
+                  "mutability": "mutable",
+                  "name": "asset",
+                  "nameLocation": "2616:5:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 94,
+                  "src": "2595:26:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 83,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 82,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "2595:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "2595:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 86,
+                  "mutability": "mutable",
+                  "name": "amount",
+                  "nameLocation": "2639:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 94,
+                  "src": "2631:14:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 85,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2631:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 89,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "2676:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 94,
+                  "src": "2655:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 88,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 87,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "2655:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "2655:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 91,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "2696:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 94,
+                  "src": "2689:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 90,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2689:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "2585:118:1"
+            },
+            "returnParameters": {
+              "id": 93,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "2712:0:1"
+            },
+            "scope": 141,
+            "src": "2557:156:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 95,
+              "nodeType": "StructuredDocumentation",
+              "src": "2731:516:1",
+              "text": "Transfer a token through XCM based on its MultiLocation specifying fee\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param asset The asset we want to transfer, defined by its multilocation. \n Currently only Concrete Fungible assets\n @param amount The amount of tokens we want to transfer\n @param destination The Multilocation to which we want to send the tokens\n @param destination The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "89a570fc",
+            "id": 110,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer_multiasset_with_fee",
+            "nameLocation": "3261:28:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 108,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 98,
+                  "mutability": "mutable",
+                  "name": "asset",
+                  "nameLocation": "3320:5:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 110,
+                  "src": "3299:26:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 97,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 96,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "3299:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "3299:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 100,
+                  "mutability": "mutable",
+                  "name": "amount",
+                  "nameLocation": "3343:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 110,
+                  "src": "3335:14:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 99,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3335:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 102,
+                  "mutability": "mutable",
+                  "name": "fee",
+                  "nameLocation": "3367:3:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 110,
+                  "src": "3359:11:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 101,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3359:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 105,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "3401:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 110,
+                  "src": "3380:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 104,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 103,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "3380:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "3380:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 107,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "3421:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 110,
+                  "src": "3414:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 106,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3414:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3289:139:1"
+            },
+            "returnParameters": {
+              "id": 109,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "3437:0:1"
+            },
+            "scope": 141,
+            "src": "3252:186:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 111,
+              "nodeType": "StructuredDocumentation",
+              "src": "3444:494:1",
+              "text": "Transfer several tokens at once through XCM based on its address specifying fee\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param currencies The currencies we want to transfer, defined by their address and amount. \n @param fee_item Which of the currencies to be used as fee\n @param destination The Multilocation to which we want to send the tokens\n @param weight The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "8a362d5c",
+            "id": 125,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer_multi_currencies",
+            "nameLocation": "3952:25:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 123,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 115,
+                  "mutability": "mutable",
+                  "name": "currencies",
+                  "nameLocation": "4005:10:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 125,
+                  "src": "3987:28:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_struct$_Currency_$52_memory_ptr_$dyn_memory_ptr",
+                    "typeString": "struct Xtokens.Currency[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 113,
+                      "nodeType": "UserDefinedTypeName",
+                      "pathNode": {
+                        "id": 112,
+                        "name": "Currency",
+                        "nodeType": "IdentifierPath",
+                        "referencedDeclaration": 52,
+                        "src": "3987:8:1"
+                      },
+                      "referencedDeclaration": 52,
+                      "src": "3987:8:1",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_Currency_$52_storage_ptr",
+                        "typeString": "struct Xtokens.Currency"
+                      }
+                    },
+                    "id": 114,
+                    "nodeType": "ArrayTypeName",
+                    "src": "3987:10:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_struct$_Currency_$52_storage_$dyn_storage_ptr",
+                      "typeString": "struct Xtokens.Currency[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 117,
+                  "mutability": "mutable",
+                  "name": "fee_item",
+                  "nameLocation": "4032:8:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 125,
+                  "src": "4025:15:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint32",
+                    "typeString": "uint32"
+                  },
+                  "typeName": {
+                    "id": 116,
+                    "name": "uint32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4025:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint32",
+                      "typeString": "uint32"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 120,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "4071:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 125,
+                  "src": "4050:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 119,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 118,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "4050:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "4050:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 122,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "4099:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 125,
+                  "src": "4092:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 121,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4092:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3977:134:1"
+            },
+            "returnParameters": {
+              "id": 124,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "4120:0:1"
+            },
+            "scope": 141,
+            "src": "3943:178:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 126,
+              "nodeType": "StructuredDocumentation",
+              "src": "4127:488:1",
+              "text": "Transfer several tokens at once through XCM based on its location specifying fee\n @dev The token transfer burns/transfers the corresponding amount before sending\n @param assets The assets we want to transfer, defined by their location and amount. \n @param fee_item Which of the currencies to be used as fee\n @param destination The Multilocation to which we want to send the tokens\n @param weight The weight we want to buy in the destination chain"
+            },
+            "functionSelector": "dab20fdc",
+            "id": 140,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "transfer_multi_assets",
+            "nameLocation": "4629:21:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 138,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 130,
+                  "mutability": "mutable",
+                  "name": "assets",
+                  "nameLocation": "4680:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 140,
+                  "src": "4660:26:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_struct$_MultiAsset_$47_memory_ptr_$dyn_memory_ptr",
+                    "typeString": "struct Xtokens.MultiAsset[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 128,
+                      "nodeType": "UserDefinedTypeName",
+                      "pathNode": {
+                        "id": 127,
+                        "name": "MultiAsset",
+                        "nodeType": "IdentifierPath",
+                        "referencedDeclaration": 47,
+                        "src": "4660:10:1"
+                      },
+                      "referencedDeclaration": 47,
+                      "src": "4660:10:1",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_MultiAsset_$47_storage_ptr",
+                        "typeString": "struct Xtokens.MultiAsset"
+                      }
+                    },
+                    "id": 129,
+                    "nodeType": "ArrayTypeName",
+                    "src": "4660:12:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_struct$_MultiAsset_$47_storage_$dyn_storage_ptr",
+                      "typeString": "struct Xtokens.MultiAsset[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 132,
+                  "mutability": "mutable",
+                  "name": "fee_item",
+                  "nameLocation": "4703:8:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 140,
+                  "src": "4696:15:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint32",
+                    "typeString": "uint32"
+                  },
+                  "typeName": {
+                    "id": 131,
+                    "name": "uint32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4696:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint32",
+                      "typeString": "uint32"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 135,
+                  "mutability": "mutable",
+                  "name": "destination",
+                  "nameLocation": "4742:11:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 140,
+                  "src": "4721:32:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Multilocation_$41_memory_ptr",
+                    "typeString": "struct Xtokens.Multilocation"
+                  },
+                  "typeName": {
+                    "id": 134,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 133,
+                      "name": "Multilocation",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 41,
+                      "src": "4721:13:1"
+                    },
+                    "referencedDeclaration": 41,
+                    "src": "4721:13:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Multilocation_$41_storage_ptr",
+                      "typeString": "struct Xtokens.Multilocation"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 137,
+                  "mutability": "mutable",
+                  "name": "weight",
+                  "nameLocation": "4770:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 140,
+                  "src": "4763:13:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 136,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4763:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "4650:132:1"
+            },
+            "returnParameters": {
+              "id": 139,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "4791:0:1"
+            },
+            "scope": 141,
+            "src": "4620:172:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          }
+        ],
+        "scope": 142,
+        "src": "247:4547:1",
+        "usedErrors": []
+      }
+    ],
+    "src": "41:4753:1"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.8.10+commit.fc410830.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.4.3",
+  "updatedAt": "2022-05-23T10:03:24.990Z",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "transfer(address,uint256,(uint8,bytes[]),uint64)": {
+        "details": "The token transfer burns/transfers the corresponding amount before sending",
+        "params": {
+          "amount": "The amount of tokens we want to transfer",
+          "currency_address": "The ERC20 address of the currency we want to transfer",
+          "destination": "The weight we want to buy in the destination chain"
+        }
+      },
+      "transfer_multi_assets(((uint8,bytes[]),uint256)[],uint32,(uint8,bytes[]),uint64)": {
+        "details": "The token transfer burns/transfers the corresponding amount before sending",
+        "params": {
+          "assets": "The assets we want to transfer, defined by their location and amount. ",
+          "destination": "The Multilocation to which we want to send the tokens",
+          "fee_item": "Which of the currencies to be used as fee",
+          "weight": "The weight we want to buy in the destination chain"
+        }
+      },
+      "transfer_multi_currencies((address,uint256)[],uint32,(uint8,bytes[]),uint64)": {
+        "details": "The token transfer burns/transfers the corresponding amount before sending",
+        "params": {
+          "currencies": "The currencies we want to transfer, defined by their address and amount. ",
+          "destination": "The Multilocation to which we want to send the tokens",
+          "fee_item": "Which of the currencies to be used as fee",
+          "weight": "The weight we want to buy in the destination chain"
+        }
+      },
+      "transfer_multiasset((uint8,bytes[]),uint256,(uint8,bytes[]),uint64)": {
+        "details": "The token transfer burns/transfers the corresponding amount before sending",
+        "params": {
+          "amount": "The amount of tokens we want to transfer",
+          "asset": "The asset we want to transfer, defined by its multilocation.  Currently only Concrete Fungible assets",
+          "destination": "The weight we want to buy in the destination chain"
+        }
+      },
+      "transfer_multiasset_with_fee((uint8,bytes[]),uint256,uint256,(uint8,bytes[]),uint64)": {
+        "details": "The token transfer burns/transfers the corresponding amount before sending",
+        "params": {
+          "amount": "The amount of tokens we want to transfer",
+          "asset": "The asset we want to transfer, defined by its multilocation.  Currently only Concrete Fungible assets",
+          "destination": "The weight we want to buy in the destination chain"
+        }
+      },
+      "transfer_with_fee(address,uint256,uint256,(uint8,bytes[]),uint64)": {
+        "details": "The token transfer burns/transfers the corresponding amount before sending",
+        "params": {
+          "amount": "The amount of tokens we want to transfer",
+          "currency_address": "The ERC20 address of the currency we want to transfer",
+          "destination": "The weight we want to buy in the destination chain"
+        }
+      }
+    },
+    "title": "Xtokens Interface The interface through which solidity contracts will interact with xtokens pallet Address :    0x0000000000000000000000000000000000000804",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "transfer(address,uint256,(uint8,bytes[]),uint64)": {
+        "notice": "Transfer a token through XCM based on its currencyId"
+      },
+      "transfer_multi_assets(((uint8,bytes[]),uint256)[],uint32,(uint8,bytes[]),uint64)": {
+        "notice": "Transfer several tokens at once through XCM based on its location specifying fee"
+      },
+      "transfer_multi_currencies((address,uint256)[],uint32,(uint8,bytes[]),uint64)": {
+        "notice": "Transfer several tokens at once through XCM based on its address specifying fee"
+      },
+      "transfer_multiasset((uint8,bytes[]),uint256,(uint8,bytes[]),uint64)": {
+        "notice": "Transfer a token through XCM based on its MultiLocation"
+      },
+      "transfer_multiasset_with_fee((uint8,bytes[]),uint256,uint256,(uint8,bytes[]),uint64)": {
+        "notice": "Transfer a token through XCM based on its MultiLocation specifying fee"
+      },
+      "transfer_with_fee(address,uint256,uint256,(uint8,bytes[]),uint64)": {
+        "notice": "Transfer a token through XCM based on its currencyId specifying fee"
+      }
+    },
+    "version": 1
+  }
+}
