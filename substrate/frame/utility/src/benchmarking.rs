@@ -70,10 +70,10 @@ benchmarks! {
 		let call = Box::new(frame_system::Call::remark { remark: vec![] }.into());
 		let origin: T::Origin = RawOrigin::Signed(caller).into();
 		let pallets_origin: <T::Origin as frame_support::traits::OriginTrait>::PalletsOrigin = origin.caller().clone();
-		let pallets_origin = Into::<T::PalletsOrigin>::into(pallets_origin.clone());
+		let pallets_origin = Into::<T::PalletsOrigin>::into(pallets_origin);
 	}: _(RawOrigin::Root, Box::new(pallets_origin), call)
 
-	batch_try {
+	force_batch {
 		let c in 0 .. 1000;
 		let mut calls: Vec<<T as Config>::Call> = Vec::new();
 		for i in 0 .. c {
