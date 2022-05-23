@@ -64,6 +64,7 @@ async fn build_relay_chain_interface(
     telemetry_worker_handle: Option<TelemetryWorkerHandle>,
     task_manager: &mut TaskManager,
     collator_options: CollatorOptions,
+    hwbench: Option<sc_sysinfo::HwBench>,
 ) -> RelayChainResult<(Arc<(dyn RelayChainInterface + 'static)>, Option<CollatorPair>)> {
     match collator_options.relay_chain_rpc_url {
         Some(relay_chain_url) =>
@@ -73,6 +74,7 @@ async fn build_relay_chain_interface(
             parachain_config,
             telemetry_worker_handle,
             task_manager,
+            hwbench,
         ),
     }
 }
@@ -201,9 +203,10 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
     polkadot_config: Configuration,
     collator_options: CollatorOptions,
     id: ParaId,
-    _rpc_ext_builder: RB,
+    _rpc_builder: RB,
     build_import_queue: BIQ,
     build_consensus: BIC,
+    hwbench: Option<sc_sysinfo::HwBench>,
 ) -> sc_service::error::Result<(
     TaskManager,
     Arc<TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>,
@@ -223,12 +226,12 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         + sp_block_builder::BlockBuilder<Block>
         + cumulus_primitives_core::CollectCollationInfo<Block>
         + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
-        + substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
+        + frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
         + pallet_mq_runtime_api::MqApi<Block>,
         sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
         RB: Fn(
             Arc<TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>,
-        ) -> Result<jsonrpc_core::IoHandler<sc_rpc::Metadata>, sc_service::Error>
+        ) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>
         + Send
         + 'static,
         BIQ: FnOnce(
@@ -279,6 +282,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         telemetry_worker_handle,
         &mut task_manager,
         collator_options.clone(),
+        hwbench.clone(),
     )
         .await
         .map_err(|e| match e {
@@ -306,13 +310,18 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             warp_sync: None,
         })?;
 
-    let rpc_extensions_builder = {
+    let rpc_builder = {
         let client = client.clone();
         let transaction_pool = transaction_pool.clone();
         let backend = backend.clone();
-        let enable_archive = match parachain_config.state_pruning {
-            PruningMode::Constrained(_) => false,
-            PruningMode::ArchiveAll | PruningMode::ArchiveCanonical => true,
+        let enable_archive = match &parachain_config.state_pruning {
+            Some(m) => {
+                match m {
+                    PruningMode::Constrained(_) => false,
+                    PruningMode::ArchiveAll | PruningMode::ArchiveCanonical => true,
+                }
+            },
+            None => true
         };
 
         Box::new(move |deny_unsafe, _| {
@@ -324,12 +333,12 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
                 deny_unsafe,
             };
 
-            Ok(crate::rpc::create_full(deps))
+            crate::rpc::create_full(deps).map_err(Into::into)
         })
     };
 
     sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-        rpc_extensions_builder,
+        rpc_builder,
         client: client.clone(),
         transaction_pool: transaction_pool.clone(),
         task_manager: &mut task_manager,
@@ -340,6 +349,19 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         system_rpc_tx,
         telemetry: telemetry.as_mut(),
     })?;
+
+    if let Some(hwbench) = hwbench {
+        sc_sysinfo::print_hwbench(&hwbench);
+
+        if let Some(ref mut telemetry) = telemetry {
+            let telemetry_handle = telemetry.handle();
+            task_manager.spawn_handle().spawn(
+                "telemetry_hwbench",
+                None,
+                sc_sysinfo::initialize_hwbench_telemetry(telemetry_handle, hwbench),
+            );
+        }
+    }
 
     let announce_block = {
         let network = network.clone();

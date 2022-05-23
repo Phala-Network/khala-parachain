@@ -82,6 +82,7 @@ pub async fn start_parachain_node(
     polkadot_config: Configuration,
     collator_options: CollatorOptions,
     id: ParaId,
+    hwbench: Option<sc_sysinfo::HwBench>,
 ) -> sc_service::error::Result<(
     TaskManager,
     Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
@@ -91,7 +92,7 @@ pub async fn start_parachain_node(
         polkadot_config,
         collator_options,
         id,
-        |_| Ok(Default::default()),
+        |_| Ok(jsonrpsee::RpcModule::new(())),
         parachain_build_import_queue,
         |client,
          prometheus_registry,
@@ -159,6 +160,7 @@ pub async fn start_parachain_node(
                 },
             ))
         },
+        hwbench,
     )
         .await
 }

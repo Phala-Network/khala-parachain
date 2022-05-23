@@ -20,17 +20,16 @@
 
 use std::sync::Arc;
 
-use sc_client_api::{backend, AuxStore, Backend, BlockBackend, StorageProvider};
+use parachains_common::{AccountId, Balance, Block, Index as Nonce};
+use sc_client_api::{AuxStore, backend, Backend, BlockBackend, StorageProvider};
 pub use sc_rpc::{DenyUnsafe, SubscriptionTaskExecutor};
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::{ApiExt, ProvideRuntimeApi};
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 
-use parachains_common::{AccountId, Balance, Block, Index as Nonce};
-
 /// A type representing all RPC extensions.
-pub type RpcExtension = jsonrpc_core::IoHandler<sc_rpc::Metadata>;
+pub type RpcExtension = jsonrpsee::RpcModule<()>;
 
 /// Full client dependencies
 pub struct FullDeps<C, B, P> {
@@ -47,7 +46,9 @@ pub struct FullDeps<C, B, P> {
 }
 
 /// Instantiate all RPC extensions.
-pub fn create_full<C, B, P>(deps: FullDeps<C, B, P>) -> RpcExtension
+pub fn create_full<C, B, P>(
+    deps: FullDeps<C, B, P>,
+) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>
         + StorageProvider<Block, B>
@@ -58,7 +59,7 @@ where
         + Send
         + Sync
         + 'static,
-    C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
+    C::Api: frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: BlockBuilder<Block>,
     C::Api:
@@ -67,10 +68,10 @@ where
     B: Backend<Block> + 'static,
     P: TransactionPool + Sync + Send + 'static,
 {
-    use substrate_frame_rpc_system::{FullSystem, SystemApi};
-    use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
+    use frame_rpc_system::{SystemApiServer, SystemRpc};
+    use pallet_transaction_payment_rpc::{TransactionPaymentApiServer, TransactionPaymentRpc};
 
-    let mut io = jsonrpc_core::IoHandler::default();
+    let mut module = RpcExtension::new(());
     let FullDeps {
         client,
         pool,
@@ -79,51 +80,42 @@ where
         enable_archive,
     } = deps;
 
-    io.extend_with(SystemApi::to_delegate(FullSystem::new(
-        client.clone(),
-        pool.clone(),
-        deny_unsafe,
-    )));
-    io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
-        client.clone(),
-    )));
+    module.merge(SystemRpc::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
+    module.merge(TransactionPaymentRpc::new(client.clone()).into_rpc())?;
 
     phala_node_rpc_ext::extend_rpc(
-        &mut io,
+        &mut module,
         client.clone(),
         backend.clone(),
         enable_archive,
         pool.clone(),
     );
 
-    io
+    Ok(module)
 }
 
 // TODO: Remove when Phala integrated Phala pallets
 #[allow(dead_code)]
-pub fn create_phala_full<C, B, P>(deps: FullDeps<C, B, P>) -> RpcExtension
+pub fn create_phala_full<C, B, P>(
+    deps: FullDeps<C, B, P>,
+) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
     where
         C: ProvideRuntimeApi<Block>
-        + StorageProvider<Block, B>
         + HeaderBackend<Block>
-        + BlockBackend<Block>
         + AuxStore
         + HeaderMetadata<Block, Error = BlockChainError>
         + Send
         + Sync
         + 'static,
-        C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
+        C::Api: frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
         C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
         C::Api: BlockBuilder<Block>,
-        C::Api:
-        sp_api::Metadata<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<B, Block>>,
-        B: Backend<Block> + 'static,
         P: TransactionPool + Sync + Send + 'static,
 {
-    use substrate_frame_rpc_system::{FullSystem, SystemApi};
-    use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
+    use frame_rpc_system::{SystemApiServer, SystemRpc};
+    use pallet_transaction_payment_rpc::{TransactionPaymentApiServer, TransactionPaymentRpc};
 
-    let mut io = jsonrpc_core::IoHandler::default();
+    let mut module = RpcExtension::new(());
     let FullDeps {
         client,
         pool,
@@ -132,14 +124,8 @@ pub fn create_phala_full<C, B, P>(deps: FullDeps<C, B, P>) -> RpcExtension
         enable_archive: _,
     } = deps;
 
-    io.extend_with(SystemApi::to_delegate(FullSystem::new(
-        client.clone(),
-        pool.clone(),
-        deny_unsafe,
-    )));
-    io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
-        client.clone(),
-    )));
+    module.merge(SystemRpc::new(client.clone(), pool, deny_unsafe).into_rpc())?;
+    module.merge(TransactionPaymentRpc::new(client.clone()).into_rpc())?;
 
-    io
+    Ok(module)
 }
