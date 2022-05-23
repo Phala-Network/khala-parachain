@@ -296,7 +296,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         let client = client.clone();
         let transaction_pool = transaction_pool.clone();
         let backend = backend.clone();
-        let enable_archive = match &parachain_config.state_pruning {
+        let archive_enabled = match &parachain_config.state_pruning {
             Some(m) => {
                 match m {
                     PruningMode::Constrained(_) => false,
@@ -311,7 +311,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
                 client: client.clone(),
                 pool: transaction_pool.clone(),
                 backend: backend.clone(),
-                enable_archive,
+                archive_enabled,
                 deny_unsafe,
             };
 

@@ -39,8 +39,8 @@ pub struct FullDeps<C, B, P> {
     pub pool: Arc<P>,
     /// Backend
     pub backend: Arc<B>,
-    /// The client enable archive mode
-    pub enable_archive: bool,
+    /// The client enabled archive mode
+    pub archive_enabled: bool,
     /// Whether to deny unsafe calls
     pub deny_unsafe: DenyUnsafe,
 }
@@ -77,7 +77,7 @@ where
         pool,
         deny_unsafe,
         backend,
-        enable_archive,
+        archive_enabled,
     } = deps;
 
     module.merge(SystemRpc::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
@@ -87,7 +87,7 @@ where
         &mut module,
         client.clone(),
         backend.clone(),
-        enable_archive,
+        archive_enabled,
         pool.clone(),
     );
 
@@ -121,7 +121,7 @@ pub fn create_phala_full<C, B, P>(
         pool,
         deny_unsafe,
         backend: _,
-        enable_archive: _,
+        archive_enabled: _,
     } = deps;
 
     module.merge(SystemRpc::new(client.clone(), pool, deny_unsafe).into_rpc())?;
