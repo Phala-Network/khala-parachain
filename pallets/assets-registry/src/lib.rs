@@ -30,8 +30,8 @@ pub mod pallet {
 
 	/// Const used to indicate chainbridge path. str "cb"
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
-	/// const used to indicate celerbridge path. str "cr"
-	pub const CR_PATH_KEY: &[u8] = &[0x63, 0x72];
+	/// const used to indicate celerbridge path. str "wb"
+	pub const WB_PATH_KEY: &[u8] = &[0x77, 0x62];
 	/// Account that would be reserved when register an asset
 	pub const ASSETS_REGISTRY_ID: PalletId = PalletId(*b"phala/ar");
 
@@ -41,6 +41,12 @@ pub mod pallet {
 		ChainBridge {
 			chain_id: u8,
 			resource_id: [u8; 32],
+			reserve_account: [u8; 32],
+			is_mintable: bool,
+		},
+		WanBridge {
+			chain_id: u8,
+			token_pair: u32,
 			reserve_account: [u8; 32],
 			is_mintable: bool,
 		},
@@ -297,6 +303,17 @@ pub mod pallet {
 	pub type IdByResourceId<T: Config> =
 		StorageMap<_, Twox64Concat, [u8; 32], <T as pallet_assets::Config>::AssetId>;
 
+	/// Mapping fungible asset tokan pair to corresponding asset id
+	#[pallet::storage]
+	#[pallet::getter(fn id_to_tokenpair)]
+	pub type IdByTokenPair<T: Config> =
+		StorageMap<_, Twox64Concat, u32, <T as pallet_assets::Config>::AssetId>;
+
+	/// Mapping asset location to corresponding token pair
+	#[pallet::storage]
+	#[pallet::getter(fn location_to_tokenpair)]
+	pub type TokenPairByLocation<T: Config> = StorageMap<_, Twox64Concat, MultiLocation, u32>;
+
 	// Mapping fungible assets id to corresponding registry info
 	#[pallet::storage]
 	#[pallet::getter(fn id_to_registry_info)]
@@ -339,6 +356,17 @@ pub mod pallet {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			who: T::AccountId,
 			amount: <T as pallet_assets::Config>::Balance,
+		/// Asset enabled wanbridge.
+		WanbridgeEnabled {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			chain_id: u8,
+			token_pair: u32,
+		},
+		/// Asset disabled wanbridge.
+		WanbridgeDisabled {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			chain_id: u8,
+			token_pair: u32,
 		},
 	}
 
@@ -723,6 +751,99 @@ pub mod pallet {
 				asset_id,
 				chain_id,
 				resource_id,
+			});
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_enable_wanbridge(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			token_pair: u32,
+			chain_id: u8,
+			is_mintable: bool,
+			metadata: Box<Vec<u8>>,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+
+			ensure!(
+				IdByTokenPair::<T>::get(&token_pair) == None,
+				Error::<T>::BridgeAlreadyEnabled,
+			);
+			IdByTokenPair::<T>::insert(&token_pair, &asset_id);
+			TokenPairByLocation::<T>::insert(&info.location, token_pair);
+			// Save into registry info, here save chain id can not be added more than twice
+			let reserve_location: MultiLocation = (
+				0,
+				X2(
+					GeneralKey(WB_PATH_KEY.to_vec()),
+					GeneralIndex(chain_id as u128),
+				),
+			)
+				.into();
+			info.enabled_bridges.push(XBridge {
+				config: XBridgeConfig::WanBridge {
+					chain_id,
+					token_pair,
+					reserve_account: reserve_location.into_account(),
+					is_mintable,
+				},
+				metadata,
+			});
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
+
+			Self::deposit_event(Event::WanbridgeEnabled {
+				asset_id,
+				chain_id,
+				token_pair,
+			});
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_disable_wanbridge(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			chain_id: u8,
+			token_pair: u32,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+
+			ensure!(
+				TokenPairByLocation::<T>::get(&info.location).is_some(),
+				Error::<T>::BridgeAlreadyDisabled,
+			);
+			// Unbind token pair and asset id
+			IdByTokenPair::<T>::remove(&token_pair);
+			// Unbind token pair and asset location
+			TokenPairByLocation::<T>::remove(&info.location);
+
+			// Remove wanbridge info
+			if let Some(idx) = info
+				.enabled_bridges
+				.iter()
+				.position(|item| match item.config {
+					XBridgeConfig::WanBridge {
+						chain_id: cid,
+						token_pair: pair,
+						..
+					} => cid == chain_id && pair == token_pair,
+					_ => false,
+				}) {
+				info.enabled_bridges.remove(idx);
+			}
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
+
+			Self::deposit_event(Event::WanbridgeDisabled {
+				asset_id,
+				chain_id,
+				token_pair,
 			});
 			Ok(())
 		}

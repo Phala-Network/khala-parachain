@@ -105,5 +105,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-builder/std",
 	"phala-pallet-common/std",
+	"pallet-assets/std",
 ]
 try-runtime = ["frame-support/try-runtime"]
