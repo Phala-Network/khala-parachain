@@ -78,6 +78,8 @@ pub mod pallet {
 	pub trait GetAssetRegistryInfo<AssetId> {
 		fn id(location: &MultiLocation) -> Option<AssetId>;
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<MultiLocation>;
+		fn lookup_by_token_pair(token_pair: u32) -> Option<MultiLocation>;
+		fn wanbridge_token_pair(location: &MultiLocation) -> Option<u32>;
 		fn decimals(id: &AssetId) -> Option<u8>;
 		fn price(location: &MultiLocation) -> Option<(XcmAssetId, u128)>;
 	}
@@ -903,6 +905,15 @@ pub mod pallet {
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<MultiLocation> {
 			IdByResourceId::<T>::get(resource_id)
 				.and_then(|id| RegistryInfoByIds::<T>::get(&id).map(|m| m.location))
+		}
+
+		fn lookup_by_token_pair(token_pair: u32) -> Option<MultiLocation> {
+			IdByTokenPair::<T>::get(&token_pair)
+				.and_then(|id| RegistryInfoByIds::<T>::get(&id).map(|m| m.location))
+		}
+
+		fn wanbridge_token_pair(location: &MultiLocation) -> Option<u32> {
+			TokenPairByLocation::<T>::get(location)
 		}
 
 		fn decimals(id: &<T as pallet_assets::Config>::AssetId) -> Option<u8> {
