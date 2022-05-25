@@ -6,6 +6,7 @@ pub mod fungible_adapter;
 pub mod helper;
 mod mock;
 pub mod traits;
+pub mod wanbridge;
 pub mod xcmbridge;
 pub mod xtransfer;
 
