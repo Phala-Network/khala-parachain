@@ -11,9 +11,7 @@ repository = "https://github.com/Phala-Network/phala-blockchain"
 # third-party dependencies
 serde = { version = "1.0.102", features = ["derive"] }
 thiserror = "1.0"
-jsonrpc-derive = "18.0"
-jsonrpc-core = "18.0"
-jsonrpc-core-client = "18.0"
+jsonrpsee = { version = "0.13", features = ["server"] }
 impl-serde = "0.3"
 log = { version = "0.4.14", default-features = false }
 hex = { version = "0.4.3", default-features = false }
@@ -21,14 +19,14 @@ codec = { package = "parity-scale-codec", version = "3.0" }
 scale-info = { version = "2.0", default-features = false }
 
 # primitives
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.20" }
-sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.20" }
-sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.20" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 
 # client dependencies
-sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.20" }
-sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.20" }
-sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.20" }
+sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
+sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
+sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 
 phala-mq = { path = "../phala-mq" }
 phala-pallets = { path = "../../pallets/phala" }
@@ -36,4 +34,3 @@ pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api" }
 ext-types = { path = "./types", package = "phala-node-rpc-ext-types" }
 
 rayon = "1"
-

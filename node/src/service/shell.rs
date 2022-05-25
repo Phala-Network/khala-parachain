@@ -85,9 +85,10 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
     polkadot_config: Configuration,
     collator_options: CollatorOptions,
     id: ParaId,
-    rpc_ext_builder: RB,
+    rpc_builder: RB,
     build_import_queue: BIQ,
     build_consensus: BIC,
+    hwbench: Option<sc_sysinfo::HwBench>,
 ) -> sc_service::error::Result<(
     TaskManager,
     Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
@@ -109,7 +110,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
         RB: Fn(
             Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
-        ) -> Result<jsonrpc_core::IoHandler<sc_rpc::Metadata>, sc_service::Error>
+        ) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>
         + Send
         + 'static,
         BIQ: FnOnce(
@@ -161,6 +162,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         telemetry_worker_handle,
         &mut task_manager,
         collator_options.clone(),
+        hwbench.clone(),
     )
         .await
         .map_err(|e| match e {
@@ -189,10 +191,10 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         })?;
 
     let rpc_client = client.clone();
-    let rpc_extensions_builder = Box::new(move |_, _| rpc_ext_builder(rpc_client.clone()));
+    let rpc_builder = Box::new(move |_, _| rpc_builder(rpc_client.clone()));
 
     sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-        rpc_extensions_builder,
+        rpc_builder,
         client: client.clone(),
         transaction_pool: transaction_pool.clone(),
         task_manager: &mut task_manager,
@@ -203,6 +205,19 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         system_rpc_tx,
         telemetry: telemetry.as_mut(),
     })?;
+
+    if let Some(hwbench) = hwbench {
+        sc_sysinfo::print_hwbench(&hwbench);
+
+        if let Some(ref mut telemetry) = telemetry {
+            let telemetry_handle = telemetry.handle();
+            task_manager.spawn_handle().spawn(
+                "telemetry_hwbench",
+                None,
+                sc_sysinfo::initialize_hwbench_telemetry(telemetry_handle, hwbench),
+            );
+        }
+    }
 
     let announce_block = {
         let network = network.clone();
@@ -268,6 +283,7 @@ pub async fn start_parachain_node(
     polkadot_config: Configuration,
     collator_options: CollatorOptions,
     id: ParaId,
+    hwbench: Option<sc_sysinfo::HwBench>,
 ) -> sc_service::error::Result<(
     TaskManager,
     Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
@@ -278,7 +294,7 @@ pub async fn start_parachain_node(
         polkadot_config,
         collator_options,
         id,
-        |_| Ok(Default::default()),
+        |_| Ok(jsonrpsee::RpcModule::new(())),
         parachain_build_import_queue,
         |client,
          prometheus_registry,
@@ -324,6 +340,7 @@ pub async fn start_parachain_node(
                 },
             ))
         },
+        hwbench,
     )
         .await
 }

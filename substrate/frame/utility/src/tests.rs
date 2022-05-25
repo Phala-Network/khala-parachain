@@ -599,11 +599,20 @@ fn batch_all_does_not_nest() {
 }
 
 #[test]
-fn batch_try_works() {
+fn batch_limit() {
+	new_test_ext().execute_with(|| {
+		let calls = vec![Call::System(SystemCall::remark { remark: vec![] }); 40_000];
+		assert_noop!(Utility::batch(Origin::signed(1), calls.clone()), Error::<Test>::TooManyCalls);
+		assert_noop!(Utility::batch_all(Origin::signed(1), calls), Error::<Test>::TooManyCalls);
+	});
+}
+
+#[test]
+fn force_batch_works() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(Balances::free_balance(1), 10);
 		assert_eq!(Balances::free_balance(2), 10);
-		assert_ok!(Utility::batch_try(
+		assert_ok!(Utility::force_batch(
 			Origin::signed(1),
 			vec![
 				call_transfer(2, 5),
@@ -612,43 +621,20 @@ fn batch_try_works() {
 				call_transfer(2, 5),
 			]
 		),);
-		System::assert_last_event(
-			utility::Event::BatchCompletedWithErrors { indexes: vec![1, 2] }.into(),
-		);
+		System::assert_last_event(utility::Event::BatchCompletedWithErrors.into());
 		System::assert_has_event(
-			utility::Event::ItemFailed { index: 1, error: DispatchError::Other("") }.into(),
+			utility::Event::ItemFailed { error: DispatchError::Other("") }.into(),
 		);
 		assert_eq!(Balances::free_balance(1), 0);
 		assert_eq!(Balances::free_balance(2), 20);
 
-		assert_ok!(Utility::batch_try(
+		assert_ok!(Utility::force_batch(
 			Origin::signed(2),
-			vec![
-				call_transfer(1, 5),
-				call_transfer(1, 5),
-			]
+			vec![call_transfer(1, 5), call_transfer(1, 5),]
 		),);
-		System::assert_last_event(
-			utility::Event::BatchCompleted.into(),
-		);
+		System::assert_last_event(utility::Event::BatchCompleted.into());
 
-		assert_ok!(Utility::batch_try(
-			Origin::signed(1),
-			vec![
-				call_transfer(2, 50),
-			]
-		),);
-		System::assert_last_event(
-			utility::Event::BatchCompletedWithErrors { indexes: vec![0] }.into(),
-		);
-	});
-}
-
-#[test]
-fn batch_limit() {
-	new_test_ext().execute_with(|| {
-		let calls = vec![Call::System(SystemCall::remark { remark: vec![] }); 40_000];
-		assert_noop!(Utility::batch(Origin::signed(1), calls.clone()), Error::<Test>::TooManyCalls);
-		assert_noop!(Utility::batch_all(Origin::signed(1), calls), Error::<Test>::TooManyCalls);
+		assert_ok!(Utility::force_batch(Origin::signed(1), vec![call_transfer(2, 50),]),);
+		System::assert_last_event(utility::Event::BatchCompletedWithErrors.into());
 	});
 }
