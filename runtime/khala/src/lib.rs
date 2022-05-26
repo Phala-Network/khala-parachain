@@ -67,9 +67,9 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_types, parameter_types,
     traits::{
-        Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter,
-        IsInVec, KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness,
-        U128CurrencyToVote,
+        AsEnsureOriginWithArg, Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything,
+        Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem, LockIdentifier, Nothing,
+        OnUnbalanced, Randomness, U128CurrencyToVote,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -80,7 +80,7 @@ pub use frame_support::{
 
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureRoot,
+    EnsureRoot, EnsureSigned,
 };
 
 use pallet_xcm::XcmPassthrough;
@@ -259,6 +259,7 @@ construct_runtime! {
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
+        Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 91,
 
         // `sudo` has been removed on production
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
@@ -293,6 +294,19 @@ impl Contains<Call> for BaseCallFilter {
                 | pallet_assets::Call::set_metadata { .. }
                 | pallet_assets::Call::force_set_metadata { .. }
                 | pallet_assets::Call::__Ignore { .. } => false,
+                _ => true,
+            };
+        }
+
+        if let Call::Uniques(uniques_method) = call {
+            return match uniques_method {
+                pallet_uniques::Call::freeze { .. }
+                | pallet_uniques::Call::thaw { .. }
+                | pallet_uniques::Call::set_team { .. }
+                | pallet_uniques::Call::set_attribute { .. }
+                | pallet_uniques::Call::clear_attribute { .. }
+                | pallet_uniques::Call::set_accept_ownership { .. }
+                | pallet_uniques::Call::__Ignore { .. } => false,
                 _ => true,
             };
         }
@@ -771,6 +785,35 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type OutboundXcmpMessageSource = XcmpQueue;
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
+}
+
+parameter_types! {
+    pub const ClassDeposit: Balance = 100 * DOLLARS;
+    pub const InstanceDeposit: Balance = 1 * DOLLARS;
+    pub const KeyLimit: u32 = 32;
+    pub const ValueLimit: u32 = 256;
+    pub const StringLimit: u32 = 50;
+}
+
+impl pallet_uniques::Config for Runtime {
+    type Event = Event;
+    type ClassId = u32;
+    type InstanceId = u32;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
+    type Locker = ();
+    type ClassDeposit = ClassDeposit;
+    type InstanceDeposit = InstanceDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type AttributeDepositBase = MetadataDepositBase;
+    type DepositPerByte = MetadataDepositPerByte;
+    type StringLimit = StringLimit;
+    type KeyLimit = KeyLimit;
+    type ValueLimit = ValueLimit;
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = ();
+    type WeightInfo = pallet_uniques::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_parachain_info::Config for Runtime {}
@@ -1530,6 +1573,7 @@ mod benches {
         [pallet_assets, Assets]
         // TODO: panic
         [pallet_collator_selection, CollatorSelection]
+        [pallet_uniques, Uniques]
     );
 }
 
