@@ -262,6 +262,7 @@ construct_runtime! {
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
+        Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 91,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` was used in Khala, we avoid to use the index
@@ -357,6 +358,13 @@ impl Contains<Call> for BaseCallFilter {
                 }
                 _ => return false,
             }
+        }
+
+        if let Call::Uniques(uniques_method) = call {
+            match uniques_method {
+                
+            }
+
         }
 
         matches!(

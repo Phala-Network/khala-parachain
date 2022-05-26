@@ -137,6 +137,7 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"subbridge-pallets/runtime-benchmarks",
+	"pallet-uniques/runtime-benchmarks",
 ]
 std = [
 	"codec/std",

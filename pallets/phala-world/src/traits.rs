@@ -81,6 +81,15 @@ pub struct PreorderInfo<AccountId, BoundedString> {
 	pub metadata: BoundedString,
 }
 
+/// NFT sale types
+#[derive(Encode, Decode, Debug, Clone, Copy, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum NftSaleType {
+	ForSale,
+	Giveaway,
+	Reserved,
+}
+
 /// NftSaleInfo is used as the value in the StorageDoubleMap that takes key1 as the
 /// OriginOfShellType and key2 as the RaceType
 #[derive(Encode, Decode, Eq, PartialEq, Clone, Copy, RuntimeDebug, TypeInfo, MaxEncodedLen)]

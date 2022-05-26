@@ -8,7 +8,8 @@ use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::Currency, 
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use crate::traits::{
-	primitives::*, CareerType, OriginOfShellType, OverlordMessage, Purpose, RaceType, StatusType,
+	primitives::*, CareerType, NftSaleType, OriginOfShellType, OverlordMessage, Purpose, RaceType,
+	StatusType,
 };
 use mock::{Call, Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
 use rmrk_traits::primitives::*;
@@ -678,6 +679,126 @@ fn claim_refund_preorder_origin_of_shell_works() {
 		assert_eq!(Balances::total_balance(&BOB), 15_000 * PHA);
 		assert_eq!(Balances::total_balance(&CHARLIE), 150_000 * PHA);
 		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
+	});
+}
+
+#[test]
+fn mint_gift_origin_of_shell_works() {
+	ExtBuilder::default().build(OVERLORD).execute_with(|| {
+		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
+		// Set Overlord and configuration then enable preorder origin of shells
+		setup_config(StatusType::PreorderOriginOfShells);
+		mint_spirit(ALICE, None);
+		mint_spirit(BOB, None);
+		mint_spirit(CHARLIE, None);
+		// Gift a reserve Origin of Shell
+		assert_ok!(PWNftSale::mint_gift_origin_of_shell(
+			Origin::signed(OVERLORD),
+			CHARLIE,
+			OriginOfShellType::Magic,
+			RaceType::XGene,
+			CareerType::Web3Monk,
+			NftSaleType::Reserved,
+		));
+		// Check if event triggered
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::OriginOfShellGiftedToOwner {
+				owner: CHARLIE,
+				nft_sale_type: NftSaleType::Reserved,
+			},
+		));
+		// BOB preorders an origin of shell
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(BOB),
+			RaceType::Cyborg,
+			CareerType::HardwareDruid,
+		));
+		// Check if event triggered
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
+				owner: BOB,
+				preorder_id: 0,
+			},
+		));
+		// Update inventory to have a giveaway then gift giveaway
+		assert_ok!(PWNftSale::update_origin_of_shell_type_counts(
+			Origin::signed(OVERLORD),
+			OriginOfShellType::Prime,
+			0,
+			1
+		));
+		assert_ok!(PWNftSale::mint_gift_origin_of_shell(
+			Origin::signed(OVERLORD),
+			CHARLIE,
+			OriginOfShellType::Prime,
+			RaceType::Cyborg,
+			CareerType::HackerWizard,
+			NftSaleType::Giveaway,
+		));
+		// Giveaway should fail now
+		assert_noop!(
+			PWNftSale::mint_gift_origin_of_shell(
+				Origin::signed(OVERLORD),
+				CHARLIE,
+				OriginOfShellType::Prime,
+				RaceType::Cyborg,
+				CareerType::HackerWizard,
+				NftSaleType::Giveaway,
+			),
+			pallet_pw_nft_sale::Error::<Test>::NoAvailableRaceGivewayLeft
+		);
+		// CHARLIE preorders an origin of shell
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(CHARLIE),
+			RaceType::Pandroid,
+			CareerType::HardwareDruid,
+		));
+		// Check if event triggered
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
+				owner: CHARLIE,
+				preorder_id: 1,
+			},
+		));
+		// ALICE preorders an origin of shell successfully
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(ALICE),
+			RaceType::AISpectre,
+			CareerType::HackerWizard,
+		));
+		let preorders: Vec<PreorderId> = vec![0u32, 1u32, 2u32];
+		// Set ALICE & BOB has Chosen and CHARLIE as NotChosen
+		assert_ok!(PWNftSale::mint_chosen_preorders(
+			Origin::signed(OVERLORD),
+			preorders
+		));
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
+				preorder_id: 2u32,
+				owner: ALICE,
+			},
+		));
+		// Reassign PreorderIndex to max value
+		pallet_pw_nft_sale::PreorderIndex::<Test>::mutate(|id| *id = PreorderId::max_value());
+		// ALICE preorders an origin of shell but max value is reached
+		assert_noop!(
+			PWNftSale::preorder_origin_of_shell(
+				Origin::signed(ALICE),
+				RaceType::Cyborg,
+				CareerType::HackerWizard,
+			),
+			pallet_pw_nft_sale::Error::<Test>::NoAvailablePreorderId
+		);
+		assert_ok!(PWNftSale::set_status_type(
+			Origin::signed(OVERLORD),
+			false,
+			StatusType::PreorderOriginOfShells
+		));
+		// Check Balances of ALICE, BOB, CHARLIE & OVERLORD
+		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
+		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
+		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
 	});
 }
 

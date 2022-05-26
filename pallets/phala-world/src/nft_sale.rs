@@ -19,8 +19,8 @@ pub use pallet_rmrk_core::types::*;
 pub use pallet_rmrk_market;
 
 pub use crate::traits::{
-	primitives::*, CareerType, NftSaleInfo, OriginOfShellType, OverlordMessage, PreorderInfo,
-	Purpose, RaceType, StatusType,
+	primitives::*, CareerType, NftSaleInfo, NftSaleType, OriginOfShellType, OverlordMessage,
+	PreorderInfo, Purpose, RaceType, StatusType,
 };
 use rmrk_traits::primitives::*;
 
@@ -321,6 +321,11 @@ pub mod pallet {
 		},
 		/// Origin of Shells Inventory was set
 		OriginOfShellsInventoryWasSet { status: bool },
+		/// Gift a Origin of Shell for giveaway or reserved NFT to owner
+		OriginOfShellGiftedToOwner {
+			owner: T::AccountId,
+			nft_sale_type: NftSaleType,
+		},
 	}
 
 	// Errors inform users that something went wrong.
@@ -359,6 +364,9 @@ pub mod pallet {
 		OriginOfShellInventoryAlreadySet,
 		UnableToAddAttributes,
 		KeyTooLong,
+		NoAvailableRaceGivewayLeft,
+		NoAvailableRaceReservedLeft,
+		WrongNftSaleType,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -463,6 +471,7 @@ pub mod pallet {
 				race,
 				career,
 				origin_of_shell_price,
+				NftSaleType::ForSale,
 				!LastDayOfSale::<T>::get(),
 			)?;
 
@@ -515,6 +524,7 @@ pub mod pallet {
 				race,
 				career,
 				origin_of_shell_price,
+				NftSaleType::ForSale,
 				!is_last_day_of_sale,
 			)?;
 
@@ -623,6 +633,7 @@ pub mod pallet {
 						preorder_info.race,
 						preorder_info.career,
 						origin_of_shell_price,
+						NftSaleType::ForSale,
 						false,
 					)?;
 
@@ -684,6 +695,54 @@ pub mod pallet {
 					break;
 				}
 			}
+
+			Ok(())
+		}
+
+		/// This is an admin only function that will be used to mint either a giveaway or a reserved Origin of Shell NFT
+		///
+		/// Parameters:
+		/// `origin`: Expected to come from Overlord admin account
+		/// `owner`: Owner to gift the Origin of Shell to
+		/// - origin_of_shell_type: The type of origin_of_shell to be gifted.
+		/// - `race`: The race of the origin_of_shell chosen by the user.
+		/// - `career`: The career of the origin_of_shell chosen by the user or auto-generated based
+		///   on metadata
+		/// - `nft_sale_type`: Either a `NftSaleType::Giveaway` or `NftSaleType::Reserved`
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[transactional]
+		pub fn mint_gift_origin_of_shell(
+			origin: OriginFor<T>,
+			owner: T::AccountId,
+			origin_of_shell_type: OriginOfShellType,
+			race: RaceType,
+			career: CareerType,
+			nft_sale_type: NftSaleType,
+		) -> DispatchResult {
+			// Ensure Overlord account makes call
+			let sender = ensure_signed(origin)?;
+			Self::ensure_overlord(sender.clone())?;
+			// Ensure not a `NftSaleType::ForSale`
+			ensure!(
+				nft_sale_type != NftSaleType::ForSale,
+				Error::<T>::WrongNftSaleType
+			);
+			// Mint origin of shell
+			Self::do_mint_origin_of_shell_nft(
+				sender,
+				owner.clone(),
+				origin_of_shell_type,
+				race,
+				career,
+				Default::default(),
+				nft_sale_type,
+				false,
+			)?;
+
+			Self::deposit_event(Event::OriginOfShellGiftedToOwner {
+				owner,
+				nft_sale_type,
+			});
 
 			Ok(())
 		}
@@ -1221,6 +1280,7 @@ where
 		race: RaceType,
 		career: CareerType,
 		price: BalanceOf<T>,
+		nft_sale_type: NftSaleType,
 		check_owned_origin_of_shell: bool,
 	) -> DispatchResult {
 		// Has Spirit Collection been set
@@ -1243,7 +1303,7 @@ where
 		// Empty metadata
 		let metadata = Self::get_empty_metadata();
 		// Check if race and career types have mints left
-		Self::has_race_type_left(&origin_of_shell_type, &race)?;
+		Self::has_race_type_left(origin_of_shell_type, race, nft_sale_type)?;
 		// Transfer the amount for the rare Origin of Shell NFT then mint the origin_of_shell
 		<T as pallet::Config>::Currency::transfer(
 			&sender,
@@ -1269,7 +1329,7 @@ where
 			career,
 		)?;
 		// Update storage
-		Self::decrement_race_type_left(origin_of_shell_type, race)?;
+		Self::decrement_race_type_left(origin_of_shell_type, race, nft_sale_type)?;
 		Self::increment_race_type(origin_of_shell_type, race)?;
 		Self::increment_career_type(career);
 
@@ -1405,13 +1465,24 @@ where
 	fn decrement_race_type_left(
 		origin_of_shell_type: OriginOfShellType,
 		race: RaceType,
+		nft_sale_type: NftSaleType,
 	) -> DispatchResult {
 		OriginOfShellsInventory::<T>::try_mutate_exists(
 			origin_of_shell_type,
 			race,
 			|nft_sale_info| -> DispatchResult {
 				if let Some(nft_sale_info) = nft_sale_info {
-					nft_sale_info.race_for_sale_count.saturating_sub(1);
+					match nft_sale_type {
+						NftSaleType::ForSale => {
+							nft_sale_info.race_for_sale_count -= 1;
+						}
+						NftSaleType::Giveaway => {
+							nft_sale_info.race_giveaway_count -= 1;
+						}
+						NftSaleType::Reserved => {
+							nft_sale_info.race_reserved_count -= 1;
+						}
+					}
 				}
 				Ok(())
 			},
@@ -1425,14 +1496,31 @@ where
 	/// Parameters:
 	/// - `race`: The Race to check
 	fn has_race_type_left(
-		origin_of_shell_type: &OriginOfShellType,
-		race: &RaceType,
+		origin_of_shell_type: OriginOfShellType,
+		race: RaceType,
+		nft_sale_type: NftSaleType,
 	) -> DispatchResult {
 		if let Some(nft_sale_info) = OriginOfShellsInventory::<T>::get(origin_of_shell_type, race) {
-			ensure!(
-				nft_sale_info.race_for_sale_count > 0,
-				Error::<T>::RaceMintMaxReached
-			);
+			match nft_sale_type {
+				NftSaleType::ForSale => {
+					ensure!(
+						nft_sale_info.race_for_sale_count > 0,
+						Error::<T>::RaceMintMaxReached
+					)
+				}
+				NftSaleType::Giveaway => {
+					ensure!(
+						nft_sale_info.race_giveaway_count > 0,
+						Error::<T>::NoAvailableRaceGivewayLeft
+					)
+				}
+				NftSaleType::Reserved => {
+					ensure!(
+						nft_sale_info.race_reserved_count > 0,
+						Error::<T>::NoAvailableRaceReservedLeft
+					)
+				}
+			}
 		} else {
 			return Err(Error::<T>::OriginOfShellInventoryCorrupted.into());
 		}
