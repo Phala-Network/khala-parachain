@@ -261,11 +261,16 @@ construct_runtime! {
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
-        Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 91,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` was used in Khala, we avoid to use the index
         // PhalaOneshotTransfer: pallet_ott::{Pallet, Call, Event<T>, Storage} = 100,
+
+        // Phala World
+        Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 101,
+        RmrkCore: pallet_rmrk_core::{Pallet, Call, Storage, Event<T>} = 102,
+        RmrkEquip: pallet_rmrk_equip::{Pallet, Storage, Event<T>} = 103,
+        RmrkMarket: pallet_rmrk_market::{Pallet, Call, Storage, Event<T>} = 104,
     }
 }
 
@@ -337,6 +342,20 @@ impl Contains<Call> for BaseCallFilter {
             }
         }
 
+        if let Call::RmrkCore(rmrk_core_method) = call {
+            match rmrk_core_method {
+                pallet_rmrk_core::Call::mint_nft { .. }
+                | pallet_rmrk_core::Call::send { .. }
+                | pallet_rmrk_core::Call::change_collection_issuer { .. } => {
+                    return true;
+                }
+                pallet_rmrk_core::Call::__Ignore { .. } => {
+                    unimplemented!()
+                }
+                _ => return false,
+            }
+        }
+
         matches!(
             call,
             Call::Sudo { .. } |
@@ -364,7 +383,9 @@ impl Contains<Call> for BaseCallFilter {
             Call::Lottery { .. } | Call::Tips { .. } |
             // Phala
             Call::PhalaMq { .. } | Call::PhalaRegistry { .. } |
-            Call::PhalaMining { .. } | Call::PhalaStakePool { .. }
+            Call::PhalaMining { .. } | Call::PhalaStakePool { .. } |
+            // Phala World
+            Call::RmrkMarket { .. }
         )
     }
 }
@@ -846,6 +867,46 @@ impl pallet_uniques::Config for Runtime {
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = ();
     type WeightInfo = pallet_uniques::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub const MaxRecursions: u32 = 10;
+    pub const ResourceSymbolLimit: u32 = 10;
+    pub const PartsLimit: u32 = 3;
+    pub const MaxPriorities: u32 = 3;
+    pub const CollectionSymbolLimit: u32 = 100;
+}
+
+impl pallet_rmrk_core::Config for Runtime {
+    type Event = Event;
+    type ProtocolOrigin = EnsureRoot<AccountId>;
+    type MaxRecursions = MaxRecursions;
+    type ResourceSymbolLimit = ResourceSymbolLimit;
+    type PartsLimit = PartsLimit;
+    type MaxPriorities = MaxPriorities;
+    type CollectionSymbolLimit = CollectionSymbolLimit;
+}
+
+parameter_types! {
+    pub const MaxPropertiesPerTheme: u32 = 100;
+    pub const MaxCollectionsEquippablePerPart: u32 = 100;
+}
+
+impl pallet_rmrk_equip::Config for Runtime {
+    type Event = Event;
+    type MaxPropertiesPerTheme = MaxPropertiesPerTheme;
+    type MaxCollectionsEquippablePerPart = MaxCollectionsEquippablePerPart;
+}
+
+parameter_types! {
+    pub const MinimumOfferAmount: Balance = DOLLARS / 10_000;
+}
+
+impl pallet_rmrk_market::Config for Runtime {
+    type Event = Event;
+    type ProtocolOrigin = EnsureRoot<AccountId>;
+    type Currency = Balances;
+    type MinimumOfferAmount = MinimumOfferAmount;
 }
 
 impl pallet_parachain_info::Config for Runtime {}
