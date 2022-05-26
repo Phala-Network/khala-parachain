@@ -2,6 +2,7 @@ pub use self::pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use crate::constants::subbridge_chainid::{ChainBridgeChainId, SubBridgeChainId};
 	use crate::traits::*;
 	use assets_registry::{
 		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, IntoResourceId,
@@ -475,11 +476,15 @@ pub mod pallet {
 
 			// For solo chain assets, we encode solo chain id as the first byte of resourceId
 			let src_chainid: BridgeChainId = Self::get_chainid(&rid);
+			let chainbridge_chainid: ChainBridgeChainId = src_chainid
+				.try_into()
+				.map_err(|_| Error::<T>::InvalidChainId)?;
+			let subbridge_chainid: SubBridgeChainId = chainbridge_chainid.into();
 			let src_reserve_location: MultiLocation = (
 				0,
 				X2(
 					GeneralKey(CB_ASSET_KEY.to_vec()),
-					GeneralIndex(src_chainid.into()),
+					GeneralIndex(subbridge_chainid.into()),
 				),
 			)
 				.into();
@@ -949,8 +954,12 @@ pub mod pallet {
 
 			let (asset_location, amount) = Pallet::<T>::extract_fungible(asset.clone())
 				.ok_or(Error::<T>::ExtractAssetFailed)?;
-			let (dest_id, recipient) =
+			let (subbridge_chain_id, recipient) =
 				Pallet::<T>::extract_dest(&dest).ok_or(Error::<T>::ExtractDestFailed)?;
+			let chainbridge_chainid: ChainBridgeChainId = subbridge_chain_id
+				.try_into()
+				.map_err(|_| Error::<T>::InvalidChainId)?;
+			let dest_id: BridgeChainId = chainbridge_chainid.into();
 			let resource_id = if T::NativeAssetChecker::is_native_asset(&asset) {
 				// Both MultiLocation::Here and MultiLocation::new(1, X1(Parachain(phala_paraid)))
 				// represent location of PHA, but we only use MultiLocation::Here to generate
@@ -1009,7 +1018,7 @@ pub mod pallet {
 				0,
 				X2(
 					GeneralKey(CB_ASSET_KEY.to_vec()),
-					GeneralIndex(dest_id.into()),
+					GeneralIndex(subbridge_chain_id.into()),
 				),
 			)
 				.into();
