@@ -98,6 +98,7 @@ use xcm_executor::{Config, XcmExecutor};
 pub use parachains_common::Index;
 pub use parachains_common::*;
 
+pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
 pub use subbridge_pallets::{
     chainbridge, fungible_adapter::XTransferAdapter, helper, xcmbridge, xtransfer,
@@ -271,6 +272,8 @@ construct_runtime! {
         RmrkCore: pallet_rmrk_core::{Pallet, Call, Storage, Event<T>} = 102,
         RmrkEquip: pallet_rmrk_equip::{Pallet, Storage, Event<T>} = 103,
         RmrkMarket: pallet_rmrk_market::{Pallet, Call, Storage, Event<T>} = 104,
+        PWNftSale: pallet_pw_nft_sale::{Pallet, Call, Storage, Event<T>} = 105,
+        PWIncubation: pallet_pw_incubation::{Pallet, Call, Storage, Event<T>} = 106,
     }
 }
 
@@ -367,7 +370,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::PhalaMq { .. } | Call::PhalaRegistry { .. } |
             Call::PhalaMining { .. } | Call::PhalaStakePool { .. } |
             // Phala World
-            Call::RmrkMarket { .. }
+            Call::RmrkMarket { .. } | Call::PWNftSale { .. } | Call::PWIncubation { .. }
         )
     }
 }
@@ -889,6 +892,37 @@ impl pallet_rmrk_market::Config for Runtime {
     type ProtocolOrigin = EnsureRoot<AccountId>;
     type Currency = Balances;
     type MinimumOfferAmount = MinimumOfferAmount;
+}
+
+parameter_types! {
+    pub const SecondsPerEra: u64 = 86_400;
+    pub const MinBalanceToClaimSpirit: Balance = 10 * DOLLARS;
+    pub const LegendaryOriginOfShellPrice: Balance = 15_000 * DOLLARS;
+    pub const MagicOriginOfShellPrice: Balance = 10_000 * DOLLARS;
+    pub const PrimeOriginOfShellPrice: Balance = 500 * DOLLARS;
+    pub const IterLimit: u32 = 1_000;
+    pub const FoodPerEra: u32 = 5;
+    pub const MaxFoodFeedSelf: u8 = 2;
+    pub const IncubationDurationSec: u64 = 1_209_600;
+}
+impl pallet_pw_nft_sale::Config for Runtime {
+    type Event = Event;
+    type OverlordOrigin = EnsureRootOrHalfCouncil;
+    type Currency = Balances;
+    type Time = pallet_timestamp::Pallet<Runtime>;
+    type SecondsPerEra = SecondsPerEra;
+    type MinBalanceToClaimSpirit = MinBalanceToClaimSpirit;
+    type LegendaryOriginOfShellPrice = LegendaryOriginOfShellPrice;
+    type MagicOriginOfShellPrice = MagicOriginOfShellPrice;
+    type PrimeOriginOfShellPrice = PrimeOriginOfShellPrice;
+    type IterLimit = IterLimit;
+}
+
+impl pallet_pw_incubation::Config for Runtime {
+    type Event = Event;
+    type FoodPerEra = FoodPerEra;
+    type MaxFoodFeedSelf = MaxFoodFeedSelf;
+    type IncubationDurationSec = IncubationDurationSec;
 }
 
 impl pallet_parachain_info::Config for Runtime {}

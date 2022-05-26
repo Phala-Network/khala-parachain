@@ -43,6 +43,7 @@ members = [
 	"pallets/phala/mq-runtime-api",
 	"pallets/subbridge",
 	"pallets/parachain-info",
+	"pallets/phala-world",
 	"runtime/phala",
 	"runtime/khala",
 	"runtime/rhala",

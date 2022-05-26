@@ -3834,6 +3834,7 @@ dependencies = [
  "pallet-mq-runtime-api",
  "pallet-multisig",
  "pallet-parachain-info",
+ "pallet-phala-world",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
@@ -3857,6 +3858,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "rmrk-traits",
  "scale-info",
  "serde",
  "smallvec",
@@ -5969,6 +5971,29 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "scale-info",
+]
+
+[[package]]
+name = "pallet-phala-world"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-rmrk-core",
+ "pallet-rmrk-equip",
+ "pallet-rmrk-market",
+ "pallet-timestamp",
+ "pallet-uniques",
+ "parity-scale-codec",
+ "rmrk-traits",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -8716,6 +8741,7 @@ dependencies = [
  "pallet-mq-runtime-api",
  "pallet-multisig",
  "pallet-parachain-info",
+ "pallet-phala-world",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
@@ -8740,6 +8766,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "rmrk-traits",
  "scale-info",
  "smallvec",
  "sp-api",
@@ -8794,6 +8821,7 @@ name = "rmrk-traits"
 version = "0.0.1"
 source = "git+https://github.com/rmrk-team/rmrk-substrate#82e1bd5b8b7f19cba0e8b1f6c43e986631011caa"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "pallet-balances",
@@ -11675,6 +11703,7 @@ dependencies = [
  "pallet-mq-runtime-api",
  "pallet-multisig",
  "pallet-parachain-info",
+ "pallet-phala-world",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
@@ -11699,6 +11728,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "rmrk-traits",
  "scale-info",
  "smallvec",
  "sp-api",
