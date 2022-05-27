@@ -24,7 +24,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::AccountIdConversion;
-	use sp_std::{boxed::Box, convert::From, vec, vec::Vec};
+	use sp_std::{boxed::Box, cmp, convert::From, vec, vec::Vec};
 	use xcm::latest::{prelude::*, AssetId as XcmAssetId, MultiLocation};
 
 	/// Const used to indicate chainbridge path. str "cb"
@@ -324,7 +324,7 @@ pub mod pallet {
 				asset_id,
 				ASSETS_REGISTRY_ID.into_account(),
 				true,
-				Self::asset_ed(properties.decimals),
+				Self::default_asset_ed(properties.decimals),
 			)?;
 			IdByLocations::<T>::insert(&location, asset_id);
 			RegistryInfoByIds::<T>::insert(
@@ -537,7 +537,7 @@ pub mod pallet {
 			}
 		}
 
-		fn asset_ed(decimals: u8) -> <T as pallet_assets::Config>::Balance {
+		fn default_asset_ed(decimals: u8) -> <T as pallet_assets::Config>::Balance {
 			let native_ed: u128 = T::MinBalance::get().into();
 			if decimals >= 12 {
 				native_ed
@@ -545,7 +545,11 @@ pub mod pallet {
 					.into()
 			} else {
 				// + 1 make sure min balance always > 0
-				(native_ed.saturating_div(10u128.saturating_pow(12 - decimals as u32)) + 1).into()
+				cmp::max(
+					native_ed.saturating_div(10u128.saturating_pow(12 - decimals as u32)),
+					1,
+				)
+				.into()
 			}
 		}
 	}
@@ -782,7 +786,7 @@ pub mod pallet {
 		#[test]
 		fn test_non_registered_asset_price() {
 			new_test_ext().execute_with(|| {
-				let para_a_location: MultiLocation = MultiLocation {
+				let para_a_location = MultiLocation {
 					parents: 1,
 					interior: X1(Parachain(1)),
 				};

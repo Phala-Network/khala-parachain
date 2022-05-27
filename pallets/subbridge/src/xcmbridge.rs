@@ -367,7 +367,7 @@ pub mod pallet {
 			let (dest_location, beneficiary) =
 				Pallet::<T>::extract_dest(&dest).ok_or(Error::<T>::IllegalDestination)?;
 
-			// We can not grantee asset has been supported by destination
+			// We can not guarantee the asset has been supported by destination
 			let fee = asset.clone();
 
 			let xcm_session = XCMSession::<T> {

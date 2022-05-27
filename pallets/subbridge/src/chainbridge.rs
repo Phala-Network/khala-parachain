@@ -2300,11 +2300,6 @@ pub mod pallet {
 				let test_asset_location = MultiLocation::new(1, X1(GeneralKey(b"test".to_vec())));
 				let unregistered_asset_location =
 					MultiLocation::new(1, X1(GeneralKey(b"unregistered".to_vec())));
-				assert_ok!(ChainBridge::update_fee(
-					Origin::root(),
-					bridge_fee,
-					dest_chain
-				));
 
 				// Register asset, decimals: 18, rate with pha: 1 : 1
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -2367,6 +2362,11 @@ pub mod pallet {
 				let unregistered_asset: MultiAsset =
 					(unregistered_asset_location, Fungible(100)).into();
 
+				assert_ok!(ChainBridge::update_fee(
+					Origin::root(),
+					bridge_fee,
+					dest_chain
+				));
 				// Unregistered asset fee should return None
 				assert_eq!(ChainBridge::get_fee(dest_chain, &unregistered_asset), None);
 				// Test asset not configured as fee payment in trader, execution price would would be set same with PHA
