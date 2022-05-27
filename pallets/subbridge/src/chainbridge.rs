@@ -797,24 +797,14 @@ pub mod pallet {
 		}
 
 		fn get_fee(chain_id: BridgeChainId, asset: &MultiAsset) -> Option<u128> {
-			if let Some((location, _amount)) = Self::extract_fungible(asset.clone()) {
-				if let Some(fee_in_pha) = Self::estimate_fee_in_pha(chain_id) {
-					if T::NativeAssetChecker::is_native_asset(asset) {
-						Some(fee_in_pha)
-					} else {
-						if let Some((_, execution_price)) = T::AssetsRegistry::price(&location) {
-							Some(Self::convert_fee_from_pha(fee_in_pha, execution_price))
-						} else {
-							None
-						}
-					}
-				} else {
-					None
-				}
-			} else {
-				None
-			}
 			// TODO: Calculate NonFungible asset fee
+			let (location, _amount) = Self::extract_fungible(asset.clone())?;
+			let fee_in_pha = Self::estimate_fee_in_pha(chain_id)?;
+			if T::NativeAssetChecker::is_native_asset(asset) {
+				return Some(fee_in_pha);
+			}
+			let (_, execution_price) = T::AssetsRegistry::price(&location)?;
+			Some(Self::convert_fee_from_pha(fee_in_pha, execution_price))
 		}
 
 		fn check_balance(sender: T::AccountId, asset: &MultiAsset, amount: u128) -> DispatchResult {
