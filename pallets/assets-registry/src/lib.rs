@@ -183,6 +183,89 @@ pub mod pallet {
 		}
 	}
 
+	// Should adapter the representation of asset location after reanchored.
+	// Because xcm would reanchore the location of the asset that reserved on our chain.
+	// https://github.com/paritytech/polkadot/pull/4470
+	pub trait ReserveAssetChecker {
+		// Return true if asset is reserved on local
+		fn is_reserve_asset(asset: &MultiAsset) -> bool;
+		// Return true if given location is reserved on local
+		fn is_reserve_asset_location(id: &MultiLocation) -> bool;
+		// Return asset origin location if asset is reserved on local, otherwise return None
+		fn to_absoluted_location(location: &MultiLocation) -> Option<MultiLocation>;
+		// Return a new asset with a absoluted location if asset is reserved on local.
+		fn to_noncanonical_asset(asset: &MultiAsset) -> MultiAsset;
+	}
+
+	pub struct ReserveAssetFilter<T, I>(PhantomData<(T, I)>);
+	impl<T: Get<ParaId>, I: NativeAssetChecker> ReserveAssetChecker for ReserveAssetFilter<T, I> {
+		fn is_reserve_asset(asset: &MultiAsset) -> bool {
+			if I::is_native_asset(asset) {
+				return true;
+			} else {
+				return match &asset.id {
+					Concrete(ref id) if Self::is_reserve_asset_location(id) => true,
+					_ => false,
+				};
+			}
+		}
+
+		fn is_reserve_asset_location(id: &MultiLocation) -> bool {
+			if I::is_native_asset_location(id) {
+				return true;
+			} else {
+				return match id.reserve_location() {
+					Some(reserve_location) => {
+						return match (reserve_location.parents, reserve_location.first_interior()) {
+							(1, Some(para)) => para == &Parachain(T::get().into()),
+							(0, Some(GeneralKey(cb_key))) => cb_key == CB_ASSET_KEY,
+							(0, None) => true,
+							_ => false,
+						}
+					}
+					_ => false,
+				};
+			}
+		}
+
+		fn to_absoluted_location(location: &MultiLocation) -> Option<MultiLocation> {
+			if Self::is_reserve_asset_location(location) {
+				match (location.parents, location.first_interior()) {
+					(0, Some(GeneralKey(cb_key))) => {
+						if cb_key == CB_ASSET_KEY {
+							let mut origin_location = location.clone();
+							origin_location.parents = 1;
+							return match origin_location
+								.interior
+								.push_front(Parachain(T::get().into()))
+							{
+								Ok(()) => Some(origin_location),
+								Err(_) => None,
+							};
+						} else {
+							return None;
+						}
+					}
+					_ => None,
+				}
+			} else {
+				return None;
+			}
+		}
+
+		fn to_noncanonical_asset(asset: &MultiAsset) -> MultiAsset {
+			match &asset.id {
+				Concrete(ref id) if Self::is_reserve_asset_location(id) => (
+					Concrete(Self::to_absoluted_location(id).unwrap_or(id.clone()).into()),
+					asset.fun.clone(),
+				)
+					.into(),
+				// Asset location already is absoluted if it is non-reserved asset for us.
+				_ => asset.clone(),
+			}
+		}
+	}
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
@@ -199,6 +282,7 @@ pub mod pallet {
 		#[pallet::constant]
 		type NativeExecutionPrice: Get<u128>;
 		type NativeAssetChecker: NativeAssetChecker;
+		type ReserveAssetChecker: ReserveAssetChecker;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
@@ -552,6 +636,19 @@ pub mod pallet {
 				.into()
 			}
 		}
+
+		fn convert_location_to_id(
+			location: &MultiLocation,
+		) -> Option<<T as pallet_assets::Config>::AssetId> {
+			IdByLocations::<T>::get(location).or_else(|| {
+				if let Some(origin_location) =
+					T::ReserveAssetChecker::to_absoluted_location(location)
+				{
+					return IdByLocations::<T>::get(origin_location);
+				}
+				return None;
+			})
+		}
 	}
 
 	impl<T: Config> GetAssetRegistryInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T>
@@ -559,7 +656,7 @@ pub mod pallet {
 		<T as pallet_assets::Config>::Balance: From<u128> + Into<u128>,
 	{
 		fn id(asset: &MultiLocation) -> Option<<T as pallet_assets::Config>::AssetId> {
-			IdByLocations::<T>::get(asset)
+			Self::convert_location_to_id(asset)
 		}
 
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<MultiLocation> {
@@ -577,10 +674,11 @@ pub mod pallet {
 				return Some((location.clone().into(), T::NativeExecutionPrice::get()));
 			}
 
-			IdByLocations::<T>::get(location).and_then(|id| {
+			Self::convert_location_to_id(location).and_then(|id| {
 				RegistryInfoByIds::<T>::get(&id).map(|m| {
 					(
-						m.location.into(),
+						// Here we must return location passed by parameter in case it's the canonical location of asset
+						location.clone().into(),
 						// If the registered asset has not set a price, return default price according to native asset price and its decimals
 						m.execution_price.unwrap_or(Self::default_price(
 							T::NativeExecutionPrice::get(),

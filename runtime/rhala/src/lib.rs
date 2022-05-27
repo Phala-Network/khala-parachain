@@ -1043,6 +1043,10 @@ impl Config for XcmConfig {
         FungiblesTransactor,
         XTransfer,
         assets_registry::NativeAssetFilter<ParachainInfo>,
+        assets_registry::ReserveAssetFilter<
+            ParachainInfo,
+            assets_registry::NativeAssetFilter<ParachainInfo>,
+        >,
     >;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = helper::AssetOriginFilter;
@@ -1133,6 +1137,10 @@ impl assets_registry::Config for Runtime {
     type MinBalance = ExistentialDeposit;
     type NativeExecutionPrice = NativeExecutionPrice;
     type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
+    type ReserveAssetChecker = assets_registry::ReserveAssetFilter<
+        ParachainInfo,
+        assets_registry::NativeAssetFilter<ParachainInfo>,
+    >;
 }
 
 parameter_types! {
@@ -1454,6 +1462,10 @@ impl chainbridge::Config for Runtime {
         FungiblesTransactor,
         XTransfer,
         assets_registry::NativeAssetFilter<ParachainInfo>,
+        assets_registry::ReserveAssetFilter<
+            ParachainInfo,
+            assets_registry::NativeAssetFilter<ParachainInfo>,
+        >,
     >;
     type AssetsRegistry = AssetsRegistry;
 }

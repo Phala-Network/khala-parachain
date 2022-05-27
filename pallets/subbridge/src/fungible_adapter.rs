@@ -1,13 +1,25 @@
 use crate::traits::*;
-use assets_registry::{AccountId32Conversion, NativeAssetChecker};
+use assets_registry::{AccountId32Conversion, NativeAssetChecker, ReserveAssetChecker};
 use sp_std::{convert::Into, marker::PhantomData, result, vec::Vec};
 use xcm::latest::{prelude::*, Error as XcmError, MultiAsset, MultiLocation, Result as XcmResult};
 use xcm_executor::{traits::TransactAsset, Assets};
 
 const LOG_TARGET: &str = "runtime::fungbible-adapter";
 
-pub struct XTransferAdapter<NativeAdapter, AssetsAdapter, Transactor, NativeChecker>(
-	PhantomData<(NativeAdapter, AssetsAdapter, Transactor, NativeChecker)>,
+pub struct XTransferAdapter<
+	NativeAdapter,
+	AssetsAdapter,
+	Transactor,
+	NativeChecker,
+	ReserveChecker,
+>(
+	PhantomData<(
+		NativeAdapter,
+		AssetsAdapter,
+		Transactor,
+		NativeChecker,
+		ReserveChecker,
+	)>,
 );
 
 impl<
@@ -15,9 +27,16 @@ impl<
 		AssetsAdapter: TransactAsset,
 		Transactor: OnWithdrawn + OnDeposited + OnForwarded,
 		NativeChecker: NativeAssetChecker,
-	> TransactAsset for XTransferAdapter<NativeAdapter, AssetsAdapter, Transactor, NativeChecker>
+		ReserveChecker: ReserveAssetChecker,
+	> TransactAsset
+	for XTransferAdapter<NativeAdapter, AssetsAdapter, Transactor, NativeChecker, ReserveChecker>
 {
 	fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult {
+		// In case we got a canonical location within asset, which may cause unexpected behaviors on EVM birdges,
+		// always try to convert asset location into absolute path first. But it's ok if conversion faild, because
+		// only reserve assets need to do these stuff.
+		let what: &MultiAsset = &ReserveChecker::to_noncanonical_asset(what);
+
 		match (who.parents, &who.interior) {
 			// Deposit to local accounts or sibling parachain sovereign accounts
 			(0, &X1(AccountId32 { .. })) | (1, &X1(Parachain(_))) => {
@@ -43,6 +62,7 @@ impl<
 					what,
 					who,
 				);
+
 				// Deposit asset into temporary account, then forward through other bridges
 				let temporary_account =
 					MultiLocation::new(0, X1(GeneralKey(b"bridge_transfer".to_vec())))
@@ -76,6 +96,11 @@ impl<
 	}
 
 	fn withdraw_asset(what: &MultiAsset, who: &MultiLocation) -> result::Result<Assets, XcmError> {
+		// In case we got a canonical location within asset, which may cause unexpected behaviors on EVM birdges,
+		// always try to convert asset location into absolute path first. But it's ok if conversion faild, because
+		// only reserve assets need to do these stuff.
+		let what: &MultiAsset = &ReserveChecker::to_noncanonical_asset(what);
+
 		log::trace!(
 			target: LOG_TARGET,
 			"withdraw asset from local account, what: {:?}, who: {:?}.",
