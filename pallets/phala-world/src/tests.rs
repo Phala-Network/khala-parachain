@@ -90,6 +90,17 @@ fn setup_config(enable_status_type: StatusType) {
 		Origin::signed(OVERLORD),
 		origin_of_shell_collection_id
 	));
+	let origin_of_shells_metadata = vec![
+		(RaceType::Pandroid, bvec![0u8; 1]),
+		(RaceType::Cyborg, bvec![0u8; 2]),
+		(RaceType::AISpectre, bvec![0u8; 3]),
+		(RaceType::XGene, bvec![0u8; 4]),
+	];
+	// Set Metadata for each Race's Origin of Shell
+	assert_ok!(PWNftSale::set_origin_of_shells_metadata(
+		Origin::signed(OVERLORD),
+		origin_of_shells_metadata
+	));
 	// Initialize the Phala World Clock
 	assert_ok!(PWNftSale::initialize_world_clock(Origin::signed(OVERLORD)));
 	// Initialize Origin of Shell Inventory numbers

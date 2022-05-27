@@ -152,6 +152,12 @@ pub mod pallet {
 	#[pallet::getter(fn is_origin_of_shells_inventory_set)]
 	pub type IsOriginOfShellsInventorySet<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+	/// Origin of Shells Metadata
+	#[pallet::storage]
+	#[pallet::getter(fn origin_of_shells_metadata)]
+	pub type OriginOfShellsMetadata<T: Config> =
+		StorageMap<_, Twox64Concat, RaceType, BoundedVec<u8, T::StringLimit>>;
+
 	/// Overlord Admin account of Phala World
 	#[pallet::storage]
 	pub(super) type Overlord<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
@@ -326,6 +332,10 @@ pub mod pallet {
 			owner: T::AccountId,
 			nft_sale_type: NftSaleType,
 		},
+		/// Origin of Shells Metadata was set
+		OriginOfShellsMetadataSet {
+			origin_of_shells_metadata: Vec<(RaceType, BoundedVec<u8, T::StringLimit>)>,
+		},
 	}
 
 	// Errors inform users that something went wrong.
@@ -362,6 +372,7 @@ pub mod pallet {
 		OriginOfShellCollectionIdAlreadySet,
 		OriginOfShellInventoryCorrupted,
 		OriginOfShellInventoryAlreadySet,
+		OriginOfShellMetadataNotSet,
 		UnableToAddAttributes,
 		KeyTooLong,
 		NoAvailableRaceGivewayLeft,
@@ -571,8 +582,8 @@ pub mod pallet {
 					*n += 1;
 					Ok(id)
 				})?;
-			// Verify metadata
-			let metadata = Self::get_empty_metadata();
+			// Get Race's Origin of Shell metadata
+			let metadata = Self::get_origin_of_shell_metadata(race)?;
 			let preorder = PreorderInfo {
 				owner: sender.clone(),
 				race,
@@ -606,7 +617,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
-			Self::ensure_overlord(sender.clone())?;
+			Self::ensure_overlord(&sender)?;
 			// Get price of prime origin of shell
 			let origin_of_shell_price = T::PrimeOriginOfShellPrice::get();
 			// Get iter limit
@@ -666,7 +677,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
-			Self::ensure_overlord(sender)?;
+			Self::ensure_overlord(&sender)?;
 			// Get price of prime origin of shell
 			let origin_of_shell_price = T::PrimeOriginOfShellPrice::get();
 			// Get iter limit
@@ -721,7 +732,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
-			Self::ensure_overlord(sender.clone())?;
+			Self::ensure_overlord(&sender)?;
 			// Ensure not a `NftSaleType::ForSale`
 			ensure!(
 				nft_sale_type != NftSaleType::ForSale,
@@ -779,7 +790,7 @@ pub mod pallet {
 		pub fn initialize_world_clock(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
-			Self::ensure_overlord(sender)?;
+			Self::ensure_overlord(&sender)?;
 			// Ensure ZeroDay is None as this can only be set once
 			ensure!(Self::zero_day() == None, Error::<T>::WorldClockAlreadySet);
 
@@ -809,7 +820,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
-			Self::ensure_overlord(sender)?;
+			Self::ensure_overlord(&sender)?;
 			// Match StatusType and call helper function to set status
 			match status_type {
 				StatusType::ClaimSpirits => Self::set_claim_spirits_status(status)?,
@@ -838,7 +849,7 @@ pub mod pallet {
 		pub fn init_origin_of_shell_type_counts(origin: OriginFor<T>) -> DispatchResult {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
-			Self::ensure_overlord(sender)?;
+			Self::ensure_overlord(&sender)?;
 			// Call helper function
 			Self::set_initial_origin_of_shell_inventory()?;
 			Self::deposit_event(Event::OriginOfShellsInventoryWasSet { status: true });
@@ -865,7 +876,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
-			Self::ensure_overlord(sender)?;
+			Self::ensure_overlord(&sender)?;
 			// Ensure they are updating the OriginOfShellType::Prime
 			ensure!(
 				origin_of_shell_type == OriginOfShellType::Prime,
@@ -916,7 +927,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
-			Self::ensure_overlord(sender)?;
+			Self::ensure_overlord(&sender)?;
 			// If Spirit Collection ID is greater than 0 then the collection ID was already set
 			ensure!(
 				SpiritCollectionId::<T>::get().is_none(),
@@ -941,7 +952,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
-			Self::ensure_overlord(sender)?;
+			Self::ensure_overlord(&sender)?;
 			// If Origin of Shell Collection ID is greater than 0 then the collection ID was already
 			// set
 			ensure!(
@@ -974,11 +985,37 @@ pub mod pallet {
 		) -> DispatchResult {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin.clone())?;
-			Self::ensure_overlord(sender)?;
+			Self::ensure_overlord(&sender)?;
 			// Call the RMRK Core function
 			pallet_rmrk_core::Pallet::<T>::create_collection(origin, metadata, max, symbol)?;
 
 			Ok(())
+		}
+
+		/// Privileged function to set the metadata for the Origin of Shells in the StorageMap `OriginOfShellsMetadata` where the key is a tuple of `(RaceType, CareerType)` with a value of a `BoundedVec<u8, T::StringLimit`.
+		///
+		/// Parameters:
+		/// - `origin`: Expected to be called from the Overlord account
+		/// - `origin_of_shells_metadata`: A Vec of `((RaceType, CareerType), BoundedVec<u8, T::StringLimit>>)` to be added in storage
+		#[pallet::weight(0)]
+		pub fn set_origin_of_shells_metadata(
+			origin: OriginFor<T>,
+			origin_of_shells_metadata: Vec<(RaceType, BoundedVec<u8, T::StringLimit>)>,
+		) -> DispatchResultWithPostInfo {
+			// Ensure Overlord account makes call
+			let sender = ensure_signed(origin.clone())?;
+			Self::ensure_overlord(&sender)?;
+			// Iterate through origin_of_shells_metadata and store into OriginOfShellsMetadata
+			for (race, metadata) in origin_of_shells_metadata.clone() {
+				// Insert into Storage
+				OriginOfShellsMetadata::<T>::insert(race, metadata);
+			}
+
+			Self::deposit_event(Event::OriginOfShellsMetadataSet {
+				origin_of_shells_metadata,
+			});
+
+			Ok(Pays::No.into())
 		}
 	}
 }
@@ -1019,9 +1056,9 @@ where
 	///
 	/// Parameters:
 	/// - `sender`: Account origin that made the call to check if Overlord account
-	pub(crate) fn ensure_overlord(sender: T::AccountId) -> DispatchResult {
+	pub(crate) fn ensure_overlord(sender: &T::AccountId) -> DispatchResult {
 		ensure!(
-			Self::overlord().map_or(false, |k| sender == k),
+			Self::overlord().map_or(false, |k| sender == &k),
 			Error::<T>::RequireOverlordAccount
 		);
 		Ok(())
@@ -1300,8 +1337,8 @@ where
 		}
 		// Get next NFT ID
 		let nft_id = pallet_rmrk_core::NextNftId::<T>::get(origin_of_shell_collection_id);
-		// Empty metadata
-		let metadata = Self::get_empty_metadata();
+		// Get the Race's Origin of Shell metadata
+		let metadata = Self::get_origin_of_shell_metadata(race)?;
 		// Check if race and career types have mints left
 		Self::has_race_type_left(origin_of_shell_type, race, nft_sale_type)?;
 		// Transfer the amount for the rare Origin of Shell NFT then mint the origin_of_shell
@@ -1562,5 +1599,16 @@ where
 	/// Helper function to get empty metadata boundedvec
 	pub(crate) fn get_empty_metadata() -> BoundedVec<u8, T::StringLimit> {
 		Default::default()
+	}
+
+	/// Helper function to get origin of shells metadata boundedvec
+	pub(crate) fn get_origin_of_shell_metadata(
+		race: RaceType,
+	) -> Result<BoundedVec<u8, T::StringLimit>, Error<T>> {
+		let metadata = OriginOfShellsMetadata::<T>::get(race);
+		match metadata {
+			None => Err(Error::<T>::OriginOfShellMetadataNotSet),
+			Some(metadata) => Ok(metadata),
+		}
 	}
 }

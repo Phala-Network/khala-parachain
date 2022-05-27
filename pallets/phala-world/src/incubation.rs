@@ -334,7 +334,7 @@ pub mod pallet {
 			metadata: BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
-			pallet_pw_nft_sale::pallet::Pallet::<T>::ensure_overlord(sender)?;
+			pallet_pw_nft_sale::pallet::Pallet::<T>::ensure_overlord(&sender)?;
 			// Check if Incubation Phase has started
 			ensure!(
 				CanStartIncubation::<T>::get(),
@@ -449,7 +449,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			// Ensure OverlordOrigin makes call
 			let sender = ensure_signed(origin)?;
-			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(sender)?;
+			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
 			// Iterate through Origin of Shells
 			for ((collection_id, nft_id), reduced_time) in origin_of_shells {
 				// Ensure that the collection is an Origin of Shell Collection
@@ -486,7 +486,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account is the sender
 			let sender = ensure_signed(origin)?;
-			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(sender)?;
+			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
 			// Get official hatch time to set in storage
 			let start_time = T::Time::now().as_secs();
 			let incubation_duration = T::IncubationDurationSec::get();
@@ -517,7 +517,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
-			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(sender)?;
+			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
 			// If Spirit Collection ID is greater than 0 then the collection ID was already set
 			ensure!(
 				ShellCollectionId::<T>::get().is_none(),

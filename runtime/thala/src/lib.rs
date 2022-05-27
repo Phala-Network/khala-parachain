@@ -359,10 +359,6 @@ impl Contains<Call> for BaseCallFilter {
             }
         }
 
-        if let Call::Uniques(uniques_method) = call {
-            match uniques_method {}
-        }
-
         matches!(
             call,
             Call::Sudo { .. } |
