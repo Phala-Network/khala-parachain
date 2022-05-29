@@ -925,7 +925,7 @@ parameter_types! {
 }
 impl pallet_pw_nft_sale::Config for Runtime {
     type Event = Event;
-    type OverlordOrigin = EnsureRootOrHalfCouncil;
+    type GovernanceOrigin = EnsureRootOrHalfCouncil;
     type Currency = Balances;
     type Time = pallet_timestamp::Pallet<Runtime>;
     type SecondsPerEra = SecondsPerEra;

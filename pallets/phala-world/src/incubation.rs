@@ -447,7 +447,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			origin_of_shells: Vec<((CollectionId, NftId), u64)>,
 		) -> DispatchResult {
-			// Ensure OverlordOrigin makes call
+			// Ensure GovernanceOrigin makes call
 			let sender = ensure_signed(origin)?;
 			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
 			// Iterate through Origin of Shells

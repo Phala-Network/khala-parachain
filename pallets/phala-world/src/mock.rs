@@ -181,7 +181,7 @@ parameter_types! {
 
 impl pallet_pw_nft_sale::Config for Test {
 	type Event = Event;
-	type OverlordOrigin = EnsureRoot<AccountId>;
+	type GovernanceOrigin = EnsureRoot<AccountId>;
 	type Currency = Balances;
 	type Time = pallet_timestamp::Pallet<Test>;
 	type SecondsPerEra = SecondsPerEra;

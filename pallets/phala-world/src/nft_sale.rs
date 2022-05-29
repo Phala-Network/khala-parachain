@@ -46,7 +46,7 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The origin which may forcibly buy, sell, list/unlist, offer & withdraw offer on Tokens
-		type OverlordOrigin: EnsureOrigin<Self::Origin>;
+		type GovernanceOrigin: EnsureOrigin<Self::Origin>;
 		/// The market currency mechanism.
 		type Currency: ReservableCurrency<Self::AccountId>;
 		/// Time in UnixTime
@@ -761,7 +761,7 @@ pub mod pallet {
 		/// Privileged function set the Overlord Admin account of Phala World
 		///
 		/// Parameters:
-		/// - origin: Expected to be called by `OverlordOrigin`
+		/// - origin: Expected to be called by `GovernanceOrigin`
 		/// - new_overlord: T::AccountId
 		#[pallet::weight(0)]
 		pub fn set_overlord(
@@ -769,7 +769,7 @@ pub mod pallet {
 			new_overlord: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			// This is a public call, so we ensure that the origin is some signed account.
-			T::OverlordOrigin::ensure_origin(origin)?;
+			T::GovernanceOrigin::ensure_origin(origin)?;
 			let old_overlord = <Overlord<T>>::get();
 
 			Overlord::<T>::put(&new_overlord);
