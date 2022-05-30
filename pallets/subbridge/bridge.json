@@ -1,0 +1,50 @@
+[
+    {
+        "from": "khala",
+        "to": [
+            ["karura", ["PHA", "KAR", "aUSD"]],
+            ["bifrost", ["BNC", "PHA", "ZLK"]],
+            ["moonriver", ["PHA", "MOVR", "ZLK"]],
+            ["heiko", ["PHA", "HKO"]],
+            ["basilisk", ["PHA", "BSX"]]
+        ]
+    },
+    {
+        "from": "ethereum",
+        "to": [
+            ["khala", ["PHA"]]
+        ]
+    },
+    {
+        "from": "karura",
+        "to": [
+            ["khala", ["PHA", "KAR", "aUSD"]]
+        ]
+    },
+    {
+        "from": "bifrost",
+        "to": [
+            ["khala", ["PHA", "BNC", "ZLK"]],
+            ["moonriver", ["ZLK"]]
+        ]
+    },
+    {
+        "from": "moonriver",
+        "to": [
+            ["khala", ["PHA", "MOVR", "ZLK"]],
+            ["bifrost", ["ZLK"]]
+        ]
+    },
+    {
+        "from": "heiko",
+        "to": [
+            ["khala", ["PHA", "HKO"]]
+        ]
+    },
+    {
+        "from": "basilisk",
+        "to": [
+            ["khala", ["PHA", "BSX"]]
+        ]
+    }
+]
