@@ -86,10 +86,10 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "relea
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22", default-features = false }
 
 # RMRK dependencies
-pallet-rmrk-core = { version = "0.0.1", git = "https://github.com/rmrk-team/rmrk-substrate", default-features = false }
-pallet-rmrk-equip = { version = "0.0.1", git = "https://github.com/rmrk-team/rmrk-substrate", default-features = false }
-pallet-rmrk-market = { version = "0.0.1", git = "https://github.com/rmrk-team/rmrk-substrate", default-features = false }
-rmrk-traits = { version = "0.0.1", git = "https://github.com/rmrk-team/rmrk-substrate", default-features = false }
+pallet-rmrk-core = { version = "0.0.1", git = "https://github.com/Phala-Network/rmrk-substrate", default-features = false, branch = "polkadot-v0.9.22" }
+pallet-rmrk-equip = { version = "0.0.1", git = "https://github.com/Phala-Network/rmrk-substrate", default-features = false, branch = "polkadot-v0.9.22" }
+pallet-rmrk-market = { version = "0.0.1", git = "https://github.com/Phala-Network/rmrk-substrate", default-features = false, branch = "polkadot-v0.9.22" }
+rmrk-traits = { version = "0.0.1", git = "https://github.com/Phala-Network/rmrk-substrate", default-features = false, branch = "polkadot-v0.9.22" }
 
 # Local dependencies
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
