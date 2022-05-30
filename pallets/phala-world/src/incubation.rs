@@ -18,12 +18,6 @@ pub use pallet_rmrk_market;
 use rmrk_traits::{primitives::*, resource::ResourceInfo, AccountIdOrCollectionNftTuple};
 use sp_std::vec::Vec;
 
-pub type ResourceOf<T, R, P> = ResourceInfo<
-	BoundedVec<u8, R>,
-	BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>,
-	BoundedVec<PartId, P>,
->;
-
 pub use self::pallet::*;
 
 #[frame_support::pallet]
