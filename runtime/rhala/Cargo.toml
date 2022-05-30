@@ -63,6 +63,7 @@ pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", b
 pallet-tips = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
 pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
 pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
+pallet-uniques = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
 
 # Cumulus dependencies
 pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22", default-features = false }
@@ -84,12 +85,19 @@ xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "releas
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22", default-features = false }
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22", default-features = false }
 
+# RMRK dependencies
+pallet-rmrk-core = { version = "0.0.1", git = "https://github.com/rmrk-team/rmrk-substrate", default-features = false }
+pallet-rmrk-equip = { version = "0.0.1", git = "https://github.com/rmrk-team/rmrk-substrate", default-features = false }
+pallet-rmrk-market = { version = "0.0.1", git = "https://github.com/rmrk-team/rmrk-substrate", default-features = false }
+rmrk-traits = { version = "0.0.1", git = "https://github.com/rmrk-team/rmrk-substrate", default-features = false }
+
 # Local dependencies
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
 phala-pallets = { path = "../../pallets/phala", default-features = false }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }
 subbridge-pallets = { path = "../../pallets/subbridge", default-features = false }
+pallet-phala-world = { path = "../../pallets/phala-world", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
@@ -124,10 +132,12 @@ runtime-benchmarks = [
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-tips/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
+	"pallet-uniques/runtime-benchmarks",
 	"phala-pallets/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"subbridge-pallets/runtime-benchmarks",
+	"pallet-uniques/runtime-benchmarks",
 ]
 std = [
 	"codec/std",
@@ -192,10 +202,15 @@ std = [
 	"pallet-tips/std",
 	"pallet-assets/std",
 	"pallet-parachain-info/std",
+	"pallet-uniques/std",
 	"phala-pallets/std",
 	"pallet-mq-runtime-api/std",
 	"assets-registry/std",
 	"subbridge-pallets/std",
+	"pallet-rmrk-core/std",
+	"pallet-rmrk-market/std",
+	"pallet-rmrk-equip/std",
+	"pallet-phala-world/std",
 ]
 
 try-runtime = [
@@ -227,5 +242,6 @@ try-runtime = [
 	"pallet-elections-phragmen/try-runtime",
 	"pallet-tips/try-runtime",
 	"pallet-assets/try-runtime",
+	"pallet-uniques/try-runtime",
 	"phala-pallets/try-runtime",
 ]

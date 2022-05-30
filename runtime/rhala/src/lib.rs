@@ -67,9 +67,9 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_types, parameter_types,
     traits::{
-        Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter,
-        IsInVec, KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness,
-        U128CurrencyToVote,
+        AsEnsureOriginWithArg, Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything,
+        Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem, LockIdentifier, Nothing,
+        OnUnbalanced, Randomness, U128CurrencyToVote,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -80,7 +80,7 @@ pub use frame_support::{
 
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureRoot,
+    EnsureRoot, EnsureSigned,
 };
 
 use pallet_xcm::XcmPassthrough;
@@ -98,6 +98,7 @@ use xcm_executor::{Config, XcmExecutor};
 pub use parachains_common::Index;
 pub use parachains_common::*;
 
+pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
 pub use subbridge_pallets::{
     chainbridge, fungible_adapter::XTransferAdapter, helper, xcmbridge, xtransfer,
@@ -265,6 +266,14 @@ construct_runtime! {
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` has been removed, the index should be kept
         // PhalaOneshotTransfer: pallet_ott::{Pallet, Call, Event<T>, Storage} = 100,
+
+        // Phala World
+        Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 101,
+        RmrkCore: pallet_rmrk_core::{Pallet, Call, Storage, Event<T>} = 102,
+        RmrkEquip: pallet_rmrk_equip::{Pallet, Storage, Event<T>} = 103,
+        RmrkMarket: pallet_rmrk_market::{Pallet, Call, Storage, Event<T>} = 104,
+        PWNftSale: pallet_pw_nft_sale::{Pallet, Call, Storage, Event<T>} = 105,
+        PWIncubation: pallet_pw_incubation::{Pallet, Call, Storage, Event<T>} = 106,
     }
 }
 
@@ -298,6 +307,40 @@ impl Contains<Call> for BaseCallFilter {
             };
         }
 
+        if let Call::Uniques(uniques_method) = call {
+            return match uniques_method {
+                pallet_uniques::Call::approve_transfer { .. }
+                | pallet_uniques::Call::burn { .. }
+                | pallet_uniques::Call::cancel_approval { .. }
+                | pallet_uniques::Call::clear_class_metadata { .. }
+                | pallet_uniques::Call::clear_metadata { .. }
+                | pallet_uniques::Call::create { .. }
+                | pallet_uniques::Call::destroy { .. }
+                | pallet_uniques::Call::force_asset_status { .. }
+                | pallet_uniques::Call::force_create { .. }
+                | pallet_uniques::Call::freeze_class { .. }
+                | pallet_uniques::Call::mint { .. }
+                | pallet_uniques::Call::redeposit { .. }
+                | pallet_uniques::Call::set_class_metadata { .. }
+                | pallet_uniques::Call::set_metadata { .. }
+                | pallet_uniques::Call::thaw_class { .. }
+                | pallet_uniques::Call::transfer { .. }
+                | pallet_uniques::Call::transfer_ownership { .. }
+                | pallet_uniques::Call::__Ignore { .. } => false,
+                _ => true,
+            };
+        }
+
+        if let Call::RmrkCore(rmrk_core_method) = call {
+            return match rmrk_core_method {
+                pallet_rmrk_core::Call::mint_nft { .. }
+                | pallet_rmrk_core::Call::send { .. }
+                | pallet_rmrk_core::Call::change_collection_issuer { .. }
+                | pallet_rmrk_core::Call::__Ignore { .. } => true,
+                _ => false,
+            };
+        }
+
         matches!(
             call,
             Call::Sudo { .. } |
@@ -325,7 +368,9 @@ impl Contains<Call> for BaseCallFilter {
             Call::Lottery { .. } | Call::Tips { .. } |
             // Phala
             Call::PhalaMq { .. } | Call::PhalaRegistry { .. } |
-            Call::PhalaMining { .. } | Call::PhalaStakePool { .. }
+            Call::PhalaMining { .. } | Call::PhalaStakePool { .. } |
+            // Phala World
+            Call::RmrkMarket { .. } | Call::PWNftSale { .. } | Call::PWIncubation { .. }
         )
     }
 }
@@ -778,6 +823,106 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type OutboundXcmpMessageSource = XcmpQueue;
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
+}
+
+parameter_types! {
+    pub const ClassDeposit: Balance = 100 * DOLLARS;
+    pub const InstanceDeposit: Balance = 1 * DOLLARS;
+    pub const KeyLimit: u32 = 32;
+    pub const ValueLimit: u32 = 256;
+    pub const StringLimit: u32 = 50;
+}
+
+impl pallet_uniques::Config for Runtime {
+    type Event = Event;
+    type ClassId = u32;
+    type InstanceId = u32;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
+    type Locker = ();
+    type ClassDeposit = ClassDeposit;
+    type InstanceDeposit = InstanceDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type AttributeDepositBase = MetadataDepositBase;
+    type DepositPerByte = MetadataDepositPerByte;
+    type StringLimit = StringLimit;
+    type KeyLimit = KeyLimit;
+    type ValueLimit = ValueLimit;
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = ();
+    type WeightInfo = pallet_uniques::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub const MaxRecursions: u32 = 10;
+    pub const ResourceSymbolLimit: u32 = 10;
+    pub const PartsLimit: u32 = 3;
+    pub const MaxPriorities: u32 = 3;
+    pub const CollectionSymbolLimit: u32 = 100;
+}
+
+impl pallet_rmrk_core::Config for Runtime {
+    type Event = Event;
+    type ProtocolOrigin = EnsureRoot<AccountId>;
+    type MaxRecursions = MaxRecursions;
+    type ResourceSymbolLimit = ResourceSymbolLimit;
+    type PartsLimit = PartsLimit;
+    type MaxPriorities = MaxPriorities;
+    type CollectionSymbolLimit = CollectionSymbolLimit;
+}
+
+parameter_types! {
+    pub const MaxPropertiesPerTheme: u32 = 100;
+    pub const MaxCollectionsEquippablePerPart: u32 = 100;
+}
+
+impl pallet_rmrk_equip::Config for Runtime {
+    type Event = Event;
+    type MaxPropertiesPerTheme = MaxPropertiesPerTheme;
+    type MaxCollectionsEquippablePerPart = MaxCollectionsEquippablePerPart;
+}
+
+parameter_types! {
+    pub const MinimumOfferAmount: Balance = DOLLARS / 10_000;
+}
+
+impl pallet_rmrk_market::Config for Runtime {
+    type Event = Event;
+    type ProtocolOrigin = EnsureRoot<AccountId>;
+    type Currency = Balances;
+    type MinimumOfferAmount = MinimumOfferAmount;
+}
+
+parameter_types! {
+    pub const SecondsPerEra: u64 = 86_400;
+    pub const MinBalanceToClaimSpirit: Balance = 10 * DOLLARS;
+    pub const LegendaryOriginOfShellPrice: Balance = 15_000 * DOLLARS;
+    pub const MagicOriginOfShellPrice: Balance = 10_000 * DOLLARS;
+    pub const PrimeOriginOfShellPrice: Balance = 500 * DOLLARS;
+    pub const IterLimit: u32 = 1_000;
+    pub const FoodPerEra: u32 = 5;
+    pub const MaxFoodFeedSelf: u8 = 2;
+    pub const IncubationDurationSec: u64 = 1_209_600;
+}
+impl pallet_pw_nft_sale::Config for Runtime {
+    type Event = Event;
+    type GovernanceOrigin = EnsureRootOrHalfCouncil;
+    type Currency = Balances;
+    type Time = pallet_timestamp::Pallet<Runtime>;
+    type SecondsPerEra = SecondsPerEra;
+    type MinBalanceToClaimSpirit = MinBalanceToClaimSpirit;
+    type LegendaryOriginOfShellPrice = LegendaryOriginOfShellPrice;
+    type MagicOriginOfShellPrice = MagicOriginOfShellPrice;
+    type PrimeOriginOfShellPrice = PrimeOriginOfShellPrice;
+    type IterLimit = IterLimit;
+}
+
+impl pallet_pw_incubation::Config for Runtime {
+    type Event = Event;
+    type FoodPerEra = FoodPerEra;
+    type MaxFoodFeedSelf = MaxFoodFeedSelf;
+    type IncubationDurationSec = IncubationDurationSec;
 }
 
 impl pallet_parachain_info::Config for Runtime {}
@@ -1533,6 +1678,7 @@ mod benches {
         [pallet_assets, Assets]
         // TODO: panic
         [pallet_collator_selection, CollatorSelection]
+        [pallet_uniques, Uniques]
     );
 }
 

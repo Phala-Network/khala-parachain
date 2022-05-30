@@ -3834,9 +3834,13 @@ dependencies = [
  "pallet-mq-runtime-api",
  "pallet-multisig",
  "pallet-parachain-info",
+ "pallet-phala-world",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
+ "pallet-rmrk-core",
+ "pallet-rmrk-equip",
+ "pallet-rmrk-market",
  "pallet-scheduler",
  "pallet-session",
  "pallet-timestamp",
@@ -3844,6 +3848,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
+ "pallet-uniques",
  "pallet-utility 4.0.0-phala-dev",
  "pallet-vesting",
  "pallet-xcm",
@@ -3853,6 +3858,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "rmrk-traits",
  "scale-info",
  "serde",
  "smallvec",
@@ -5968,6 +5974,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-phala-world"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-rmrk-core",
+ "pallet-rmrk-equip",
+ "pallet-rmrk-market",
+ "pallet-timestamp",
+ "pallet-uniques",
+ "parity-scale-codec",
+ "rmrk-traits",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-preimage"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.22#616d33ea23bab86cafffaf116fc607b6790fb4eb"
@@ -6023,6 +6052,62 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-rmrk-core"
+version = "0.0.1"
+source = "git+https://github.com/rmrk-team/rmrk-substrate#82e1bd5b8b7f19cba0e8b1f6c43e986631011caa"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-uniques",
+ "parity-scale-codec",
+ "rmrk-traits",
+ "scale-info",
+ "serde",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-rmrk-equip"
+version = "0.0.1"
+source = "git+https://github.com/rmrk-team/rmrk-substrate#82e1bd5b8b7f19cba0e8b1f6c43e986631011caa"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-rmrk-core",
+ "pallet-uniques",
+ "parity-scale-codec",
+ "rmrk-traits",
+ "scale-info",
+ "serde",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-rmrk-market"
+version = "0.0.1"
+source = "git+https://github.com/rmrk-team/rmrk-substrate#82e1bd5b8b7f19cba0e8b1f6c43e986631011caa"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-rmrk-core",
+ "pallet-uniques",
+ "parity-scale-codec",
+ "rmrk-traits",
+ "scale-info",
+ "serde",
  "sp-runtime",
  "sp-std",
 ]
@@ -6253,6 +6338,7 @@ name = "pallet-uniques"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.22#616d33ea23bab86cafffaf116fc607b6790fb4eb"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -8655,9 +8741,13 @@ dependencies = [
  "pallet-mq-runtime-api",
  "pallet-multisig",
  "pallet-parachain-info",
+ "pallet-phala-world",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
+ "pallet-rmrk-core",
+ "pallet-rmrk-equip",
+ "pallet-rmrk-market",
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
@@ -8666,6 +8756,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
+ "pallet-uniques",
  "pallet-utility 4.0.0-phala-dev",
  "pallet-vesting",
  "pallet-xcm",
@@ -8675,6 +8766,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "rmrk-traits",
  "scale-info",
  "smallvec",
  "sp-api",
@@ -8722,6 +8814,22 @@ dependencies = [
  "untrusted",
  "web-sys",
  "winapi",
+]
+
+[[package]]
+name = "rmrk-traits"
+version = "0.0.1"
+source = "git+https://github.com/rmrk-team/rmrk-substrate#82e1bd5b8b7f19cba0e8b1f6c43e986631011caa"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -11595,9 +11703,13 @@ dependencies = [
  "pallet-mq-runtime-api",
  "pallet-multisig",
  "pallet-parachain-info",
+ "pallet-phala-world",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
+ "pallet-rmrk-core",
+ "pallet-rmrk-equip",
+ "pallet-rmrk-market",
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
@@ -11606,6 +11718,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
+ "pallet-uniques",
  "pallet-utility 4.0.0-phala-dev",
  "pallet-vesting",
  "pallet-xcm",
@@ -11615,6 +11728,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "rmrk-traits",
  "scale-info",
  "smallvec",
  "sp-api",
