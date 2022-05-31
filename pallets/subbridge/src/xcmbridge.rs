@@ -4,7 +4,7 @@ pub use self::pallet::*;
 pub mod pallet {
 	use crate::helper::*;
 	use crate::traits::*;
-	use assets_registry::GetAssetRegistryInfo;
+	use assets_registry::{GetAssetRegistryInfo, NativeAssetChecker};
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
@@ -19,7 +19,7 @@ pub mod pallet {
 
 	/// The logging target.
 	const LOG_TARGET: &str = "runtime::xcm-transfer";
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -57,12 +57,6 @@ pub mod pallet {
 
 		/// Filter native asset
 		type NativeAssetChecker: NativeAssetChecker;
-
-		/// Assets that can be used to pay xcm execution
-		type FeeAssets: Get<MultiAssets>;
-
-		/// Default xcm fee(PHA) used to buy execution on dest parachain
-		type DefaultFee: Get<u128>;
 
 		/// Fungible assets registry
 		type AssetsRegistry: GetAssetRegistryInfo<<Self as pallet_assets::Config>::AssetId>;
@@ -301,26 +295,6 @@ pub mod pallet {
 				_ => None,
 			}
 		}
-
-		pub fn get_fee(asset: &MultiAsset) -> Option<MultiAsset> {
-			if T::FeeAssets::get().contains(&asset)
-				|| T::NativeAssetChecker::is_native_asset(&asset)
-			{
-				match asset.fun {
-					// Whole transfer amount be set as fee, actually fee spend depends one dest chain config
-					Fungible(_) => Some(asset.clone()),
-					// We do not support nonfungible asset transfer, nor support it as fee
-					_ => None,
-				}
-			} else {
-				// Basiclly, if the asset is supported as fee in our system, it should be also supported in the dest
-				// parachain, so if we are not support use this asset as fee, try use PHA as fee asset instead
-				Some(MultiAsset {
-					fun: Fungible(T::DefaultFee::get()),
-					id: T::NativeAssetChecker::native_asset_location().into(),
-				})
-			}
-		}
 	}
 
 	impl<T: Config> BridgeChecker for Pallet<T>
@@ -393,7 +367,8 @@ pub mod pallet {
 			let (dest_location, beneficiary) =
 				Pallet::<T>::extract_dest(&dest).ok_or(Error::<T>::IllegalDestination)?;
 
-			let fee = Pallet::<T>::get_fee(&asset).ok_or(Error::<T>::AssetNotFound)?;
+			// We can not guarantee the asset has been supported by destination
+			let fee = asset.clone();
 
 			let xcm_session = XCMSession::<T> {
 				asset: asset.clone(),
@@ -487,6 +462,8 @@ pub mod pallet {
 						decimals: 12,
 					},
 				));
+				// ParaB set price of the native asset of paraA
+				assert_ok!(AssetsRegistry::force_set_price(para::Origin::root(), 0, 1,));
 			});
 
 			ParaA::execute_with(|| {
@@ -538,6 +515,8 @@ pub mod pallet {
 						decimals: 12,
 					},
 				));
+				// ParaB set price of the native asset of paraA
+				assert_ok!(AssetsRegistry::force_set_price(para::Origin::root(), 0, 1,));
 			});
 
 			ParaA::execute_with(|| {

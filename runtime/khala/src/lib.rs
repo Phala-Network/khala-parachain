@@ -42,7 +42,6 @@ pub mod constants;
 use constants::{
     currency::*,
     fee::{pha_per_second, WeightToFee},
-    parachains,
 };
 
 mod migrations;
@@ -88,8 +87,8 @@ use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible,
-    FixedWeightBounds, FungiblesAdapter, LocationInverter, ParentIsPreset, RelayChainAsNative,
+    AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
+    FungiblesAdapter, LocationInverter, ParentIsPreset, RelayChainAsNative,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
     SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
@@ -101,7 +100,8 @@ pub use parachains_common::*;
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
 pub use subbridge_pallets::{
-    chainbridge, fungible_adapter::XTransferAdapter, helper, xcmbridge, xtransfer,
+    chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
+    xcmbridge, xtransfer,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -188,6 +188,10 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
+    (
+        migrations::SubbridgeV3Migrations,
+        migrations::AssetsRegistryV2Migrations,
+    ),
 >;
 
 type EnsureRootOrHalfCouncil = EnsureOneOf<
@@ -981,7 +985,7 @@ pub type CurrencyTransactor = CurrencyAdapter<
     // Use this currency:
     Balances,
     // Use this currency when it is a fungible asset matching the given location or name:
-    helper::NativeAssetMatcher<helper::NativeAssetFilter<ParachainInfo>>,
+    helper::NativeAssetMatcher<assets_registry::NativeAssetFilter<ParachainInfo>>,
     // Convert an XCM MultiLocation into a local account id:
     LocationToAccountId,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -1018,96 +1022,8 @@ pub type FungiblesTransactor = FungiblesAdapter<
 >;
 
 parameter_types! {
-    pub KSMAssetId: AssetId = MultiLocation::new(1, Here).into();
-    pub PHAAssetId: AssetId = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into()))).into();
-    pub LocalPHAAssetId: AssetId = MultiLocation::new(0, Here).into();
-    pub KARAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec()))).into();
-    pub KUSDAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KUSD_KEY.to_vec()))).into();
-    pub BNCAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::BNC_KEY.to_vec()))).into();
-    pub VSKSMAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::VSKSM_KEY.to_vec()))).into();
-    pub ZLKAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::bifrost::ID), GeneralKey(parachains::bifrost::ZLK_KEY.to_vec()))).into();
-    pub MOVRAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::moonriver::ID), PalletInstance(parachains::moonriver::MOVR_INSTANCE))).into();
-    pub HKOAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::heiko::ID), GeneralKey(parachains::heiko::HKO_KEY.to_vec()))).into();
-    pub BSXAssetId: AssetId = MultiLocation::new(1, X2(Parachain(parachains::basilisk::ID), GeneralKey(parachains::basilisk::BSX_KEY.to_vec()))).into();
-
-    pub ExecutionPriceInKSM: (AssetId, u128) = (
-        KSMAssetId::get(),
-        pha_per_second() / 600
-    );
-    pub ExecutionPriceInPHA: (AssetId, u128) = (
-        PHAAssetId::get(),
-        pha_per_second()
-    );
-    pub ExecutionPriceInLocalPHA: (AssetId, u128) = (
-        LocalPHAAssetId::get(),
-        pha_per_second()
-    );
-    pub ExecutionPriceInKAR: (AssetId, u128) = (
-        KARAssetId::get(),
-        pha_per_second() / 8
-    );
-    pub ExecutionPriceInKUSD: (AssetId, u128) = (
-        KUSDAssetId::get(),
-        pha_per_second() / 4
-    );
-    pub ExecutionPriceInBNC: (AssetId, u128) = (
-        BNCAssetId::get(),
-        pha_per_second() / 4
-    );
-    pub ExecutionPriceInVSKSM: (AssetId, u128) = (
-        VSKSMAssetId::get(),
-        pha_per_second() / 600
-    );
-    pub ExecutionPriceInZLK: (AssetId, u128) = (
-        ZLKAssetId::get(),
-        pha_per_second() / 4
-    );
-    pub ExecutionPriceInMOVR: (AssetId, u128) = (
-        MOVRAssetId::get(),
-        pha_per_second() / 240
-    );
-    pub ExecutionPriceInHKO: (AssetId, u128) = (
-        HKOAssetId::get(),
-        pha_per_second()
-    );
-    pub ExecutionPriceInBSX: (AssetId, u128) = (
-        BSXAssetId::get(),
-        pha_per_second()
-    );
-
     pub NativeExecutionPrice: u128 = pha_per_second();
-    pub ExecutionPrices: Vec<(AssetId, u128)> = [
-        ExecutionPriceInKSM::get(),
-        ExecutionPriceInPHA::get(),
-        ExecutionPriceInLocalPHA::get(),
-        ExecutionPriceInKAR::get(),
-        ExecutionPriceInKUSD::get(),
-        ExecutionPriceInBNC::get(),
-        ExecutionPriceInVSKSM::get(),
-        ExecutionPriceInZLK::get(),
-        ExecutionPriceInMOVR::get(),
-        ExecutionPriceInHKO::get(),
-        ExecutionPriceInBSX::get(),
-    ].to_vec().into();
-
-    pub FeeAssets: MultiAssets = [
-        KSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        PHAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        LocalPHAAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        KARAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        KUSDAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        BNCAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        VSKSMAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        ZLKAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        MOVRAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        HKOAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-        BSXAssetId::get().into_multiasset(Fungibility::Fungible(u128::MAX)),
-    ].to_vec().into();
-
-    // This fee is set when we trying to send assets that dest chain not support
-    // it as trade fee, thus we set PHA as the fee asset, and give this default
-    // amount to pay fee.
-    pub const DefaultDestChainXcmFee: Balance = 10 * CENTS;
+    pub WeightPerSecond: u64 = WEIGHT_PER_SECOND;
 }
 
 pub struct XcmConfig;
@@ -1119,7 +1035,7 @@ impl Config for XcmConfig {
         CurrencyTransactor,
         FungiblesTransactor,
         XTransfer,
-        helper::NativeAssetFilter<ParachainInfo>,
+        assets_registry::NativeAssetFilter<ParachainInfo>,
     >;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = helper::AssetOriginFilter;
@@ -1127,52 +1043,12 @@ impl Config for XcmConfig {
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
-    type Trader = (
-        FixedRateOfFungible<
-            ExecutionPriceInKSM,
-            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
-        >,
-        FixedRateOfFungible<
-            ExecutionPriceInPHA,
-            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
-        >,
-        FixedRateOfFungible<
-            ExecutionPriceInLocalPHA,
-            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
-        >,
-        FixedRateOfFungible<
-            ExecutionPriceInKAR,
-            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
-        >,
-        FixedRateOfFungible<
-            ExecutionPriceInKUSD,
-            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
-        >,
-        FixedRateOfFungible<
-            ExecutionPriceInBNC,
-            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
-        >,
-        FixedRateOfFungible<
-            ExecutionPriceInVSKSM,
-            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
-        >,
-        FixedRateOfFungible<
-            ExecutionPriceInZLK,
-            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
-        >,
-        FixedRateOfFungible<
-            ExecutionPriceInHKO,
-            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
-        >,
-        FixedRateOfFungible<
-            ExecutionPriceInMOVR,
-            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
-        >,
-        FixedRateOfFungible<
-            ExecutionPriceInBSX,
-            helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
-        >,
-    );
+    type Trader = DynamicWeightTrader<
+        WeightPerSecond,
+        <Runtime as pallet_assets::Config>::AssetId,
+        AssetsRegistry,
+        helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, KhalaTreasuryAccount>,
+    >;
     type ResponseHandler = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
     type AssetClaims = PolkadotXcm;
@@ -1239,9 +1115,7 @@ impl xcmbridge::Config for Runtime {
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type LocationInverter = LocationInverter<Ancestry>;
-    type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
-    type FeeAssets = FeeAssets;
-    type DefaultFee = DefaultDestChainXcmFee;
+    type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
     type AssetsRegistry = AssetsRegistry;
 }
 
@@ -1250,6 +1124,8 @@ impl assets_registry::Config for Runtime {
     type RegistryCommitteeOrigin = EnsureRootOrHalfCouncil;
     type Currency = Balances;
     type MinBalance = ExistentialDeposit;
+    type NativeExecutionPrice = NativeExecutionPrice;
+    type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
 }
 
 parameter_types! {
@@ -1563,15 +1439,14 @@ impl chainbridge::Config for Runtime {
     type BridgeChainId = BridgeChainId;
     type Currency = Balances;
     type ProposalLifetime = ProposalLifetime;
-    type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+    type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
     type NativeExecutionPrice = NativeExecutionPrice;
-    type ExecutionPriceInfo = ExecutionPrices;
     type TreasuryAccount = KhalaTreasuryAccount;
     type FungibleAdapter = XTransferAdapter<
         CurrencyTransactor,
         FungiblesTransactor,
         XTransfer,
-        helper::NativeAssetFilter<ParachainInfo>,
+        assets_registry::NativeAssetFilter<ParachainInfo>,
     >;
     type AssetsRegistry = AssetsRegistry;
 }

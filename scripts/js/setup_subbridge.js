@@ -9,20 +9,16 @@ const bridgeAccount = '5EYCAe5iixJKLJE5vokZcdJwS4ZpFU23Ged95YDBznC789dM';
 const assetRegistryAccount = '5EYCAe5iixJKLJE5qkFfWJYxWd9ZsoBVKwBaiLrqY98qbmDC';
 const relayerAccount = '5DV9WVCfAejeGJgbRVkXqWAqAMyqzjf7tTVSDAZGWQG69Dhz';
 
-async function setBalance(api, who, value, finalization) {
+async function setBalance(api, who, value, finalization, sudo) {
     return new Promise(async (resolve, reject) => {
-        await cryptoWaitReady();
-        const keyring = new Keyring({ type: 'sr25519' });
-        const alice = keyring.addFromUri('//Alice');
-
-        const nonce = Number((await api.query.system.account(alice.address)).nonce);
+		const nonce = Number((await api.query.system.account(sudo.address)).nonce);
 
         console.log(
                 `--- Submitting extrinsic to set balance of ${who} to ${value}. (nonce: ${nonce}) ---`
         );
         const unsub = await api.tx.sudo
         .sudo(api.tx.balances.setBalance(who, value, 0))
-        .signAndSend(alice, { nonce: nonce, era: 0 }, (result) => {
+			.signAndSend(sudo, { nonce: nonce, era: 0 }, (result) => {
                 console.log(`Current status is ${result.status}`);
                 if (result.status.isInBlock) {
                         console.log(
@@ -48,20 +44,16 @@ async function setBalance(api, who, value, finalization) {
     });
 }
 
-async function registerAsset(api, location, id, properties, finalization) {
+async function registerAsset(api, location, id, properties, finalization, sudo) {
     return new Promise(async (resolve, reject) => {
-        await cryptoWaitReady();
-        const keyring = new Keyring({ type: 'sr25519' });
-        const alice = keyring.addFromUri('//Alice');
-
-        const nonce = Number((await api.query.system.account(alice.address)).nonce);
+		const nonce = Number((await api.query.system.account(sudo.address)).nonce);
 
         console.log(
                 `--- Submitting extrinsic to register asset: ${location}. (nonce: ${nonce}) ---`
         );
         const unsub = await api.tx.sudo
         .sudo(api.tx.assetsRegistry.forceRegisterAsset(location, id, properties))
-        .signAndSend(alice, { nonce: nonce, era: 0 }, (result) => {
+			.signAndSend(sudo, { nonce: nonce, era: 0 }, (result) => {
                 console.log(`Current status is ${result.status}`);
                 if (result.status.isInBlock) {
                         console.log(
@@ -87,13 +79,9 @@ async function registerAsset(api, location, id, properties, finalization) {
     });
 }
 
-async function enableChainbridge(api, id, chainId, isMintable, metadata, finalization) {
+async function enableChainbridge(api, id, chainId, isMintable, metadata, finalization, sudo) {
     return new Promise(async (resolve, reject) => {
-        await cryptoWaitReady();
-        const keyring = new Keyring({ type: 'sr25519' });
-        const alice = keyring.addFromUri('//Alice');
-
-        const nonce = Number((await api.query.system.account(alice.address)).nonce);
+		const nonce = Number((await api.query.system.account(sudo.address)).nonce);
 
         console.log(
                 `--- Submitting extrinsic to enable chainbridge for asset ${id}, chain: ${chainId}. (nonce: ${nonce}) ---`
@@ -101,7 +89,7 @@ async function enableChainbridge(api, id, chainId, isMintable, metadata, finaliz
 
         const unsub = await api.tx.sudo
         .sudo(api.tx.assetsRegistry.forceEnableChainbridge(id, chainId, isMintable, metadata))
-        .signAndSend(alice, { nonce: nonce, era: 0 }, (result) => {
+			.signAndSend(sudo, { nonce: nonce, era: 0 }, (result) => {
                 console.log(`Current status is ${result.status}`);
                 if (result.status.isInBlock) {
                         console.log(
@@ -127,13 +115,9 @@ async function enableChainbridge(api, id, chainId, isMintable, metadata, finaliz
     });
 }
 
-async function configChainBridge(api, relayer, fee, chainId, finalization) {
+async function configChainBridge(api, relayer, fee, chainId, finalization, sudo) {
     return new Promise(async (resolve, reject) => {
-        await cryptoWaitReady();
-        const keyring = new Keyring({ type: 'sr25519' });
-        const alice = keyring.addFromUri('//Alice');
-
-        const nonce = Number((await api.query.system.account(alice.address)).nonce);
+		const nonce = Number((await api.query.system.account(sudo.address)).nonce);
 
         console.log(
                 `--- Submitting extrinsic to config chainbridge. (nonce: ${nonce}) ---`
@@ -145,7 +129,7 @@ async function configChainBridge(api, relayer, fee, chainId, finalization) {
         const whitelistChain = api.tx.sudo.sudo(api.tx.chainBridge.whitelistChain(chainId));
 
         const unsub = await api.tx.utility.batch([addRelayer, setFee, whitelistChain])
-        .signAndSend(alice, { nonce: nonce, era: 0 }, (result) => {
+			.signAndSend(sudo, { nonce: nonce, era: 0 }, (result) => {
                 console.log(`Current status is ${result.status}`);
                 if (result.status.isInBlock) {
                         console.log(
@@ -179,10 +163,14 @@ async function main() {
         provider: khalaProvider,
     });
 
+	await cryptoWaitReady();
+	const keyring = new Keyring({ type: 'sr25519' });
+	const sudo = keyring.addFromUri('//Alice');
+
     // Set balance;
-    await setBalance(khalaApi, bridgeAccount, bn1e12.mul(new BN(10000)), false);
-    await setBalance(khalaApi, assetRegistryAccount, bn1e12.mul(new BN(10)), false);
-    await setBalance(khalaApi, relayerAccount, bn1e12.mul(new BN(10)), false);
+	await setBalance(khalaApi, bridgeAccount, bn1e12.mul(new BN(10000)), false, sudo);
+	await setBalance(khalaApi, assetRegistryAccount, bn1e12.mul(new BN(10)), false, sudo);
+	await setBalance(khalaApi, relayerAccount, bn1e12.mul(new BN(10)), false, sudo);
 
     // Register KSM
     await registerAsset(
@@ -197,7 +185,8 @@ async function main() {
             symbol: 'KSM',
             decimals: 12
         }),
-        false
+		false,
+		sudo
     );
 
     // Register KAR
@@ -222,7 +211,8 @@ async function main() {
             symbol: 'KAR',
             decimals: 12
         }),
-        false
+		false,
+		sudo
     );
 
     // Register BNC
@@ -247,7 +237,8 @@ async function main() {
             symbol: 'BNC',
             decimals: 12
         }),
-        false
+		false,
+		sudo
     );
 
     // Register ZLK
@@ -272,17 +263,70 @@ async function main() {
             symbol: 'ZLK',
             decimals: 18
         }),
-        false
-    );
+		false,
+		sudo
+	);
+
+	// Register aUSD
+	await registerAsset(
+		khalaApi,
+		khalaApi.createType('XcmV1MultiLocation', {
+			parents: 1,
+			interior: khalaApi.createType('Junctions', {
+				X2: [
+					khalaApi.createType('XcmV1Junction', {
+						Parachain: khalaApi.createType('Compact<U32>', 2000)
+					}),
+					khalaApi.createType('XcmV1Junction', {
+						GeneralKey: '0x0081'
+					}),
+				]
+			})
+		}),
+		4,
+		khalaApi.createType('AssetsRegistryAssetProperties', {
+			name: 'Acala USD',
+			symbol: 'aUSD',
+			decimals: 12
+		}),
+		false,
+		sudo
+	);
+
+	// Register BSX
+	await registerAsset(
+		khalaApi,
+		khalaApi.createType('XcmV1MultiLocation', {
+			parents: 1,
+			interior: khalaApi.createType('Junctions', {
+				X2: [
+					khalaApi.createType('XcmV1Junction', {
+						Parachain: khalaApi.createType('Compact<U32>', 2090)
+					}),
+					khalaApi.createType('XcmV1Junction', {
+						GeneralKey: '0x00000000'
+					}),
+				]
+			})
+		}),
+		5,
+		khalaApi.createType('AssetsRegistryAssetProperties', {
+			name: 'Basilisk',
+			symbol: 'BSX',
+			decimals: 12
+		}),
+		false,
+		sudo
+	);
 
     // Enable Chainbridge of ZLK to Moonriver EVM
-    await enableChainbridge(khalaApi, 3, 2, false, 0x00, false);
+	await enableChainbridge(khalaApi, 3, 2, false, 0x00, false, sudo);
 
     // Config ChainBridge of Ethereum(chainId 0)
-    await configChainBridge(khalaApi, relayerAccount, bn1e12.mul(new BN(1)), 0, false);
+	await configChainBridge(khalaApi, relayerAccount, bn1e12.mul(new BN(300)), 0, false, sudo);
 
     // Config ChainBridge of Moonriver EVM(chainId 2)
-    await configChainBridge(khalaApi, relayerAccount, bn1e12.mul(new BN(1)), 2, false);
+	await configChainBridge(khalaApi, relayerAccount, bn1e12.mul(new BN(1)), 2, false, sudo);
 
     console.log('🚀 Setup Subbridge done 🚀');
 }

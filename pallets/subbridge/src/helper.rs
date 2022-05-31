@@ -1,6 +1,4 @@
-use crate::traits::*;
-use assets_registry::GetAssetRegistryInfo;
-use cumulus_primitives_core::ParaId;
+use assets_registry::{GetAssetRegistryInfo, NativeAssetChecker};
 use frame_support::pallet_prelude::*;
 use sp_runtime::traits::CheckedConversion;
 use sp_std::{
@@ -58,29 +56,6 @@ impl FilterAssetLocation for AssetOriginFilter {
 			}
 		}
 		false
-	}
-}
-
-pub struct NativeAssetFilter<T>(PhantomData<T>);
-impl<T: Get<ParaId>> NativeAssetChecker for NativeAssetFilter<T> {
-	fn is_native_asset(asset: &MultiAsset) -> bool {
-		match (&asset.id, &asset.fun) {
-			// So far our native asset is concrete
-			(Concrete(ref id), Fungible(_)) if Self::is_native_asset_location(id) => true,
-			_ => false,
-		}
-	}
-
-	fn is_native_asset_location(id: &MultiLocation) -> bool {
-		let native_locations = [
-			MultiLocation::here(),
-			(1, X1(Parachain(T::get().into()))).into(),
-		];
-		native_locations.contains(id)
-	}
-
-	fn native_asset_location() -> MultiLocation {
-		(1, X1(Parachain(T::get().into()))).into()
 	}
 }
 

@@ -78,33 +78,3 @@ pub mod fee {
         base_tx_fee * tx_per_second
     }
 }
-
-pub mod parachains {
-    pub mod karura {
-        pub const ID: u32 = 2000;
-        pub const KAR_KEY: [u8; 2] = [0, 128];
-        pub const KUSD_KEY: [u8; 2] = [0, 129];
-    }
-
-    pub mod bifrost {
-        pub const ID: u32 = 2001;
-        pub const BNC_KEY: &[u8] = &[0, 1];
-        pub const VSKSM_KEY: &[u8] = &[4, 4];
-        pub const ZLK_KEY: &[u8] = &[2, 7];
-    }
-
-    pub mod moonriver {
-        pub const ID: u32 = 2023;
-        pub const MOVR_INSTANCE: u8 = 10;
-    }
-
-    pub mod heiko {
-        pub const ID: u32 = 2085;
-        pub const HKO_KEY: &[u8] = &[72, 75, 79]; // "HKO"
-    }
-
-    pub mod basilisk {
-        pub const ID: u32 = 2090;
-        pub const BSX_KEY: &[u8] = &[0, 0, 0, 0];
-    }
-}
