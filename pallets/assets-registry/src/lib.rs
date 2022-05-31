@@ -217,11 +217,14 @@ pub mod pallet {
 				return match id.reserve_location() {
 					Some(reserve_location) => {
 						return match (reserve_location.parents, reserve_location.first_interior()) {
+							// Any assets match our parachain id
 							(1, Some(para)) => para == &Parachain(T::get().into()),
+							// ChainBridge assets with noncanonical location
 							(0, Some(GeneralKey(cb_key))) => cb_key == CB_ASSET_KEY,
+							// (0, Here) is expressed as PHA location
 							(0, None) => true,
 							_ => false,
-						}
+						};
 					}
 					_ => false,
 				};
@@ -229,9 +232,11 @@ pub mod pallet {
 		}
 
 		fn to_absoluted_location(location: &MultiLocation) -> Option<MultiLocation> {
+			// Only assets reserved on local can be convert from noncanonical type of location to absoluted location.
 			if Self::is_reserve_asset_location(location) {
 				match (location.parents, location.first_interior()) {
 					(0, Some(GeneralKey(cb_key))) => {
+						// ChainBridge assets
 						if cb_key == CB_ASSET_KEY {
 							let mut origin_location = location.clone();
 							origin_location.parents = 1;
