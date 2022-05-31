@@ -65,9 +65,9 @@ pub mod pallet {
 	pub type OriginOfShellFoodStats<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
-		(CollectionId, NftId),
-		Blake2_128Concat,
 		EraId,
+		Blake2_128Concat,
+		(CollectionId, NftId),
 		u32,
 		ValueQuery,
 	>;
@@ -259,7 +259,7 @@ pub mod pallet {
 			let current_era = pallet_pw_nft_sale::Era::<T>::get();
 			// Get number of times fed this era
 			let num_of_times_fed =
-				OriginOfShellFoodStats::<T>::get((collection_id, nft_id), current_era);
+				OriginOfShellFoodStats::<T>::get(current_era, (collection_id, nft_id));
 
 			// Update account FoodInfo if not updated or create new FoodInfo for account's first
 			// feeding
@@ -296,8 +296,8 @@ pub mod pallet {
 
 			// Update the Origin of Shell food stats
 			OriginOfShellFoodStats::<T>::insert(
-				(collection_id, nft_id),
 				current_era,
+				(collection_id, nft_id),
 				num_of_times_fed + 1,
 			);
 
