@@ -793,8 +793,9 @@ pub mod pallet {
 			Self::ensure_overlord(&sender)?;
 			// Ensure ZeroDay is None as this can only be set once
 			ensure!(Self::zero_day() == None, Error::<T>::WorldClockAlreadySet);
+			let now = T::Time::now().as_secs();
 
-			let zero_day = T::Time::now().as_secs();
+			let zero_day = now - (now % T::SecondsPerEra::get());
 
 			ZeroDay::<T>::put(zero_day);
 			Self::deposit_event(Event::WorldClockStarted {
