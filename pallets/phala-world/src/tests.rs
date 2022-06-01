@@ -8,7 +8,7 @@ use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::Currency, 
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use crate::traits::{
-	primitives::*, CareerType, NftSaleType, OriginOfShellType, OverlordMessage, Purpose, RaceType,
+	primitives::*, CareerType, NftSaleType, OverlordMessage, Purpose, RaceType, RarityType,
 	StatusType,
 };
 use mock::{Call, Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
@@ -104,9 +104,7 @@ fn setup_config(enable_status_type: StatusType) {
 	// Initialize the Phala World Clock
 	assert_ok!(PWNftSale::initialize_world_clock(Origin::signed(OVERLORD)));
 	// Initialize Origin of Shell Inventory numbers
-	assert_ok!(PWNftSale::init_origin_of_shell_type_counts(Origin::signed(
-		OVERLORD
-	)));
+	assert_ok!(PWNftSale::init_rarity_type_counts(Origin::signed(OVERLORD)));
 	match enable_status_type {
 		StatusType::ClaimSpirits => {
 			assert_ok!(PWNftSale::set_status_type(
@@ -282,14 +280,14 @@ fn purchase_rare_origin_of_shell_works() {
 		// ALICE purchases Legendary Origin of Shell
 		assert_ok!(PWNftSale::buy_rare_origin_of_shell(
 			Origin::signed(ALICE),
-			OriginOfShellType::Legendary,
+			RarityType::Legendary,
 			RaceType::AISpectre,
 			CareerType::HackerWizard,
 		));
 		// Check if event triggered
 		System::assert_last_event(MockEvent::PWNftSale(
 			crate::pallet_pw_nft_sale::Event::OriginOfShellMinted {
-				origin_of_shell_type: OriginOfShellType::Legendary,
+				rarity_type: RarityType::Legendary,
 				collection_id: 1,
 				nft_id: 0,
 				owner: ALICE,
@@ -301,7 +299,7 @@ fn purchase_rare_origin_of_shell_works() {
 		assert_noop!(
 			PWNftSale::buy_rare_origin_of_shell(
 				Origin::signed(BOB),
-				OriginOfShellType::Legendary,
+				RarityType::Legendary,
 				RaceType::Cyborg,
 				CareerType::HardwareDruid,
 			),
@@ -310,14 +308,14 @@ fn purchase_rare_origin_of_shell_works() {
 		// BOB purchases Magic Origin of Shell
 		assert_ok!(PWNftSale::buy_rare_origin_of_shell(
 			Origin::signed(BOB),
-			OriginOfShellType::Magic,
+			RarityType::Magic,
 			RaceType::Cyborg,
 			CareerType::HardwareDruid,
 		));
 		// Check if event triggered
 		System::assert_last_event(MockEvent::PWNftSale(
 			crate::pallet_pw_nft_sale::Event::OriginOfShellMinted {
-				origin_of_shell_type: OriginOfShellType::Magic,
+				rarity_type: RarityType::Magic,
 				collection_id: 1,
 				nft_id: 1,
 				owner: BOB,
@@ -329,7 +327,7 @@ fn purchase_rare_origin_of_shell_works() {
 		assert_noop!(
 			PWNftSale::buy_rare_origin_of_shell(
 				Origin::signed(CHARLIE),
-				OriginOfShellType::Prime,
+				RarityType::Prime,
 				RaceType::Pandroid,
 				CareerType::HackerWizard,
 			),
@@ -338,14 +336,14 @@ fn purchase_rare_origin_of_shell_works() {
 		// CHARLIE purchases Magic Origin Of Shell
 		assert_ok!(PWNftSale::buy_rare_origin_of_shell(
 			Origin::signed(CHARLIE),
-			OriginOfShellType::Magic,
+			RarityType::Magic,
 			RaceType::Pandroid,
 			CareerType::HackerWizard,
 		));
 		// Check if event triggered
 		System::assert_last_event(MockEvent::PWNftSale(
 			crate::pallet_pw_nft_sale::Event::OriginOfShellMinted {
-				origin_of_shell_type: OriginOfShellType::Magic,
+				rarity_type: RarityType::Magic,
 				collection_id: 1,
 				nft_id: 2,
 				owner: CHARLIE,
@@ -419,7 +417,7 @@ fn purchase_prime_origin_of_shell_works() {
 		// Check if event triggered
 		System::assert_last_event(MockEvent::PWNftSale(
 			crate::pallet_pw_nft_sale::Event::OriginOfShellMinted {
-				origin_of_shell_type: OriginOfShellType::Prime,
+				rarity_type: RarityType::Prime,
 				collection_id: 1,
 				nft_id: 0,
 				owner: BOB,
@@ -706,7 +704,7 @@ fn mint_gift_origin_of_shell_works() {
 		assert_ok!(PWNftSale::mint_gift_origin_of_shell(
 			Origin::signed(OVERLORD),
 			CHARLIE,
-			OriginOfShellType::Magic,
+			RarityType::Magic,
 			RaceType::XGene,
 			CareerType::Web3Monk,
 			NftSaleType::Reserved,
@@ -732,16 +730,16 @@ fn mint_gift_origin_of_shell_works() {
 			},
 		));
 		// Update inventory to have a giveaway then gift giveaway
-		assert_ok!(PWNftSale::update_origin_of_shell_type_counts(
+		assert_ok!(PWNftSale::update_rarity_type_counts(
 			Origin::signed(OVERLORD),
-			OriginOfShellType::Prime,
+			RarityType::Prime,
 			0,
 			1
 		));
 		assert_ok!(PWNftSale::mint_gift_origin_of_shell(
 			Origin::signed(OVERLORD),
 			CHARLIE,
-			OriginOfShellType::Prime,
+			RarityType::Prime,
 			RaceType::Cyborg,
 			CareerType::HackerWizard,
 			NftSaleType::Giveaway,
@@ -751,7 +749,7 @@ fn mint_gift_origin_of_shell_works() {
 			PWNftSale::mint_gift_origin_of_shell(
 				Origin::signed(OVERLORD),
 				CHARLIE,
-				OriginOfShellType::Prime,
+				RarityType::Prime,
 				RaceType::Cyborg,
 				CareerType::HackerWizard,
 				NftSaleType::Giveaway,

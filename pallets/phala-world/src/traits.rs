@@ -37,10 +37,10 @@ pub struct OverlordMessage<AccountId> {
 	pub purpose: Purpose,
 }
 
-/// Origin of Shell Types of Prime, Magic & Legendary
+/// Rarity Types of Prime, Magic & Legendary
 #[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum OriginOfShellType {
+pub enum RarityType {
 	Prime,
 	Magic,
 	Legendary,
@@ -91,7 +91,7 @@ pub enum NftSaleType {
 }
 
 /// NftSaleInfo is used as the value in the StorageDoubleMap that takes key1 as the
-/// OriginOfShellType and key2 as the RaceType
+/// RarityType and key2 as the RaceType
 #[derive(Encode, Decode, Eq, PartialEq, Clone, Copy, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub struct NftSaleInfo {
 	/// Number of Race Type count

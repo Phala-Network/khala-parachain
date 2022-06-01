@@ -1,7 +1,7 @@
 //! Phala World Incubation Pallet
 
 pub use crate::pallet_pw_nft_sale;
-pub use crate::traits::{primitives::*, CareerType, FoodInfo, OriginOfShellType, RaceType};
+pub use crate::traits::{primitives::*, CareerType, FoodInfo, RaceType, RarityType};
 use codec::Decode;
 use frame_support::{
 	ensure,
@@ -151,7 +151,7 @@ pub mod pallet {
 		ShellCollectionIdNotSet,
 		RaceNotDetected,
 		CareerNotDetected,
-		OriginOfShellTypeNotDetected,
+		RarityTypeNotDetected,
 		FoodInfoUpdateError,
 	}
 
@@ -351,29 +351,24 @@ pub mod pallet {
 			);
 			// Check if Shell Collection ID is set
 			let shell_collection_id = Self::get_shell_collection_id()?;
-			// Get race, key and origin of shell type before burning origin of shell NFT
+			// Get race, key and Rarity Type before burning origin of shell NFT
 			let race_key = pallet_pw_nft_sale::pallet::Pallet::<T>::to_boundedvec_key("race")?;
 			let career_key = pallet_pw_nft_sale::pallet::Pallet::<T>::to_boundedvec_key("career")?;
-			let origin_of_shell_type_key =
-				pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("origin_of_shell_type")?;
+			let rarity_type_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("rarity")?;
 			let race = pallet_uniques::Pallet::<T>::attribute(&collection_id, &nft_id, &race_key)
 				.ok_or(Error::<T>::RaceNotDetected)?;
 			let career =
 				pallet_uniques::Pallet::<T>::attribute(&collection_id, &nft_id, &career_key)
 					.ok_or(Error::<T>::CareerNotDetected)?;
-			let origin_of_shell_type_value = pallet_uniques::Pallet::<T>::attribute(
-				&collection_id,
-				&nft_id,
-				&origin_of_shell_type_key,
-			)
-			.ok_or(Error::<T>::OriginOfShellTypeNotDetected)?;
+			let rarity_type_value =
+				pallet_uniques::Pallet::<T>::attribute(&collection_id, &nft_id, &rarity_type_key)
+					.ok_or(Error::<T>::RarityTypeNotDetected)?;
 			let race_type: RaceType =
 				Decode::decode(&mut race.as_slice()).expect("[race] should not fail");
 			let career_type: CareerType =
 				Decode::decode(&mut career.as_slice()).expect("[career] should not fail");
-			let origin_of_shell_type: OriginOfShellType =
-				Decode::decode(&mut origin_of_shell_type_value.as_slice())
-					.expect("[origin_of_shell_type] should not fail");
+			let rarity_type: RarityType = Decode::decode(&mut rarity_type_value.as_slice())
+				.expect("[rarity] should not fail");
 			// Get Shell Collection next NFT ID
 			let shell_nft_id = pallet_rmrk_core::NextNftId::<T>::get(shell_collection_id);
 			// Burn Origin of Shell NFT then Mint Shell NFT
@@ -399,7 +394,7 @@ pub mod pallet {
 				origin.clone(),
 				collection_id,
 				Some(nft_id),
-				origin_of_shell_type_key,
+				rarity_type_key,
 			)?;
 			// Mint Shell NFT to Overlord to add attributes and resource before sending to owner
 			pallet_rmrk_core::Pallet::<T>::mint_nft(
@@ -410,11 +405,11 @@ pub mod pallet {
 				None,
 				metadata,
 			)?;
-			// Set Origin of Shell Type, Race and Career attributes for NFT
+			// Set Rarity Type, Race and Career attributes for NFT
 			pallet_pw_nft_sale::Pallet::<T>::set_nft_attributes(
 				shell_collection_id,
 				shell_nft_id,
-				origin_of_shell_type,
+				rarity_type,
 				race_type,
 				career_type,
 			)?;
