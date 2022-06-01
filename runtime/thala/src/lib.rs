@@ -348,9 +348,7 @@ impl Contains<Call> for BaseCallFilter {
 
         if let Call::RmrkCore(rmrk_core_method) = call {
             match rmrk_core_method {
-                pallet_rmrk_core::Call::mint_nft { .. }
-                | pallet_rmrk_core::Call::send { .. }
-                | pallet_rmrk_core::Call::change_collection_issuer { .. } => {
+                pallet_rmrk_core::Call::change_collection_issuer { .. } => {
                     return true;
                 }
                 pallet_rmrk_core::Call::__Ignore { .. } => {

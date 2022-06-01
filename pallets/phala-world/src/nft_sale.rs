@@ -473,6 +473,7 @@ pub mod pallet {
 				rarity_type,
 				race,
 				career,
+				0,
 				origin_of_shell_price,
 				NftSaleType::ForSale,
 				!LastDayOfSale::<T>::get(),
@@ -526,6 +527,7 @@ pub mod pallet {
 				RarityType::Prime,
 				race,
 				career,
+				0,
 				origin_of_shell_price,
 				NftSaleType::ForSale,
 				!is_last_day_of_sale,
@@ -635,6 +637,7 @@ pub mod pallet {
 						RarityType::Prime,
 						preorder_info.race,
 						preorder_info.career,
+						0,
 						origin_of_shell_price,
 						NftSaleType::ForSale,
 						false,
@@ -737,6 +740,7 @@ pub mod pallet {
 				rarity_type,
 				race,
 				career,
+				0,
 				Default::default(),
 				nft_sale_type,
 				false,
@@ -1268,6 +1272,9 @@ where
 		// Get NFT ID to be minted
 		let spirit_nft_id = pallet_rmrk_core::NextNftId::<T>::get(spirit_collection_id);
 		// Mint new Spirit and transfer to sender
+		// Note: Transferable is set to false bc we use the Uniques pallet freeze function as that
+		// will allow for Spirit recovery through Overlord account if account is lost and prevents
+		// the NFT from being transferred by the owner.
 		pallet_rmrk_core::Pallet::<T>::mint_nft(
 			Origin::<T>::Signed(overlord.clone()).into(),
 			sender.clone(),
@@ -1275,6 +1282,7 @@ where
 			None,
 			None,
 			metadata,
+			false,
 		)?;
 		// Freeze NFT so it cannot be transferred
 		pallet_uniques::Pallet::<T>::freeze(
@@ -1307,6 +1315,7 @@ where
 		rarity_type: RarityType,
 		race: RaceType,
 		career: CareerType,
+		generation: GenerationId,
 		price: BalanceOf<T>,
 		nft_sale_type: NftSaleType,
 		check_owned_origin_of_shell: bool,
@@ -1347,6 +1356,7 @@ where
 			None,
 			None,
 			metadata,
+			false,
 		)?;
 		// Set Rarity Type, Race and Career attributes for NFT
 		Self::set_nft_attributes(
@@ -1355,6 +1365,7 @@ where
 			rarity_type,
 			race,
 			career,
+			generation,
 		)?;
 		// Update storage
 		Self::decrement_race_type_left(rarity_type, race, nft_sale_type)?;
@@ -1394,6 +1405,7 @@ where
 		rarity_type: RarityType,
 		race: RaceType,
 		career: CareerType,
+		generation: GenerationId,
 	) -> DispatchResult {
 		let overlord = Self::overlord()?;
 
@@ -1411,6 +1423,11 @@ where
 			.encode()
 			.try_into()
 			.expect("[career] should not fail");
+		let generation_key = Self::to_boundedvec_key("generation")?;
+		let generation_value = generation
+			.encode()
+			.try_into()
+			.expect("[generation] should not fail");
 
 		// Set Rarity Type
 		pallet_uniques::Pallet::<T>::set_attribute(
@@ -1430,11 +1447,19 @@ where
 		)?;
 		// Set Career
 		pallet_uniques::Pallet::<T>::set_attribute(
-			Origin::<T>::Signed(overlord).into(),
+			Origin::<T>::Signed(overlord.clone()).into(),
 			collection_id,
 			Some(nft_id),
 			career_key,
 			career_value,
+		)?;
+		// Set Generation
+		pallet_uniques::Pallet::<T>::set_attribute(
+			Origin::<T>::Signed(overlord).into(),
+			collection_id,
+			Some(nft_id),
+			generation_key,
+			generation_value,
 		)?;
 
 		Ok(())

@@ -10,6 +10,7 @@ use sp_std::cmp::Eq;
 pub mod primitives {
 	pub type PreorderId = u32;
 	pub type EraId = u64;
+	pub type GenerationId = u32;
 }
 
 /// Status types for different NFT Sale phases
