@@ -51,7 +51,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         "khala_local_testnet",
         ChainType::Local,
         move || {
-            testnet_genesis(
+            genesis(
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![
                     (
@@ -61,6 +61,9 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                 ],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
+                ],
+                vec![
+                    (get_account_id_from_seed::<sr25519::Public>("Alice"), 1 << 60),
                 ],
                 id,
                 Some(development_registry_config(get_account_id_from_seed::<
@@ -103,14 +106,16 @@ fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str
         "khala_testnet",
         ChainType::Live,
         move || {
+            use std::str::FromStr;
             let genesis_info = genesis_info.clone();
-            testnet_genesis(
+            genesis(
                 genesis_info.root_key,
                 genesis_info.initial_authorities,
+                genesis_info.technical_committee,
                 genesis_info
                     .endowed_accounts
                     .into_iter()
-                    .map(|(k, _)| k)
+                    .map(|(k, amount)| (k, u128::from_str(&amount).expect("Bad amount; qed.")))
                     .collect(),
                 id,
                 None,
@@ -249,36 +254,6 @@ fn genesis(
             safe_xcm_version: Some(2),
         },
     }
-}
-
-fn testnet_genesis(
-    root_key: AccountId,
-    initial_authorities: Vec<(AccountId, AuraId)>,
-    endowed_accounts: Vec<AccountId>,
-    id: ParaId,
-    registry_override: Option<rhala_parachain_runtime::PhalaRegistryConfig>,
-) -> rhala_parachain_runtime::GenesisConfig {
-    // Testnet setup:
-    // - 1,152,921 PHA per endowed account
-    // - 1/2 endowed accounts are listed in technical committee
-    let endowment: Vec<_> = endowed_accounts
-        .iter()
-        .cloned()
-        .map(|acc| (acc, 1 << 60))
-        .collect();
-    let technical_committee: Vec<_> = endowed_accounts
-        .iter()
-        .take((endowed_accounts.len() + 1) / 2)
-        .cloned()
-        .collect();
-    genesis(
-        root_key,
-        initial_authorities,
-        technical_committee,
-        endowment,
-        id,
-        registry_override,
-    )
 }
 
 fn chain_properties() -> Option<Properties> {

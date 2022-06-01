@@ -17,20 +17,22 @@
   "endowedAccounts": [
     [
       "43iKVMcmJSJSHerfEh7QaVzaMwxw1i5X8gfPA3wSEYDQBgc2",
-      ""
+      "1000000000000000"
     ],
     [
       "43wE58AajT4bvCFZ2jKo6ZkG7CBiGBTwJtaLmBCSmKYg6yKv",
-      ""
+      "1000000000000000"
     ],
     [
       "3zmNjKnCMrwUUidSPwnyaUiVxFUrWPAadVwMPdVG4u3rAYu6",
-      ""
+      "1000000000000000"
     ],
     [
       "43vZmtrV1wm6XAG4kJSQK5Eg3TKTZQJuPZHay7ckwwtVNGUa",
-      ""
+      "1000000000000000"
     ]
   ],
-  "technicalCommittee": []
+  "technicalCommittee": [
+    "43vZmtrV1wm6XAG4kJSQK5Eg3TKTZQJuPZHay7ckwwtVNGUa"
+  ]
 }
