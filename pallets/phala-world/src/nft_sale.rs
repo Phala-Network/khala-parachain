@@ -233,7 +233,7 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T>
 	where
-		T: pallet_uniques::Config<ClassId = CollectionId, InstanceId = NftId>,
+		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
 	{
 		fn build(&self) {
 			if let Some(ref zero_day) = self.zero_day {
@@ -384,7 +384,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
-		T: pallet_uniques::Config<ClassId = CollectionId, InstanceId = NftId>,
+		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
 	{
 		/// Claim a spirit for any account with at least 10 PHA in their account
 		///
@@ -1047,7 +1047,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T>
 where
-	T: pallet_uniques::Config<ClassId = CollectionId, InstanceId = NftId>,
+	T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
 {
 	/// Verify the sender making the claim is the Account signed by the Overlord admin account and
 	/// verify the purpose of the `OverlordMessage` which will be either `RedeemSpirit` or
@@ -1628,7 +1628,7 @@ where
 	/// `collection_id`: Collection id to check if sender owns a NFT in the collection
 	/// `error`: Error type to throw if there is an error detected
 	pub fn owns_nft_in_collection(sender: &T::AccountId, collection_id: CollectionId) -> bool {
-		pallet_uniques::Pallet::<T>::owned_in_class(&collection_id, sender).count() > 0
+		pallet_uniques::Pallet::<T>::owned_in_collection(&collection_id, sender).count() > 0
 	}
 
 	pub fn to_boundedvec_key(name: &str) -> Result<BoundedVec<u8, T::KeyLimit>, Error<T>> {
