@@ -80,7 +80,7 @@ where
         archive_enabled,
     } = deps;
 
-    module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
+    module.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
     module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
 
     phala_node_rpc_ext::extend_rpc(
@@ -112,8 +112,8 @@ pub fn create_phala_full<C, B, P>(
         C::Api: BlockBuilder<Block>,
         P: TransactionPool + Sync + Send + 'static,
 {
-    use frame_rpc_system::{SystemApiServer, SystemRpc};
-    use pallet_transaction_payment_rpc::{TransactionPaymentApiServer, TransactionPaymentRpc};
+    use frame_rpc_system::{System, SystemApiServer};
+    use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 
     let mut module = RpcExtension::new(());
     let FullDeps {
@@ -124,8 +124,8 @@ pub fn create_phala_full<C, B, P>(
         archive_enabled: _,
     } = deps;
 
-    module.merge(SystemRpc::new(client.clone(), pool, deny_unsafe).into_rpc())?;
-    module.merge(TransactionPaymentRpc::new(client.clone()).into_rpc())?;
+    module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
+    module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
 
     Ok(module)
 }

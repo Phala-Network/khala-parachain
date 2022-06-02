@@ -972,8 +972,8 @@ pub type XcmOriginToTransactDispatchOrigin = (
 parameter_types! {
     pub UnitWeightCost: Weight = 200_000_000;
     pub const MaxInstructions: u32 = 100;
-    pub RhalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
-    pub CheckingAccount: AccountId = PalletId(*b"checking").into_account();
+    pub RhalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
+    pub CheckingAccount: AccountId = PalletId(*b"checking").into_account_truncating();
 }
 
 pub type Barrier = (

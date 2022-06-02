@@ -987,8 +987,8 @@ pub type XcmOriginToTransactDispatchOrigin = (
 parameter_types! {
     pub UnitWeightCost: Weight = 200_000_000;
     pub const MaxInstructions: u32 = 100;
-    pub ThalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
-    pub CheckingAccount: AccountId = PalletId(*b"checking").into_account();
+    pub ThalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
+    pub CheckingAccount: AccountId = PalletId(*b"checking").into_account_truncating();
 }
 match_types! {
     pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
