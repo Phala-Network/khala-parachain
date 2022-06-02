@@ -316,18 +316,18 @@ impl Contains<Call> for BaseCallFilter {
                 pallet_uniques::Call::approve_transfer { .. }
                 | pallet_uniques::Call::burn { .. }
                 | pallet_uniques::Call::cancel_approval { .. }
-                | pallet_uniques::Call::clear_class_metadata { .. }
+                | pallet_uniques::Call::clear_collection_metadata { .. }
                 | pallet_uniques::Call::clear_metadata { .. }
                 | pallet_uniques::Call::create { .. }
                 | pallet_uniques::Call::destroy { .. }
-                | pallet_uniques::Call::force_asset_status { .. }
+                | pallet_uniques::Call::force_item_status { .. }
                 | pallet_uniques::Call::force_create { .. }
-                | pallet_uniques::Call::freeze_class { .. }
+                | pallet_uniques::Call::freeze_collection { .. }
                 | pallet_uniques::Call::mint { .. }
                 | pallet_uniques::Call::redeposit { .. }
-                | pallet_uniques::Call::set_class_metadata { .. }
+                | pallet_uniques::Call::set_collection_metadata { .. }
                 | pallet_uniques::Call::set_metadata { .. }
-                | pallet_uniques::Call::thaw_class { .. }
+                | pallet_uniques::Call::thaw_collection { .. }
                 | pallet_uniques::Call::transfer { .. }
                 | pallet_uniques::Call::transfer_ownership { .. }
                 | pallet_uniques::Call::__Ignore { .. } => false,
@@ -828,8 +828,8 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 }
 
 parameter_types! {
-    pub const ClassDeposit: Balance = 100 * DOLLARS;
-    pub const InstanceDeposit: Balance = 1 * DOLLARS;
+    pub const CollectionDeposit: Balance = 100 * DOLLARS;
+    pub const ItemDeposit: Balance = 1 * DOLLARS;
     pub const KeyLimit: u32 = 32;
     pub const ValueLimit: u32 = 256;
     pub const StringLimit: u32 = 50;
@@ -843,8 +843,8 @@ impl pallet_uniques::Config for Runtime {
     type ForceOrigin = EnsureRoot<AccountId>;
     type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type Locker = ();
-    type CollectionDeposit = ClassDeposit;
-    type ItemDeposit = InstanceDeposit;
+    type CollectionDeposit = CollectionDeposit;
+    type ItemDeposit = ItemDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type AttributeDepositBase = MetadataDepositBase;
     type DepositPerByte = MetadataDepositPerByte;

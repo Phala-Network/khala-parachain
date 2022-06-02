@@ -162,7 +162,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
-		T: pallet_uniques::Config<ClassId = CollectionId, InstanceId = NftId>,
+		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
 	{
 		/// Once users have received their origin_of_shells and the start incubation event has been
 		/// triggered, they can start the incubation process and a timer will start for the
@@ -252,7 +252,7 @@ pub mod pallet {
 			);
 			// Check if account owns an Origin of Shell NFT
 			ensure!(
-				pallet_uniques::pallet::Pallet::<T>::owned_in_class(&collection_id, &sender)
+				pallet_uniques::pallet::Pallet::<T>::owned_in_collection(&collection_id, &sender)
 					.count() > 0,
 				Error::<T>::CannotSendFoodToOriginOfShell
 			);
@@ -375,7 +375,7 @@ pub mod pallet {
 			let rarity_type: RarityType = Decode::decode(&mut rarity_type_value.as_slice())
 				.expect("[rarity] should not fail");
 			let generation_id: GenerationId =
-				Decode::decode(&mut generation.as_slice()).expect("[generation should not fail");
+				Decode::decode(&mut generation.as_slice()).expect("[generation] should not fail");
 			// Get Shell Collection next NFT ID
 			let shell_nft_id = pallet_rmrk_core::NextNftId::<T>::get(shell_collection_id);
 			// Burn Origin of Shell NFT then Mint Shell NFT
@@ -402,6 +402,12 @@ pub mod pallet {
 				collection_id,
 				Some(nft_id),
 				rarity_type_key,
+			)?;
+			pallet_uniques::Pallet::<T>::clear_attribute(
+				origin.clone(),
+				collection_id,
+				Some(nft_id),
+				generation_key,
 			)?;
 			// Mint Shell NFT to Overlord to add attributes and resource before sending to owner
 			pallet_rmrk_core::Pallet::<T>::mint_nft(
@@ -532,7 +538,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T>
 where
-	T: pallet_uniques::Config<ClassId = CollectionId, InstanceId = NftId>,
+	T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
 {
 	/// Helper function to ensure that the sender owns the origin of shell NFT.
 	///
