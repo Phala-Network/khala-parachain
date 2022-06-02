@@ -467,7 +467,7 @@ pub mod pallet {
 				config: XBridgeConfig::ChainBridge {
 					chain_id,
 					resource_id: resource_id.clone(),
-					reserve_account: reserve_location.into_account_truncating(),
+					reserve_account: reserve_location.into_account(),
 					is_mintable,
 				},
 				metadata,
