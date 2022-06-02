@@ -1282,7 +1282,7 @@ where
 			None,
 			None,
 			metadata,
-			false,
+			true,
 		)?;
 		// Freeze NFT so it cannot be transferred
 		pallet_uniques::Pallet::<T>::freeze(
@@ -1356,7 +1356,7 @@ where
 			None,
 			None,
 			metadata,
-			false,
+			true,
 		)?;
 		// Set Rarity Type, Race and Career attributes for NFT
 		Self::set_nft_attributes(

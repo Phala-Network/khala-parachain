@@ -411,7 +411,7 @@ pub mod pallet {
 				None,
 				None,
 				metadata,
-				false,
+				true,
 			)?;
 			// Set Rarity Type, Race and Career attributes for NFT
 			pallet_pw_nft_sale::Pallet::<T>::set_nft_attributes(
