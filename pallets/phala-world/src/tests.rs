@@ -8,7 +8,7 @@ use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::Currency, 
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use crate::traits::{
-	primitives::*, CareerType, NftSaleType, OriginOfShellType, OverlordMessage, Purpose, RaceType,
+	primitives::*, CareerType, NftSaleType, OverlordMessage, Purpose, RaceType, RarityType,
 	StatusType,
 };
 use mock::{Call, Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
@@ -104,9 +104,7 @@ fn setup_config(enable_status_type: StatusType) {
 	// Initialize the Phala World Clock
 	assert_ok!(PWNftSale::initialize_world_clock(Origin::signed(OVERLORD)));
 	// Initialize Origin of Shell Inventory numbers
-	assert_ok!(PWNftSale::init_origin_of_shell_type_counts(Origin::signed(
-		OVERLORD
-	)));
+	assert_ok!(PWNftSale::init_rarity_type_counts(Origin::signed(OVERLORD)));
 	match enable_status_type {
 		StatusType::ClaimSpirits => {
 			assert_ok!(PWNftSale::set_status_type(
@@ -144,6 +142,11 @@ fn setup_config(enable_status_type: StatusType) {
 				Origin::signed(OVERLORD),
 				true,
 				StatusType::ClaimSpirits
+			));
+			assert_ok!(PWNftSale::set_status_type(
+				Origin::signed(OVERLORD),
+				true,
+				StatusType::PurchaseRareOriginOfShells
 			));
 			assert_ok!(PWNftSale::set_status_type(
 				Origin::signed(OVERLORD),
@@ -282,14 +285,14 @@ fn purchase_rare_origin_of_shell_works() {
 		// ALICE purchases Legendary Origin of Shell
 		assert_ok!(PWNftSale::buy_rare_origin_of_shell(
 			Origin::signed(ALICE),
-			OriginOfShellType::Legendary,
+			RarityType::Legendary,
 			RaceType::AISpectre,
 			CareerType::HackerWizard,
 		));
 		// Check if event triggered
 		System::assert_last_event(MockEvent::PWNftSale(
 			crate::pallet_pw_nft_sale::Event::OriginOfShellMinted {
-				origin_of_shell_type: OriginOfShellType::Legendary,
+				rarity_type: RarityType::Legendary,
 				collection_id: 1,
 				nft_id: 0,
 				owner: ALICE,
@@ -301,7 +304,7 @@ fn purchase_rare_origin_of_shell_works() {
 		assert_noop!(
 			PWNftSale::buy_rare_origin_of_shell(
 				Origin::signed(BOB),
-				OriginOfShellType::Legendary,
+				RarityType::Legendary,
 				RaceType::Cyborg,
 				CareerType::HardwareDruid,
 			),
@@ -310,14 +313,14 @@ fn purchase_rare_origin_of_shell_works() {
 		// BOB purchases Magic Origin of Shell
 		assert_ok!(PWNftSale::buy_rare_origin_of_shell(
 			Origin::signed(BOB),
-			OriginOfShellType::Magic,
+			RarityType::Magic,
 			RaceType::Cyborg,
 			CareerType::HardwareDruid,
 		));
 		// Check if event triggered
 		System::assert_last_event(MockEvent::PWNftSale(
 			crate::pallet_pw_nft_sale::Event::OriginOfShellMinted {
-				origin_of_shell_type: OriginOfShellType::Magic,
+				rarity_type: RarityType::Magic,
 				collection_id: 1,
 				nft_id: 1,
 				owner: BOB,
@@ -329,7 +332,7 @@ fn purchase_rare_origin_of_shell_works() {
 		assert_noop!(
 			PWNftSale::buy_rare_origin_of_shell(
 				Origin::signed(CHARLIE),
-				OriginOfShellType::Prime,
+				RarityType::Prime,
 				RaceType::Pandroid,
 				CareerType::HackerWizard,
 			),
@@ -338,14 +341,14 @@ fn purchase_rare_origin_of_shell_works() {
 		// CHARLIE purchases Magic Origin Of Shell
 		assert_ok!(PWNftSale::buy_rare_origin_of_shell(
 			Origin::signed(CHARLIE),
-			OriginOfShellType::Magic,
+			RarityType::Magic,
 			RaceType::Pandroid,
 			CareerType::HackerWizard,
 		));
 		// Check if event triggered
 		System::assert_last_event(MockEvent::PWNftSale(
 			crate::pallet_pw_nft_sale::Event::OriginOfShellMinted {
-				origin_of_shell_type: OriginOfShellType::Magic,
+				rarity_type: RarityType::Magic,
 				collection_id: 1,
 				nft_id: 2,
 				owner: CHARLIE,
@@ -419,7 +422,7 @@ fn purchase_prime_origin_of_shell_works() {
 		// Check if event triggered
 		System::assert_last_event(MockEvent::PWNftSale(
 			crate::pallet_pw_nft_sale::Event::OriginOfShellMinted {
-				origin_of_shell_type: OriginOfShellType::Prime,
+				rarity_type: RarityType::Prime,
 				collection_id: 1,
 				nft_id: 0,
 				owner: BOB,
@@ -498,6 +501,22 @@ fn preorder_origin_of_shell_works_2() {
 		mint_spirit(ALICE, None);
 		mint_spirit(BOB, None);
 		mint_spirit(CHARLIE, None);
+		// CHARLIE buys legendary origin of shell
+		assert_ok!(PWNftSale::buy_rare_origin_of_shell(
+			Origin::signed(CHARLIE),
+			RarityType::Magic,
+			RaceType::AISpectre,
+			CareerType::HackerWizard,
+		));
+		// CHARLIE cannot preorder since he owns an origin of shell
+		assert_noop!(
+			PWNftSale::preorder_origin_of_shell(
+				Origin::signed(CHARLIE),
+				RaceType::Cyborg,
+				CareerType::HardwareDruid,
+			),
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
+		);
 		// BOB preorders an origin of shell
 		assert_ok!(PWNftSale::preorder_origin_of_shell(
 			Origin::signed(BOB),
@@ -511,6 +530,15 @@ fn preorder_origin_of_shell_works_2() {
 				preorder_id: 0,
 			},
 		));
+		// BOB cannot preorder again
+		assert_noop!(
+			PWNftSale::preorder_origin_of_shell(
+				Origin::signed(BOB),
+				RaceType::Cyborg,
+				CareerType::HardwareDruid,
+			),
+			pallet_pw_nft_sale::Error::<Test>::PreorderOriginOfShellNotAvailable
+		);
 		// ALICE preorders an origin of shell
 		assert_ok!(PWNftSale::preorder_origin_of_shell(
 			Origin::signed(ALICE),
@@ -524,16 +552,14 @@ fn preorder_origin_of_shell_works_2() {
 				preorder_id: 1,
 			},
 		));
-		// Reassign PreorderIndex to max value
-		pallet_pw_nft_sale::PreorderIndex::<Test>::mutate(|id| *id = PreorderId::max_value());
-		// CHARLIE preorders an origin of shell but max value is reached
+		// CHARLIE preorders an origin of shell but already purchased origin of shell
 		assert_noop!(
 			PWNftSale::preorder_origin_of_shell(
 				Origin::signed(CHARLIE),
 				RaceType::Pandroid,
 				CareerType::HackerWizard,
 			),
-			pallet_pw_nft_sale::Error::<Test>::NoAvailablePreorderId
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
 		);
 	});
 }
@@ -591,16 +617,14 @@ fn mint_preorder_origin_of_shell_works() {
 				owner: ALICE,
 			},
 		));
-		// Reassign PreorderIndex to max value
-		pallet_pw_nft_sale::PreorderIndex::<Test>::mutate(|id| *id = PreorderId::max_value());
-		// ALICE preorders an origin of shell but max value is reached
+		// ALICE preorders an origin of shell but already purchased NFT
 		assert_noop!(
 			PWNftSale::preorder_origin_of_shell(
 				Origin::signed(ALICE),
 				RaceType::Cyborg,
 				CareerType::HackerWizard,
 			),
-			pallet_pw_nft_sale::Error::<Test>::NoAvailablePreorderId
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
 		);
 		assert_ok!(PWNftSale::set_status_type(
 			Origin::signed(OVERLORD),
@@ -706,7 +730,7 @@ fn mint_gift_origin_of_shell_works() {
 		assert_ok!(PWNftSale::mint_gift_origin_of_shell(
 			Origin::signed(OVERLORD),
 			CHARLIE,
-			OriginOfShellType::Magic,
+			RarityType::Magic,
 			RaceType::XGene,
 			CareerType::Web3Monk,
 			NftSaleType::Reserved,
@@ -732,16 +756,16 @@ fn mint_gift_origin_of_shell_works() {
 			},
 		));
 		// Update inventory to have a giveaway then gift giveaway
-		assert_ok!(PWNftSale::update_origin_of_shell_type_counts(
+		assert_ok!(PWNftSale::update_rarity_type_counts(
 			Origin::signed(OVERLORD),
-			OriginOfShellType::Prime,
+			RarityType::Prime,
 			0,
 			1
 		));
 		assert_ok!(PWNftSale::mint_gift_origin_of_shell(
 			Origin::signed(OVERLORD),
 			CHARLIE,
-			OriginOfShellType::Prime,
+			RarityType::Prime,
 			RaceType::Cyborg,
 			CareerType::HackerWizard,
 			NftSaleType::Giveaway,
@@ -751,24 +775,27 @@ fn mint_gift_origin_of_shell_works() {
 			PWNftSale::mint_gift_origin_of_shell(
 				Origin::signed(OVERLORD),
 				CHARLIE,
-				OriginOfShellType::Prime,
+				RarityType::Prime,
 				RaceType::Cyborg,
 				CareerType::HackerWizard,
 				NftSaleType::Giveaway,
 			),
 			pallet_pw_nft_sale::Error::<Test>::NoAvailableRaceGivewayLeft
 		);
-		// CHARLIE preorders an origin of shell
-		assert_ok!(PWNftSale::preorder_origin_of_shell(
-			Origin::signed(CHARLIE),
-			RaceType::Pandroid,
-			CareerType::HardwareDruid,
-		));
+		// CHARLIE preorders an origin of shell but cannot since already owns gifted Origin of Shell
+		assert_noop!(
+			PWNftSale::preorder_origin_of_shell(
+				Origin::signed(CHARLIE),
+				RaceType::Pandroid,
+				CareerType::HardwareDruid,
+			),
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
+		);
 		// Check if event triggered
 		System::assert_last_event(MockEvent::PWNftSale(
-			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
+			crate::pallet_pw_nft_sale::Event::OriginOfShellGiftedToOwner {
 				owner: CHARLIE,
-				preorder_id: 1,
+				nft_sale_type: NftSaleType::Giveaway,
 			},
 		));
 		// ALICE preorders an origin of shell successfully
@@ -777,7 +804,7 @@ fn mint_gift_origin_of_shell_works() {
 			RaceType::AISpectre,
 			CareerType::HackerWizard,
 		));
-		let preorders: Vec<PreorderId> = vec![0u32, 1u32, 2u32];
+		let preorders: Vec<PreorderId> = vec![0u32, 1u32];
 		// Set ALICE & BOB has Chosen and CHARLIE as NotChosen
 		assert_ok!(PWNftSale::mint_chosen_preorders(
 			Origin::signed(OVERLORD),
@@ -785,12 +812,10 @@ fn mint_gift_origin_of_shell_works() {
 		));
 		System::assert_last_event(MockEvent::PWNftSale(
 			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
-				preorder_id: 2u32,
+				preorder_id: 1u32,
 				owner: ALICE,
 			},
 		));
-		// Reassign PreorderIndex to max value
-		pallet_pw_nft_sale::PreorderIndex::<Test>::mutate(|id| *id = PreorderId::max_value());
 		// ALICE preorders an origin of shell but max value is reached
 		assert_noop!(
 			PWNftSale::preorder_origin_of_shell(
@@ -798,7 +823,7 @@ fn mint_gift_origin_of_shell_works() {
 				RaceType::Cyborg,
 				CareerType::HackerWizard,
 			),
-			pallet_pw_nft_sale::Error::<Test>::NoAvailablePreorderId
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
 		);
 		assert_ok!(PWNftSale::set_status_type(
 			Origin::signed(OVERLORD),
@@ -808,8 +833,8 @@ fn mint_gift_origin_of_shell_works() {
 		// Check Balances of ALICE, BOB, CHARLIE & OVERLORD
 		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
 		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
-		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
-		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
+		assert_eq!(Balances::total_balance(&CHARLIE), 150_000 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_024 * PHA);
 	});
 }
 
@@ -865,16 +890,14 @@ fn can_initiate_incubation_process() {
 				owner: ALICE,
 			},
 		));
-		// Reassign PreorderIndex to max value
-		pallet_pw_nft_sale::PreorderIndex::<Test>::mutate(|id| *id = PreorderId::max_value());
-		// ALICE preorders an origin of shell but max value is reached
+		// ALICE preorders an origin of shell but already minted NFT
 		assert_noop!(
 			PWNftSale::preorder_origin_of_shell(
 				Origin::signed(ALICE),
 				RaceType::Cyborg,
 				CareerType::HackerWizard,
 			),
-			pallet_pw_nft_sale::Error::<Test>::NoAvailablePreorderId
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
 		);
 		assert_ok!(PWNftSale::set_status_type(
 			Origin::signed(OVERLORD),
@@ -998,8 +1021,6 @@ fn can_update_incubation_hatch_time() {
 				owner: ALICE,
 			},
 		));
-		// Reassign PreorderIndex to max value
-		pallet_pw_nft_sale::PreorderIndex::<Test>::mutate(|id| *id = PreorderId::max_value());
 		// ALICE preorders an origin of shell but max value is reached
 		assert_noop!(
 			PWNftSale::preorder_origin_of_shell(
@@ -1007,7 +1028,7 @@ fn can_update_incubation_hatch_time() {
 				RaceType::Cyborg,
 				CareerType::HackerWizard,
 			),
-			pallet_pw_nft_sale::Error::<Test>::NoAvailablePreorderId
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
 		);
 		assert_ok!(PWNftSale::set_status_type(
 			Origin::signed(OVERLORD),
@@ -1117,8 +1138,6 @@ fn can_send_food_to_origin_of_shell() {
 				owner: ALICE,
 			},
 		));
-		// Reassign PreorderIndex to max value
-		pallet_pw_nft_sale::PreorderIndex::<Test>::mutate(|id| *id = PreorderId::max_value());
 		// ALICE preorders an origin of shell but max value is reached
 		assert_noop!(
 			PWNftSale::preorder_origin_of_shell(
@@ -1126,7 +1145,7 @@ fn can_send_food_to_origin_of_shell() {
 				RaceType::Cyborg,
 				CareerType::HackerWizard,
 			),
-			pallet_pw_nft_sale::Error::<Test>::NoAvailablePreorderId
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
 		);
 		assert_ok!(PWNftSale::set_status_type(
 			Origin::signed(OVERLORD),
@@ -1265,6 +1284,7 @@ fn can_hatch_origin_of_shell() {
 		mint_spirit(ALICE, None);
 		mint_spirit(BOB, None);
 		mint_spirit(CHARLIE, None);
+		mint_spirit(OVERLORD, None);
 		// BOB preorders an origin of shell
 		assert_ok!(PWNftSale::preorder_origin_of_shell(
 			Origin::signed(BOB),
@@ -1311,14 +1331,23 @@ fn can_hatch_origin_of_shell() {
 		));
 		// Reassign PreorderIndex to max value
 		pallet_pw_nft_sale::PreorderIndex::<Test>::mutate(|id| *id = PreorderId::max_value());
-		// ALICE preorders an origin of shell but max value is reached
+		// OVERLORD preorders an origin of shell but max value is reached
+		assert_noop!(
+			PWNftSale::preorder_origin_of_shell(
+				Origin::signed(OVERLORD),
+				RaceType::Cyborg,
+				CareerType::HackerWizard,
+			),
+			pallet_pw_nft_sale::Error::<Test>::NoAvailablePreorderId
+		);
+		// ALICE preorders but can't because already minted origin of shell
 		assert_noop!(
 			PWNftSale::preorder_origin_of_shell(
 				Origin::signed(ALICE),
 				RaceType::Cyborg,
 				CareerType::HackerWizard,
 			),
-			pallet_pw_nft_sale::Error::<Test>::NoAvailablePreorderId
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
 		);
 		assert_ok!(PWNftSale::set_status_type(
 			Origin::signed(OVERLORD),
