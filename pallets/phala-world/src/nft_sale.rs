@@ -85,6 +85,12 @@ pub mod pallet {
 	#[pallet::getter(fn preorders)]
 	pub type Preorders<T: Config> = StorageMap<_, Twox64Concat, PreorderId, PreorderInfoOf<T>>;
 
+	/// Owners that have made a preorder during intial preorder phase
+	#[pallet::storage]
+	#[pallet::getter(fn owner_has_preorder)]
+	pub type OwnerHasPreorder<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, bool, ValueQuery>;
+
 	/// Origin of Shells inventory
 	#[pallet::storage]
 	#[pallet::getter(fn origin_of_shells_inventory)]
@@ -502,7 +508,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin.clone())?;
 			let is_last_day_of_sale = LastDayOfSale::<T>::get();
 			ensure!(
-				CanPurchasePrimeOriginOfShells::<T>::get() || is_last_day_of_sale,
+				CanPurchasePrimeOriginOfShells::<T>::get(),
 				Error::<T>::PrimeOriginOfShellPurchaseNotAvailable
 			);
 
@@ -553,15 +559,23 @@ pub mod pallet {
 			career: CareerType,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
+			let is_last_day_of_sale = LastDayOfSale::<T>::get();
 			ensure!(
-				CanPreorderOriginOfShells::<T>::get(),
+				(CanPreorderOriginOfShells::<T>::get() && !OwnerHasPreorder::<T>::get(&sender))
+					|| is_last_day_of_sale,
 				Error::<T>::PreorderOriginOfShellNotAvailable
 			);
 			// Has Spirit Collection been set
 			let spirit_collection_id = Self::get_spirit_collection_id()?;
-			// Must have origin of shell collection created
+			// Must own a spirit NFT
 			ensure!(
 				Self::owns_nft_in_collection(&sender, spirit_collection_id),
+				Error::<T>::MustOwnSpiritToPurchase
+			);
+			let origin_of_shell_collection_id = Self::get_origin_of_shell_collection_id()?;
+			// If not the last day of sale then ensure account doesn't own an Origin of Shell
+			ensure!(
+				!Self::owns_nft_in_collection(&sender, origin_of_shell_collection_id),
 				Error::<T>::OriginOfShellAlreadyPurchased
 			);
 
@@ -588,6 +602,10 @@ pub mod pallet {
 			<T as pallet::Config>::Currency::reserve(&sender, T::PrimeOriginOfShellPrice::get())?;
 
 			Preorders::<T>::insert(preorder_id, preorder);
+			// Add to storage if first phase of preorders
+			if !is_last_day_of_sale {
+				OwnerHasPreorder::<T>::insert(&sender, true);
+			}
 
 			Self::deposit_event(Event::OriginOfShellPreordered {
 				owner: sender,
@@ -614,6 +632,8 @@ pub mod pallet {
 			Self::ensure_overlord(&sender)?;
 			// Get price of prime origin of shell
 			let origin_of_shell_price = T::PrimeOriginOfShellPrice::get();
+			// Is last day of sale
+			let is_last_day_of_sale = LastDayOfSale::<T>::get();
 			// Get iter limit
 			let iter_limit = T::IterLimit::get();
 			let mut index = 0;
@@ -642,6 +662,10 @@ pub mod pallet {
 						NftSaleType::ForSale,
 						false,
 					)?;
+					// Remove from OwnerHasPreorder from storage if not last day of sale
+					if !is_last_day_of_sale {
+						OwnerHasPreorder::<T>::remove(&preorder_owner);
+					}
 
 					Self::deposit_event(Event::ChosenPreorderMinted {
 						preorder_id,
@@ -675,6 +699,8 @@ pub mod pallet {
 			Self::ensure_overlord(&sender)?;
 			// Get price of prime origin of shell
 			let origin_of_shell_price = T::PrimeOriginOfShellPrice::get();
+			// Is last day of sale
+			let is_last_day_of_sale = LastDayOfSale::<T>::get();
 			// Get iter limit
 			let iter_limit = T::IterLimit::get();
 			let mut index = 0;
@@ -689,6 +715,10 @@ pub mod pallet {
 						&preorder_info.owner,
 						origin_of_shell_price,
 					);
+					// Remove from OwnerHasPreorder from storage if not last day of sale
+					if !is_last_day_of_sale {
+						OwnerHasPreorder::<T>::remove(&preorder_info.owner);
+					}
 
 					Self::deposit_event(Event::NotChosenPreorderRefunded {
 						preorder_id,
