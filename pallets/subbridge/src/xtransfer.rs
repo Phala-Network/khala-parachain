@@ -456,7 +456,7 @@ pub mod pallet {
 
 				// Mint some token to ALICE
 				assert_ok!(Assets::mint(
-					Origin::signed(ASSETS_REGISTRY_ID.into_account()),
+					Origin::signed(ASSETS_REGISTRY_ID.into_account_truncating()),
 					0,
 					ALICE,
 					ENDOWED_BALANCE

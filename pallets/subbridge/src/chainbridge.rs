@@ -500,7 +500,7 @@ pub mod pallet {
 			if asset_reserve_location != src_reserve_location {
 				let reserve_account: T::AccountId = if rid == Self::gen_pha_rid(src_chainid) {
 					// PHA need to be released from bridge account due to historical reason
-					MODULE_ID.into_account()
+					MODULE_ID.into_account_truncating()
 				} else {
 					src_reserve_location.into_account().into()
 				};
@@ -546,7 +546,7 @@ pub mod pallet {
 		/// Provides an AccountId for the pallet.
 		/// This is used both as an origin check and deposit/withdrawal account.
 		pub fn account_id() -> T::AccountId {
-			MODULE_ID.into_account()
+			MODULE_ID.into_account_truncating()
 		}
 
 		/// Checks if a chain exists as a whitelisted destination
@@ -977,7 +977,7 @@ pub mod pallet {
 				.reserve_location()
 				.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
 			let reserve_account = if T::NativeAssetChecker::is_native_asset(&asset) {
-				MODULE_ID.into_account()
+				MODULE_ID.into_account_truncating()
 			} else {
 				dest_reserve_location.clone().into_account()
 			};
@@ -1042,7 +1042,7 @@ pub mod pallet {
 	impl<T: Config> EnsureOrigin<T::Origin> for EnsureBridge<T> {
 		type Success = T::AccountId;
 		fn try_origin(o: T::Origin) -> Result<Self::Success, T::Origin> {
-			let bridge_account = MODULE_ID.into_account();
+			let bridge_account = MODULE_ID.into_account_truncating();
 			o.into().and_then(|o| match o {
 				system::RawOrigin::Signed(who) if who == bridge_account => Ok(bridge_account),
 				r => Err(T::Origin::from(r)),
@@ -1051,7 +1051,7 @@ pub mod pallet {
 
 		#[cfg(feature = "runtime-benchmarks")]
 		fn successful_origin() -> T::Origin {
-			let bridge_account = MODULE_ID.into_account();
+			let bridge_account = MODULE_ID.into_account_truncating();
 			T::Origin::from(system::RawOrigin::Signed(bridge_account))
 		}
 	}
@@ -1698,7 +1698,7 @@ pub mod pallet {
 
 				// Mint some token to ALICE
 				assert_ok!(Assets::mint(
-					Origin::signed(ASSETS_REGISTRY_ID.into_account()),
+					Origin::signed(ASSETS_REGISTRY_ID.into_account_truncating()),
 					0,
 					ALICE,
 					amount * 2
@@ -1783,7 +1783,7 @@ pub mod pallet {
 
 				// Mint some token to ALICE
 				assert_ok!(Assets::mint(
-					Origin::signed(ASSETS_REGISTRY_ID.into_account()),
+					Origin::signed(ASSETS_REGISTRY_ID.into_account_truncating()),
 					0,
 					ALICE,
 					amount * 2
@@ -1905,7 +1905,7 @@ pub mod pallet {
 
 				// Transfer and check result
 				assert_ok!(ChainBridge::handle_fungible_transfer(
-					Origin::signed(MODULE_ID.into_account()),
+					Origin::signed(MODULE_ID.into_account_truncating()),
 					relayer_location.encode(),
 					10,
 					resource_id,
@@ -2008,7 +2008,7 @@ pub mod pallet {
 
 				// Transfer from asset reserve location, would mint asset into ALICE directly
 				assert_ok!(ChainBridge::handle_fungible_transfer(
-					Origin::signed(MODULE_ID.into_account()),
+					Origin::signed(MODULE_ID.into_account_truncating()),
 					alice_location.encode(),
 					amount,
 					r_id,
@@ -2094,7 +2094,7 @@ pub mod pallet {
 
 				// Mint some token to reserve account, simulate the reserve pool
 				assert_ok!(Assets::mint(
-					Origin::signed(ASSETS_REGISTRY_ID.into_account()),
+					Origin::signed(ASSETS_REGISTRY_ID.into_account_truncating()),
 					0,
 					src_reserve_location.clone().into_account().into(),
 					amount * 2
@@ -2116,7 +2116,7 @@ pub mod pallet {
 				// first: burn asset from source reserve account
 				// second: mint asset into recipient
 				assert_ok!(ChainBridge::handle_fungible_transfer(
-					Origin::signed(MODULE_ID.into_account()),
+					Origin::signed(MODULE_ID.into_account_truncating()),
 					alice_location.encode(),
 					amount,
 					para_asset_location.clone().into_rid(src_chainid),
