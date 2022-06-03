@@ -153,7 +153,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		&mut t,
 	)
 	.unwrap();
-	let assets_registry_account = assets_registry::ASSETS_REGISTRY_ID.into_account();
+	let assets_registry_account = assets_registry::ASSETS_REGISTRY_ID.into_account_truncating();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
 			(ALICE, ENDOWED_BALANCE),

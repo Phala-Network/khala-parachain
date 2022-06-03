@@ -85,8 +85,8 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 	)
 	.unwrap();
 
-	let bridge_account: AccountId32 = PalletId(*b"phala/bg").into_account();
-	let assets_registry_account: AccountId32 = ASSETS_REGISTRY_ID.into_account();
+	let bridge_account: AccountId32 = PalletId(*b"phala/bg").into_account_truncating();
+	let assets_registry_account: AccountId32 = ASSETS_REGISTRY_ID.into_account_truncating();
 	pallet_balances::GenesisConfig::<Runtime> {
 		balances: vec![
 			(bridge_account, ENDOWED_BALANCE),

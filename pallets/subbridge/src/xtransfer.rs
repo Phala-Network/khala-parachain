@@ -195,7 +195,7 @@ pub mod pallet {
 		use xcm_simulator::TestExt;
 
 		fn sibling_account(para_id: u32) -> AccountId32 {
-			Sibling::from(para_id).into_account()
+			Sibling::from(para_id).into_account_truncating()
 		}
 
 		#[test]
@@ -456,7 +456,7 @@ pub mod pallet {
 
 				// Mint some token to ALICE
 				assert_ok!(Assets::mint(
-					Origin::signed(ASSETS_REGISTRY_ID.into_account()),
+					Origin::signed(ASSETS_REGISTRY_ID.into_account_truncating()),
 					0,
 					ALICE,
 					ENDOWED_BALANCE

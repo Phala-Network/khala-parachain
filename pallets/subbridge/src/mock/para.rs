@@ -198,8 +198,8 @@ parameter_types! {
 	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
 	pub UnitWeightCost: Weight = 1;
 	pub const MaxInstructions: u32 = 100;
-	pub ParaTreasuryAccount: AccountId = PalletId(*b"py/trsry").into_account();
-	pub ParaCheckingAccount: AccountId = PalletId(*b"py/check").into_account();
+	pub ParaTreasuryAccount: AccountId = PalletId(*b"py/trsry").into_account_truncating();
+	pub ParaCheckingAccount: AccountId = PalletId(*b"py/check").into_account_truncating();
 }
 match_types! {
 	pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {

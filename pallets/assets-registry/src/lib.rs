@@ -279,7 +279,7 @@ pub mod pallet {
 			amount: u128,
 		) -> DispatchResult {
 			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
-			let fund_account = ASSETS_REGISTRY_ID.into_account();
+			let fund_account = ASSETS_REGISTRY_ID.into_account_truncating();
 			if let Some(asset_id) = asset_id {
 				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
 					asset_id,
@@ -322,7 +322,7 @@ pub mod pallet {
 			// Set bridge account as asset's owner/issuer/admin/freezer
 			<pallet_assets::pallet::Pallet<T> as FungibleCerate<T::AccountId>>::create(
 				asset_id,
-				ASSETS_REGISTRY_ID.into_account(),
+				ASSETS_REGISTRY_ID.into_account_truncating(),
 				true,
 				Self::default_asset_ed(properties.decimals),
 			)?;
@@ -343,7 +343,7 @@ pub mod pallet {
 			);
 			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::set(
 				asset_id,
-				&ASSETS_REGISTRY_ID.into_account(),
+				&ASSETS_REGISTRY_ID.into_account_truncating(),
 				properties.name,
 				properties.symbol,
 				properties.decimals,
@@ -410,7 +410,7 @@ pub mod pallet {
 			RegistryInfoByIds::<T>::insert(&asset_id, &info);
 			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::set(
 				asset_id,
-				&ASSETS_REGISTRY_ID.into_account(),
+				&ASSETS_REGISTRY_ID.into_account_truncating(),
 				properties.name,
 				properties.symbol,
 				properties.decimals,
@@ -610,7 +610,7 @@ pub mod pallet {
 					.into();
 			new_test_ext().execute_with(|| {
 				assert_eq!(
-					Balances::free_balance(&ASSETS_REGISTRY_ID.into_account()),
+					Balances::free_balance(&ASSETS_REGISTRY_ID.into_account_truncating()),
 					ENDOWED_BALANCE
 				);
 				assert_ok!(AssetsRegistry::force_withdraw_fund(
@@ -620,7 +620,7 @@ pub mod pallet {
 					10,
 				));
 				assert_eq!(
-					Balances::free_balance(&ASSETS_REGISTRY_ID.into_account()),
+					Balances::free_balance(&ASSETS_REGISTRY_ID.into_account_truncating()),
 					ENDOWED_BALANCE - 10
 				);
 				assert_eq!(Balances::free_balance(&recipient), 10);
@@ -634,7 +634,7 @@ pub mod pallet {
 					.into_account()
 					.into();
 			let fund_account: <Test as frame_system::Config>::AccountId =
-				ASSETS_REGISTRY_ID.into_account();
+				ASSETS_REGISTRY_ID.into_account_truncating();
 
 			new_test_ext().execute_with(|| {
 				assert_ok!(AssetsRegistry::force_register_asset(

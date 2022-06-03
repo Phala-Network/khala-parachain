@@ -115,8 +115,8 @@ impl pallet_rmrk_core::Config for Test {
 }
 
 parameter_types! {
-	pub const ClassDeposit: Balance = 10_000 * PHA; // 1 UNIT deposit to create asset class
-	pub const InstanceDeposit: Balance = 100 * PHA; // 1/100 UNIT deposit to create asset instance
+	pub const CollectionDeposit: Balance = 10_000 * PHA; // 1 UNIT deposit to create collection
+	pub const ItemDeposit: Balance = 100 * PHA; // 1/100 UNIT deposit to create item
 	pub const KeyLimit: u32 = 32;	// Max 32 bytes per key
 	pub const ValueLimit: u32 = 64;	// Max 64 bytes per value
 	pub const UniquesMetadataDepositBase: Balance = 1000 * PHA;
@@ -127,14 +127,14 @@ parameter_types! {
 
 impl pallet_uniques::Config for Test {
 	type Event = Event;
-	type ClassId = u32;
-	type InstanceId = u32;
+	type CollectionId = u32;
+	type ItemId = u32;
 	type Currency = Balances;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
 	type Locker = pallet_rmrk_core::Pallet<Test>;
-	type ClassDeposit = ClassDeposit;
-	type InstanceDeposit = InstanceDeposit;
+	type CollectionDeposit = CollectionDeposit;
+	type ItemDeposit = ItemDeposit;
 	type MetadataDepositBase = UniquesMetadataDepositBase;
 	type AttributeDepositBase = AttributeDepositBase;
 	type DepositPerByte = DepositPerByte;
