@@ -27,7 +27,7 @@ serde = { version = "1.0.132", features = ["derive"] }
 serde_json = { version = "1.0" }
 
 # RPC related dependencies
-jsonrpsee = { version = "0.13.0", features = ["server"] }
+jsonrpsee = { version = "0.13", features = ["server"] }
 
 parachains-common = { path = "../parachains-common" }
 phala-parachain-runtime = { path = "../runtime/phala", optional = true }
