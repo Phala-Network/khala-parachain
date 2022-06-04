@@ -5,16 +5,16 @@
   "license": "MIT",
   "dependencies": {
     "@phala/typedefs": "^0.2.29",
-    "@polkadot/api": "^8.6.2",
-    "@polkadot/keyring": "^9.3.1",
-    "@polkadot/rpc-provider": "^8.6.2",
-    "@polkadot/types": "^8.6.2",
-    "@polkadot/util": "^9.3.1",
-    "@polkadot/util-crypto": "^9.3.1",
-    "dotenv": "^16.0.1",
-    "ethers": "^5.6.8",
-    "graphql": "^16.5.0",
-    "graphql-request": "^4.3.0",
-    "yargs": "^17.5.1"
+    "@polkadot/api": "^7.14.3",
+    "@polkadot/keyring": "^8.7.1",
+    "@polkadot/rpc-provider": "^7.14.3",
+    "@polkadot/types": "^7.14.3",
+    "@polkadot/util": "^8.7.1",
+    "@polkadot/util-crypto": "^8.7.1",
+    "dotenv": "^16.0.0",
+    "ethers": "^5.6.2",
+    "graphql": "^16.3.0",
+    "graphql-request": "^4.2.0",
+    "yargs": "^17.4.0"
   }
 }
