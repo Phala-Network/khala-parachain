@@ -109,6 +109,50 @@ fn get_exec_name() -> Option<String> {
 }
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
+    if id.is_empty() {
+        let n = get_exec_name().unwrap_or_default().to_lowercase();
+
+        #[cfg(feature = "phala-native")]
+        if n.starts_with("phala") {
+            info!("Load Phala runtime");
+            return Ok(Box::new(chain_spec::phala::ChainSpec::from_json_bytes(
+                &include_bytes!("../res/phala.json")[..],
+            )?))
+        }
+        #[cfg(not(feature = "phala-native"))]
+        if n.starts_with("phala") {
+            return Err(format!("Only supported when `phala-native` feature enabled."))
+        }
+
+        #[cfg(feature = "khala-native")]
+        if n.starts_with("khala") {
+            info!("Load Khala runtime");
+            return Ok(Box::new(chain_spec::khala::ChainSpec::from_json_bytes(
+                &include_bytes!("../res/khala.json")[..],
+            )?))
+        }
+        #[cfg(not(feature = "khala-native"))]
+        if n.starts_with("khala") {
+            return Err(format!("Only supported when `khala-native` feature enabled."))
+        }
+
+        #[cfg(feature = "rhala-native")]
+        if n.starts_with("rhala") {
+            info!("Load Rhala runtime");
+            return Ok(Box::new(chain_spec::rhala::ChainSpec::from_json_bytes(
+                &include_bytes!("../res/rhala.json")[..],
+            )?))
+        }
+        #[cfg(not(feature = "rhala-native"))]
+        if n.starts_with("rhala") {
+            return Err(format!("Only supported when `rhala-native` feature enabled."))
+        }
+
+        return Err(format!(
+            "Missing `--chain` arg."
+        ))
+    }
+
     let path = std::path::PathBuf::from(id);
     if id.to_lowercase().ends_with(".json") && path.exists() {
         info!("Load chain spec {}", path.to_str().unwrap());
