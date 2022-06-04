@@ -1091,7 +1091,8 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 
 impl pallet_xcm::Config for Runtime {
     type Event = Event;
-    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    /// No local origins on this chain are allowed to dispatch XCM sends.
+    type SendXcmOrigin = EnsureXcmOrigin<Origin, ()>;
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmExecuteFilter = Nothing;

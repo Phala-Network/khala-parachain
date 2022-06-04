@@ -283,7 +283,6 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         if let Call::PolkadotXcm(xcm_method) = call {
             match xcm_method {
-                pallet_xcm::Call::send { .. }
                 | pallet_xcm::Call::execute { .. }
                 | pallet_xcm::Call::teleport_assets { .. }
                 | pallet_xcm::Call::reserve_transfer_assets { .. }
@@ -294,7 +293,8 @@ impl Contains<Call> for BaseCallFilter {
                 pallet_xcm::Call::force_xcm_version { .. }
                 | pallet_xcm::Call::force_default_xcm_version { .. }
                 | pallet_xcm::Call::force_subscribe_version_notify { .. }
-                | pallet_xcm::Call::force_unsubscribe_version_notify { .. } => {
+                | pallet_xcm::Call::force_unsubscribe_version_notify { .. }
+                | pallet_xcm::Call::send { .. } => {
                     return true;
                 }
                 pallet_xcm::Call::__Ignore { .. } => {
@@ -1119,7 +1119,8 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 
 impl pallet_xcm::Config for Runtime {
     type Event = Event;
-    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    /// No local origins on this chain are allowed to dispatch XCM sends.
+    type SendXcmOrigin = EnsureXcmOrigin<Origin, ()>;
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmExecuteFilter = Nothing;
