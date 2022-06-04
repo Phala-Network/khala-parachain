@@ -23,7 +23,7 @@ use cumulus_primitives_core::ParaId;
 use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
 use log::info;
 use sc_cli::{
-    ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
+    CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
     NetworkParams, Result, RuntimeVersion, SharedParams, SubstrateCli,
 };
 use sc_service::{
@@ -60,8 +60,9 @@ impl IdentifyChain for dyn sc_service::ChainSpec {
     fn runtime_name(&self) -> String {
         chain_spec::Extensions::try_get(self)
             .map(|e| e.runtime.clone())
-            .expect("Could not find parachain extension for chain-spec.")
+            .expect("Missing `runtime` field in chain-spec.")
     }
+
     fn is_phala(&self) -> bool {
         self.runtime_name() == "phala"
     }
@@ -100,6 +101,13 @@ impl<T: sc_service::ChainSpec + 'static> IdentifyChain for T {
     }
 }
 
+fn get_exec_name() -> Option<String> {
+    std::env::current_exe()
+        .ok()
+        .and_then(|pb| pb.file_name().map(|s| s.to_os_string()))
+        .and_then(|s| s.into_string().ok())
+}
+
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     let path = std::path::PathBuf::from(id);
     if id.to_lowercase().ends_with(".json") && path.exists() {
@@ -124,10 +132,11 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 
     let mut normalized_id: VecDeque<&str> = id.split("-").collect();
     if normalized_id.len() > 3 {
-        return Err(
-            "ParaId pattern must be runtime_name-profile-para_id or runtime_name-para_id"
-                .into(),
-        );
+        return Err(format!(
+            "Invalid `--chain` argument. \
+            give an exported chain-spec or follow the pattern: \"runtime(-profile)(-para_id)\", \
+            e.g. \"phala\", \"phala-staging\", \"phala-dev-2035\"."
+        ))
     }
 
     let runtime_name = normalized_id.pop_front().expect("Never empty");
@@ -140,7 +149,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     drop(normalized_id);
 
     info!(
-        "Load native runtime: {}, profile: {}, para-id: {}",
+        "Load runtime: {}, profile: {}, para-id: {}",
         runtime_name,
         profile.unwrap_or("(Not Provide)"),
         para_id.unwrap_or(0)
@@ -167,7 +176,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     }
     #[cfg(not(feature = "phala-native"))]
     if runtime_name == "phala" {
-        return Err(format!("`{}` only supported with `phala-native` feature enabled.", id))
+        return Err(format!("`{}` only supported when `phala-native` feature enabled.", id))
     }
 
     #[cfg(feature = "khala-native")]
@@ -191,7 +200,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     }
     #[cfg(not(feature = "khala-native"))]
     if runtime_name == "khala" {
-        return Err(format!("`{}` only supported with `khala-native` feature enabled.", id))
+        return Err(format!("`{}` only supported when `khala-native` feature enabled.", id))
     }
 
     #[cfg(feature = "rhala-native")]
@@ -215,7 +224,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     }
     #[cfg(not(feature = "rhala-native"))]
     if runtime_name == "rhala" {
-        return Err(format!("`{}` only supported with `rhala-native` feature enabled.", id))
+        return Err(format!("`{}` only supported when `rhala-native` feature enabled.", id))
     }
 
     #[cfg(feature = "thala-native")]
@@ -230,7 +239,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     }
     #[cfg(not(feature = "thala-native"))]
     if runtime_name == "thala" {
-        return Err(format!("`{}` only supported with `thala-native` feature enabled.", id))
+        return Err(format!("`{}` only supported when `thala-native` feature enabled.", id))
     }
 
     #[cfg(feature = "shell-native")]
@@ -249,12 +258,13 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     }
     #[cfg(not(feature = "shell-native"))]
     if runtime_name == "shell" {
-        return Err(format!("`{}` only supported with `shell-native` feature enabled.", id))
+        return Err(format!("`{}` only supported when `shell-native` feature enabled.", id))
     }
 
     Err(format!(
-        "Invalid `--chain` arg. \
-            give exported chain-spec or follow pattern: runtime-profile-para_id"
+        "Invalid `--chain` argument. \
+            give an exported chain-spec or follow the pattern: \"runtime(-profile)(-para_id)\", \
+            e.g. \"phala\", \"phala-staging\", \"phala-dev-2035\"."
     ))
 }
 
@@ -293,14 +303,21 @@ impl SubstrateCli for Cli {
         load_spec(id)
     }
 
-    fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &khala_parachain_runtime::VERSION
+    fn native_runtime_version(chain_spec: &Box<dyn sc_service::ChainSpec>) -> &'static RuntimeVersion {
+        match chain_spec.runtime_name().as_str() {
+            "phala" => &phala_parachain_runtime::VERSION,
+            "khala" => &khala_parachain_runtime::VERSION,
+            "rhala" => &rhala_parachain_runtime::VERSION,
+            "thala" => &thala_parachain_runtime::VERSION,
+            "shell" => &shell_parachain_runtime::VERSION,
+            _ => panic!("Can not determine runtime"),
+        }
     }
 }
 
 impl SubstrateCli for RelayChainCli {
     fn impl_name() -> String {
-        "Khala Node".into()
+        "Polkadot parachain".into()
     }
 
     fn impl_version() -> String {
@@ -308,11 +325,13 @@ impl SubstrateCli for RelayChainCli {
     }
 
     fn description() -> String {
-        "Khala Node\n\nThe command-line arguments provided first will be \
-        passed to the parachain node, while the arguments provided after -- will be passed \
-        to the relaychain node.\n\n\
-        khala [parachain-args] -- [relaychain-args]"
-            .into()
+        format!(
+            "Polkadot parachain\n\nThe command-line arguments provided first will be \
+            passed to the parachain node, while the arguments provided after -- will be passed \
+            to the relay chain node.\n\n\
+            {} [parachain-args] -- [relay_chain-args]",
+            Self::executable_name()
+        )
     }
 
     fn author() -> String {
@@ -320,11 +339,11 @@ impl SubstrateCli for RelayChainCli {
     }
 
     fn support_url() -> String {
-        "https://github.com/Phala-Network/khala-parachain/issues/new".into()
+        "https://github.com/paritytech/cumulus/issues/new".into()
     }
 
     fn copyright_start_year() -> i32 {
-        2018
+        2017
     }
 
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
@@ -332,7 +351,7 @@ impl SubstrateCli for RelayChainCli {
             .load_spec(id)
     }
 
-    fn native_runtime_version(chain_spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
+    fn native_runtime_version(chain_spec: &Box<dyn sc_service::ChainSpec>) -> &'static RuntimeVersion {
         polkadot_cli::Cli::native_runtime_version(chain_spec)
     }
 }
@@ -792,7 +811,7 @@ impl CliConfiguration<Self> for RelayChainCli {
     fn prometheus_config(
         &self,
         default_listen_port: u16,
-        chain_spec: &Box<dyn ChainSpec>,
+        chain_spec: &Box<dyn sc_service::ChainSpec>,
     ) -> Result<Option<PrometheusConfig>> {
         self.base.base.prometheus_config(default_listen_port, chain_spec)
     }
@@ -862,7 +881,7 @@ impl CliConfiguration<Self> for RelayChainCli {
 
     fn telemetry_endpoints(
         &self,
-        chain_spec: &Box<dyn ChainSpec>,
+        chain_spec: &Box<dyn sc_service::ChainSpec>,
     ) -> Result<Option<sc_telemetry::TelemetryEndpoints>> {
         self.base.base.telemetry_endpoints(chain_spec)
     }
