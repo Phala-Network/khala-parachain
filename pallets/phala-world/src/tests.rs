@@ -718,6 +718,92 @@ fn claim_refund_preorder_origin_of_shell_works() {
 }
 
 #[test]
+fn last_day_preorder_origin_of_shell_works() {
+	ExtBuilder::default().build(OVERLORD).execute_with(|| {
+		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
+		// Set Overlord and configuration then enable preorder origin of shells
+		setup_config(StatusType::PreorderOriginOfShells);
+		mint_spirit(ALICE, None);
+		mint_spirit(BOB, None);
+		mint_spirit(CHARLIE, None);
+		// BOB preorders an origin of shell
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(BOB),
+			RaceType::Cyborg,
+			CareerType::HardwareDruid,
+		));
+		// Check if event triggered
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
+				owner: BOB,
+				preorder_id: 0,
+			},
+		));
+		// CHARLIE preorders an origin of shell
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(CHARLIE),
+			RaceType::Pandroid,
+			CareerType::HardwareDruid,
+		));
+		// Check if event triggered
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
+				owner: CHARLIE,
+				preorder_id: 1,
+			},
+		));
+		// ALICE preorders an origin of shell successfully
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(ALICE),
+			RaceType::AISpectre,
+			CareerType::HackerWizard,
+		));
+		let preorders: Vec<PreorderId> = vec![0u32, 1u32, 2u32];
+		// Set ALICE & BOB has Chosen and CHARLIE as NotChosen
+		assert_ok!(PWNftSale::mint_chosen_preorders(
+			Origin::signed(OVERLORD),
+			preorders
+		));
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
+				preorder_id: 2u32,
+				owner: ALICE,
+			},
+		));
+		// ALICE preorders an origin of shell but already purchased NFT
+		assert_noop!(
+			PWNftSale::preorder_origin_of_shell(
+				Origin::signed(ALICE),
+				RaceType::Cyborg,
+				CareerType::HackerWizard,
+			),
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
+		);
+		assert_ok!(PWNftSale::set_status_type(
+			Origin::signed(OVERLORD),
+			false,
+			StatusType::PreorderOriginOfShells
+		));
+		assert_ok!(PWNftSale::set_status_type(
+			Origin::signed(OVERLORD),
+			true,
+			StatusType::LastDayOfSale
+		));
+		// ALICE preorders an origin of shell since it last day of sale
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(ALICE),
+			RaceType::Cyborg,
+			CareerType::RoboWarrior,
+		),);
+		// Check Balances of ALICE, BOB, CHARLIE & OVERLORD
+		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
+		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
+		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
+	});
+}
+
+#[test]
 fn mint_gift_origin_of_shell_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
 		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
