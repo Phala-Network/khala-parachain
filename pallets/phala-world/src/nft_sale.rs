@@ -561,8 +561,9 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			let is_last_day_of_sale = LastDayOfSale::<T>::get();
 			ensure!(
-				(CanPreorderOriginOfShells::<T>::get() && !OwnerHasPreorder::<T>::get(&sender))
-					|| is_last_day_of_sale,
+				is_last_day_of_sale
+					|| (CanPreorderOriginOfShells::<T>::get()
+						&& !OwnerHasPreorder::<T>::get(&sender)),
 				Error::<T>::PreorderOriginOfShellNotAvailable
 			);
 			// Has Spirit Collection been set
@@ -575,7 +576,8 @@ pub mod pallet {
 			let origin_of_shell_collection_id = Self::get_origin_of_shell_collection_id()?;
 			// If not the last day of sale then ensure account doesn't own an Origin of Shell
 			ensure!(
-				!Self::owns_nft_in_collection(&sender, origin_of_shell_collection_id),
+				is_last_day_of_sale
+					|| !Self::owns_nft_in_collection(&sender, origin_of_shell_collection_id),
 				Error::<T>::OriginOfShellAlreadyPurchased
 			);
 
