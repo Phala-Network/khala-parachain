@@ -1,7 +1,7 @@
 use super::ParachainXcmRouter;
 use crate::{
 	chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
-	xcmbridge, xtransfer,
+	wanbridge, xcmbridge, xtransfer,
 };
 
 use assets_registry;
@@ -66,6 +66,7 @@ construct_runtime!(
 		AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>},
 		XcmBridge: xcmbridge::{Pallet, Storage, Event<T>},
 		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
+		WanBridge: wanbridge::{Pallet, Call, Storage, Event<T>},
 		XTransfer: xtransfer::{Pallet, Call, Storage, Event<T>},
 	}
 );
@@ -151,8 +152,9 @@ parameter_types! {
 impl pallet_parachain_info::Config for Runtime {}
 
 parameter_types! {
-	pub const TestChainId: u8 = 5;
-	pub const ResourceIdGenerationSalt: Option<u128> = Some(5);
+	pub const TestChainBridgeChainId: u8 = 5;
+	pub const TestWanBridgeChainId: u8 = 5;
+	pub const WanBridgeNativeTokenPair: u32 = 0;
 	pub const ProposalLifetime: u64 = 100;
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
@@ -354,7 +356,7 @@ impl chainbridge::Config for Runtime {
 	type Event = Event;
 	type BridgeCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type Proposal = Call;
-	type BridgeChainId = TestChainId;
+	type BridgeChainId = TestChainBridgeChainId;
 	type Currency = Balances;
 	type ProposalLifetime = ProposalLifetime;
 	type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
@@ -375,10 +377,29 @@ impl chainbridge::Config for Runtime {
 	type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
 }
 
+impl wanbridge::Config for Runtime {
+	type Event = Event;
+	type BridgeCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type CurrentChainId = TestWanBridgeChainId;
+	type Currency = Balances;
+	type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+	type NativeTokenPair = WanBridgeNativeTokenPair;
+	type NativeExecutionPrice = NativeExecutionPrice;
+	type TreasuryAccount = TREASURY;
+	type FungibleAdapter = XTransferAdapter<
+		CurrencyTransactor,
+		FungiblesTransactor,
+		XTransfer,
+		helper::NativeAssetFilter<ParachainInfo>,
+	>;
+	type AssetsRegistry = AssetsRegistry;
+}
+
 impl xtransfer::Config for Runtime {
 	type Event = Event;
 	type Bridge = (
 		xcmbridge::BridgeTransactImpl<Runtime>,
 		chainbridge::BridgeTransactImpl<Runtime>,
+		wanbridge::BridgeTransactImpl<Runtime>,
 	);
 }

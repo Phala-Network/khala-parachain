@@ -1186,7 +1186,7 @@ pub mod pallet {
 
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), 0));
 				assert_noop!(
-					ChainBridge::whitelist_chain(Origin::root(), TestChainId::get()),
+					ChainBridge::whitelist_chain(Origin::root(), TestChainBridgeChainId::get()),
 					ChainbridgeError::<Runtime>::InvalidChainId
 				);
 
