@@ -52,7 +52,7 @@ pub mod pallet {
 		/// The identifier for this chain.
 		/// This must be unique and must not collide with existing IDs within a set of bridged chains.
 		#[pallet::constant]
-		type CurrentChainId: Get<U256>;
+		type CurrentChainId: Get<u8>;
 
 		type Currency: Currency<Self::AccountId>;
 
@@ -171,7 +171,7 @@ pub mod pallet {
 
 			// Cannot whitelist this chain
 			ensure!(
-				chain_id != T::CurrentChainId::get(),
+				chain_id != U256::from(T::CurrentChainId::get()),
 				Error::<T>::InvalidChainId
 			);
 			// Cannot whitelist with an existing entry
@@ -191,7 +191,7 @@ pub mod pallet {
 
 			// Cannot whitelist this chain
 			ensure!(
-				chain_id != T::CurrentChainId::get(),
+				chain_id != U256::from(T::CurrentChainId::get()),
 				Error::<T>::InvalidChainId
 			);
 			// Cannot blacklist with a non-existing entry
