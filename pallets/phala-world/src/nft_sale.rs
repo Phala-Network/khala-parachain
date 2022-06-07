@@ -152,6 +152,11 @@ pub mod pallet {
 	#[pallet::getter(fn is_origin_of_shells_inventory_set)]
 	pub type IsOriginOfShellsInventorySet<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+	/// Spirits Metadata
+	#[pallet::storage]
+	#[pallet::getter(fn spirits_metadata)]
+	pub type SpiritsMetadata<T: Config> = StorageValue<_, BoundedVec<u8, T::StringLimit>>;
+
 	/// Origin of Shells Metadata
 	#[pallet::storage]
 	#[pallet::getter(fn origin_of_shells_metadata)]
@@ -330,6 +335,10 @@ pub mod pallet {
 			owner: T::AccountId,
 			nft_sale_type: NftSaleType,
 		},
+		/// Spirits Metadata was set
+		SpiritsMetadataSet {
+			spirits_metadata: BoundedVec<u8, T::StringLimit>,
+		},
 		/// Origin of Shells Metadata was set
 		OriginOfShellsMetadataSet {
 			origin_of_shells_metadata: Vec<(RaceType, BoundedVec<u8, T::StringLimit>)>,
@@ -366,11 +375,12 @@ pub mod pallet {
 		WrongRarityType,
 		SpiritCollectionNotSet,
 		SpiritCollectionIdAlreadySet,
+		SpiritsMetadataNotSet,
 		OriginOfShellCollectionNotSet,
 		OriginOfShellCollectionIdAlreadySet,
 		OriginOfShellInventoryCorrupted,
 		OriginOfShellInventoryAlreadySet,
-		OriginOfShellMetadataNotSet,
+		OriginOfShellsMetadataNotSet,
 		UnableToAddAttributes,
 		KeyTooLong,
 		NoAvailableRaceGivewayLeft,
@@ -1019,7 +1029,31 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Privileged function to set the metadata for the Origin of Shells in the StorageMap `OriginOfShellsMetadata` where the key is a tuple of `(RaceType, CareerType)` with a value of a `BoundedVec<u8, T::StringLimit`.
+		/// Privileged function to set the metadata for the Spirits in the StorageValue
+		/// `SpiritMetadata` where the value is a `BoundedVec<u8, T::StringLimit`.
+		///
+		/// Parameters:
+		/// - `origin`: Expected to be called from the Overlord account
+		/// - `spirits_metadata`: `BoundedVec<u8, T::StringLimit>` to be added in storage
+		#[pallet::weight(0)]
+		pub fn set_spirits_metadata(
+			origin: OriginFor<T>,
+			spirits_metadata: BoundedVec<u8, T::StringLimit>,
+		) -> DispatchResultWithPostInfo {
+			// Ensure Overlord account makes call
+			let sender = ensure_signed(origin.clone())?;
+			Self::ensure_overlord(&sender)?;
+			// Set Spirits Metadata
+			SpiritsMetadata::<T>::put(spirits_metadata.clone());
+
+			Self::deposit_event(Event::SpiritsMetadataSet { spirits_metadata });
+
+			Ok(Pays::No.into())
+		}
+
+		/// Privileged function to set the metadata for the Origin of Shells in the StorageMap
+		/// `OriginOfShellsMetadata` where the key is a tuple of `(RaceType, CareerType)` with a
+		/// value of a `BoundedVec<u8, T::StringLimit`.
 		///
 		/// Parameters:
 		/// - `origin`: Expected to be called from the Overlord account
@@ -1299,8 +1333,8 @@ where
 			!Self::owns_nft_in_collection(&sender, spirit_collection_id),
 			Error::<T>::SpiritAlreadyClaimed
 		);
-		// Empty metadata
-		let metadata = Self::get_empty_metadata();
+		// Get Spirits metadata
+		let metadata = SpiritsMetadata::<T>::get().ok_or(Error::<T>::SpiritsMetadataNotSet)?;
 		// Get NFT ID to be minted
 		let spirit_nft_id = pallet_rmrk_core::NextNftId::<T>::get(spirit_collection_id);
 		// Mint new Spirit and transfer to sender
@@ -1640,18 +1674,13 @@ where
 			.map_err(|_| Error::<T>::KeyTooLong)
 	}
 
-	/// Helper function to get empty metadata boundedvec
-	pub(crate) fn get_empty_metadata() -> BoundedVec<u8, T::StringLimit> {
-		Default::default()
-	}
-
 	/// Helper function to get origin of shells metadata boundedvec
 	pub(crate) fn get_origin_of_shell_metadata(
 		race: RaceType,
 	) -> Result<BoundedVec<u8, T::StringLimit>, Error<T>> {
 		let metadata = OriginOfShellsMetadata::<T>::get(race);
 		match metadata {
-			None => Err(Error::<T>::OriginOfShellMetadataNotSet),
+			None => Err(Error::<T>::OriginOfShellsMetadataNotSet),
 			Some(metadata) => Ok(metadata),
 		}
 	}
