@@ -283,7 +283,7 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         if let Call::PolkadotXcm(xcm_method) = call {
             match xcm_method {
-                | pallet_xcm::Call::execute { .. }
+                pallet_xcm::Call::execute { .. }
                 | pallet_xcm::Call::teleport_assets { .. }
                 | pallet_xcm::Call::reserve_transfer_assets { .. }
                 | pallet_xcm::Call::limited_reserve_transfer_assets { .. }
@@ -320,29 +320,16 @@ impl Contains<Call> for BaseCallFilter {
 
         if let Call::Uniques(uniques_method) = call {
             match uniques_method {
-                pallet_uniques::Call::approve_transfer { .. }
-                | pallet_uniques::Call::burn { .. }
-                | pallet_uniques::Call::cancel_approval { .. }
-                | pallet_uniques::Call::clear_collection_metadata { .. }
-                | pallet_uniques::Call::clear_metadata { .. }
-                | pallet_uniques::Call::create { .. }
-                | pallet_uniques::Call::destroy { .. }
-                | pallet_uniques::Call::force_item_status { .. }
-                | pallet_uniques::Call::force_create { .. }
-                | pallet_uniques::Call::freeze_collection { .. }
-                | pallet_uniques::Call::mint { .. }
-                | pallet_uniques::Call::redeposit { .. }
-                | pallet_uniques::Call::set_collection_metadata { .. }
-                | pallet_uniques::Call::set_metadata { .. }
-                | pallet_uniques::Call::thaw_collection { .. }
-                | pallet_uniques::Call::transfer { .. }
-                | pallet_uniques::Call::transfer_ownership { .. } => {
-                    return false;
+                pallet_uniques::Call::freeze { .. }
+                | pallet_uniques::Call::thaw { .. }
+                | pallet_uniques::Call::set_team { .. }
+                | pallet_uniques::Call::set_accept_ownership { .. } => {
+                    return true;
                 }
                 pallet_uniques::Call::__Ignore { .. } => {
                     unimplemented!()
                 }
-                _ => return true,
+                _ => return false,
             }
         }
 
