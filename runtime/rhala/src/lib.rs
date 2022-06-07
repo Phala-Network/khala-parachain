@@ -1062,7 +1062,6 @@ impl Config for XcmConfig {
 parameter_types! {
     pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
 }
-/// No local origins on this chain are allowed to dispatch XCM sends/executions.
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
 
 /// The means for routing XCM messages which are not for local execution into the right message
@@ -1096,7 +1095,8 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 
 impl pallet_xcm::Config for Runtime {
     type Event = Event;
-    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    /// No local origins on this chain are allowed to dispatch XCM sends.
+    type SendXcmOrigin = EnsureXcmOrigin<Origin, ()>;
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmExecuteFilter = Nothing;
