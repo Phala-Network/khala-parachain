@@ -82,6 +82,11 @@ fn setup_config(enable_status_type: StatusType) {
 		Origin::signed(OVERLORD),
 		spirit_collection_id
 	));
+	let spirits_metadata = bvec![0u8, 0];
+	assert_ok!(PWNftSale::set_spirits_metadata(
+		Origin::signed(OVERLORD),
+		spirits_metadata
+	));
 	let origin_of_shell_collection_id = RmrkCore::collection_index();
 	// Mint Origin of Shells Collection
 	mint_collection(OVERLORD);
