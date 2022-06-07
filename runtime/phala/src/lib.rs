@@ -254,10 +254,11 @@ impl Contains<Call> for BaseCallFilter {
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // Governance
-            Call::Identity { .. } | Call::Treasury { .. } // Call::Democracy { .. } | Call::PhragmenElection { .. } |
-                                                          // Call::Council { .. } | Call::TechnicalCommittee { .. } | Call::TechnicalMembership { .. } |
-                                                          // Call::Bounties { .. } | Call::ChildBounties { .. } |
-                                                          // Call::Lottery { .. } | Call::Tips { .. }
+            Call::Identity { .. } | Call::Treasury { .. } |
+            // Call::Bounties { .. } | Call::ChildBounties { .. } |
+            // Call::Lottery { .. } | Call::Tips { .. }
+            // Call::PhragmenElection { .. } | Call::TechnicalMembership { .. } |
+            Call::Council { .. } | Call::TechnicalCommittee { .. } // | Call::Democracy { .. }
         )
     }
 }
