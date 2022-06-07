@@ -296,7 +296,7 @@ impl Contains<Call> for BaseCallFilter {
                 | pallet_xcm::Call::force_subscribe_version_notify { .. }
                 | pallet_xcm::Call::force_unsubscribe_version_notify { .. }
                 | pallet_xcm::Call::send { .. } => true,
-            };
+            }
         }
 
         if let Call::Assets(assets_method) = call {
@@ -307,7 +307,7 @@ impl Contains<Call> for BaseCallFilter {
                 | pallet_assets::Call::force_set_metadata { .. }
                 | pallet_assets::Call::__Ignore { .. } => false,
                 _ => true,
-            };
+            }
         }
 
         if let Call::Uniques(uniques_method) = call {
@@ -318,7 +318,7 @@ impl Contains<Call> for BaseCallFilter {
                 | pallet_uniques::Call::set_accept_ownership { .. }
                 | pallet_uniques::Call::__Ignore { .. } => true,
                 _ => false,
-            };
+            }
         }
 
         if let Call::RmrkCore(rmrk_core_method) = call {
@@ -326,7 +326,7 @@ impl Contains<Call> for BaseCallFilter {
                 pallet_rmrk_core::Call::change_collection_issuer { .. }
                 | pallet_rmrk_core::Call::__Ignore { .. } => true,
                 _ => false,
-            };
+            }
         }
 
         matches!(
