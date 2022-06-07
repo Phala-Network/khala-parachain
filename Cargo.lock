@@ -3657,7 +3657,7 @@ checksum = "f9b7d56ba4a8344d6be9729995e6b06f928af29998cdf79fe390cbf6b1fee838"
 
 [[package]]
 name = "khala-node"
-version = "0.1.15-dev"
+version = "0.1.15"
 dependencies = [
  "async-trait",
  "clap",
@@ -3734,7 +3734,7 @@ dependencies = [
 
 [[package]]
 name = "khala-parachain-runtime"
-version = "0.1.15-dev"
+version = "0.1.15"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -6740,7 +6740,7 @@ dependencies = [
 
 [[package]]
 name = "phala-parachain-runtime"
-version = "0.1.15-dev"
+version = "0.1.15"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
@@ -11556,7 +11556,7 @@ checksum = "b1141d4d61095b28419e22cb0bbf02755f5e54e0526f97f1e3d1d160e60885fb"
 
 [[package]]
 name = "thala-parachain-runtime"
-version = "0.1.15-dev"
+version = "0.1.15"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
