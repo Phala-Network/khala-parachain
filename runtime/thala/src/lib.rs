@@ -1484,15 +1484,15 @@ impl wanbridge::Config for Runtime {
     type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type CurrentChainId = WanBridgeChainId;
     type Currency = Balances;
-    type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+    type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
     type NativeTokenPair = WanBridgeNativeTokenPair;
     type NativeExecutionPrice = NativeExecutionPrice;
-    type TreasuryAccount = KhalaTreasuryAccount;
+    type TreasuryAccount = ThalaTreasuryAccount;
     type FungibleAdapter = XTransferAdapter<
         CurrencyTransactor,
         FungiblesTransactor,
         XTransfer,
-        helper::NativeAssetFilter<ParachainInfo>,
+        assets_registry::NativeAssetFilter<ParachainInfo>,
     >;
     type AssetsRegistry = AssetsRegistry;
 }

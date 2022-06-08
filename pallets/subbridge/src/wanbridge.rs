@@ -4,7 +4,8 @@ pub use self::pallet::*;
 pub mod pallet {
 	use crate::traits::*;
 	use assets_registry::{
-		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, WB_PATH_KEY,
+		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, NativeAssetChecker,
+		WB_PATH_KEY,
 	};
 	use codec::{Decode, Encode, EncodeLike};
 	pub use frame_support::{
@@ -295,7 +296,7 @@ pub mod pallet {
 			if asset_reserve_location != src_reserve_location {
 				let reserve_account: T::AccountId = if token_pair == T::NativeTokenPair::get() {
 					// PHA need to be released from bridge account due to historical reason
-					MODULE_ID.into_account()
+					MODULE_ID.into_account_truncating()
 				} else {
 					src_reserve_location.into_account().into()
 				};
@@ -591,7 +592,7 @@ pub mod pallet {
 				.reserve_location()
 				.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
 			let reserve_account = if T::NativeAssetChecker::is_native_asset(&asset) {
-				MODULE_ID.into_account()
+				MODULE_ID.into_account_truncating()
 			} else {
 				dest_reserve_location.clone().into_account()
 			};

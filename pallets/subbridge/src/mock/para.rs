@@ -382,7 +382,7 @@ impl wanbridge::Config for Runtime {
 	type BridgeCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type CurrentChainId = TestWanBridgeChainId;
 	type Currency = Balances;
-	type NativeAssetChecker = helper::NativeAssetFilter<ParachainInfo>;
+	type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
 	type NativeTokenPair = WanBridgeNativeTokenPair;
 	type NativeExecutionPrice = NativeExecutionPrice;
 	type TreasuryAccount = TREASURY;
@@ -390,7 +390,7 @@ impl wanbridge::Config for Runtime {
 		CurrencyTransactor,
 		FungiblesTransactor,
 		XTransfer,
-		helper::NativeAssetFilter<ParachainInfo>,
+		assets_registry::NativeAssetFilter<ParachainInfo>,
 	>;
 	type AssetsRegistry = AssetsRegistry;
 }
