@@ -47,8 +47,6 @@ async function transferPhaFromEvmToKhala(khalaApi, sender, recipient, amount, fi
         console.log(
             `--- Submitting extrinsic to handle fungible transfer (nonce: ${nonce}) ---`
         );
-        console.log(`wanbridge: ${khalaApi.tx.wanBridge}`);
-        return;
         const unsub = await khalaApi.tx.wanBridge.handleFungibleTransfer(
             smgId,
             tokenPair,
@@ -56,7 +54,7 @@ async function transferPhaFromEvmToKhala(khalaApi, sender, recipient, amount, fi
             amount,
             dest,
             '0x0'
-        ).signAndSend(alice, { nonce: nonce, era: 0 }, (result) => {
+        ).signAndSend(sender, { nonce: nonce, era: 0 }, (result) => {
             console.log(`Current status is ${result.status}`);
             if (result.status.isInBlock) {
                 console.log(
