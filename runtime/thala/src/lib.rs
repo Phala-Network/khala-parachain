@@ -282,66 +282,48 @@ pub struct BaseCallFilter;
 impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         if let Call::PolkadotXcm(xcm_method) = call {
-            match xcm_method {
+            return match xcm_method {
                 pallet_xcm::Call::execute { .. }
                 | pallet_xcm::Call::teleport_assets { .. }
                 | pallet_xcm::Call::reserve_transfer_assets { .. }
                 | pallet_xcm::Call::limited_reserve_transfer_assets { .. }
-                | pallet_xcm::Call::limited_teleport_assets { .. } => {
-                    return false;
-                }
+                | pallet_xcm::Call::limited_teleport_assets { .. }
+                | pallet_xcm::Call::__Ignore { .. } => false,
                 pallet_xcm::Call::force_xcm_version { .. }
                 | pallet_xcm::Call::force_default_xcm_version { .. }
                 | pallet_xcm::Call::force_subscribe_version_notify { .. }
                 | pallet_xcm::Call::force_unsubscribe_version_notify { .. }
-                | pallet_xcm::Call::send { .. } => {
-                    return true;
-                }
-                pallet_xcm::Call::__Ignore { .. } => {
-                    unimplemented!()
-                }
+                | pallet_xcm::Call::send { .. } => true,
             }
         }
 
         if let Call::Assets(assets_method) = call {
-            match assets_method {
+            return match assets_method {
                 pallet_assets::Call::create { .. }
                 | pallet_assets::Call::force_create { .. }
                 | pallet_assets::Call::set_metadata { .. }
-                | pallet_assets::Call::force_set_metadata { .. } => {
-                    return false;
-                }
-                pallet_assets::Call::__Ignore { .. } => {
-                    unimplemented!()
-                }
-                _ => return true,
+                | pallet_assets::Call::force_set_metadata { .. }
+                | pallet_assets::Call::__Ignore { .. } => false,
+                _ => true,
             }
         }
 
         if let Call::Uniques(uniques_method) = call {
-            match uniques_method {
+            return match uniques_method {
                 pallet_uniques::Call::freeze { .. }
                 | pallet_uniques::Call::thaw { .. }
                 | pallet_uniques::Call::set_team { .. }
-                | pallet_uniques::Call::set_accept_ownership { .. } => {
-                    return true;
-                }
-                pallet_uniques::Call::__Ignore { .. } => {
-                    unimplemented!()
-                }
-                _ => return false,
+                | pallet_uniques::Call::set_accept_ownership { .. }
+                | pallet_uniques::Call::__Ignore { .. } => true,
+                _ => false,
             }
         }
 
         if let Call::RmrkCore(rmrk_core_method) = call {
-            match rmrk_core_method {
-                pallet_rmrk_core::Call::change_collection_issuer { .. } => {
-                    return true;
-                }
-                pallet_rmrk_core::Call::__Ignore { .. } => {
-                    unimplemented!()
-                }
-                _ => return false,
+            return match rmrk_core_method {
+                pallet_rmrk_core::Call::change_collection_issuer { .. }
+                | pallet_rmrk_core::Call::__Ignore { .. } => true,
+                _ => false,
             }
         }
 
