@@ -52,3 +52,25 @@ members = [
 
 [patch."https://github.com/paritytech/polkadot"]
 polkadot-service = { path = "polkadot/node/service" }
+
+[patch."https://github.com/paritytech/cumulus"]
+cumulus-client-cli = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-client-consensus-aura = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-client-consensus-common = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-client-consensus-relay-chain = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-client-network = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-client-service = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-pallet-aura-ext = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-pallet-dmp-queue = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-pallet-parachain-system = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-pallet-session-benchmarking = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-pallet-xcm = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-pallet-xcmp-queue = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-primitives-core = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-primitives-parachain-inherent = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-primitives-timestamp = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-primitives-utility = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-relay-chain-inprocess-interface = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-relay-chain-interface = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+cumulus-relay-chain-rpc-interface = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
+pallet-collator-selection = { git = "https://github.com/Phala-Network/cumulus", tag = "polkadot-v0.9.18-patched" }
