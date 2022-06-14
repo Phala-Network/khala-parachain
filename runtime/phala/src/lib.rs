@@ -117,7 +117,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("phala"),
     impl_name: create_runtime_str!("phala"),
     authoring_version: 1,
-    spec_version: 1150,
+    spec_version: 1151,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 3,
@@ -258,7 +258,7 @@ impl Contains<Call> for BaseCallFilter {
             // Call::Bounties { .. } | Call::ChildBounties { .. } |
             // Call::Lottery { .. } | Call::Tips { .. }
             // Call::PhragmenElection { .. } | Call::TechnicalMembership { .. } |
-            Call::Council { .. } | Call::TechnicalCommittee { .. } // | Call::Democracy { .. }
+            Call::Council { .. } | Call::TechnicalCommittee { .. } | Call::Democracy { .. }
         )
     }
 }
