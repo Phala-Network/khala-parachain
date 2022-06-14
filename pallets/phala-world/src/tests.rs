@@ -11,11 +11,10 @@ use crate::traits::{
 	primitives::*, CareerType, NftSaleType, OverlordMessage, Purpose, RaceType, RarityType,
 	StatusType,
 };
-use mock::{Call, Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
-use rmrk_traits::primitives::*;
+use mock::{Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
 
 /// Turns a string into a BoundedVec
-fn stb(s: &str) -> BoundedVec<u8, UniquesStringLimit> {
+fn stb(s: &str) -> BoundedVec<u8, StringLimit> {
 	s.as_bytes().to_vec().try_into().unwrap()
 }
 
@@ -36,9 +35,9 @@ macro_rules! bvec {
 }
 
 fn metadata_accounts(
-	mut alice_metadata: BoundedVec<u8, UniquesStringLimit>,
-	mut bob_metadata: BoundedVec<u8, UniquesStringLimit>,
-	mut charlie_metadata: BoundedVec<u8, UniquesStringLimit>,
+	mut alice_metadata: BoundedVec<u8, StringLimit>,
+	mut bob_metadata: BoundedVec<u8, StringLimit>,
+	mut charlie_metadata: BoundedVec<u8, StringLimit>,
 ) {
 	alice_metadata = stb("I am ALICE");
 	bob_metadata = stb("I am BOB");
