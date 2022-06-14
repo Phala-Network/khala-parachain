@@ -816,7 +816,7 @@ parameter_types! {
     pub const ItemDeposit: Balance = 1 * DOLLARS;
     pub const KeyLimit: u32 = 32;
     pub const ValueLimit: u32 = 256;
-    pub const StringLimit: u32 = 50;
+    pub const StringLimit: u32 = 128;
 }
 
 impl pallet_uniques::Config for Runtime {
