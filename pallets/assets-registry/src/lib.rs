@@ -212,49 +212,38 @@ pub mod pallet {
 
 		fn is_reserve_asset_location(id: &MultiLocation) -> bool {
 			if I::is_native_asset_location(id) {
-				return true;
+				true
 			} else {
-				return match id.reserve_location() {
+				match id.reserve_location() {
 					Some(reserve_location) => {
 						return match (reserve_location.parents, reserve_location.first_interior()) {
-							// Any assets match our parachain id
-							(1, Some(para)) => para == &Parachain(T::get().into()),
 							// ChainBridge assets with local consensus location
 							(0, Some(GeneralKey(cb_key))) => cb_key == CB_ASSET_KEY,
-							// (0, Here) is expressed as PHA location
-							(0, None) => true,
 							_ => false,
 						};
 					}
 					_ => false,
-				};
+				}
 			}
 		}
 
 		fn to_globalconsensus_location(location: &MultiLocation) -> Option<MultiLocation> {
-			// Only assets reserved on local can be convert from local consensus type of location to absoluted location.
-			if Self::is_reserve_asset_location(location) {
-				match (location.parents, location.first_interior()) {
-					(0, Some(GeneralKey(cb_key))) => {
-						// ChainBridge assets
-						if cb_key == CB_ASSET_KEY {
-							let mut origin_location = location.clone();
-							origin_location.parents = 1;
-							return match origin_location
-								.interior
-								.push_front(Parachain(T::get().into()))
-							{
-								Ok(()) => Some(origin_location),
-								Err(_) => None,
-							};
-						} else {
-							return None;
-						}
-					}
-					_ => None,
+			match (location.parents, location.first_interior()) {
+				// Only assets reserved on local can be convert from local consensus type of location to global consensus location.
+				(0, Some(GeneralKey(cb_key)))
+					if Self::is_reserve_asset_location(location) && cb_key == CB_ASSET_KEY =>
+				{
+					let mut origin_location = location.clone();
+					origin_location.parents = 1;
+					return match origin_location
+						.interior
+						.push_front(Parachain(T::get().into()))
+					{
+						Ok(()) => Some(origin_location),
+						Err(_) => None,
+					};
 				}
-			} else {
-				return None;
+				_ => None,
 			}
 		}
 
