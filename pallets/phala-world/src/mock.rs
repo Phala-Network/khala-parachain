@@ -1,16 +1,14 @@
-use super::*;
-use crate::{pallet_pw_incubation, pallet_pw_nft_sale, traits};
+use crate::{pallet_pw_incubation, pallet_pw_nft_sale};
 
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
-		AsEnsureOriginWithArg, ConstU32, ConstU64, Everything, GenesisBuild, OnFinalize,
-		OnInitialize,
+		AsEnsureOriginWithArg, ConstU32, Everything, GenesisBuild, OnFinalize,
 	},
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
-use sp_core::{crypto::AccountId32, sr25519::Signature, Pair, Public, H256};
+use sp_core::{crypto::AccountId32, H256};
 
 use sp_runtime::{
 	testing::Header,
@@ -27,7 +25,7 @@ pub const BLOCK_TIME: u64 = 1_000;
 pub const INIT_TIMESTAMP_SECONDS: u64 = 30;
 pub const BLOCK_TIME_SECONDS: u64 = 1;
 // Configure a mock runtime to test the pallet.
-frame_support::construct_runtime!(
+construct_runtime!(
 	pub enum Test where
 		Block = Block,
 		NodeBlock = Block,
@@ -57,7 +55,7 @@ impl frame_system::Config for Test {
 	type Origin = Origin;
 	type Call = Call;
 	type Index = u64;
-	type BlockNumber = u64;
+	type BlockNumber = BlockNumber;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
@@ -117,12 +115,12 @@ impl pallet_rmrk_core::Config for Test {
 parameter_types! {
 	pub const CollectionDeposit: Balance = 10_000 * PHA; // 1 UNIT deposit to create collection
 	pub const ItemDeposit: Balance = 100 * PHA; // 1/100 UNIT deposit to create item
-	pub const KeyLimit: u32 = 32;	// Max 32 bytes per key
-	pub const ValueLimit: u32 = 64;	// Max 64 bytes per value
+	pub const StringLimit: u32 = 64;
+	pub const KeyLimit: u32 = 32; // Max 32 bytes per key
+	pub const ValueLimit: u32 = 256; // Max 64 bytes per value
 	pub const UniquesMetadataDepositBase: Balance = 1000 * PHA;
 	pub const AttributeDepositBase: Balance = 100 * PHA;
 	pub const DepositPerByte: Balance = 10 * PHA;
-	pub const UniquesStringLimit: u32 = 32;
 }
 
 impl pallet_uniques::Config for Test {
@@ -138,7 +136,7 @@ impl pallet_uniques::Config for Test {
 	type MetadataDepositBase = UniquesMetadataDepositBase;
 	type AttributeDepositBase = AttributeDepositBase;
 	type DepositPerByte = DepositPerByte;
-	type StringLimit = UniquesStringLimit;
+	type StringLimit = StringLimit;
 	type KeyLimit = KeyLimit;
 	type ValueLimit = ValueLimit;
 	type WeightInfo = ();
