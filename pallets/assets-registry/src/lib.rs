@@ -201,12 +201,12 @@ pub mod pallet {
 	impl<T: Get<ParaId>, I: NativeAssetChecker> ReserveAssetChecker for ReserveAssetFilter<T, I> {
 		fn is_reserve_asset(asset: &MultiAsset) -> bool {
 			if I::is_native_asset(asset) {
-				return true;
+				true
 			} else {
-				return match &asset.id {
+				match &asset.id {
 					Concrete(ref id) if Self::is_reserve_asset_location(id) => true,
 					_ => false,
-				};
+				}
 			}
 		}
 
