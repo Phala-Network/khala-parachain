@@ -275,17 +275,18 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		// Return dest chain and beneficiary on dest chain
 		pub fn extract_dest(dest: &MultiLocation) -> Option<(MultiLocation, MultiLocation)> {
-			if dest.is_here() {
-				None
-			} else {
-				match dest.last() {
-					Some(_) => {
-						let mut dest_location = dest.clone();
-						let beneficiary = dest_location.take_last().unwrap().into();
-						Some((dest_location, beneficiary))
-					}
-					_ => None,
-				}
+			match (dest.parents, dest.first_interior()) {
+				// Sibling parachain
+				(1, Some(Parachain(id))) => Some((
+					MultiLocation::new(1, X1(Parachain(*id))),
+					MultiLocation::new(0, dest.interior().clone().split_first().0),
+				)),
+				// Parent
+				(1, _) => Some((
+					MultiLocation::parent(),
+					MultiLocation::new(0, dest.interior().clone()),
+				)),
+				_ => None,
 			}
 		}
 
