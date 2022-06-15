@@ -191,10 +191,10 @@ pub mod pallet {
 		fn is_reserve_asset(asset: &MultiAsset) -> bool;
 		// Return true if given location is reserved on local
 		fn is_reserve_asset_location(id: &MultiLocation) -> bool;
-		// Return asset origin location if asset is reserved on local, otherwise return None
-		fn to_absoluted_location(location: &MultiLocation) -> Option<MultiLocation>;
-		// Return a new asset with a absoluted location if asset is reserved on local.
-		fn to_noncanonical_asset(asset: &MultiAsset) -> MultiAsset;
+		// Return location reprented whithin gloable consensus if asset is reserved on local, otherwise return None
+		fn to_globalconsensus_location(location: &MultiLocation) -> Option<MultiLocation>;
+		// Return a new asset with a global consensusus location if asset is reserved on local.
+		fn to_gloableconsensus_asset(asset: &MultiAsset) -> MultiAsset;
 	}
 
 	pub struct ReserveAssetFilter<T, I>(PhantomData<(T, I)>);
@@ -219,7 +219,7 @@ pub mod pallet {
 						return match (reserve_location.parents, reserve_location.first_interior()) {
 							// Any assets match our parachain id
 							(1, Some(para)) => para == &Parachain(T::get().into()),
-							// ChainBridge assets with noncanonical location
+							// ChainBridge assets with local consensus location
 							(0, Some(GeneralKey(cb_key))) => cb_key == CB_ASSET_KEY,
 							// (0, Here) is expressed as PHA location
 							(0, None) => true,
@@ -231,8 +231,8 @@ pub mod pallet {
 			}
 		}
 
-		fn to_absoluted_location(location: &MultiLocation) -> Option<MultiLocation> {
-			// Only assets reserved on local can be convert from noncanonical type of location to absoluted location.
+		fn to_globalconsensus_location(location: &MultiLocation) -> Option<MultiLocation> {
+			// Only assets reserved on local can be convert from local consensus type of location to absoluted location.
 			if Self::is_reserve_asset_location(location) {
 				match (location.parents, location.first_interior()) {
 					(0, Some(GeneralKey(cb_key))) => {
@@ -258,14 +258,18 @@ pub mod pallet {
 			}
 		}
 
-		fn to_noncanonical_asset(asset: &MultiAsset) -> MultiAsset {
+		fn to_gloableconsensus_asset(asset: &MultiAsset) -> MultiAsset {
 			match &asset.id {
 				Concrete(ref id) if Self::is_reserve_asset_location(id) => (
-					Concrete(Self::to_absoluted_location(id).unwrap_or(id.clone()).into()),
+					Concrete(
+						Self::to_globalconsensus_location(id)
+							.unwrap_or(id.clone())
+							.into(),
+					),
 					asset.fun.clone(),
 				)
 					.into(),
-				// Asset location already is absoluted if it is non-reserved asset for us.
+				// Asset location already reprensted by gloable consensus if it is non-reserved asset for us.
 				_ => asset.clone(),
 			}
 		}
@@ -647,7 +651,7 @@ pub mod pallet {
 		) -> Option<<T as pallet_assets::Config>::AssetId> {
 			IdByLocations::<T>::get(location).or_else(|| {
 				if let Some(origin_location) =
-					T::ReserveAssetChecker::to_absoluted_location(location)
+					T::ReserveAssetChecker::to_globalconsensus_location(location)
 				{
 					return IdByLocations::<T>::get(origin_location);
 				}
@@ -682,7 +686,7 @@ pub mod pallet {
 			Self::convert_location_to_id(location).and_then(|id| {
 				RegistryInfoByIds::<T>::get(&id).map(|m| {
 					(
-						// Here we must return location passed by parameter in case it's the canonical location of asset
+						// Here we must return location passed by parameter in case it's the local consensus location of asset
 						location.clone().into(),
 						// If the registered asset has not set a price, return default price according to native asset price and its decimals
 						m.execution_price.unwrap_or(Self::default_price(

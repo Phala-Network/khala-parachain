@@ -6,13 +6,7 @@ use xcm_executor::{traits::TransactAsset, Assets};
 
 const LOG_TARGET: &str = "runtime::fungbible-adapter";
 
-pub struct XTransferAdapter<
-	NativeAdapter,
-	AssetsAdapter,
-	Transactor,
-	NativeChecker,
-	ReserveChecker,
->(
+pub struct XTransferAdapter<NativeAdapter, AssetsAdapter, Transactor, NativeChecker, ReserveChecker>(
 	PhantomData<(
 		NativeAdapter,
 		AssetsAdapter,
@@ -32,10 +26,10 @@ impl<
 	for XTransferAdapter<NativeAdapter, AssetsAdapter, Transactor, NativeChecker, ReserveChecker>
 {
 	fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult {
-		// In case we got a canonical location within asset, which may cause unexpected behaviors on EVM birdges,
-		// always try to convert asset location into absolute path first. But it's ok if conversion faild, because
+		// In case we got a local consensus location within asset, which may cause unexpected behaviors on EVM birdges,
+		// always try to convert asset location into gloable consensus location first. But it's ok if conversion faild, because
 		// only reserve assets need to do these stuff.
-		let what: &MultiAsset = &ReserveChecker::to_noncanonical_asset(what);
+		let what: &MultiAsset = &ReserveChecker::to_gloableconsensus_asset(what);
 
 		match (who.parents, &who.interior) {
 			// Deposit to local accounts or sibling parachain sovereign accounts
@@ -96,10 +90,10 @@ impl<
 	}
 
 	fn withdraw_asset(what: &MultiAsset, who: &MultiLocation) -> result::Result<Assets, XcmError> {
-		// In case we got a canonical location within asset, which may cause unexpected behaviors on EVM birdges,
-		// always try to convert asset location into absolute path first. But it's ok if conversion faild, because
+		// In case we got a local consensus location within asset, which may cause unexpected behaviors on EVM birdges,
+		// always try to convert asset location into gloable consensus location first. But it's ok if conversion faild, because
 		// only reserve assets need to do these stuff.
-		let what: &MultiAsset = &ReserveChecker::to_noncanonical_asset(what);
+		let what: &MultiAsset = &ReserveChecker::to_gloableconsensus_asset(what);
 
 		log::trace!(
 			target: LOG_TARGET,
