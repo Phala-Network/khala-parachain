@@ -219,7 +219,7 @@ pub mod pallet {
 						Some(6_000_000_000u64),
 					),
 					// Both XcmBridge and ChainBridge will failed with "CannotDepositAsset", however XcmBridge
-					// will run first, then ChainBridge will run according to all mock runtime definition.
+					// will run first, then ChainBridge will run according to our mock runtime definition.
 					// And we always return the last error when iterating all configured bridges.
 					ChainbridgeError::<Runtime>::CannotDepositAsset,
 				);
@@ -375,7 +375,7 @@ pub mod pallet {
 						None,
 					),
 					// Both XcmBridge and ChainBridge will failed with "CannotDepositAsset", however XcmBridge
-					// will run first, then ChainBridge will run according to all mock runtime definition.
+					// will run first, then ChainBridge will run according to our mock runtime definition.
 					// And we always return the last error when iterating all configured bridges.
 					ChainbridgeError::<Runtime>::CannotDepositAsset,
 				);
