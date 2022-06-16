@@ -115,7 +115,7 @@ impl pallet_rmrk_core::Config for Test {
 parameter_types! {
 	pub const CollectionDeposit: Balance = 10_000 * PHA; // 1 UNIT deposit to create collection
 	pub const ItemDeposit: Balance = 100 * PHA; // 1/100 UNIT deposit to create item
-	pub const StringLimit: u32 = 64;
+	pub const StringLimit: u32 = 50;
 	pub const KeyLimit: u32 = 32; // Max 32 bytes per key
 	pub const ValueLimit: u32 = 256; // Max 64 bytes per value
 	pub const UniquesMetadataDepositBase: Balance = 1000 * PHA;
