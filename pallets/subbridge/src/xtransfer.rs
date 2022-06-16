@@ -52,7 +52,7 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		TransactFailed,
+		_TransactFailed,
 		UnknownAsset,
 		UnsupportedDest,
 		UnhandledTransfer,
@@ -104,15 +104,11 @@ pub mod pallet {
 			match (&what.fun, &what.id) {
 				// Fungible assets
 				(Fungible(_), Concrete(_)) => {
-					bridge
-						.transfer_fungible(sender.into(), what, dest, dest_weight)
-						.map_err(|_| Error::<T>::TransactFailed)?;
+					bridge.transfer_fungible(sender.into(), what, dest, dest_weight)?;
 				}
 				// NonFungible assets
 				(NonFungible(_), Concrete(_)) => {
-					bridge
-						.transfer_nonfungible(sender.into(), what, dest, dest_weight)
-						.map_err(|_| Error::<T>::TransactFailed)?;
+					bridge.transfer_nonfungible(sender.into(), what, dest, dest_weight)?;
 				}
 				_ => return Err(Error::<T>::UnknownAsset.into()),
 			}
@@ -170,6 +166,7 @@ pub mod pallet {
 
 	#[cfg(test)]
 	mod test {
+		use crate::chainbridge::Error as ChainbridgeError;
 		use crate::chainbridge::Event as ChainbridgeEvent;
 		use crate::mock::para::Origin;
 		use crate::mock::para::Runtime;
@@ -180,6 +177,7 @@ pub mod pallet {
 			ENDOWED_BALANCE,
 		};
 		use crate::traits::*;
+		use crate::xcmbridge::Error as XcmbridgeError;
 		use crate::xtransfer::Error as XTransferError;
 
 		use frame_support::{assert_noop, assert_ok};
@@ -199,7 +197,7 @@ pub mod pallet {
 		}
 
 		#[test]
-		fn test_transfer_unregistered_assets_to_solochain_should_failed() {
+		fn test_transfer_unregistered_assets_to_parachain_should_failed() {
 			TestNet::reset();
 
 			let unregistered_asset_location =
@@ -220,8 +218,22 @@ pub mod pallet {
 						Box::new(MultiLocation::new(1, X1(Parachain(2)))),
 						Some(6_000_000_000u64),
 					),
-					XTransferError::<Runtime>::TransactFailed,
+					// Both XcmBridge and ChainBridge will failed with "CannotDepositAsset", however XcmBridge
+					// will run first, then ChainBridge will run according to all mock runtime definition.
+					// And we always return the last error when iterating all configured bridges.
+					ChainbridgeError::<Runtime>::CannotDepositAsset,
 				);
+			});
+		}
+
+		#[test]
+		fn test_transfer_unregistered_assets_to_solochain_should_failed() {
+			TestNet::reset();
+
+			let unregistered_asset_location =
+				MultiLocation::new(0, X1(GeneralKey(b"unregistered".to_vec())));
+
+			ParaA::execute_with(|| {
 				// To solo chains via Chainbridge(according to the dest)
 				assert_noop!(
 					XTransfer::transfer(
@@ -237,7 +249,7 @@ pub mod pallet {
 						)),
 						None,
 					),
-					XTransferError::<Runtime>::TransactFailed,
+					ChainbridgeError::<Runtime>::CannotDepositAsset,
 				);
 			});
 		}
@@ -276,7 +288,7 @@ pub mod pallet {
 						)),
 						None,
 					),
-					XTransferError::<Runtime>::TransactFailed,
+					ChainbridgeError::<Runtime>::CannotDepositAsset,
 				);
 			});
 		}
@@ -324,7 +336,7 @@ pub mod pallet {
 						)),
 						None,
 					),
-					XTransferError::<Runtime>::TransactFailed,
+					ChainbridgeError::<Runtime>::CannotDepositAsset,
 				);
 			});
 		}
@@ -362,7 +374,10 @@ pub mod pallet {
 						)),
 						None,
 					),
-					XTransferError::<Runtime>::TransactFailed,
+					// Both XcmBridge and ChainBridge will failed with "CannotDepositAsset", however XcmBridge
+					// will run first, then ChainBridge will run according to all mock runtime definition.
+					// And we always return the last error when iterating all configured bridges.
+					ChainbridgeError::<Runtime>::CannotDepositAsset,
 				);
 			});
 		}
