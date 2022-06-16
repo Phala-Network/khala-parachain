@@ -34,8 +34,8 @@ pub mod currency {
 /// Fee-related.
 pub mod fee {
     use frame_support::weights::{
-        constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
-        WeightToFeePolynomial,
+        constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
+        WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
     };
     use parachains_common::Balance;
     use smallvec::smallvec;
@@ -68,5 +68,13 @@ pub mod fee {
                 coeff_integer: p / q,
             }]
         }
+    }
+
+    pub fn pha_per_second() -> u128 {
+        // one cent cost per tx
+        let base_tx_fee = super::currency::CENTS;
+        let base_weight = Balance::from(ExtrinsicBaseWeight::get());
+        let tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
+        base_tx_fee * tx_per_second
     }
 }

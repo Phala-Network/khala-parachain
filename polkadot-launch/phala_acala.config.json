@@ -1,0 +1,133 @@
+{
+  "relaychain": {
+    "bin": "./bin/polkadot",
+    "chain": "rococo-local",
+    "nodes": [
+      {
+        "name": "alice",
+        "wsPort": 19944,
+        "port": 10333,
+        "nodeKey": "807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
+        "flags": [
+          "--rpc-cors=all"
+        ]
+      },
+      {
+        "name": "bob",
+        "wsPort": 19244,
+        "port": 12333
+      },
+      {
+        "name": "charlie",
+        "wsPort": 19344,
+        "port": 13333
+      },
+      {
+        "name": "dave",
+        "wsPort": 19444,
+        "port": 14333
+      }
+    ],
+    "genesis": {
+      "runtime": {
+        "runtime_genesis_config": {
+          "configuration": {
+            "config": {
+              "validation_upgrade_frequency": 10,
+              "validation_upgrade_delay": 10
+            }
+          }
+        }
+      }
+    }
+  },
+  "parachains": [
+    {
+      "bin": "./bin/khala-node",
+      "chain": "phala-dev-2035",
+      "balance": "1000000000000000000000",
+      "nodes": [
+        {
+          "name": "alice",
+          "wsPort": 9944,
+          "port": 30333,
+          "nodeKey": "81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
+          "flags": [
+            "--ws-external",
+            "--rpc-external",
+            "--rpc-cors=all",
+            "--rpc-methods=Unsafe",
+            "--execution=native",
+            "--log=xcm=trace",
+            "--",
+            "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
+            "--port=30334",
+            "--ws-port=9945",
+            "--pruning=archive",
+            "--ws-external",
+            "--rpc-external",
+            "--rpc-cors=all",
+            "--execution=native"
+          ]
+        },
+        {
+          "name": "bob",
+          "wsPort": 9244,
+          "port": 32333
+        }
+      ]
+    },
+    {
+      "bin": "./bin/acala",
+      "chain": "acala-dev",
+      "id": "2000",
+      "balance": "1000000000000000000000",
+      "nodes": [
+        {
+          "name": "alice",
+          "wsPort": 9955,
+          "port": 30555,
+          "nodeKey": "03cf579968894332f07ac78990f418742a47888c56c9721d84250d349618ada5",
+          "flags": [
+            "--ws-external",
+            "--rpc-external",
+            "--rpc-cors=all",
+            "--rpc-methods=Unsafe",
+            "--execution=native",
+            "--log=xcm=trace",
+            "--",
+            "--node-key=9ad8595d81d5851a5d5c920d3346881e262b2a720b5878714ee38c919514bcea",
+            "--port=30334",
+            "--ws-port=9945",
+            "--pruning=archive",
+            "--ws-external",
+            "--rpc-external",
+            "--rpc-cors=all",
+            "--execution=native"
+          ]
+        },
+        {
+          "name": "bob",
+          "wsPort": 9255,
+          "port": 32555
+        }
+      ]
+    }
+  ],
+  "hrmpChannels": [
+    {
+      "sender": 2035,
+      "recipient": 2000,
+      "maxCapacity": 8,
+      "maxMessageSize": 512
+    },
+    {
+      "sender": 2000,
+      "recipient": 2035,
+      "maxCapacity": 8,
+      "maxMessageSize": 512
+    }
+  ],
+  "types": {},
+  "finalization": false
+}
