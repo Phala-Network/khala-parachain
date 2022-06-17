@@ -70,13 +70,22 @@ cumulus-pallet-session-benchmarking = { git = "https://github.com/paritytech/cum
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.23", default-features = false }
 cumulus-primitives-timestamp = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.23", default-features = false }
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.23", default-features = false }
+cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.23", default-features = false }
+cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.23", default-features = false }
+cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.23", default-features = false }
 
 # Polkadot dependencies
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
 polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
+xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
 
 # Local dependencies
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
+assets-registry = { path = "../../pallets/assets-registry", default-features = false }
+subbridge-pallets = { path = "../../pallets/subbridge", default-features = false }
 
 # TODO: Remove in the future
 pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23", default-features = false }
@@ -114,6 +123,9 @@ runtime-benchmarks = [
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-tips/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+	"subbridge-pallets/runtime-benchmarks",
 ]
 std = [
 	"codec/std",
@@ -142,6 +154,13 @@ std = [
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-timestamp/std",
 	"cumulus-primitives-utility/std",
+	"cumulus-pallet-dmp-queue/std",
+	"cumulus-pallet-xcmp-queue/std",
+	"cumulus-pallet-xcm/std",
+	"xcm/std",
+	"xcm-builder/std",
+	"xcm-executor/std",
+	"pallet-xcm/std",
 	"parachains-common/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
@@ -170,6 +189,8 @@ std = [
 	"pallet-tips/std",
 	"pallet-assets/std",
 	"pallet-parachain-info/std",
+	"assets-registry/std",
+	"subbridge-pallets/std",
 	"pallet-sudo/std"
 ]
 
