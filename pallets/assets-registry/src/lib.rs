@@ -200,39 +200,28 @@ pub mod pallet {
 	pub struct ReserveAssetFilter<T, I>(PhantomData<(T, I)>);
 	impl<T: Get<ParaId>, I: NativeAssetChecker> ReserveAssetChecker for ReserveAssetFilter<T, I> {
 		fn is_asset_reserved_locally(asset: &MultiAsset) -> bool {
-			if I::is_native_asset(asset) {
-				true
-			} else {
-				match &asset.id {
-					Concrete(ref id) if Self::is_location_reserved_locally(id) => true,
-					_ => false,
-				}
+			match &asset.id {
+				Concrete(ref id) if Self::is_location_reserved_locally(id) => true,
+				_ => false,
 			}
 		}
 
 		fn is_location_reserved_locally(id: &MultiLocation) -> bool {
-			if I::is_native_asset_location(id) {
-				true
-			} else {
-				match id.reserve_location() {
-					Some(reserve_location) => {
-						return match (reserve_location.parents, reserve_location.first_interior()) {
-							// ChainBridge assets with local consensus location
-							(0, Some(GeneralKey(cb_key))) => cb_key == CB_ASSET_KEY,
-							_ => false,
-						};
-					}
+			if let Some(location) = Self::to_globalconsensus_location(id) {
+				match (location.parents, location.first_interior()) {
+					(1, Some(para_id)) => *para_id == Parachain(T::get().into()),
 					_ => false,
 				}
+			} else {
+				false
 			}
 		}
 
 		fn to_globalconsensus_location(location: &MultiLocation) -> Option<MultiLocation> {
 			match (location.parents, location.first_interior()) {
-				// Only assets reserved on local can be convert from local consensus type of location to global consensus location.
-				(0, Some(GeneralKey(cb_key)))
-					if Self::is_location_reserved_locally(location) && cb_key == CB_ASSET_KEY =>
-				{
+				// We should handle (0, Here) specially case we can not push interior front directly
+				(0, None) => Some((1, Parachain(T::get().into())).into()),
+				(0, Some(_)) => {
 					let mut origin_location = location.clone();
 					origin_location.parents = 1;
 					return match origin_location
@@ -243,7 +232,7 @@ pub mod pallet {
 						Err(_) => None,
 					};
 				}
-				_ => None,
+				_ => Some(location.clone()),
 			}
 		}
 
