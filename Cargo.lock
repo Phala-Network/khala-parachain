@@ -6781,9 +6781,13 @@ dependencies = [
 name = "phala-parachain-runtime"
 version = "0.1.15"
 dependencies = [
+ "assets-registry",
  "cumulus-pallet-aura-ext",
+ "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-timestamp",
  "cumulus-primitives-utility",
@@ -6824,6 +6828,7 @@ dependencies = [
  "pallet-treasury",
  "pallet-utility 4.0.0-phala-dev",
  "pallet-vesting",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "polkadot-parachain",
@@ -6843,7 +6848,11 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "static_assertions",
+ "subbridge-pallets",
  "substrate-wasm-builder",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
 ]
 
 [[package]]
