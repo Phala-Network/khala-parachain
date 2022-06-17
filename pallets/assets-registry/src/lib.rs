@@ -183,6 +183,76 @@ pub mod pallet {
 		}
 	}
 
+	// Should adapter the representation of asset location after reanchored.
+	// Because xcm would reanchore the location of the asset that reserved on our chain.
+	// https://github.com/paritytech/polkadot/pull/4470
+	pub trait ReserveAssetChecker {
+		// Return true if asset is reserved on local
+		fn is_asset_reserved_locally(asset: &MultiAsset) -> bool;
+		// Return true if given location is reserved on local
+		fn is_location_reserved_locally(id: &MultiLocation) -> bool;
+		// Return location reprented whithin gloable consensus if asset is reserved on local, otherwise return None
+		fn to_globalconsensus_location(location: &MultiLocation) -> Option<MultiLocation>;
+		// Return a new asset with a global consensusus location if asset is reserved on local.
+		fn to_gloableconsensus_asset(asset: &MultiAsset) -> MultiAsset;
+	}
+
+	pub struct ReserveAssetFilter<T, I>(PhantomData<(T, I)>);
+	impl<T: Get<ParaId>, I: NativeAssetChecker> ReserveAssetChecker for ReserveAssetFilter<T, I> {
+		fn is_asset_reserved_locally(asset: &MultiAsset) -> bool {
+			match &asset.id {
+				Concrete(ref id) if Self::is_location_reserved_locally(id) => true,
+				_ => false,
+			}
+		}
+
+		fn is_location_reserved_locally(id: &MultiLocation) -> bool {
+			if let Some(location) = Self::to_globalconsensus_location(id) {
+				match (location.parents, location.first_interior()) {
+					(1, Some(para_id)) => *para_id == Parachain(T::get().into()),
+					_ => false,
+				}
+			} else {
+				false
+			}
+		}
+
+		fn to_globalconsensus_location(location: &MultiLocation) -> Option<MultiLocation> {
+			match (location.parents, location.first_interior()) {
+				// We should handle (0, Here) specially case we can not push interior front directly
+				(0, None) => Some((1, Parachain(T::get().into())).into()),
+				(0, Some(_)) => {
+					let mut origin_location = location.clone();
+					origin_location.parents = 1;
+					return match origin_location
+						.interior
+						.push_front(Parachain(T::get().into()))
+					{
+						Ok(()) => Some(origin_location),
+						Err(_) => None,
+					};
+				}
+				_ => Some(location.clone()),
+			}
+		}
+
+		fn to_gloableconsensus_asset(asset: &MultiAsset) -> MultiAsset {
+			match &asset.id {
+				Concrete(ref id) if Self::is_location_reserved_locally(id) => (
+					Concrete(
+						Self::to_globalconsensus_location(id)
+							.unwrap_or(id.clone())
+							.into(),
+					),
+					asset.fun.clone(),
+				)
+					.into(),
+				// Asset location already reprensted by gloable consensus if it is non-reserved asset for us.
+				_ => asset.clone(),
+			}
+		}
+	}
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
@@ -199,6 +269,7 @@ pub mod pallet {
 		#[pallet::constant]
 		type NativeExecutionPrice: Get<u128>;
 		type NativeAssetChecker: NativeAssetChecker;
+		type ReserveAssetChecker: ReserveAssetChecker;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
@@ -552,6 +623,20 @@ pub mod pallet {
 				.into()
 			}
 		}
+
+		fn convert_location_to_id(
+			location: &MultiLocation,
+		) -> Option<<T as pallet_assets::Config>::AssetId> {
+			IdByLocations::<T>::get(location).or_else(|| {
+				if let Some(globalconsensus_location) =
+					T::ReserveAssetChecker::to_globalconsensus_location(location)
+				{
+					IdByLocations::<T>::get(globalconsensus_location)
+				} else {
+					None
+				}
+			})
+		}
 	}
 
 	impl<T: Config> GetAssetRegistryInfo<<T as pallet_assets::Config>::AssetId> for Pallet<T>
@@ -559,7 +644,7 @@ pub mod pallet {
 		<T as pallet_assets::Config>::Balance: From<u128> + Into<u128>,
 	{
 		fn id(asset: &MultiLocation) -> Option<<T as pallet_assets::Config>::AssetId> {
-			IdByLocations::<T>::get(asset)
+			Self::convert_location_to_id(asset)
 		}
 
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<MultiLocation> {
@@ -577,10 +662,11 @@ pub mod pallet {
 				return Some((location.clone().into(), T::NativeExecutionPrice::get()));
 			}
 
-			IdByLocations::<T>::get(location).and_then(|id| {
+			Self::convert_location_to_id(location).and_then(|id| {
 				RegistryInfoByIds::<T>::get(&id).map(|m| {
 					(
-						m.location.into(),
+						// Here we must return location passed by parameter in case it's the local consensus location of asset
+						location.clone().into(),
 						// If the registered asset has not set a price, return default price according to native asset price and its decimals
 						m.execution_price.unwrap_or(Self::default_price(
 							T::NativeExecutionPrice::get(),
