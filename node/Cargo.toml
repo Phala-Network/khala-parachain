@@ -16,6 +16,8 @@ name = "khala-node"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+tracing-core = "=0.1.26" # TODO: Higher version will break log format, stick to this version until upstream upgrade.
+
 async-trait = "0.1.42"
 clap = { version = "3.1", features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "3.0" }
