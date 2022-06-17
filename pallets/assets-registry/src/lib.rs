@@ -188,9 +188,9 @@ pub mod pallet {
 	// https://github.com/paritytech/polkadot/pull/4470
 	pub trait ReserveAssetChecker {
 		// Return true if asset is reserved on local
-		fn is_reserve_asset(asset: &MultiAsset) -> bool;
+		fn is_asset_reserved_locally(asset: &MultiAsset) -> bool;
 		// Return true if given location is reserved on local
-		fn is_reserve_asset_location(id: &MultiLocation) -> bool;
+		fn is_location_reserved_locally(id: &MultiLocation) -> bool;
 		// Return location reprented whithin gloable consensus if asset is reserved on local, otherwise return None
 		fn to_globalconsensus_location(location: &MultiLocation) -> Option<MultiLocation>;
 		// Return a new asset with a global consensusus location if asset is reserved on local.
@@ -199,18 +199,18 @@ pub mod pallet {
 
 	pub struct ReserveAssetFilter<T, I>(PhantomData<(T, I)>);
 	impl<T: Get<ParaId>, I: NativeAssetChecker> ReserveAssetChecker for ReserveAssetFilter<T, I> {
-		fn is_reserve_asset(asset: &MultiAsset) -> bool {
+		fn is_asset_reserved_locally(asset: &MultiAsset) -> bool {
 			if I::is_native_asset(asset) {
 				true
 			} else {
 				match &asset.id {
-					Concrete(ref id) if Self::is_reserve_asset_location(id) => true,
+					Concrete(ref id) if Self::is_location_reserved_locally(id) => true,
 					_ => false,
 				}
 			}
 		}
 
-		fn is_reserve_asset_location(id: &MultiLocation) -> bool {
+		fn is_location_reserved_locally(id: &MultiLocation) -> bool {
 			if I::is_native_asset_location(id) {
 				true
 			} else {
@@ -231,7 +231,7 @@ pub mod pallet {
 			match (location.parents, location.first_interior()) {
 				// Only assets reserved on local can be convert from local consensus type of location to global consensus location.
 				(0, Some(GeneralKey(cb_key)))
-					if Self::is_reserve_asset_location(location) && cb_key == CB_ASSET_KEY =>
+					if Self::is_location_reserved_locally(location) && cb_key == CB_ASSET_KEY =>
 				{
 					let mut origin_location = location.clone();
 					origin_location.parents = 1;
@@ -249,7 +249,7 @@ pub mod pallet {
 
 		fn to_gloableconsensus_asset(asset: &MultiAsset) -> MultiAsset {
 			match &asset.id {
-				Concrete(ref id) if Self::is_reserve_asset_location(id) => (
+				Concrete(ref id) if Self::is_location_reserved_locally(id) => (
 					Concrete(
 						Self::to_globalconsensus_location(id)
 							.unwrap_or(id.clone())
