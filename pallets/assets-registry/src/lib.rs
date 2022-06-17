@@ -628,12 +628,13 @@ pub mod pallet {
 			location: &MultiLocation,
 		) -> Option<<T as pallet_assets::Config>::AssetId> {
 			IdByLocations::<T>::get(location).or_else(|| {
-				if let Some(origin_location) =
+				if let Some(globalconsensus_location) =
 					T::ReserveAssetChecker::to_globalconsensus_location(location)
 				{
-					return IdByLocations::<T>::get(origin_location);
+					IdByLocations::<T>::get(globalconsensus_location)
+				} else {
+					None
 				}
-				return None;
 			})
 		}
 	}
