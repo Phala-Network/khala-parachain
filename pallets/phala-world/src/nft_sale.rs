@@ -1343,12 +1343,13 @@ where
 		// the NFT from being transferred by the owner.
 		pallet_rmrk_core::Pallet::<T>::mint_nft(
 			Origin::<T>::Signed(overlord.clone()).into(),
-			sender.clone(),
+			Some(sender.clone()),
 			spirit_collection_id,
 			None,
 			None,
 			metadata,
 			true,
+			None,
 		)?;
 		// Freeze NFT so it cannot be transferred
 		pallet_uniques::Pallet::<T>::freeze(
@@ -1417,12 +1418,13 @@ where
 		// Mint Origin of Shell and transfer Origin of Shell to new owner
 		pallet_rmrk_core::Pallet::<T>::mint_nft(
 			Origin::<T>::Signed(overlord.clone()).into(),
-			sender.clone(),
+			Some(sender.clone()),
 			origin_of_shell_collection_id,
 			None,
 			None,
 			metadata,
 			true,
+			None,
 		)?;
 		// Set Rarity Type, Race and Career attributes for NFT
 		Self::set_nft_attributes(

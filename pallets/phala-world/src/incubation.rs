@@ -412,12 +412,13 @@ pub mod pallet {
 			// Mint Shell NFT to Overlord to add attributes and resource before sending to owner
 			pallet_rmrk_core::Pallet::<T>::mint_nft(
 				origin.clone(),
-				owner.clone(),
+				Some(owner.clone()),
 				shell_collection_id,
 				None,
 				None,
 				metadata,
 				true,
+				None,
 			)?;
 			// Set Rarity Type, Race and Career attributes for NFT
 			pallet_pw_nft_sale::Pallet::<T>::set_nft_attributes(
