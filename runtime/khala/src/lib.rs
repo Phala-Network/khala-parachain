@@ -804,8 +804,9 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 }
 
 parameter_types! {
-    pub const CollectionDeposit: Balance = 100 * DOLLARS;
-    pub const ItemDeposit: Balance = 1 * DOLLARS;
+    pub const CollectionDeposit: Balance = 0 * DOLLARS;
+    pub const ItemDeposit: Balance = 0 * DOLLARS;
+    pub const ZeroDeposit: Balance = 0 * DOLLARS;
     pub const KeyLimit: u32 = 32;
     pub const ValueLimit: u32 = 256;
     pub const StringLimit: u32 = 50;
@@ -821,9 +822,9 @@ impl pallet_uniques::Config for Runtime {
     type Locker = ();
     type CollectionDeposit = CollectionDeposit;
     type ItemDeposit = ItemDeposit;
-    type MetadataDepositBase = MetadataDepositBase;
-    type AttributeDepositBase = MetadataDepositBase;
-    type DepositPerByte = MetadataDepositPerByte;
+    type MetadataDepositBase = ZeroDeposit;
+    type AttributeDepositBase = ZeroDeposit;
+    type DepositPerByte = ZeroDeposit;
     type StringLimit = StringLimit;
     type KeyLimit = KeyLimit;
     type ValueLimit = ValueLimit;
