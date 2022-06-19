@@ -102,7 +102,7 @@ polkadot-cli = { git = "https://github.com/paritytech/polkadot", branch = "relea
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.24" }
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.24" }
 polkadot-service = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.24" }
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.24", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.24" }
 
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
