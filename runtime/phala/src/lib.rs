@@ -291,12 +291,12 @@ impl Contains<Call> for BaseCallFilter {
             // System
             Call::System { .. } | Call::Timestamp { .. } | Call::Utility { .. } |
             Call::Multisig { .. } | Call::Proxy { .. } | Call::Scheduler { .. } |
-            // Call::Vesting { .. } | Call::Preimage { .. } |
+            Call::Vesting { .. } | Call::Preimage { .. } |
             // Parachain
             Call::ParachainSystem { .. } |
             // Monetary
             Call::AssetsRegistry { .. } |
-            // Call::Balances { .. }  |
+            Call::Balances { .. }  |
             Call::ChainBridge { .. } |
             Call::XTransfer { .. } |
             // Collator
