@@ -87,9 +87,6 @@ pallet-parachain-info = { path = "../../pallets/parachain-info", default-feature
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
 subbridge-pallets = { path = "../../pallets/subbridge", default-features = false }
 
-# TODO: Remove in the future
-pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
-
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
 
@@ -191,7 +188,6 @@ std = [
 	"pallet-parachain-info/std",
 	"assets-registry/std",
 	"subbridge-pallets/std",
-	"pallet-sudo/std"
 ]
 
 try-runtime = [
@@ -222,5 +218,4 @@ try-runtime = [
 	"pallet-elections-phragmen/try-runtime",
 	"pallet-tips/try-runtime",
 	"pallet-assets/try-runtime",
-	"pallet-sudo/try-runtime",
 ]
