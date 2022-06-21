@@ -15,7 +15,7 @@ pub mod pallet {
 		dispatch::DispatchResult,
 		pallet_prelude::*,
 		traits::tokens::fungibles::{
-			metadata::Mutate as FungibleMutate, Create as FungibleCerate,
+			metadata::Mutate as MetaMutate, Create as FungibleCerate, Mutate as FungibleMutate,
 			Transfer as FungibleTransfer,
 		},
 		traits::{Currency, ExistenceRequirement, StorageVersion},
@@ -321,6 +321,18 @@ pub mod pallet {
 			chain_id: u8,
 			resource_id: [u8; 32],
 		},
+		/// Force mint asset to an certain account.
+		ForceMint {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			beneficiary: T::AccountId,
+			amount: <T as pallet_assets::Config>::Balance,
+		},
+		/// Force burn asset from an certain account.
+		ForceBurn {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			who: T::AccountId,
+			amount: <T as pallet_assets::Config>::Balance,
+		},
 	}
 
 	#[pallet::error]
@@ -412,7 +424,7 @@ pub mod pallet {
 					execution_price: None,
 				},
 			);
-			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::set(
+			<pallet_assets::pallet::Pallet<T> as MetaMutate<T::AccountId>>::set(
 				asset_id,
 				&ASSETS_REGISTRY_ID.into_account_truncating(),
 				properties.name,
@@ -479,7 +491,7 @@ pub mod pallet {
 				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
 			info.properties = properties.clone();
 			RegistryInfoByIds::<T>::insert(&asset_id, &info);
-			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::set(
+			<pallet_assets::pallet::Pallet<T> as MetaMutate<T::AccountId>>::set(
 				asset_id,
 				&ASSETS_REGISTRY_ID.into_account_truncating(),
 				properties.name,
@@ -487,6 +499,50 @@ pub mod pallet {
 				properties.decimals,
 			)?;
 
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_mint(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			beneficiary: T::AccountId,
+			amount: <T as pallet_assets::Config>::Balance,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
+
+			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::mint_into(
+				asset_id,
+				&beneficiary,
+				amount,
+			)?;
+			Self::deposit_event(Event::ForceMint {
+				asset_id,
+				beneficiary,
+				amount,
+			});
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_burn(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			who: T::AccountId,
+			amount: <T as pallet_assets::Config>::Balance,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
+
+			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::burn_from(
+				asset_id, &who, amount,
+			)?;
+			Self::deposit_event(Event::ForceBurn {
+				asset_id,
+				who,
+				amount,
+			});
 			Ok(())
 		}
 
@@ -751,6 +807,58 @@ pub mod pallet {
 				));
 				assert_eq!(Assets::balance(0u32.into(), &fund_account), 1_000 - 10);
 				assert_eq!(Assets::balance(0u32.into(), &recipient), 10);
+			});
+		}
+
+		#[test]
+		fn test_force_mint_burn_asset() {
+			new_test_ext().execute_with(|| {
+				let recipient: AccountId32 =
+					MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec())))
+						.into_account()
+						.into();
+				let asset_location = MultiLocation::new(1, Here);
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					asset_location.clone().into(),
+					0,
+					assets_registry::AssetProperties {
+						name: b"Kusama".to_vec(),
+						symbol: b"KSM".to_vec(),
+						decimals: 12,
+					},
+				));
+				assert_eq!(Assets::balance(0u32.into(), &recipient), 0);
+				// Force mint
+				assert_ok!(AssetsRegistry::force_mint(
+					Origin::root(),
+					0,
+					recipient.clone(),
+					100,
+				));
+				assert_events(vec![Event::AssetsRegistry(
+					assets_registry::Event::ForceMint {
+						asset_id: 0u32.into(),
+						beneficiary: recipient.clone(),
+						amount: 100,
+					},
+				)]);
+				assert_eq!(Assets::balance(0u32.into(), &recipient), 100);
+				// Force burn
+				assert_ok!(AssetsRegistry::force_burn(
+					Origin::root(),
+					0,
+					recipient.clone(),
+					50,
+				));
+				assert_events(vec![Event::AssetsRegistry(
+					assets_registry::Event::ForceBurn {
+						asset_id: 0u32.into(),
+						who: recipient.clone(),
+						amount: 50,
+					},
+				)]);
+				assert_eq!(Assets::balance(0u32.into(), &recipient), 50);
 			});
 		}
 
