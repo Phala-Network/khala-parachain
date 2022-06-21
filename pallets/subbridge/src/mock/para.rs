@@ -153,7 +153,7 @@ impl pallet_parachain_info::Config for Runtime {}
 
 parameter_types! {
 	pub const TestChainBridgeChainId: u8 = 5;
-	pub const TestWanBridgeChainId: u8 = 5;
+	pub const TestWanBridgeChainId: u128 = 5;
 	pub const WanBridgeNativeTokenPair: u32 = 0;
 	pub const ProposalLifetime: u64 = 100;
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;

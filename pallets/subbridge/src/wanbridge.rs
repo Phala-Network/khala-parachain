@@ -53,7 +53,7 @@ pub mod pallet {
 		/// The identifier for this chain.
 		/// This must be unique and must not collide with existing IDs within a set of bridged chains.
 		#[pallet::constant]
-		type CurrentChainId: Get<u8>;
+		type CurrentChainId: Get<u128>;
 
 		type Currency: Currency<Self::AccountId>;
 
