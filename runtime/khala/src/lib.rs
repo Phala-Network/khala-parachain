@@ -295,6 +295,15 @@ impl Contains<Call> for BaseCallFilter {
             };
         }
 
+        if let Call::AssetsRegistry(ar_method) = call {
+            return match ar_method {
+                | assets_registry::Call::force_mint { .. }
+                | assets_registry::Call::force_burn { .. }
+                | assets_registry::Call::__Ignore { .. } => false,
+                _ => true,
+            };
+        }
+
         if let Call::Assets(assets_method) = call {
             return match assets_method {
                 pallet_assets::Call::create { .. }
@@ -334,7 +343,6 @@ impl Contains<Call> for BaseCallFilter {
             // Parachain
             Call::ParachainSystem { .. } |
             // Monetary
-            Call::AssetsRegistry { .. } |
             Call::Balances { .. }  |
             Call::ChainBridge { .. } |
             Call::XTransfer { .. } |
