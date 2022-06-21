@@ -391,6 +391,10 @@ impl wanbridge::Config for Runtime {
 		FungiblesTransactor,
 		XTransfer,
 		assets_registry::NativeAssetFilter<ParachainInfo>,
+		assets_registry::ReserveAssetFilter<
+			ParachainInfo,
+			assets_registry::NativeAssetFilter<ParachainInfo>,
+		>,
 	>;
 	type AssetsRegistry = AssetsRegistry;
 }
@@ -399,7 +403,7 @@ impl xtransfer::Config for Runtime {
 	type Event = Event;
 	type Bridge = (
 		xcmbridge::BridgeTransactImpl<Runtime>,
-		chainbridge::BridgeTransactImpl<Runtime>,
 		wanbridge::BridgeTransactImpl<Runtime>,
+		chainbridge::BridgeTransactImpl<Runtime>,
 	);
 }
