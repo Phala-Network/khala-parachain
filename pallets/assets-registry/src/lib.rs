@@ -342,6 +342,7 @@ pub mod pallet {
 		BridgeAlreadyEnabled,
 		BridgeAlreadyDisabled,
 		FailedToTransactAsset,
+		DuplictedLocation,
 	}
 
 	#[pallet::call]
@@ -564,6 +565,57 @@ pub mod pallet {
 
 		#[pallet::weight(195_000_000)]
 		#[transactional]
+		pub fn force_set_location(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			location: MultiLocation,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
+
+			ensure!(
+				IdByLocations::<T>::get(&location) == None,
+				Error::<T>::DuplictedLocation,
+			);
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			// Migrate ChainBridge config
+			for item in info.enabled_bridges.iter_mut() {
+				match item.config {
+					XBridgeConfig::ChainBridge {
+						chain_id: cid,
+						resource_id: old_rid,
+						reserve_account,
+						is_mintable,
+					} => {
+						let new_rid: [u8; 32] = location.clone().into_rid(cid);
+						IdByResourceId::<T>::remove(&old_rid);
+						IdByResourceId::<T>::insert(&new_rid, &asset_id);
+						// Update corresponding config
+						item.config = XBridgeConfig::ChainBridge {
+							chain_id: cid,
+							resource_id: new_rid,
+							reserve_account,
+							is_mintable,
+						};
+					}
+					_ => {}
+				}
+			}
+
+			// Migratte storage IDByLocations
+			IdByLocations::<T>::remove(&info.location);
+			IdByLocations::<T>::insert(&location, asset_id);
+
+			// Migrate other registry info
+			info.location = location.clone();
+			info.reserve_location = location.clone().reserve_location();
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
+
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		#[transactional]
 		pub fn force_enable_chainbridge(
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
@@ -738,8 +790,8 @@ pub mod pallet {
 	mod tests {
 		use crate as assets_registry;
 		use assets_registry::{
-			mock::*, AccountId32Conversion, AssetProperties, GetAssetRegistryInfo,
-			ASSETS_REGISTRY_ID,
+			mock::*, AccountId32Conversion, AssetProperties, ExtractReserveLocation,
+			GetAssetRegistryInfo, IntoResourceId, ASSETS_REGISTRY_ID,
 		};
 		use frame_support::{assert_noop, assert_ok};
 		use sp_runtime::{traits::AccountIdConversion, AccountId32, DispatchError};
@@ -1139,6 +1191,164 @@ pub mod pallet {
 					))
 				);
 			})
+		}
+
+		#[test]
+		fn test_set_unregistered_asset_location_should_fialed() {
+			new_test_ext().execute_with(|| {
+				assert_noop!(
+					AssetsRegistry::force_set_location(
+						Origin::root(),
+						0,
+						MultiLocation::new(1, Here).into(),
+					),
+					assets_registry::Error::<Test>::AssetNotRegistered
+				);
+			});
+		}
+
+		#[test]
+		fn test_set_duplicated_location_should_fialed() {
+			new_test_ext().execute_with(|| {
+				let para_a_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(1)),
+				};
+				let para_b_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(2)),
+				};
+
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_a_location.clone().into(),
+					0,
+					AssetProperties {
+						name: b"ParaAAsset".to_vec(),
+						symbol: b"PAA".to_vec(),
+						decimals: 12,
+					},
+				));
+
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_b_location.clone().into(),
+					1,
+					AssetProperties {
+						name: b"ParaBAsset".to_vec(),
+						symbol: b"PBA".to_vec(),
+						decimals: 12,
+					},
+				));
+
+				assert_noop!(
+					AssetsRegistry::force_set_location(Origin::root(), 0, para_b_location,),
+					assets_registry::Error::<Test>::DuplictedLocation
+				);
+			});
+		}
+
+		#[test]
+		fn test_set_location_without_bridge_enabled() {
+			new_test_ext().execute_with(|| {
+				let para_a_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(1)),
+				};
+				let para_b_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(2)),
+				};
+
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_a_location.clone().into(),
+					0,
+					AssetProperties {
+						name: b"ParaAAsset".to_vec(),
+						symbol: b"PAA".to_vec(),
+						decimals: 12,
+					},
+				));
+
+				assert_ok!(AssetsRegistry::force_set_location(
+					Origin::root(),
+					0,
+					para_b_location.clone(),
+				));
+				// Check id with new location
+				assert_eq!(AssetsRegistry::id(&para_b_location).unwrap(), 0u32);
+				// Check registry info
+				assert_eq!(
+					assets_registry::RegistryInfoByIds::<Test>::get(0)
+						.unwrap()
+						.location,
+					para_b_location.clone()
+				);
+				assert_eq!(
+					assets_registry::RegistryInfoByIds::<Test>::get(0)
+						.unwrap()
+						.reserve_location,
+					para_b_location.clone().reserve_location()
+				);
+			});
+		}
+
+		#[test]
+		fn test_set_location_with_bridge_enabled() {
+			new_test_ext().execute_with(|| {
+				let para_a_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(1)),
+				};
+				let para_b_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(2)),
+				};
+
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_a_location.clone().into(),
+					0,
+					AssetProperties {
+						name: b"ParaAAsset".to_vec(),
+						symbol: b"PAA".to_vec(),
+						decimals: 12,
+					},
+				));
+				assert_ok!(AssetsRegistry::force_enable_chainbridge(
+					Origin::root(),
+					0,
+					2,
+					false,
+					Box::new(Vec::new()),
+				));
+				assert_ok!(AssetsRegistry::force_set_location(
+					Origin::root(),
+					0,
+					para_b_location.clone(),
+				));
+				// Check id with new location
+				assert_eq!(AssetsRegistry::id(&para_b_location).unwrap(), 0u32);
+				// Check registry info
+				assert_eq!(
+					assets_registry::RegistryInfoByIds::<Test>::get(0)
+						.unwrap()
+						.location,
+					para_b_location.clone()
+				);
+				assert_eq!(
+					assets_registry::RegistryInfoByIds::<Test>::get(0)
+						.unwrap()
+						.reserve_location,
+					para_b_location.clone().reserve_location()
+				);
+				let new_rid: [u8; 32] = para_b_location.clone().into_rid(2);
+				assert_eq!(
+					AssetsRegistry::lookup_by_resource_id(&new_rid).unwrap(),
+					para_b_location
+				);
+			});
 		}
 	}
 }
