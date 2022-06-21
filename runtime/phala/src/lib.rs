@@ -251,8 +251,8 @@ construct_runtime! {
         XTransfer: xtransfer::{Pallet, Call, Storage, Event<T>} = 82,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 83,
 
-        // TODO: Remove sudo in the future
-        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 255,
+        // `sudo` has been removed on production
+        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 255,
     }
 }
 
@@ -288,17 +288,15 @@ impl Contains<Call> for BaseCallFilter {
 
         matches!(
             call,
-            // Sudo
-            Call::Sudo { .. } |
             // System
             Call::System { .. } | Call::Timestamp { .. } | Call::Utility { .. } |
             Call::Multisig { .. } | Call::Proxy { .. } | Call::Scheduler { .. } |
-            // Call::Vesting { .. } | Call::Preimage { .. } |
+            Call::Vesting { .. } | Call::Preimage { .. } |
             // Parachain
             Call::ParachainSystem { .. } |
             // Monetary
             Call::AssetsRegistry { .. } |
-            // Call::Balances { .. }  |
+            Call::Balances { .. }  |
             Call::ChainBridge { .. } |
             Call::XTransfer { .. } |
             // Collator
@@ -511,11 +509,6 @@ impl InstanceFilter<Call> for ProxyType {
             _ => false,
         }
     }
-}
-
-impl pallet_sudo::Config for Runtime {
-    type Call = Call;
-    type Event = Event;
 }
 
 impl pallet_proxy::Config for Runtime {
