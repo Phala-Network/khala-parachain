@@ -322,13 +322,13 @@ pub mod pallet {
 			resource_id: [u8; 32],
 		},
 		/// Force mint asset to an certain account.
-		ForceMint {
+		ForceMinted {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			beneficiary: T::AccountId,
 			amount: <T as pallet_assets::Config>::Balance,
 		},
 		/// Force burn asset from an certain account.
-		ForceBurn {
+		ForceBurnt {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			who: T::AccountId,
 			amount: <T as pallet_assets::Config>::Balance,
@@ -518,7 +518,7 @@ pub mod pallet {
 				&beneficiary,
 				amount,
 			)?;
-			Self::deposit_event(Event::ForceMint {
+			Self::deposit_event(Event::ForceMinted {
 				asset_id,
 				beneficiary,
 				amount,
@@ -539,7 +539,7 @@ pub mod pallet {
 			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::burn_from(
 				asset_id, &who, amount,
 			)?;
-			Self::deposit_event(Event::ForceBurn {
+			Self::deposit_event(Event::ForceBurnt {
 				asset_id,
 				who,
 				amount,
@@ -889,7 +889,7 @@ pub mod pallet {
 					100,
 				));
 				assert_events(vec![Event::AssetsRegistry(
-					assets_registry::Event::ForceMint {
+					assets_registry::Event::ForceMinted {
 						asset_id: 0u32.into(),
 						beneficiary: recipient.clone(),
 						amount: 100,
@@ -904,7 +904,7 @@ pub mod pallet {
 					50,
 				));
 				assert_events(vec![Event::AssetsRegistry(
-					assets_registry::Event::ForceBurn {
+					assets_registry::Event::ForceBurnt {
 						asset_id: 0u32.into(),
 						who: recipient.clone(),
 						amount: 50,
