@@ -358,6 +358,7 @@ pub mod pallet {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			who: T::AccountId,
 			amount: <T as pallet_assets::Config>::Balance,
+		},
 		/// Asset enabled wanbridge.
 		WanbridgeEnabled {
 			asset_id: <T as pallet_assets::Config>::AssetId,
