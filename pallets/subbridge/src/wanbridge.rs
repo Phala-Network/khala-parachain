@@ -93,6 +93,7 @@ pub mod pallet {
 		/// Relayer added to set
 		StoreManAdded {
 			account: T::AccountId,
+			smg_id: [u8; 32],
 		},
 		/// Relayer removed from set
 		StoreManRemoved {
@@ -128,6 +129,8 @@ pub mod pallet {
 		StoremanNotExisted,
 		DuplicateSourceTx,
 		MustBeStoreMan,
+		MissingSmgId,
+		SmgIdMismatch,
 		/// Missing fee specification
 		FeePaymentEmpty,
 		/// Asset not been registered or not been supported
@@ -149,6 +152,10 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn storemans)]
 	pub type StoreMans<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, bool, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn smg_ids)]
+	pub type SmgIds<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, [u8; 32]>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn source_txs)]
@@ -216,7 +223,11 @@ pub mod pallet {
 
 		/// Mark account as storeman on chain
 		#[pallet::weight(195_000_000)]
-		pub fn add_storeman(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
+		pub fn add_storeman(
+			origin: OriginFor<T>,
+			account: T::AccountId,
+			smg_id: [u8; 32],
+		) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
 
 			ensure!(
@@ -224,8 +235,9 @@ pub mod pallet {
 				Error::<T>::StoremanAlreadyExisted
 			);
 			StoreMans::<T>::insert(&account, true);
+			SmgIds::<T>::insert(&account, smg_id);
 
-			Self::deposit_event(Event::StoreManAdded { account });
+			Self::deposit_event(Event::StoreManAdded { account, smg_id });
 			Ok(())
 		}
 
@@ -239,6 +251,7 @@ pub mod pallet {
 				Error::<T>::StoremanNotExisted
 			);
 			StoreMans::<T>::insert(&account, false);
+			SmgIds::<T>::remove(&account);
 
 			Self::deposit_event(Event::StoreManRemoved { account });
 			Ok(())
@@ -249,7 +262,7 @@ pub mod pallet {
 		#[transactional]
 		pub fn handle_fungible_transfer(
 			origin: OriginFor<T>,
-			_smg_id: [u8; 32],
+			smg_id: [u8; 32],
 			token_pair: u32,
 			src_chainid: U256,
 			amount: BalanceOf<T>,
@@ -262,7 +275,8 @@ pub mod pallet {
 			// Make sure we haven't handled this incomming transfer
 			ensure!(!SourceTxs::<T>::get(&tx_id), Error::<T>::DuplicateSourceTx);
 
-			// TODO.wf: check according to smg_id
+			let onchain_smg_id = SmgIds::<T>::get(&who).ok_or(Error::<T>::MissingSmgId)?;
+			ensure!(onchain_smg_id == smg_id, Error::<T>::SmgIdMismatch);
 
 			let src_chainid = TryInto::<u128>::try_into(src_chainid)
 				.map_err(|_| Error::<T>::CannotDetermineReservedLocation)?;
@@ -453,6 +467,21 @@ pub mod pallet {
 			}
 			// TODO: Calculate NonFungible asset fee
 		}
+
+		fn select_smg_id() -> Option<[u8; 32]> {
+			let mut smg_id = None;
+			let mut has_done = false;
+			StoreMans::<T>::iter().map(|(account, is_valid)| {
+				// Use the first valid storeman
+				if is_valid && !has_done {
+					smg_id = SmgIds::<T>::get(&account).and_then(|id| {
+						has_done = true;
+						Some(id)
+					});
+				}
+			});
+			smg_id
+		}
 	}
 
 	impl<T: Config> BridgeChecker for Pallet<T>
@@ -528,6 +557,9 @@ pub mod pallet {
 				Pallet::<T>::can_deposit_asset(asset.clone(), dest.clone()),
 				Error::<T>::CannotDepositAsset
 			);
+
+			// Select the smg_id we gonna use for this transaction
+			let smg_id = Pallet::<T>::select_smg_id().ok_or(Error::<T>::MissingSmgId)?;
 
 			let (asset_location, amount) = Pallet::<T>::extract_fungible(asset.clone())
 				.ok_or(Error::<T>::ExtractAssetFailed)?;
@@ -611,8 +643,6 @@ pub mod pallet {
 			}
 
 			// Notify storeman the crosschain transfer
-			// TODO.wf: Put right smg id here
-			let smg_id = [0; 32];
 			let token_pair = Pallet::<T>::multiasset_to_tokenpair(&asset)?;
 			Pallet::<T>::deposit_event(Event::FungibleTransfer {
 				smg_id,
