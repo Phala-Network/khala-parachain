@@ -513,7 +513,7 @@ pub mod pallet {
 						return false;
 					}
 
-					// Verify if asset was enabled chainbridge transfer if is not native
+					// Verify if asset was enabled wanbridge transfer if is not native
 					if !T::NativeAssetChecker::is_native_asset(&asset)
 						&& Self::multiasset_to_tokenpair(&asset).is_err()
 					{
