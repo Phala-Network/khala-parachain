@@ -468,18 +468,22 @@ pub mod pallet {
 			// TODO: Calculate NonFungible asset fee
 		}
 
-		fn select_smg_id() -> Option<[u8; 32]> {
+		/// Pick smgid from storage in no particular order
+		fn pick_smgid() -> Option<[u8; 32]> {
 			let mut smg_id = None;
 			let mut has_done = false;
-			StoreMans::<T>::iter().map(|(account, is_valid)| {
-				// Use the first valid storeman
-				if is_valid && !has_done {
-					smg_id = SmgIds::<T>::get(&account).and_then(|id| {
-						has_done = true;
-						Some(id)
-					});
-				}
-			});
+			// We need a consumer to let layzer iterator be executed
+			let _: Vec<()> = StoreMans::<T>::iter()
+				.map(|(account, is_valid)| {
+					// Use the first valid storeman
+					if is_valid && !has_done {
+						smg_id = SmgIds::<T>::get(&account).and_then(|id| {
+							has_done = true;
+							Some(id)
+						});
+					}
+				})
+				.collect();
 			smg_id
 		}
 	}
@@ -559,7 +563,7 @@ pub mod pallet {
 			);
 
 			// Select the smg_id we gonna use for this transaction
-			let smg_id = Pallet::<T>::select_smg_id().ok_or(Error::<T>::MissingSmgId)?;
+			let smg_id = Pallet::<T>::pick_smgid().ok_or(Error::<T>::MissingSmgId)?;
 
 			let (asset_location, amount) = Pallet::<T>::extract_fungible(asset.clone())
 				.ok_or(Error::<T>::ExtractAssetFailed)?;
