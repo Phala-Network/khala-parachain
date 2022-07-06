@@ -98,7 +98,9 @@ pub use parachains_common::Index;
 pub use parachains_common::*;
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
-pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
+pub use phala_pallets::{
+    pallet_mining, pallet_mq, pallet_registry, pallet_stakepool, pallet_fat,
+};
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
     xcmbridge, xtransfer,
@@ -263,6 +265,7 @@ construct_runtime! {
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
+        PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 91,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` was used in Khala, we avoid to use the index
@@ -1527,6 +1530,9 @@ impl pallet_stakepool::Config for Runtime {
     type OnSlashed = Treasury;
     type MiningSwitchOrigin = EnsureRootOrHalfCouncil;
     type BackfillOrigin = EnsureRootOrHalfCouncil;
+}
+impl pallet_fat::Config for Runtime {
+    type Event = Event;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
