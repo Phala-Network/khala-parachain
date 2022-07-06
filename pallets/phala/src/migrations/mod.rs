@@ -10,11 +10,11 @@ type MiningBalanceOf<T> =
 
 /// Alias for the runtime that implements all Phala Pallets
 pub trait PhalaPallets:
-	mining::Config + mq::Config + registry::Config + stakepool::Config
+	fat::Config + mining::Config + mq::Config + registry::Config + stakepool::Config
 {
 }
 impl<T> PhalaPallets for T where
-	T: mining::Config + mq::Config + registry::Config + stakepool::Config
+	T: fat::Config + mining::Config + mq::Config + registry::Config + stakepool::Config
 {
 }
 
@@ -23,10 +23,12 @@ type Versions = (
 	StorageVersion,
 	StorageVersion,
 	StorageVersion,
+	StorageVersion,
 );
 
 fn get_versions<T: PhalaPallets>() -> Versions {
 	(
+		StorageVersion::get::<fat::Pallet<T>>(),
 		StorageVersion::get::<mining::Pallet<T>>(),
 		StorageVersion::get::<mq::Pallet<T>>(),
 		StorageVersion::get::<registry::Pallet<T>>(),
@@ -40,10 +42,12 @@ fn unified_versions<T: PhalaPallets>(version: u16) -> Versions {
 		StorageVersion::new(version),
 		StorageVersion::new(version),
 		StorageVersion::new(version),
+		StorageVersion::new(version),
 	)
 }
 
 fn set_unified_versoin<T: PhalaPallets>(version: u16) {
+	StorageVersion::new(version).put::<fat::Pallet<T>>();
 	StorageVersion::new(version).put::<mining::Pallet<T>>();
 	StorageVersion::new(version).put::<mq::Pallet<T>>();
 	StorageVersion::new(version).put::<registry::Pallet<T>>();
