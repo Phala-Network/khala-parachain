@@ -887,7 +887,7 @@ impl pallet_rmrk_market::Config for Runtime {
 }
 
 parameter_types! {
-    pub const SecondsPerEra: u64 = 86_400;
+    pub const SecondsPerEra: u64 = 28_800; // 8 hours
     pub const MinBalanceToClaimSpirit: Balance = 10 * DOLLARS;
     pub const LegendaryOriginOfShellPrice: Balance = 15_000 * DOLLARS;
     pub const MagicOriginOfShellPrice: Balance = 10_000 * DOLLARS;
