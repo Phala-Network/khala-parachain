@@ -2,7 +2,7 @@
 authors = ["Phala Network"]
 edition = "2021"
 name = "phala-pallets"
-version = "4.0.0"
+version = "4.1.0"
 license = "Apache 2.0"
 homepage = "https://phala.network/"
 repository = "https://github.com/Phala-Network/phala-blockchain"
@@ -28,7 +28,13 @@ log = { version = "0.4.14", default-features = false }
 
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 
-phala-types = { path = "../../crates/phala-types", default-features = false }
+# RMRK dependencies
+pallet-rmrk-core = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.24", default-features = false }
+pallet-rmrk-equip = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.24", default-features = false }
+pallet-rmrk-market = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.24", default-features = false }
+rmrk-traits = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.24", default-features = false }
+
+phala-types = { default-features = false, path = "../../crates/phala-types" }
 chrono = { version = "0.4", default-features = false }
 untrusted = { version = "0.7" }
 base64 = { version = "0.11", default-features = false, features = ["alloc"] }
@@ -36,7 +42,7 @@ hex = { version = "0.4", default-features = false }
 hex-literal = "0.3.1"
 serde_json = { version = "1.0.41", default-features = false, features = ["alloc"] }
 fixed = { version = "1.9", default-features = false }
-fixed-macro = { git = "https://github.com/kvinwang/fixed-macro", version = "1.1", default-features = false }
+fixed-macro = { version = "1.1", default-features = false, git = "https://github.com/kvinwang/fixed-macro" }
 fixed-sqrt = { version = "0.2", default-features = false }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -66,6 +72,10 @@ std = [
 	"pallet-balances/std",
 	"log/std",
 	"phala-types/enable_serde",
+	"pallet-rmrk-core/std",
+	"pallet-rmrk-equip/std",
+	"pallet-rmrk-market/std",
+	"rmrk-traits/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks"

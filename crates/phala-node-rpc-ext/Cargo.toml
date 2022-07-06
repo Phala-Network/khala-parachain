@@ -28,9 +28,10 @@ sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "pol
 sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
 sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
 
-phala-mq = { path = "../phala-mq" }
+phala-mq = { path = "../../crates/phala-mq" }
 phala-pallets = { path = "../../pallets/phala" }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api" }
 ext-types = { path = "./types", package = "phala-node-rpc-ext-types" }
 
 rayon = "1"
+
