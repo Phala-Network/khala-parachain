@@ -128,8 +128,14 @@ pub mod pallet {
 		ShellCollectionIdSet { collection_id: CollectionId },
 		/// Shell has been awakened from an origin_of_shell being hatched and burned
 		ShellAwakened {
-			collection_id: CollectionId,
-			nft_id: NftId,
+			shell_collection_id: CollectionId,
+			shell_nft_id: NftId,
+			rarity: RarityType,
+			career: CareerType,
+			race: RaceType,
+			generation_id: GenerationId,
+			origin_of_shell_collection_id: CollectionId,
+			origin_of_shell_nft_id: NftId,
 			owner: T::AccountId,
 		},
 	}
@@ -431,8 +437,14 @@ pub mod pallet {
 			)?;
 
 			Self::deposit_event(Event::ShellAwakened {
-				collection_id: shell_collection_id,
-				nft_id: shell_nft_id,
+				shell_collection_id,
+				shell_nft_id,
+				rarity: rarity_type,
+				career: career_type,
+				race: race_type,
+				generation_id,
+				origin_of_shell_collection_id: collection_id,
+				origin_of_shell_nft_id: nft_id,
 				owner,
 			});
 

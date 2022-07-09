@@ -302,6 +302,7 @@ fn purchase_rare_origin_of_shell_works() {
 				owner: ALICE,
 				race: RaceType::AISpectre,
 				career: CareerType::HackerWizard,
+				generation_id: 0,
 			},
 		));
 		// BOB tries to buy Legendary Origin of Shell but not enough funds
@@ -330,6 +331,7 @@ fn purchase_rare_origin_of_shell_works() {
 				owner: BOB,
 				race: RaceType::Cyborg,
 				career: CareerType::HardwareDruid,
+				generation_id: 0,
 			},
 		));
 		// CHARLIE tries to purchase Prime origin of shell and fails
@@ -358,6 +360,7 @@ fn purchase_rare_origin_of_shell_works() {
 				owner: CHARLIE,
 				race: RaceType::Pandroid,
 				career: CareerType::HackerWizard,
+				generation_id: 0,
 			},
 		));
 		// Check Balances of ALICE and BOB
@@ -432,6 +435,7 @@ fn purchase_prime_origin_of_shell_works() {
 				owner: BOB,
 				race: RaceType::AISpectre,
 				career: CareerType::HackerWizard,
+				generation_id: 0,
 			},
 		));
 		// BOB cannot purchase another Origin of Shell
@@ -1584,8 +1588,14 @@ fn can_hatch_origin_of_shell() {
 		));
 		System::assert_last_event(MockEvent::PWIncubation(
 			crate::pallet_pw_incubation::Event::ShellAwakened {
-				collection_id: 2u32,
-				nft_id: 0u32,
+				shell_collection_id: 2u32,
+				shell_nft_id: 0u32,
+				origin_of_shell_collection_id: 1u32,
+				origin_of_shell_nft_id: 2u32,
+				rarity: RarityType::Prime,
+				race: RaceType::AISpectre,
+				career: CareerType::HackerWizard,
+				generation_id: 0,
 				owner: ALICE,
 			},
 		));
