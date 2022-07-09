@@ -297,6 +297,7 @@ pub mod pallet {
 			owner: T::AccountId,
 			race: RaceType,
 			career: CareerType,
+			generation_id: GenerationId,
 		},
 		/// Spirit collection id was set
 		SpiritCollectionIdSet { collection_id: CollectionId },
@@ -1454,6 +1455,7 @@ where
 			owner: sender,
 			race,
 			career,
+			generation_id: generation,
 		});
 
 		Ok(())
