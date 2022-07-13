@@ -98,9 +98,7 @@ pub use parachains_common::Index;
 pub use parachains_common::*;
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
-pub use phala_pallets::{
-    pallet_mining, pallet_mq, pallet_registry, pallet_stakepool, pallet_fat,
-};
+pub use phala_pallets::{pallet_fat, pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
     xcmbridge, xtransfer,
@@ -325,6 +323,10 @@ impl Contains<Call> for BaseCallFilter {
         if let Call::RmrkCore(rmrk_core_method) = call {
             return match rmrk_core_method {
                 pallet_rmrk_core::Call::change_collection_issuer { .. }
+                | pallet_rmrk_core::Call::add_basic_resource { .. }
+                | pallet_rmrk_core::Call::accept_resource { .. }
+                | pallet_rmrk_core::Call::remove_resource { .. }
+                | pallet_rmrk_core::Call::accept_resource_removal { .. }
                 | pallet_rmrk_core::Call::__Ignore { .. } => true,
                 _ => false,
             };

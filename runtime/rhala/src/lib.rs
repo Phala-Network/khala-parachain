@@ -321,6 +321,10 @@ impl Contains<Call> for BaseCallFilter {
         if let Call::RmrkCore(rmrk_core_method) = call {
             return match rmrk_core_method {
                 pallet_rmrk_core::Call::change_collection_issuer { .. }
+                | pallet_rmrk_core::Call::add_basic_resource { .. }
+                | pallet_rmrk_core::Call::accept_resource { .. }
+                | pallet_rmrk_core::Call::remove_resource { .. }
+                | pallet_rmrk_core::Call::accept_resource_removal { .. }
                 | pallet_rmrk_core::Call::__Ignore { .. } => true,
                 _ => false,
             };
