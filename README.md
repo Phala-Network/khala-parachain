@@ -25,7 +25,8 @@ cargo build --release
 2. Prepare binaries
 
 > You can get latest Polkadot Linux release from https://github.com/paritytech/polkadot/releases
-> for macOS, you have to build from source
+> 
+> For macOS, you have to build from source
 
 ```bash
 cp <path-to-polkadot> ./polkadot-launch/bin/
@@ -40,9 +41,11 @@ yarn
 yarn start ./thala_dev.config.json
 ```
 
-4. (Optional) Inject session key if necessary. Please make sure to use the correct session key json file.
+4. (Optional) Inject session key.
 
 > Only required for `*_local.config.json`
+
+Please make sure to use the correct session key json file.
 
 ```bash
 cd scripts/js
