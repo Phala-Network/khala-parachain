@@ -4,7 +4,7 @@ use super::*;
 
 use crate::mock::*;
 use codec::Encode;
-use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::Currency, BoundedVec};
+use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::Currency};
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use crate::traits::{
@@ -13,50 +13,25 @@ use crate::traits::{
 };
 use mock::{Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
 
-/// Turns a string into a BoundedVec
-fn stb(s: &str) -> BoundedVec<u8, StringLimit> {
-	s.as_bytes().to_vec().try_into().unwrap()
-}
-
-/// Turns a string into a BoundedVec
-fn stbk(s: &str) -> BoundedVec<u8, KeyLimit> {
-	s.as_bytes().to_vec().try_into().unwrap()
-}
-
-/// Turns a string into a Vec
-fn stv(s: &str) -> Vec<u8> {
-	s.as_bytes().to_vec()
-}
-
 macro_rules! bvec {
 	($( $x:tt )*) => {
 		vec![$( $x )*].try_into().unwrap()
 	}
 }
 
-fn metadata_accounts(
-	mut alice_metadata: BoundedVec<u8, StringLimit>,
-	mut bob_metadata: BoundedVec<u8, StringLimit>,
-	mut charlie_metadata: BoundedVec<u8, StringLimit>,
-) {
-	alice_metadata = stb("I am ALICE");
-	bob_metadata = stb("I am BOB");
-	charlie_metadata = stb("I am CHARLIE");
-}
-
 fn mint_collection(account: AccountId32) {
 	// Mint Spirits collection
-	RmrkCore::create_collection(
+	assert_ok!(RmrkCore::create_collection(
 		Origin::signed(account),
 		bvec![0u8; 20],
 		Some(5),
 		bvec![0u8; 15],
-	);
+	));
 }
 
 fn mint_spirit(account: AccountId32, spirit_signature: Option<sr25519::Signature>) {
 	let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
-	if let Some(spirit_signature) = spirit_signature {
+	if let Some(_spirit_signature) = spirit_signature {
 		let message = OverlordMessage {
 			account: account.clone(),
 			purpose: Purpose::RedeemSpirit,
@@ -200,7 +175,6 @@ fn claimed_spirit_works() {
 #[test]
 fn claimed_spirit_twice_fails() {
 	ExtBuilder::default().build(ALICE).execute_with(|| {
-		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
 		//let overlord_pub = overlord_pair.public();
 		// Set Overlord and configuration then enable spirits to be claimed
 		setup_config(StatusType::ClaimSpirits);
@@ -374,16 +348,10 @@ fn purchase_rare_origin_of_shell_works() {
 fn purchase_prime_origin_of_shell_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
 		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
-		let bob_pair = sr25519::Pair::from_seed(b"09876543210987654321098765432109");
 		// let overlord_pub = overlord_pair.public();
 		// Set Overlord and configuration then enable spirits to be claimed
 		setup_config(StatusType::PurchasePrimeOriginOfShells);
 		// Sign BOB's Public Key and Metadata encoding with OVERLORD account
-		// Set metadata for buyers
-		let mut alice_metadata = BoundedVec::default();
-		let mut bob_metadata = BoundedVec::default();
-		let mut charlie_metadata = BoundedVec::default();
-		metadata_accounts(alice_metadata, bob_metadata.clone(), charlie_metadata);
 		let bob_message = OverlordMessage {
 			account: BOB,
 			purpose: Purpose::BuyPrimeOriginOfShells,
@@ -454,7 +422,6 @@ fn purchase_prime_origin_of_shell_works() {
 #[test]
 fn preorder_origin_of_shell_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
-		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
 		// Set Overlord and configuration then enable preorder origin of shells
 		setup_config(StatusType::PreorderOriginOfShells);
 		mint_spirit(ALICE, None);
@@ -503,7 +470,6 @@ fn preorder_origin_of_shell_works() {
 #[test]
 fn preorder_origin_of_shell_works_2() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
-		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
 		// Set Overlord and configuration then enable preorder origin of shells
 		setup_config(StatusType::PreorderOriginOfShells);
 		mint_spirit(ALICE, None);
@@ -575,7 +541,6 @@ fn preorder_origin_of_shell_works_2() {
 #[test]
 fn mint_preorder_origin_of_shell_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
-		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
 		// Set Overlord and configuration then enable preorder origin of shells
 		setup_config(StatusType::PreorderOriginOfShells);
 		mint_spirit(ALICE, None);
@@ -650,7 +615,6 @@ fn mint_preorder_origin_of_shell_works() {
 #[test]
 fn claim_refund_preorder_origin_of_shell_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
-		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
 		// Set Overlord and configuration then enable preorder origin of shells
 		setup_config(StatusType::PreorderOriginOfShells);
 		mint_spirit(ALICE, None);
@@ -728,7 +692,6 @@ fn claim_refund_preorder_origin_of_shell_works() {
 #[test]
 fn last_day_preorder_origin_of_shell_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
-		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
 		// Set Overlord and configuration then enable preorder origin of shells
 		setup_config(StatusType::PreorderOriginOfShells);
 		mint_spirit(ALICE, None);
@@ -814,7 +777,6 @@ fn last_day_preorder_origin_of_shell_works() {
 #[test]
 fn mint_gift_origin_of_shell_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
-		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
 		// Set Overlord and configuration then enable preorder origin of shells
 		setup_config(StatusType::PreorderOriginOfShells);
 		mint_spirit(ALICE, None);
