@@ -349,10 +349,15 @@ impl SubstrateCli for Cli {
 
     fn native_runtime_version(chain_spec: &Box<dyn sc_service::ChainSpec>) -> &'static RuntimeVersion {
         match chain_spec.runtime_name().as_str() {
+            #[cfg(feature = "phala-native")]
             "phala" => &phala_parachain_runtime::VERSION,
+            #[cfg(feature = "khala-native")]
             "khala" => &khala_parachain_runtime::VERSION,
+            #[cfg(feature = "rhala-native")]
             "rhala" => &rhala_parachain_runtime::VERSION,
+            #[cfg(feature = "thala-native")]
             "thala" => &thala_parachain_runtime::VERSION,
+            #[cfg(feature = "shell-native")]
             "shell" => &shell_parachain_runtime::VERSION,
             _ => panic!("Can not determine runtime"),
         }
@@ -479,35 +484,45 @@ macro_rules! construct_async_run {
 
 /// Creates partial components for the runtimes that are supported by the benchmarks.
 macro_rules! construct_benchmark_partials {
-    ($config:expr, |$partials:ident| $code:expr) => {
+    ($config:expr, |$partials:ident| $code:expr) => {{
+        #[cfg(feature = "phala-native")]
         if $config.chain_spec.is_phala() {
             let $partials = new_partial::<phala_parachain_runtime::RuntimeApi, _>(
                 &$config,
                 crate::service::phala::parachain_build_import_queue,
             )?;
-            $code
-        } else if $config.chain_spec.is_khala() {
+            return $code
+        }
+
+        #[cfg(feature = "khala-native")]
+        if $config.chain_spec.is_khala() {
             let $partials = new_partial::<khala_parachain_runtime::RuntimeApi, _>(
                 &$config,
                 crate::service::khala::parachain_build_import_queue,
             )?;
-            $code
-        } else if $config.chain_spec.is_rhala() {
+            return $code
+        }
+
+        #[cfg(feature = "rhala-native")]
+        if $config.chain_spec.is_rhala() {
             let $partials = new_partial::<rhala_parachain_runtime::RuntimeApi, _>(
                 &$config,
                 crate::service::rhala::parachain_build_import_queue,
             )?;
-            $code
-        } else if $config.chain_spec.is_thala() {
+            return $code
+        }
+
+        #[cfg(feature = "thala-native")]
+        if $config.chain_spec.is_thala() {
             let $partials = new_partial::<thala_parachain_runtime::RuntimeApi, _>(
                 &$config,
                 crate::service::thala::parachain_build_import_queue,
             )?;
-            $code
-        } else {
-            Err("The chain is not supported".into())
+            return $code
         }
-    };
+
+        Err("The chain is not supported".into())
+    }};
 }
 
 /// Parse command line arguments into service configuration.
@@ -612,26 +627,37 @@ pub fn run() -> Result<()> {
 
             // Switch on the concrete benchmark sub-commands
             match cmd {
-                BenchmarkCmd::Pallet(cmd) =>
+                BenchmarkCmd::Pallet(cmd) => {
                     if cfg!(feature = "runtime-benchmarks") {
                         runner.sync_run(|config| {
+                            #[cfg(feature = "phala-native")]
                             if config.chain_spec.is_phala() {
-                                cmd.run::<Block, crate::service::phala::RuntimeExecutor>(config)
-                            } else if config.chain_spec.is_khala() {
-                                cmd.run::<Block, crate::service::khala::RuntimeExecutor>(config)
-                            } else if config.chain_spec.is_rhala() {
-                                cmd.run::<Block, crate::service::rhala::RuntimeExecutor>(config)
-                            } else if config.chain_spec.is_thala() {
-                                cmd.run::<Block, crate::service::thala::RuntimeExecutor>(config)
-                            } else {
-                                Err("Chain doesn't support benchmarking".into())
+                                return cmd.run::<Block, crate::service::phala::RuntimeExecutor>(config)
                             }
+
+                            #[cfg(feature = "khala-native")]
+                            if config.chain_spec.is_khala() {
+                                return cmd.run::<Block, crate::service::khala::RuntimeExecutor>(config)
+                            }
+
+                            #[cfg(feature = "rhala-native")]
+                            if config.chain_spec.is_rhala() {
+                                return cmd.run::<Block, crate::service::rhala::RuntimeExecutor>(config)
+                            }
+
+                            #[cfg(feature = "thala-native")]
+                            if config.chain_spec.is_thala() {
+                                return cmd.run::<Block, crate::service::thala::RuntimeExecutor>(config)
+                            }
+
+                            Err("Chain doesn't support benchmarking".into())
                         })
                     } else {
                         Err("Benchmarking wasn't enabled when building the node. \
                             You can enable it with `--features runtime-benchmarks`."
                             .into())
-                    },
+                    }
+                },
                 BenchmarkCmd::Block(cmd) => runner.sync_run(|config| {
                     construct_benchmark_partials!(config, |partials| cmd.run(partials.client))
                 }),
