@@ -97,12 +97,12 @@ pub mod pallet {
 		fn reserve_location(&self) -> Option<MultiLocation> {
 			match (self.at(0), self.at(1)) {
 				(Some(GeneralKey(cb_key)), Some(GeneralIndex(chain_id)))
-					if &cb_key == &CB_ASSET_KEY =>
+					if cb_key.clone().into_inner() == CB_ASSET_KEY.to_vec() =>
 				{
 					Some(
 						(
 							0,
-							X2(GeneralKey((&cb_key).to_vec()), GeneralIndex(*chain_id)),
+							X2(GeneralKey(cb_key.clone()), GeneralIndex(*chain_id)),
 						)
 							.into(),
 					)
@@ -637,7 +637,7 @@ pub mod pallet {
 			let reserve_location: MultiLocation = (
 				0,
 				X2(
-					GeneralKey(CB_ASSET_KEY.to_vec()),
+					GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
 					GeneralIndex(chain_id as u128),
 				),
 			)
@@ -799,7 +799,7 @@ pub mod pallet {
 		#[test]
 		fn test_withdraw_fund_of_pha() {
 			let recipient: AccountId32 =
-				MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec())))
+				MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))))
 					.into_account()
 					.into();
 			new_test_ext().execute_with(|| {
@@ -824,7 +824,7 @@ pub mod pallet {
 		#[test]
 		fn test_withdraw_fund_of_asset() {
 			let recipient: AccountId32 =
-				MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec())))
+				MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))))
 					.into_account()
 					.into();
 			let fund_account: <Test as frame_system::Config>::AccountId =
@@ -866,7 +866,7 @@ pub mod pallet {
 		fn test_force_mint_burn_asset() {
 			new_test_ext().execute_with(|| {
 				let recipient: AccountId32 =
-					MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec())))
+					MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))))
 						.into_account()
 						.into();
 				let asset_location = MultiLocation::new(1, Here);

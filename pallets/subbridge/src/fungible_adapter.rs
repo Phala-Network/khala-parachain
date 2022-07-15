@@ -64,7 +64,7 @@ impl<
 
 				// Deposit asset into temporary account, then forward through other bridges
 				let temporary_account =
-					MultiLocation::new(0, X1(GeneralKey(b"bridge_transfer".to_vec())))
+					MultiLocation::new(0, X1(GeneralKey(b"bridge_transfer".to_vec().try_into().expect("less than length limit; qed"))))
 						.into_account();
 				if NativeChecker::is_native_asset(what) {
 					NativeAdapter::deposit_asset(
