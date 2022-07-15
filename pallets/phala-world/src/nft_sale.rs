@@ -1535,17 +1535,6 @@ where
 		Ok(())
 	}
 
-	/// Decrement CareerType count for the `career`
-	///
-	/// Parameters:
-	/// - `career`: The Career to increment count
-	fn decrement_career_type(career: CareerType) {
-		CareerTypeCount::<T>::mutate(career, |career_count| {
-			*career_count -= 1;
-			*career_count
-		});
-	}
-
 	/// Increment RaceType count for the `race`
 	///
 	/// Parameters:
