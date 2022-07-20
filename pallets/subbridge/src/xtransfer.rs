@@ -150,8 +150,16 @@ pub mod pallet {
 			// use it as sender, asset will be withdrawn from this account.
 			// TODO: Handle the sitution when forwarding failed. Maybe need to have something like `AssesTrap`
 			// and `AssetsClaim`.
-			let temporary_account =
-				MultiLocation::new(0, X1(GeneralKey(b"bridge_transfer".to_vec().try_into().expect("less than length limit; qed")))).into_account();
+			let temporary_account = MultiLocation::new(
+				0,
+				X1(GeneralKey(
+					b"bridge_transfer"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			)
+			.into_account();
 			Self::do_transfer(
 				temporary_account.into(),
 				what.clone(),
@@ -183,7 +191,7 @@ pub mod pallet {
 		use frame_support::{assert_noop, assert_ok};
 		use polkadot_parachain::primitives::Sibling;
 		use sp_runtime::traits::{AccountIdConversion, ConstU32};
-		use sp_runtime::{AccountId32, bounded_vec, WeakBoundedVec};
+		use sp_runtime::{bounded_vec, AccountId32, WeakBoundedVec};
 
 		use assets_registry::{
 			AccountId32Conversion, AssetProperties, ExtractReserveLocation, IntoResourceId,
@@ -200,8 +208,15 @@ pub mod pallet {
 		fn test_transfer_unregistered_assets_to_parachain_should_failed() {
 			TestNet::reset();
 
-			let unregistered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(b"unregistered".to_vec().try_into().expect("less than length limit; qed"))));
+			let unregistered_asset_location = MultiLocation::new(
+				0,
+				X1(GeneralKey(
+					b"unregistered"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			);
 
 			ParaA::execute_with(|| {
 				// To parachains via Xcm(according to the dest)
@@ -230,8 +245,15 @@ pub mod pallet {
 		fn test_transfer_unregistered_assets_to_solochain_should_failed() {
 			TestNet::reset();
 
-			let unregistered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(b"unregistered".to_vec().try_into().expect("less than length limit; qed"))));
+			let unregistered_asset_location = MultiLocation::new(
+				0,
+				X1(GeneralKey(
+					b"unregistered"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			);
 
 			ParaA::execute_with(|| {
 				// To solo chains via Chainbridge(according to the dest)
@@ -242,9 +264,19 @@ pub mod pallet {
 						Box::new(MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+								GeneralKey(
+									b"cb"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed")
+								),
 								GeneralIndex(0),
-								GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))
+								GeneralKey(
+									b"recipient"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed")
+								)
 							)
 						)),
 						None,
@@ -258,8 +290,15 @@ pub mod pallet {
 		fn test_transfer_by_chainbridge_without_enabled_should_failed() {
 			TestNet::reset();
 
-			let registered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(b"registered".to_vec().try_into().expect("less than length limit; qed"))));
+			let registered_asset_location = MultiLocation::new(
+				0,
+				X1(GeneralKey(
+					b"registered"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			);
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -281,9 +320,19 @@ pub mod pallet {
 						Box::new(MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+								GeneralKey(
+									b"cb"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed")
+								),
 								GeneralIndex(0),
-								GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))
+								GeneralKey(
+									b"recipient"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed")
+								)
 							)
 						)),
 						None,
@@ -297,8 +346,15 @@ pub mod pallet {
 		fn test_transfer_by_chainbridge_without_feeset_should_failed() {
 			TestNet::reset();
 
-			let registered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(b"registered".to_vec().try_into().expect("less than length limit; qed"))));
+			let registered_asset_location = MultiLocation::new(
+				0,
+				X1(GeneralKey(
+					b"registered"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			);
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -329,9 +385,19 @@ pub mod pallet {
 						Box::new(MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+								GeneralKey(
+									b"cb"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed")
+								),
 								GeneralIndex(0),
-								GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))
+								GeneralKey(
+									b"recipient"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed")
+								)
 							)
 						)),
 						None,
@@ -345,8 +411,15 @@ pub mod pallet {
 		fn test_transfer_assets_to_local_should_failed() {
 			TestNet::reset();
 
-			let registered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(b"registered".to_vec().try_into().expect("less than length limit; qed"))));
+			let registered_asset_location = MultiLocation::new(
+				0,
+				X1(GeneralKey(
+					b"registered"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			);
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -401,7 +474,12 @@ pub mod pallet {
 					Box::new(MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+							GeneralKey(
+								b"cb"
+									.to_vec()
+									.try_into()
+									.expect("less than length limit; qed")
+							),
 							GeneralIndex(0),
 							GeneralKey(recipient.clone())
 						)
@@ -435,7 +513,12 @@ pub mod pallet {
 			let dest = MultiLocation::new(
 				0,
 				X3(
-					GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+					GeneralKey(
+						b"cb"
+							.to_vec()
+							.try_into()
+							.expect("less than length limit; qed"),
+					),
 					GeneralIndex(0),
 					GeneralKey(recipient.clone()),
 				),
