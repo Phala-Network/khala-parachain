@@ -1446,6 +1446,7 @@ impl pallet_collator_selection::Config for Runtime {
 parameter_types! {
     pub const BridgeChainId: u8 = 1;
     pub const ProposalLifetime: BlockNumber = 50400; // ~7 days
+    pub const BridgeEventLimit: u32 = 1024;
 }
 
 impl chainbridge::Config for Runtime {
@@ -1469,6 +1470,7 @@ impl chainbridge::Config for Runtime {
         >,
     >;
     type AssetsRegistry = AssetsRegistry;
+    type BridgeEventLimit = BridgeEventLimit;
 }
 
 impl xtransfer::Config for Runtime {

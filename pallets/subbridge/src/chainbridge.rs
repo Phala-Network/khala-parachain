@@ -18,7 +18,7 @@ pub mod pallet {
 	use scale_info::TypeInfo;
 	pub use sp_core::U256;
 	use sp_runtime::{
-		traits::{AccountIdConversion, ConstU32, Dispatchable},
+		traits::{AccountIdConversion, Dispatchable},
 		BoundedVec, RuntimeDebug,
 	};
 
@@ -31,7 +31,6 @@ pub mod pallet {
 
 	const LOG_TARGET: &str = "runtime::chainbridge";
 	const DEFAULT_RELAYER_THRESHOLD: u32 = 1;
-	const MAX_BRIDGE_EVENTS: u32 = 1024;
 	const MODULE_ID: PalletId = PalletId(*b"phala/bg");
 
 	pub type BridgeChainId = u8;
@@ -155,6 +154,10 @@ pub mod pallet {
 
 		/// Fungible assets registry
 		type AssetsRegistry: GetAssetRegistryInfo<<Self as pallet_assets::Config>::AssetId>;
+
+		/// Maximum number of bridge events  allowed to exist in a single block
+		#[pallet::constant]
+		type BridgeEventLimit: Get<u32>;
 	}
 
 	#[pallet::event]
@@ -257,7 +260,7 @@ pub mod pallet {
 		Unimplemented,
 		/// Can not transfer assets to dest due to some reasons
 		CannotDepositAsset,
-		/// Trying to push bridge event count more than `MAX_BRIDGE_EVENTS`
+		/// Trying to push bridge event count more than `BridgeEventLimit`
 		BridgeEventOverflow,
 	}
 
@@ -293,11 +296,10 @@ pub mod pallet {
 		ProposalVotes<T::AccountId, T::BlockNumber>,
 	>;
 
-	/// At most `MAX_BRIDGE_EVENTS` are allowed to exist within a single block
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_events)]
-	pub type BridgeEvents<T> =
-		StorageValue<_, BoundedVec<BridgeEvent, ConstU32<MAX_BRIDGE_EVENTS>>, ValueQuery>;
+	pub type BridgeEvents<T: Config> =
+		StorageValue<_, BoundedVec<BridgeEvent, T::BridgeEventLimit>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_fee)]
@@ -1087,7 +1089,7 @@ pub mod pallet {
 		};
 		use assets_registry::*;
 		use frame_support::{assert_noop, assert_ok};
-		use sp_runtime::{bounded_vec, WeakBoundedVec};
+		use sp_runtime::{bounded_vec, traits::ConstU32, WeakBoundedVec};
 		use xcm_simulator::TestExt;
 
 		pub fn new_test_ext_initialized(

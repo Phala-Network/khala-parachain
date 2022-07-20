@@ -287,6 +287,7 @@ impl Config for XcmConfig {
 }
 parameter_types! {
 	pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
+	pub const BridgeEventLimit: u32 = 1024;
 }
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
 
@@ -368,6 +369,7 @@ impl chainbridge::Config for Runtime {
 		>,
 	>;
 	type AssetsRegistry = AssetsRegistry;
+	type BridgeEventLimit = BridgeEventLimit;
 }
 
 impl xtransfer::Config for Runtime {
