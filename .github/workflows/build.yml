@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -23,19 +27,27 @@ jobs:
           remove-dotnet: "true"
           remove-android: "true"
           remove-haskell: "true"
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2022-07-11
           override: true
           target: wasm32-unknown-unknown
-      - uses: actions/checkout@v3
-        with:
-          submodules: "true"
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
       - name: Build for Cargo test
-        run: cargo test --no-run --verbose --workspace
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-run --all-targets --workspace
       - name: Show disk usage
         if: always()
         run: df -h
       - name: Run Cargo test
-        run: cargo test --verbose --workspace
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-targets --workspace
