@@ -185,8 +185,6 @@ pub mod pallet {
 			ENDOWED_BALANCE,
 		};
 		use crate::traits::*;
-		use crate::xcmbridge::Error as XcmbridgeError;
-		use crate::xtransfer::Error as XTransferError;
 
 		use frame_support::{assert_noop, assert_ok};
 		use polkadot_parachain::primitives::Sibling;
