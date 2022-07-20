@@ -17,8 +17,11 @@ pub mod pallet {
 	use frame_system::{self as system, pallet_prelude::*};
 	use scale_info::TypeInfo;
 	pub use sp_core::U256;
-	use sp_runtime::traits::{AccountIdConversion, Dispatchable};
-	use sp_runtime::RuntimeDebug;
+	use sp_runtime::{
+		traits::{AccountIdConversion, ConstU32, Dispatchable},
+		BoundedVec, RuntimeDebug,
+	};
+
 	use sp_std::{
 		convert::{From, Into, TryInto},
 		prelude::*,
@@ -28,6 +31,7 @@ pub mod pallet {
 
 	const LOG_TARGET: &str = "runtime::chainbridge";
 	const DEFAULT_RELAYER_THRESHOLD: u32 = 1;
+	const MAX_BRIDGE_EVENTS: u32 = 1024;
 	const MODULE_ID: PalletId = PalletId(*b"phala/bg");
 
 	pub type BridgeChainId = u8;
@@ -113,7 +117,6 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
-	// TODO: remove when we Vec get replaced by BoundedVec
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
@@ -254,6 +257,8 @@ pub mod pallet {
 		Unimplemented,
 		/// Can not transfer assets to dest due to some reasons
 		CannotDepositAsset,
+		/// Trying to push bridge event count more than `MAX_BRIDGE_EVENTS`
+		BridgeEventOverflow,
 	}
 
 	#[pallet::storage]
@@ -288,9 +293,11 @@ pub mod pallet {
 		ProposalVotes<T::AccountId, T::BlockNumber>,
 	>;
 
+	/// At most `MAX_BRIDGE_EVENTS` are allowed to exist within a single block
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_events)]
-	pub type BridgeEvents<T> = StorageValue<_, Vec<BridgeEvent>, ValueQuery>;
+	pub type BridgeEvents<T> =
+		StorageValue<_, BoundedVec<BridgeEvent, ConstU32<MAX_BRIDGE_EVENTS>>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_fee)]
@@ -470,7 +477,12 @@ pub mod pallet {
 			let src_reserve_location: MultiLocation = (
 				0,
 				X2(
-					GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+					GeneralKey(
+						CB_ASSET_KEY
+							.to_vec()
+							.try_into()
+							.expect("less than length limit; qed"),
+					),
 					GeneralIndex(src_chainid.into()),
 				),
 			)
@@ -967,7 +979,12 @@ pub mod pallet {
 			let dest_reserve_location: MultiLocation = (
 				0,
 				X2(
-					GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+					GeneralKey(
+						CB_ASSET_KEY
+							.to_vec()
+							.try_into()
+							.expect("less than length limit; qed"),
+					),
 					GeneralIndex(dest_id.into()),
 				),
 			)
@@ -997,13 +1014,14 @@ pub mod pallet {
 
 			// Notify relayer the crosschain transfer
 			let nonce = Pallet::<T>::bump_nonce(dest_id);
-			BridgeEvents::<T>::append(BridgeEvent::FungibleTransfer(
+			BridgeEvents::<T>::try_append(BridgeEvent::FungibleTransfer(
 				dest_id,
 				nonce,
 				resource_id,
 				U256::from(amount - fee),
 				recipient.clone(),
-			));
+			))
+			.map_err(|_| Error::<T>::BridgeEventOverflow)?;
 			Pallet::<T>::deposit_event(Event::FungibleTransfer(
 				dest_id,
 				nonce,
@@ -1204,9 +1222,19 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+								GeneralKey(
+									b"cb"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed")
+								),
 								GeneralIndex(bad_dest_id.into()),
-								GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))
+								GeneralKey(
+									b"recipient"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed")
+								)
 							)
 						),
 						None,
@@ -1261,7 +1289,16 @@ pub mod pallet {
 		#[test]
 		fn create_sucessful_proposal() {
 			let src_id = 1;
-			let r_id = MultiLocation::new(1, X1(GeneralKey(b"remark".to_vec().try_into().expect("less than length limit; qed")))).into_rid(src_id);
+			let r_id = MultiLocation::new(
+				1,
+				X1(GeneralKey(
+					b"remark"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			)
+			.into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1331,7 +1368,16 @@ pub mod pallet {
 		#[test]
 		fn create_unsucessful_proposal() {
 			let src_id = 1;
-			let r_id = MultiLocation::new(1, X1(GeneralKey(b"transfer".to_vec().try_into().expect("less than length limit; qed")))).into_rid(src_id);
+			let r_id = MultiLocation::new(
+				1,
+				X1(GeneralKey(
+					b"transfer"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			)
+			.into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1406,7 +1452,16 @@ pub mod pallet {
 		#[test]
 		fn execute_after_threshold_change() {
 			let src_id = 1;
-			let r_id = MultiLocation::new(1, X1(GeneralKey(b"transfer".to_vec().try_into().expect("less than length limit; qed")))).into_rid(src_id);
+			let r_id = MultiLocation::new(
+				1,
+				X1(GeneralKey(
+					b"transfer"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			)
+			.into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1467,7 +1522,16 @@ pub mod pallet {
 		#[test]
 		fn proposal_expires() {
 			let src_id = 1;
-			let r_id = MultiLocation::new(1, X1(GeneralKey(b"remark".to_vec().try_into().expect("less than length limit; qed")))).into_rid(src_id);
+			let r_id = MultiLocation::new(
+				1,
+				X1(GeneralKey(
+					b"remark"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			)
+			.into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1560,9 +1624,19 @@ pub mod pallet {
 					1,
 					X4(
 						Parachain(2004),
-						GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+						GeneralKey(
+							CB_ASSET_KEY
+								.to_vec()
+								.try_into()
+								.expect("less than length limit; qed"),
+						),
 						GeneralIndex(0),
-						GeneralKey(b"an asset".to_vec().try_into().expect("less than length limit; qed")),
+						GeneralKey(
+							b"an asset"
+								.to_vec()
+								.try_into()
+								.expect("less than length limit; qed"),
+						),
 					),
 				);
 				let amount: Balance = 100;
@@ -1579,7 +1653,12 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+								GeneralKey(
+									b"cb"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed")
+								),
 								GeneralIndex(dest_chain.into()),
 								GeneralKey(recipient)
 							)
@@ -1602,9 +1681,19 @@ pub mod pallet {
 					1,
 					X4(
 						Parachain(2004),
-						GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+						GeneralKey(
+							CB_ASSET_KEY
+								.to_vec()
+								.try_into()
+								.expect("less than length limit; qed"),
+						),
 						GeneralIndex(0),
-						GeneralKey(b"an asset".to_vec().try_into().expect("less than length limit; qed")),
+						GeneralKey(
+							b"an asset"
+								.to_vec()
+								.try_into()
+								.expect("less than length limit; qed"),
+						),
 					),
 				);
 				let amount: Balance = 100;
@@ -1643,7 +1732,12 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+								GeneralKey(
+									b"cb"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed")
+								),
 								GeneralIndex(dest_chain.into()),
 								GeneralKey(recipient)
 							)
@@ -1664,7 +1758,12 @@ pub mod pallet {
 				let dest_reserve_location: MultiLocation = (
 					0,
 					X2(
-						GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+						GeneralKey(
+							CB_ASSET_KEY
+								.to_vec()
+								.try_into()
+								.expect("less than length limit; qed"),
+						),
 						GeneralIndex(dest_chain.into()),
 					),
 				)
@@ -1713,7 +1812,12 @@ pub mod pallet {
 					MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+							GeneralKey(
+								b"cb"
+									.to_vec()
+									.try_into()
+									.expect("less than length limit; qed")
+							),
 							GeneralIndex(dest_chain.into()),
 							GeneralKey(recipient)
 						)
@@ -1743,7 +1847,12 @@ pub mod pallet {
 				let dest_reserve_location: MultiLocation = (
 					0,
 					X2(
-						GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+						GeneralKey(
+							CB_ASSET_KEY
+								.to_vec()
+								.try_into()
+								.expect("less than length limit; qed"),
+						),
 						GeneralIndex(dest_chain.into()),
 					),
 				)
@@ -1798,7 +1907,12 @@ pub mod pallet {
 					MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+							GeneralKey(
+								b"cb"
+									.to_vec()
+									.try_into()
+									.expect("less than length limit; qed")
+							),
 							GeneralIndex(dest_chain.into()),
 							GeneralKey(recipient)
 						)
@@ -1846,7 +1960,12 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+								GeneralKey(
+									b"cb"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed")
+								),
 								GeneralIndex(dest_chain.into()),
 								GeneralKey(recipient.clone())
 							)
@@ -1863,7 +1982,12 @@ pub mod pallet {
 					MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(b"cb".to_vec().try_into().expect("less than length limit; qed")),
+							GeneralKey(
+								b"cb"
+									.to_vec()
+									.try_into()
+									.expect("less than length limit; qed")
+							),
 							GeneralIndex(dest_chain.into()),
 							GeneralKey(recipient.clone())
 						)
@@ -1960,9 +2084,19 @@ pub mod pallet {
 					1,
 					X4(
 						Parachain(2004),
-						GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+						GeneralKey(
+							CB_ASSET_KEY
+								.to_vec()
+								.try_into()
+								.expect("less than length limit; qed"),
+						),
 						GeneralIndex(src_chainid.into()),
-						GeneralKey(b"an asset".to_vec().try_into().expect("less than length limit; qed")),
+						GeneralKey(
+							b"an asset"
+								.to_vec()
+								.try_into()
+								.expect("less than length limit; qed"),
+						),
 					),
 				);
 				let r_id: [u8; 32] = bridge_asset_location.clone().into_rid(src_chainid);
@@ -1978,7 +2112,12 @@ pub mod pallet {
 				let src_reserve_location: MultiLocation = (
 					0,
 					X2(
-						GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+						GeneralKey(
+							CB_ASSET_KEY
+								.to_vec()
+								.try_into()
+								.expect("less than length limit; qed"),
+						),
 						GeneralIndex(src_chainid.into()),
 					),
 				)
@@ -2050,7 +2189,12 @@ pub mod pallet {
 					1,
 					X2(
 						Parachain(2000),
-						GeneralKey(b"an asset from karura".to_vec().try_into().expect("less than length limit; qed")),
+						GeneralKey(
+							b"an asset from karura"
+								.to_vec()
+								.try_into()
+								.expect("less than length limit; qed"),
+						),
 					),
 				);
 				let amount: Balance = 100;
@@ -2064,7 +2208,12 @@ pub mod pallet {
 				let src_reserve_location: MultiLocation = (
 					0,
 					X2(
-						GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+						GeneralKey(
+							CB_ASSET_KEY
+								.to_vec()
+								.try_into()
+								.expect("less than length limit; qed"),
+						),
 						GeneralIndex(src_chainid.into()),
 					),
 				)
@@ -2288,9 +2437,24 @@ pub mod pallet {
 			ParaA::execute_with(|| {
 				let dest_chain: u8 = 2;
 				let bridge_fee = 2;
-				let test_asset_location = MultiLocation::new(1, X1(GeneralKey(b"test".to_vec().try_into().expect("less than length limit; qed"))));
-				let unregistered_asset_location =
-					MultiLocation::new(1, X1(GeneralKey(b"unregistered".to_vec().try_into().expect("less than length limit; qed"))));
+				let test_asset_location = MultiLocation::new(
+					1,
+					X1(GeneralKey(
+						b"test"
+							.to_vec()
+							.try_into()
+							.expect("less than length limit; qed"),
+					)),
+				);
+				let unregistered_asset_location = MultiLocation::new(
+					1,
+					X1(GeneralKey(
+						b"unregistered"
+							.to_vec()
+							.try_into()
+							.expect("less than length limit; qed"),
+					)),
+				);
 
 				// Register asset, decimals: 18, rate with pha: 1 : 1
 				assert_ok!(AssetsRegistry::force_register_asset(
