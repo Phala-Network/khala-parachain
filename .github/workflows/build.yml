@@ -18,7 +18,8 @@ jobs:
         uses: easimon/maximize-build-space@master # https://github.com/easimon/maximize-build-space
         with:
           root-reserve-mb: 4096
-          temp-reserve-mb: 4096
+          temp-reserve-mb: 1024
+          swap-size-mb: 8192
           remove-dotnet: "true"
           remove-android: "true"
           remove-haskell: "true"
@@ -34,6 +35,7 @@ jobs:
       - name: Build for Cargo test
         run: cargo test --no-run --verbose --workspace
       - name: Show disk usage
+        if: always()
         run: df -h
       - name: Run Cargo test
         run: cargo test --verbose --workspace
