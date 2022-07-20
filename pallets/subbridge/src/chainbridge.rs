@@ -11,6 +11,7 @@ pub mod pallet {
 	pub use frame_support::{
 		pallet_prelude::*,
 		traits::{tokens::fungibles::Inspect, Currency, StorageVersion},
+		transactional,
 		weights::GetDispatchInfo,
 		PalletId, Parameter,
 	};
@@ -401,6 +402,7 @@ pub mod pallet {
 			let dispatch_info = call.get_dispatch_info();
 			(dispatch_info.weight + 195_000_000, dispatch_info.class, Pays::Yes)
 		})]
+		#[transactional]
 		pub fn acknowledge_proposal(
 			origin: OriginFor<T>,
 			nonce: DepositNonce,
@@ -424,6 +426,7 @@ pub mod pallet {
 		/// - Fixed, since execution of proposal should not be included
 		/// # </weight>
 		#[pallet::weight(195_000_000)]
+		#[transactional]
 		pub fn reject_proposal(
 			origin: OriginFor<T>,
 			nonce: DepositNonce,
@@ -453,6 +456,7 @@ pub mod pallet {
 			let dispatch_info = prop.get_dispatch_info();
 			(dispatch_info.weight + 195_000_000, dispatch_info.class, Pays::Yes)
 		})]
+		#[transactional]
 		pub fn eval_vote_state(
 			origin: OriginFor<T>,
 			nonce: DepositNonce,
@@ -466,6 +470,7 @@ pub mod pallet {
 
 		/// Triggered by a initial transfer on source chain, executed by relayer when proposal was resolved.
 		#[pallet::weight(195_000_000)]
+		#[transactional]
 		pub fn handle_fungible_transfer(
 			origin: OriginFor<T>,
 			dest: Vec<u8>,
