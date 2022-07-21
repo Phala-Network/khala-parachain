@@ -1,3 +1,4 @@
+import "@polkadot/api-augment";
 import { ApiPromise } from "@polkadot/api";
 import {
 	AddressOrPair,
@@ -77,7 +78,7 @@ async function lookForExtrinsicAndEvents(
 		.filter(
 			({ phase }) =>
 				phase.isApplyExtrinsic &&
-				phase.asApplyExtrinsic.toNumber() == extrinsicIndex
+				phase.asApplyExtrinsic.toString() == extrinsicIndex.toString()
 		)
 		.map(({ event }) => event);
 	return { events, extrinsic };
