@@ -33,20 +33,18 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get -y install cmake pkg-config libssl-dev git build-essential llvm clang libclang-dev
+          sudo apt-get -y install llvm clang
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
+          default: true
           toolchain: nightly-2022-07-11
-          override: true
           target: wasm32-unknown-unknown
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
       - name: Build for Cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --no-run --all-targets --workspace
+          args: --workspace --no-run
       - name: Show disk usage
         if: always()
         run: df -h
@@ -54,4 +52,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-targets --workspace
+          args: --workspace
+      - name: Show disk usage
+        if: always()
+        run: df -h

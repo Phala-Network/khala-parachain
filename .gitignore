@@ -45,7 +45,6 @@ CMakeLists.txt
 # Substrate
 .wasm-binaries
 .cargo
-/config.toml
 
 # Object files
 *.o
