@@ -68,6 +68,8 @@ pub type ParaAssets = pallet_assets::Pallet<para::Runtime>;
 pub type ParaAssetsRegistry = assets_registry::Pallet<para::Runtime>;
 pub type ParaChainBridge = crate::chainbridge::Pallet<para::Runtime>;
 pub type ParaXTransfer = crate::xtransfer::Pallet<para::Runtime>;
+pub type ParaResourceIdGenSalt =
+	<para::Runtime as crate::chainbridge::Config>::ResourceIdGenerationSalt;
 
 pub fn para_ext(para_id: u32) -> TestExternalities {
 	use para::{Runtime, System};

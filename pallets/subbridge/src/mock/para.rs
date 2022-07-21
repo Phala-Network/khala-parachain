@@ -152,6 +152,7 @@ impl pallet_parachain_info::Config for Runtime {}
 
 parameter_types! {
 	pub const TestChainId: u8 = 5;
+	pub const ResourceIdGenerationSalt: Option<u8> = Some(5);
 	pub const ProposalLifetime: u64 = 100;
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
@@ -346,6 +347,7 @@ impl assets_registry::Config for Runtime {
 		ParachainInfo,
 		assets_registry::NativeAssetFilter<ParachainInfo>,
 	>;
+	type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
 }
 
 impl chainbridge::Config for Runtime {
@@ -370,6 +372,7 @@ impl chainbridge::Config for Runtime {
 	>;
 	type AssetsRegistry = AssetsRegistry;
 	type BridgeEventLimit = BridgeEventLimit;
+	type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
 }
 
 impl xtransfer::Config for Runtime {
