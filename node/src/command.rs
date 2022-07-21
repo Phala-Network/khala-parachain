@@ -13,12 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{
-    chain_spec,
-    cli::{Cli, RelayChainCli, Subcommand},
-};
+use std::{collections::VecDeque, net::SocketAddr};
 use codec::Encode;
-use cumulus_client_service::genesis::generate_genesis_block;
+use cumulus_client_cli::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
 use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
 use log::info;
@@ -32,7 +29,11 @@ use sc_service::{
 };
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
-use std::{collections::VecDeque, io::Write, net::SocketAddr};
+
+use crate::{
+    chain_spec,
+    cli::{Cli, RelayChainCli, Subcommand},
+};
 
 use crate::service::{Block, new_partial};
 
@@ -396,22 +397,12 @@ impl SubstrateCli for RelayChainCli {
     }
 
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-        polkadot_cli::Cli::from_iter([RelayChainCli::executable_name().to_string()].iter())
-            .load_spec(id)
+        polkadot_cli::Cli::from_iter([RelayChainCli::executable_name()].iter()).load_spec(id)
     }
 
     fn native_runtime_version(chain_spec: &Box<dyn sc_service::ChainSpec>) -> &'static RuntimeVersion {
         polkadot_cli::Cli::native_runtime_version(chain_spec)
     }
-}
-
-fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<Vec<u8>> {
-    let mut storage = chain_spec.build_storage()?;
-
-    storage
-        .top
-        .remove(sp_core::storage::well_known_keys::CODE)
-        .ok_or_else(|| "Could not find wasm file in genesis state!".into())
 }
 
 macro_rules! construct_async_run {
@@ -533,36 +524,37 @@ pub fn run() -> Result<()> {
         Some(Subcommand::BuildSpec(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
-        }
+        },
         Some(Subcommand::CheckBlock(cmd)) => {
             construct_async_run!(|components, cli, cmd, config| {
                 Ok(cmd.run(components.client, components.import_queue))
             })
-        }
+        },
         Some(Subcommand::ExportBlocks(cmd)) => {
             construct_async_run!(|components, cli, cmd, config| {
                 Ok(cmd.run(components.client, config.database))
             })
-        }
+        },
         Some(Subcommand::ExportState(cmd)) => {
             construct_async_run!(|components, cli, cmd, config| {
                 Ok(cmd.run(components.client, config.chain_spec))
             })
-        }
+        },
         Some(Subcommand::ImportBlocks(cmd)) => {
             construct_async_run!(|components, cli, cmd, config| {
                 Ok(cmd.run(components.client, components.import_queue))
             })
-        }
+        },
+        Some(Subcommand::Revert(cmd)) => construct_async_run!(|components, cli, cmd, config| {
+            Ok(cmd.run(components.client, components.backend, None))
+        }),
         Some(Subcommand::PurgeChain(cmd)) => {
             let runner = cli.create_runner(cmd)?;
 
             runner.sync_run(|config| {
                 let polkadot_cli = RelayChainCli::new(
                     &config,
-                    [RelayChainCli::executable_name().to_string()]
-                        .iter()
-                        .chain(cli.relay_chain_args.iter()),
+                    [RelayChainCli::executable_name()].iter().chain(cli.relaychain_args.iter()),
                 );
 
                 let polkadot_config = SubstrateCli::create_configuration(
@@ -574,54 +566,22 @@ pub fn run() -> Result<()> {
 
                 cmd.run(config, polkadot_config)
             })
-        }
-        Some(Subcommand::Revert(cmd)) => construct_async_run!(|components, cli, cmd, config| {
-            Ok(cmd.run(components.client, components.backend, None))
-        }),
-        Some(Subcommand::ExportGenesisState(params)) => {
-            let mut builder = sc_cli::LoggerBuilder::new("");
-            builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
-            let _ = builder.init();
-
-            let spec = load_spec(&params.chain.clone().unwrap_or_default())?;
-            let state_version = Cli::native_runtime_version(&spec).state_version();
-            let block: Block = generate_genesis_block(&spec, state_version)?;
-            let raw_header = block.header().encode();
-            let output_buf = if params.raw {
-                raw_header
-            } else {
-                format!("0x{:?}", HexDisplay::from(&block.header().encode())).into_bytes()
-            };
-
-            if let Some(output) = &params.output {
-                std::fs::write(output, output_buf)?;
-            } else {
-                std::io::stdout().write_all(&output_buf)?;
-            }
-
-            Ok(())
-        }
-        Some(Subcommand::ExportGenesisWasm(params)) => {
-            let mut builder = sc_cli::LoggerBuilder::new("");
-            builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
-            let _ = builder.init();
-
-            let raw_wasm_blob =
-                extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or_default())?)?;
-            let output_buf = if params.raw {
-                raw_wasm_blob
-            } else {
-                format!("0x{:?}", HexDisplay::from(&raw_wasm_blob)).into_bytes()
-            };
-
-            if let Some(output) = &params.output {
-                std::fs::write(output, output_buf)?;
-            } else {
-                std::io::stdout().write_all(&output_buf)?;
-            }
-
-            Ok(())
-        }
+        },
+        Some(Subcommand::ExportGenesisState(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
+            runner.sync_run(|_config| {
+                let spec = cli.load_spec(&cmd.shared_params.chain.clone().unwrap_or_default())?;
+                let state_version = Cli::native_runtime_version(&spec).state_version();
+                cmd.run::<crate::service::Block>(&*spec, state_version)
+            })
+        },
+        Some(Subcommand::ExportGenesisWasm(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
+            runner.sync_run(|_config| {
+                let spec = cli.load_spec(&cmd.shared_params.chain.clone().unwrap_or_default())?;
+                cmd.run(&*spec)
+            })
+        },
         Some(Subcommand::Benchmark(cmd)) => {
             let runner = cli.create_runner(cmd)?;
 
@@ -745,9 +705,7 @@ pub fn run() -> Result<()> {
 
                 let polkadot_cli = RelayChainCli::new(
                     &config,
-                    [RelayChainCli::executable_name().to_string()]
-                        .iter()
-                        .chain(cli.relay_chain_args.iter()),
+                    [RelayChainCli::executable_name()].iter().chain(cli.relaychain_args.iter()),
                 );
 
                 let id = ParaId::from(para_id);
@@ -755,9 +713,8 @@ pub fn run() -> Result<()> {
                 let parachain_account =
                     AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account_truncating(&id);
 
-                let state_version =
-                    RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
-                let block: Block = generate_genesis_block(&config.chain_spec, state_version)
+                let state_version = Cli::native_runtime_version(&config.chain_spec).state_version();
+                let block: Block = generate_genesis_block(&*config.chain_spec, state_version)
                     .map_err(|e| format!("{:?}", e))?;
                 let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 

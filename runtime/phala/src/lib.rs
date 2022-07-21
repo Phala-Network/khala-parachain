@@ -47,6 +47,7 @@ use constants::{
 mod migrations;
 
 use codec::{Decode, Encode, MaxEncodedLen};
+use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -65,7 +66,7 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_types, parameter_types,
     traits::{
-        Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter,
+        Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter,
         IsInVec, KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness,
         U128CurrencyToVote,
     },
@@ -138,7 +139,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("phala"),
     impl_name: create_runtime_str!("phala"),
     authoring_version: 1,
-    spec_version: 1166,
+    spec_version: 1167,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 3,
@@ -186,7 +187,7 @@ pub type Executive = frame_executive::Executive<
     AllPalletsWithSystem,
 >;
 
-type EnsureRootOrHalfCouncil = EnsureOneOf<
+type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
 >;
@@ -220,7 +221,7 @@ construct_runtime! {
 
         // Monetary stuff
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 40,
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 41,
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 41,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 42,
 
         // Collator support. the order of these 5 are important and shall not change.
@@ -658,6 +659,7 @@ impl OnUnbalanced<NegativeImbalance> for DealWithFees {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
+    type Event = Event;
     type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
     type WeightToFee = WeightToFee;
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
@@ -751,6 +753,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type OutboundXcmpMessageSource = XcmpQueue;
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
+    type CheckAssociatedRelayNumber = RelayNumberStrictlyIncreases;
 }
 
 impl pallet_parachain_info::Config for Runtime {}
@@ -895,11 +898,11 @@ parameter_types! {
 impl pallet_treasury::Config for Runtime {
     type PalletId = TreasuryPalletId;
     type Currency = Balances;
-    type ApproveOrigin = EnsureOneOf<
+    type ApproveOrigin = EitherOfDiverse<
         EnsureRoot<AccountId>,
         pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 5>,
     >;
-    type RejectOrigin = EnsureOneOf<
+    type RejectOrigin = EitherOfDiverse<
         EnsureRoot<AccountId>,
         pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
     >;
@@ -914,6 +917,7 @@ impl pallet_treasury::Config for Runtime {
     type SpendFunds = Bounties;
     type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
     type MaxApprovals = MaxApprovals;
+    type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u128>;
 }
 
 parameter_types! {
@@ -938,41 +942,41 @@ impl pallet_democracy::Config for Runtime {
     type VoteLockingPeriod = EnactmentPeriod; // Same as EnactmentPeriod
     type MinimumDeposit = MinimumDeposit;
     /// A straight majority of the council can decide what their next motion is.
-    type ExternalOrigin = EnsureOneOf<
+    type ExternalOrigin = EitherOfDiverse<
         pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>,
         frame_system::EnsureRoot<AccountId>,
     >;
     /// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
-    type ExternalMajorityOrigin = EnsureOneOf<
+    type ExternalMajorityOrigin = EitherOfDiverse<
         pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>,
         frame_system::EnsureRoot<AccountId>,
     >;
     /// A unanimous council can have the next scheduled referendum be a straight default-carries
     /// (NTB) vote.
-    type ExternalDefaultOrigin = EnsureOneOf<
+    type ExternalDefaultOrigin = EitherOfDiverse<
         pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>,
         frame_system::EnsureRoot<AccountId>,
     >;
     /// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
     /// be tabled immediately and with a shorter voting/enactment period.
-    type FastTrackOrigin = EnsureOneOf<
+    type FastTrackOrigin = EitherOfDiverse<
         pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 2, 3>,
         frame_system::EnsureRoot<AccountId>,
     >;
-    type InstantOrigin = EnsureOneOf<
+    type InstantOrigin = EitherOfDiverse<
         pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
         frame_system::EnsureRoot<AccountId>,
     >;
     type InstantAllowed = InstantAllowed;
     type FastTrackVotingPeriod = FastTrackVotingPeriod;
     // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
-    type CancellationOrigin = EnsureOneOf<
+    type CancellationOrigin = EitherOfDiverse<
         pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
         EnsureRoot<AccountId>,
     >;
     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
     // Root must agree.
-    type CancelProposalOrigin = EnsureOneOf<
+    type CancelProposalOrigin = EitherOfDiverse<
         pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
         EnsureRoot<AccountId>,
     >;
@@ -1270,6 +1274,7 @@ impl assets_registry::Config for Runtime {
 parameter_types! {
     pub const BridgeChainId: u8 = 3;
     pub const ProposalLifetime: BlockNumber = 50400; // ~7 days
+    pub const BridgeEventLimit: u32 = 1024;
 }
 
 impl chainbridge::Config for Runtime {
@@ -1293,6 +1298,7 @@ impl chainbridge::Config for Runtime {
         >,
     >;
     type AssetsRegistry = AssetsRegistry;
+    type BridgeEventLimit = BridgeEventLimit;
 }
 
 impl xtransfer::Config for Runtime {
@@ -1532,7 +1538,7 @@ impl cumulus_pallet_parachain_system::CheckInherents<Block> for CheckInherents {
             .create_inherent_data()
             .expect("Could not create the timestamp inherent data");
 
-        inherent_data.check_extrinsics(&block)
+        inherent_data.check_extrinsics(block)
     }
 }
 

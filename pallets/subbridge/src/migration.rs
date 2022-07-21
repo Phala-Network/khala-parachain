@@ -47,7 +47,13 @@ mod subbridge_v3_migration_common {
 		T: chainbridge::Config + xcmbridge::Config + xtransfer::Config,
 	{
 		// Remove old chainbridge::BridgeFee storage
-		frame_support::migration::remove_storage_prefix(b"ChainBridge", b"BridgeFee", &[]);
+		let _ = frame_support::migration::clear_storage_prefix(
+			b"ChainBridge",
+			b"BridgeFee",
+			&[],
+			None,
+			None,
+		);
 
 		// Create new storage items of fee setting in pallet ChainBridge
 		chainbridge::BridgeFee::<T>::insert(0, 300_000_000_000_000);

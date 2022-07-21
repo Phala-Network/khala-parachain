@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -18,22 +22,36 @@ jobs:
         uses: easimon/maximize-build-space@master # https://github.com/easimon/maximize-build-space
         with:
           root-reserve-mb: 4096
-          temp-reserve-mb: 4096
+          temp-reserve-mb: 1024
+          swap-size-mb: 8192
           remove-dotnet: "true"
           remove-android: "true"
           remove-haskell: "true"
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install cmake pkg-config libssl-dev git build-essential llvm clang libclang-dev
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2022-07-11
           override: true
           target: wasm32-unknown-unknown
-      - uses: actions/checkout@v3
-        with:
-          submodules: "true"
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
       - name: Build for Cargo test
-        run: cargo test --no-run --verbose --workspace
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-run --all-targets --workspace
       - name: Show disk usage
+        if: always()
         run: df -h
       - name: Run Cargo test
-        run: cargo test --verbose --workspace
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-targets --workspace

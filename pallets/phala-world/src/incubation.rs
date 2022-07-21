@@ -389,6 +389,7 @@ pub mod pallet {
 				Origin::<T>::Signed(owner.clone()).into(),
 				collection_id,
 				nft_id,
+				1,
 			)?;
 			// Remove Attributes from Uniques pallet
 			pallet_uniques::Pallet::<T>::clear_attribute(

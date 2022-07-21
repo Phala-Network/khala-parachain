@@ -164,18 +164,18 @@ parameter_types! {
 		1,
 		X4(
 			Parachain(2004),
-			GeneralKey(assets_registry::CB_ASSET_KEY.to_vec()),
+			GeneralKey(assets_registry::CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
 			GeneralIndex(0),
-			GeneralKey(b"an asset".to_vec()),
+			GeneralKey(b"an asset".to_vec().try_into().expect("less than length limit; qed")),
 		),
 	);
 	pub SoloChain2AssetLocation: MultiLocation = MultiLocation::new(
 		1,
 		X4(
 			Parachain(2004),
-			GeneralKey(assets_registry::CB_ASSET_KEY.to_vec()),
+			GeneralKey(assets_registry::CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
 			GeneralIndex(2),
-			GeneralKey(b"an asset".to_vec()),
+			GeneralKey(b"an asset".to_vec().try_into().expect("less than length limit; qed")),
 		),
 	);
 	pub NativeExecutionPrice: u128 = 1;
@@ -287,6 +287,7 @@ impl Config for XcmConfig {
 }
 parameter_types! {
 	pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
+	pub const BridgeEventLimit: u32 = 1024;
 }
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
 
@@ -368,6 +369,7 @@ impl chainbridge::Config for Runtime {
 		>,
 	>;
 	type AssetsRegistry = AssetsRegistry;
+	type BridgeEventLimit = BridgeEventLimit;
 }
 
 impl xtransfer::Config for Runtime {
