@@ -1132,6 +1132,7 @@ impl assets_registry::Config for Runtime {
         ParachainInfo,
         assets_registry::NativeAssetFilter<ParachainInfo>,
     >;
+    type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
 }
 
 parameter_types! {
@@ -1436,6 +1437,7 @@ impl pallet_collator_selection::Config for Runtime {
 
 parameter_types! {
     pub const BridgeChainId: u8 = 1;
+    pub const ResourceIdGenerationSalt: Option<u8> = None;
     pub const ProposalLifetime: BlockNumber = 50400; // ~7 days
     pub const BridgeEventLimit: u32 = 1024;
 }
@@ -1462,6 +1464,7 @@ impl chainbridge::Config for Runtime {
     >;
     type AssetsRegistry = AssetsRegistry;
     type BridgeEventLimit = BridgeEventLimit;
+    type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
 }
 
 impl xtransfer::Config for Runtime {

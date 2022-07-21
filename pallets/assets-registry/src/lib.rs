@@ -132,13 +132,23 @@ pub mod pallet {
 	}
 
 	// Convert MultiLocation to a Chainbridge compatible resource id.
-	pub trait IntoResourceId {
+	pub trait IntoResourceId<T: Get<Option<u8>>> {
 		fn into_rid(self, chain_id: u8) -> [u8; 32];
 	}
 
-	impl IntoResourceId for MultiLocation {
+	impl<T: Get<Option<u8>>> IntoResourceId<T> for MultiLocation {
 		fn into_rid(self, chain_id: u8) -> [u8; 32] {
-			let mut rid = sp_io::hashing::blake2_256(&self.encode());
+			let mut rid = match T::get() {
+				Some(salt) => sp_io::hashing::blake2_256(
+					&self
+						.clone()
+						.pushed_with_interior(GeneralIndex(salt as u128))
+						// We have guaranteed length would never overflow when registering assets
+						.unwrap()
+						.encode(),
+				),
+				None => sp_io::hashing::blake2_256(&self.encode()),
+			};
 			rid[0] = chain_id;
 			rid
 		}
@@ -265,6 +275,8 @@ pub mod pallet {
 		type NativeExecutionPrice: Get<u128>;
 		type NativeAssetChecker: NativeAssetChecker;
 		type ReserveAssetChecker: ReserveAssetChecker;
+		#[pallet::constant]
+		type ResourceIdGenerationSalt: Get<Option<u8>>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
@@ -338,6 +350,7 @@ pub mod pallet {
 		BridgeAlreadyDisabled,
 		FailedToTransactAsset,
 		DuplictedLocation,
+		LocationTooLong,
 	}
 
 	#[pallet::call]
@@ -388,6 +401,12 @@ pub mod pallet {
 			properties: AssetProperties,
 		) -> DispatchResult {
 			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
+			// The reason why we limit the length of location to less than 8 is because
+			// we would have some operations based on asset location e.g. calculate rid,
+			// and according to current implmentation of XCM Junctions, it would failed
+			// when trying to push new Junction to a location interior length is 8
+			// (MAX supported length).
+			ensure!(location.interior().len() < 8, Error::<T>::LocationTooLong);
 			// Ensure location has not been registered
 			ensure!(
 				IdByLocations::<T>::get(&location) == None,
@@ -582,7 +601,11 @@ pub mod pallet {
 						reserve_account,
 						is_mintable,
 					} => {
-						let new_rid: [u8; 32] = location.clone().into_rid(cid);
+						let new_rid: [u8; 32] =
+							IntoResourceId::<T::ResourceIdGenerationSalt>::into_rid(
+								location.clone(),
+								cid,
+							);
 						IdByResourceId::<T>::remove(&old_rid);
 						IdByResourceId::<T>::insert(&new_rid, &asset_id);
 						// Update corresponding config
@@ -621,7 +644,10 @@ pub mod pallet {
 			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
 			let mut info =
 				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
-			let resource_id: [u8; 32] = info.location.clone().into_rid(chain_id);
+			let resource_id: [u8; 32] = IntoResourceId::<T::ResourceIdGenerationSalt>::into_rid(
+				info.location.clone(),
+				chain_id,
+			);
 
 			ensure!(
 				IdByResourceId::<T>::get(&resource_id) == None,
@@ -666,7 +692,10 @@ pub mod pallet {
 			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
 			let mut info =
 				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
-			let resource_id: [u8; 32] = info.location.clone().into_rid(chain_id);
+			let resource_id: [u8; 32] = IntoResourceId::<T::ResourceIdGenerationSalt>::into_rid(
+				info.location.clone(),
+				chain_id,
+			);
 
 			ensure!(
 				IdByResourceId::<T>::get(&resource_id).is_some(),
@@ -1339,12 +1368,25 @@ pub mod pallet {
 						.reserve_location,
 					para_b_location.clone().reserve_location()
 				);
-				let new_rid: [u8; 32] = para_b_location.clone().into_rid(2);
+				let new_rid: [u8; 32] = IntoResourceId::<
+					<Test as assets_registry::Config>::ResourceIdGenerationSalt,
+				>::into_rid(para_b_location.clone(), 2);
 				assert_eq!(
 					AssetsRegistry::lookup_by_resource_id(&new_rid).unwrap(),
 					para_b_location
 				);
 			});
+		}
+
+		#[test]
+		fn test_dump_rid() {
+			// khala: 00e6dfb61a2fb903df487c401663825643bb825d41695e63df8af6162ab145a6
+			// phala: 00170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314
+			let rid = IntoResourceId::<<Test as assets_registry::Config>::ResourceIdGenerationSalt>::into_rid(MultiLocation::here(), 0);
+			log::info!("ResourceId: ");
+			for i in 0..32 {
+				log::info!("{:02x?}", rid[i])
+			}
 		}
 	}
 }
