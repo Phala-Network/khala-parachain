@@ -40,15 +40,7 @@ jobs:
           default: true
           toolchain: nightly-2022-07-11
           target: wasm32-unknown-unknown
-      - name: Build for Cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace --no-run
-      - name: Show disk usage
-        if: always()
-        run: df -h
-      - name: Run Cargo test
+      - name: Cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
