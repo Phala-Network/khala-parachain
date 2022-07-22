@@ -1274,7 +1274,7 @@ impl assets_registry::Config for Runtime {
 
 parameter_types! {
     pub const BridgeChainId: u8 = 3;
-    pub const ResourceIdGenerationSalt: Option<u8> = Some(3);
+    pub const ResourceIdGenerationSalt: Option<u128> = Some(3);
     pub const ProposalLifetime: BlockNumber = 50400; // ~7 days
     pub const BridgeEventLimit: u32 = 1024;
 }

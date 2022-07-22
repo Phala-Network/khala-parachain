@@ -119,7 +119,7 @@ impl pallet_assets::Config for Test {
 
 parameter_types! {
 	pub NativeExecutionPrice: u128 = 1;
-	pub ResourceIdGenerationSalt: Option<u8> = Some(3);
+	pub ResourceIdGenerationSalt: Option<u128> = Some(3);
 }
 impl assets_registry::Config for Test {
 	type Event = Event;
