@@ -107,13 +107,7 @@ pub mod pallet {
 				(Some(GeneralKey(cb_key)), Some(GeneralIndex(chain_id)))
 					if cb_key.clone().into_inner() == CB_ASSET_KEY.to_vec() =>
 				{
-					Some(
-						(
-							0,
-							X2(GeneralKey(cb_key.clone()), GeneralIndex(*chain_id)),
-						)
-							.into(),
-					)
+					Some((0, X2(GeneralKey(cb_key.clone()), GeneralIndex(*chain_id))).into())
 				}
 				_ => None,
 			}
@@ -668,7 +662,12 @@ pub mod pallet {
 			let reserve_location: MultiLocation = (
 				0,
 				X2(
-					GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+					GeneralKey(
+						CB_ASSET_KEY
+							.to_vec()
+							.try_into()
+							.expect("less than length limit; qed"),
+					),
 					GeneralIndex(chain_id as u128),
 				),
 			)
@@ -758,7 +757,12 @@ pub mod pallet {
 			let reserve_location: MultiLocation = (
 				0,
 				X2(
-					GeneralKey(WB_PATH_KEY.to_vec()),
+					GeneralKey(
+						WB_PATH_KEY
+							.to_vec()
+							.try_into()
+							.expect("less than length limit; qed"),
+					),
 					GeneralIndex(chain_id as u128),
 				),
 			)
@@ -931,10 +935,17 @@ pub mod pallet {
 
 		#[test]
 		fn test_withdraw_fund_of_pha() {
-			let recipient: AccountId32 =
-				MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))))
-					.into_account()
-					.into();
+			let recipient: AccountId32 = MultiLocation::new(
+				0,
+				X1(GeneralKey(
+					b"recipient"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			)
+			.into_account()
+			.into();
 			new_test_ext().execute_with(|| {
 				assert_eq!(
 					Balances::free_balance(&ASSETS_REGISTRY_ID.into_account_truncating()),
@@ -956,10 +967,17 @@ pub mod pallet {
 
 		#[test]
 		fn test_withdraw_fund_of_asset() {
-			let recipient: AccountId32 =
-				MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))))
-					.into_account()
-					.into();
+			let recipient: AccountId32 = MultiLocation::new(
+				0,
+				X1(GeneralKey(
+					b"recipient"
+						.to_vec()
+						.try_into()
+						.expect("less than length limit; qed"),
+				)),
+			)
+			.into_account()
+			.into();
 			let fund_account: <Test as frame_system::Config>::AccountId =
 				ASSETS_REGISTRY_ID.into_account_truncating();
 
@@ -998,10 +1016,17 @@ pub mod pallet {
 		#[test]
 		fn test_force_mint_burn_asset() {
 			new_test_ext().execute_with(|| {
-				let recipient: AccountId32 =
-					MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))))
-						.into_account()
-						.into();
+				let recipient: AccountId32 = MultiLocation::new(
+					0,
+					X1(GeneralKey(
+						b"recipient"
+							.to_vec()
+							.try_into()
+							.expect("less than length limit; qed"),
+					)),
+				)
+				.into_account()
+				.into();
 				let asset_location = MultiLocation::new(1, Here);
 				assert_ok!(AssetsRegistry::force_register_asset(
 					Origin::root(),

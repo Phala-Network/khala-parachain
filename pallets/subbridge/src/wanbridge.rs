@@ -2,6 +2,7 @@ pub use self::pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use crate::helper::WrapSlice;
 	use crate::traits::*;
 	use assets_registry::{
 		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, NativeAssetChecker,
@@ -282,7 +283,10 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::CannotDetermineReservedLocation)?;
 			let src_reserve_location: MultiLocation = (
 				0,
-				X2(GeneralKey(WB_PATH_KEY.to_vec()), GeneralIndex(src_chainid)),
+				X2(
+					GeneralKey(WrapSlice(WB_PATH_KEY).into()),
+					GeneralIndex(src_chainid),
+				),
 			)
 				.into();
 			let dest_location: MultiLocation = Decode::decode(&mut recipient.as_slice())
@@ -618,7 +622,7 @@ pub mod pallet {
 			let dest_reserve_location: MultiLocation = (
 				0,
 				X2(
-					GeneralKey(WB_PATH_KEY.to_vec()),
+					GeneralKey(WrapSlice(WB_PATH_KEY).into()),
 					GeneralIndex(dest_id.into()),
 				),
 			)
