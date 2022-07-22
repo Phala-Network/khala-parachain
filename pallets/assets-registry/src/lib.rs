@@ -782,7 +782,12 @@ pub mod pallet {
 			let reserve_location: MultiLocation = (
 				0,
 				X2(
-					GeneralKey(WB_PATH_KEY.to_vec()),
+					GeneralKey(
+						WB_PATH_KEY
+							.to_vec()
+							.try_into()
+							.expect("less than length limit; qed"),
+					),
 					GeneralIndex(chain_id as u128),
 				),
 			)
