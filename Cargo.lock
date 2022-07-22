@@ -169,6 +169,7 @@ dependencies = [
  "log",
  "pallet-assets",
  "pallet-balances",
+ "pallet-common",
  "pallet-parachain-info",
  "pallet-timestamp",
  "pallet-uniques",
@@ -5468,6 +5469,20 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-common"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -11280,6 +11295,7 @@ dependencies = [
  "log",
  "pallet-assets",
  "pallet-balances",
+ "pallet-common",
  "pallet-parachain-info",
  "pallet-timestamp",
  "pallet-xcm",

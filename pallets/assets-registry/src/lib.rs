@@ -22,6 +22,7 @@ pub mod pallet {
 		transactional, PalletId,
 	};
 	use frame_system::pallet_prelude::*;
+	use pallet_common::WrapSlice;
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::AccountIdConversion;
 	use sp_std::{boxed::Box, cmp, convert::From, vec, vec::Vec};
@@ -99,13 +100,7 @@ pub mod pallet {
 				(Some(GeneralKey(cb_key)), Some(GeneralIndex(chain_id)))
 					if cb_key.clone().into_inner() == CB_ASSET_KEY.to_vec() =>
 				{
-					Some(
-						(
-							0,
-							X2(GeneralKey(cb_key.clone()), GeneralIndex(*chain_id)),
-						)
-							.into(),
-					)
+					Some((0, X2(GeneralKey(cb_key.clone()), GeneralIndex(*chain_id))).into())
 				}
 				_ => None,
 			}
@@ -637,7 +632,7 @@ pub mod pallet {
 			let reserve_location: MultiLocation = (
 				0,
 				X2(
-					GeneralKey(CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+					GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
 					GeneralIndex(chain_id as u128),
 				),
 			)
@@ -794,12 +789,13 @@ pub mod pallet {
 			GetAssetRegistryInfo, IntoResourceId, ASSETS_REGISTRY_ID,
 		};
 		use frame_support::{assert_noop, assert_ok};
+		use pallet_common::WrapSlice;
 		use sp_runtime::{traits::AccountIdConversion, AccountId32, DispatchError};
 
 		#[test]
 		fn test_withdraw_fund_of_pha() {
 			let recipient: AccountId32 =
-				MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))))
+				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"recipient").into())))
 					.into_account()
 					.into();
 			new_test_ext().execute_with(|| {
@@ -824,7 +820,7 @@ pub mod pallet {
 		#[test]
 		fn test_withdraw_fund_of_asset() {
 			let recipient: AccountId32 =
-				MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))))
+				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"recipient").into())))
 					.into_account()
 					.into();
 			let fund_account: <Test as frame_system::Config>::AccountId =
@@ -866,7 +862,7 @@ pub mod pallet {
 		fn test_force_mint_burn_asset() {
 			new_test_ext().execute_with(|| {
 				let recipient: AccountId32 =
-					MultiLocation::new(0, X1(GeneralKey(b"recipient".to_vec().try_into().expect("less than length limit; qed"))))
+					MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"recipient").into())))
 						.into_account()
 						.into();
 				let asset_location = MultiLocation::new(1, Here);
