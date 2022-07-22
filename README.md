@@ -50,5 +50,5 @@ Please make sure to use the correct session key json file.
 ```bash
 cd scripts/js
 yarn
-node insert_session_key.js
+KEY_FILE=session_key.json.example node insert_session_key.js
 ```
