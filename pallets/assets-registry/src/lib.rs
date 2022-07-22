@@ -132,17 +132,17 @@ pub mod pallet {
 	}
 
 	// Convert MultiLocation to a Chainbridge compatible resource id.
-	pub trait IntoResourceId<T: Get<Option<u8>>> {
+	pub trait IntoResourceId<T: Get<Option<u128>>> {
 		fn into_rid(self, chain_id: u8) -> [u8; 32];
 	}
 
-	impl<T: Get<Option<u8>>> IntoResourceId<T> for MultiLocation {
+	impl<T: Get<Option<u128>>> IntoResourceId<T> for MultiLocation {
 		fn into_rid(self, chain_id: u8) -> [u8; 32] {
 			let mut rid = match T::get() {
 				Some(salt) => sp_io::hashing::blake2_256(
 					&self
 						.clone()
-						.pushed_with_interior(GeneralIndex(salt as u128))
+						.pushed_with_interior(GeneralIndex(salt))
 						// We have guaranteed length would never overflow when registering assets
 						.unwrap()
 						.encode(),
@@ -276,7 +276,7 @@ pub mod pallet {
 		type NativeAssetChecker: NativeAssetChecker;
 		type ReserveAssetChecker: ReserveAssetChecker;
 		#[pallet::constant]
-		type ResourceIdGenerationSalt: Get<Option<u8>>;
+		type ResourceIdGenerationSalt: Get<Option<u128>>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);

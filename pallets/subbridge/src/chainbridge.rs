@@ -163,7 +163,7 @@ pub mod pallet {
 
 		/// Salt used to generation rid
 		#[pallet::constant]
-		type ResourceIdGenerationSalt: Get<Option<u8>>;
+		type ResourceIdGenerationSalt: Get<Option<u128>>;
 	}
 
 	#[pallet::event]
