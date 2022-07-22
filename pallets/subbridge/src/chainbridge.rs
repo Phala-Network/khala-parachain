@@ -2,6 +2,7 @@ pub use self::pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use crate::helper::WrapSlice;
 	use crate::traits::*;
 	use assets_registry::{
 		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, IntoResourceId,
@@ -11,14 +12,18 @@ pub mod pallet {
 	pub use frame_support::{
 		pallet_prelude::*,
 		traits::{tokens::fungibles::Inspect, Currency, StorageVersion},
+		transactional,
 		weights::GetDispatchInfo,
 		PalletId, Parameter,
 	};
 	use frame_system::{self as system, pallet_prelude::*};
 	use scale_info::TypeInfo;
 	pub use sp_core::U256;
-	use sp_runtime::traits::{AccountIdConversion, Dispatchable};
-	use sp_runtime::RuntimeDebug;
+	use sp_runtime::{
+		traits::{AccountIdConversion, Dispatchable},
+		BoundedVec, RuntimeDebug,
+	};
+
 	use sp_std::{
 		convert::{From, Into, TryInto},
 		prelude::*,
@@ -113,7 +118,6 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
-	// TODO: remove when we Vec get replaced by BoundedVec
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
@@ -152,6 +156,10 @@ pub mod pallet {
 
 		/// Fungible assets registry
 		type AssetsRegistry: GetAssetRegistryInfo<<Self as pallet_assets::Config>::AssetId>;
+
+		/// Maximum number of bridge events  allowed to exist in a single block
+		#[pallet::constant]
+		type BridgeEventLimit: Get<u32>;
 	}
 
 	#[pallet::event]
@@ -254,6 +262,8 @@ pub mod pallet {
 		Unimplemented,
 		/// Can not transfer assets to dest due to some reasons
 		CannotDepositAsset,
+		/// Trying to push bridge event count more than `BridgeEventLimit`
+		BridgeEventOverflow,
 	}
 
 	#[pallet::storage]
@@ -290,7 +300,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_events)]
-	pub type BridgeEvents<T> = StorageValue<_, Vec<BridgeEvent>, ValueQuery>;
+	pub type BridgeEvents<T: Config> =
+		StorageValue<_, BoundedVec<BridgeEvent, T::BridgeEventLimit>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_fee)]
@@ -392,6 +403,7 @@ pub mod pallet {
 			let dispatch_info = call.get_dispatch_info();
 			(dispatch_info.weight + 195_000_000, dispatch_info.class, Pays::Yes)
 		})]
+		#[transactional]
 		pub fn acknowledge_proposal(
 			origin: OriginFor<T>,
 			nonce: DepositNonce,
@@ -415,6 +427,7 @@ pub mod pallet {
 		/// - Fixed, since execution of proposal should not be included
 		/// # </weight>
 		#[pallet::weight(195_000_000)]
+		#[transactional]
 		pub fn reject_proposal(
 			origin: OriginFor<T>,
 			nonce: DepositNonce,
@@ -444,6 +457,7 @@ pub mod pallet {
 			let dispatch_info = prop.get_dispatch_info();
 			(dispatch_info.weight + 195_000_000, dispatch_info.class, Pays::Yes)
 		})]
+		#[transactional]
 		pub fn eval_vote_state(
 			origin: OriginFor<T>,
 			nonce: DepositNonce,
@@ -457,6 +471,7 @@ pub mod pallet {
 
 		/// Triggered by a initial transfer on source chain, executed by relayer when proposal was resolved.
 		#[pallet::weight(195_000_000)]
+		#[transactional]
 		pub fn handle_fungible_transfer(
 			origin: OriginFor<T>,
 			dest: Vec<u8>,
@@ -470,7 +485,7 @@ pub mod pallet {
 			let src_reserve_location: MultiLocation = (
 				0,
 				X2(
-					GeneralKey(CB_ASSET_KEY.to_vec()),
+					GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
 					GeneralIndex(src_chainid.into()),
 				),
 			)
@@ -893,6 +908,7 @@ pub mod pallet {
 		}
 
 		/// Initiates a transfer of a fungible asset out of the chain. This should be called by another pallet.
+		#[transactional]
 		fn transfer_fungible(
 			&self,
 			sender: [u8; 32],
@@ -967,7 +983,7 @@ pub mod pallet {
 			let dest_reserve_location: MultiLocation = (
 				0,
 				X2(
-					GeneralKey(CB_ASSET_KEY.to_vec()),
+					GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
 					GeneralIndex(dest_id.into()),
 				),
 			)
@@ -997,13 +1013,14 @@ pub mod pallet {
 
 			// Notify relayer the crosschain transfer
 			let nonce = Pallet::<T>::bump_nonce(dest_id);
-			BridgeEvents::<T>::append(BridgeEvent::FungibleTransfer(
+			BridgeEvents::<T>::try_append(BridgeEvent::FungibleTransfer(
 				dest_id,
 				nonce,
 				resource_id,
 				U256::from(amount - fee),
 				recipient.clone(),
-			));
+			))
+			.map_err(|_| Error::<T>::BridgeEventOverflow)?;
 			Pallet::<T>::deposit_event(Event::FungibleTransfer(
 				dest_id,
 				nonce,
@@ -1015,6 +1032,7 @@ pub mod pallet {
 		}
 
 		/// Initiates a transfer of a nonfungible asset out of the chain. This should be called by another pallet.
+		#[transactional]
 		fn transfer_nonfungible(
 			&self,
 			_sender: [u8; 32],
@@ -1026,6 +1044,7 @@ pub mod pallet {
 		}
 
 		/// Initiates a transfer of generic data out of the chain. This should be called by another pallet.
+		#[transactional]
 		fn transfer_generic(
 			&self,
 			_sender: [u8; 32],
@@ -1061,6 +1080,7 @@ pub mod pallet {
 		use super::*;
 		use crate::chainbridge::Error as ChainbridgeError;
 		use crate::chainbridge::Event as ChainbridgeEvent;
+		use crate::helper::WrapSlice;
 		use crate::mock::para::*;
 		use crate::mock::para::{Call, Event, Runtime};
 		use crate::mock::{
@@ -1203,9 +1223,9 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec()),
+								GeneralKey(WrapSlice(b"cb").into()),
 								GeneralIndex(bad_dest_id.into()),
-								GeneralKey(b"recipient".to_vec())
+								GeneralKey(WrapSlice(b"recipient").into())
 							)
 						),
 						None,
@@ -1260,7 +1280,8 @@ pub mod pallet {
 		#[test]
 		fn create_sucessful_proposal() {
 			let src_id = 1;
-			let r_id = MultiLocation::new(1, X1(GeneralKey(b"remark".to_vec()))).into_rid(src_id);
+			let r_id =
+				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"remark").into()))).into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1330,7 +1351,8 @@ pub mod pallet {
 		#[test]
 		fn create_unsucessful_proposal() {
 			let src_id = 1;
-			let r_id = MultiLocation::new(1, X1(GeneralKey(b"transfer".to_vec()))).into_rid(src_id);
+			let r_id = MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"transfer").into())))
+				.into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1405,7 +1427,8 @@ pub mod pallet {
 		#[test]
 		fn execute_after_threshold_change() {
 			let src_id = 1;
-			let r_id = MultiLocation::new(1, X1(GeneralKey(b"transfer".to_vec()))).into_rid(src_id);
+			let r_id = MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"transfer").into())))
+				.into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1466,7 +1489,8 @@ pub mod pallet {
 		#[test]
 		fn proposal_expires() {
 			let src_id = 1;
-			let r_id = MultiLocation::new(1, X1(GeneralKey(b"remark".to_vec()))).into_rid(src_id);
+			let r_id =
+				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"remark").into()))).into_rid(src_id);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1559,13 +1583,12 @@ pub mod pallet {
 					1,
 					X4(
 						Parachain(2004),
-						GeneralKey(CB_ASSET_KEY.to_vec()),
+						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
 						GeneralIndex(0),
-						GeneralKey(b"an asset".to_vec()),
+						GeneralKey(WrapSlice(b"an asset").into()),
 					),
 				);
 				let amount: Balance = 100;
-				let recipient = vec![99];
 
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
 				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, dest_chain));
@@ -1578,9 +1601,9 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec()),
+								GeneralKey(WrapSlice(b"cb").into()),
 								GeneralIndex(dest_chain.into()),
-								GeneralKey(recipient)
+								GeneralKey(WrapSlice(b"recipient").into())
 							)
 						),
 						None,
@@ -1601,13 +1624,12 @@ pub mod pallet {
 					1,
 					X4(
 						Parachain(2004),
-						GeneralKey(CB_ASSET_KEY.to_vec()),
+						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
 						GeneralIndex(0),
-						GeneralKey(b"an asset".to_vec()),
+						GeneralKey(WrapSlice(b"an asset").into()),
 					),
 				);
 				let amount: Balance = 100;
-				let recipient = vec![99];
 
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
 				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, dest_chain));
@@ -1642,9 +1664,9 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec()),
+								GeneralKey(WrapSlice(b"cb").into()),
 								GeneralIndex(dest_chain.into()),
-								GeneralKey(recipient)
+								GeneralKey(WrapSlice(b"recipient").into()),
 							)
 						),
 						None,
@@ -1663,14 +1685,13 @@ pub mod pallet {
 				let dest_reserve_location: MultiLocation = (
 					0,
 					X2(
-						GeneralKey(CB_ASSET_KEY.to_vec()),
+						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
 						GeneralIndex(dest_chain.into()),
 					),
 				)
 					.into();
 				let bridge_asset_location = SoloChain0AssetLocation::get();
 				let amount: Balance = 100;
-				let recipient = vec![99];
 
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
 				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, dest_chain));
@@ -1712,9 +1733,9 @@ pub mod pallet {
 					MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(b"cb".to_vec()),
+							GeneralKey(WrapSlice(b"cb").into()),
 							GeneralIndex(dest_chain.into()),
-							GeneralKey(recipient)
+							GeneralKey(WrapSlice(b"recipient").into())
 						)
 					),
 					None,
@@ -1742,14 +1763,13 @@ pub mod pallet {
 				let dest_reserve_location: MultiLocation = (
 					0,
 					X2(
-						GeneralKey(CB_ASSET_KEY.to_vec()),
+						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
 						GeneralIndex(dest_chain.into()),
 					),
 				)
 					.into();
 				let bridge_asset_location = SoloChain2AssetLocation::get();
 				let amount: Balance = 100;
-				let recipient = vec![99];
 
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
 				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, dest_chain));
@@ -1797,9 +1817,9 @@ pub mod pallet {
 					MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(b"cb".to_vec()),
+							GeneralKey(WrapSlice(b"cb").into()),
 							GeneralIndex(dest_chain.into()),
-							GeneralKey(recipient)
+							GeneralKey(WrapSlice(b"recipient").into())
 						)
 					),
 					None,
@@ -1828,7 +1848,6 @@ pub mod pallet {
 				let resource_id = ChainBridge::gen_pha_rid(dest_chain);
 				let free_balance: u128 = Balances::free_balance(RELAYER_A).into();
 				let amount: Balance = 100;
-				let recipient = vec![99];
 
 				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), dest_chain));
 				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, dest_chain));
@@ -1845,9 +1864,9 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec()),
+								GeneralKey(WrapSlice(b"cb").into()),
 								GeneralIndex(dest_chain.into()),
-								GeneralKey(recipient.clone())
+								GeneralKey(WrapSlice(b"recipient").into())
 							)
 						),
 						None,
@@ -1862,9 +1881,9 @@ pub mod pallet {
 					MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(b"cb".to_vec()),
+							GeneralKey(WrapSlice(b"cb").into()),
 							GeneralIndex(dest_chain.into()),
-							GeneralKey(recipient.clone())
+							GeneralKey(WrapSlice(b"recipient").into())
 						)
 					),
 					None,
@@ -1875,7 +1894,7 @@ pub mod pallet {
 					1,
 					resource_id,
 					(amount - 2).into(),
-					recipient,
+					b"recipient".to_vec(),
 				));
 
 				assert_eq!(
@@ -1959,9 +1978,9 @@ pub mod pallet {
 					1,
 					X4(
 						Parachain(2004),
-						GeneralKey(CB_ASSET_KEY.to_vec()),
+						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
 						GeneralIndex(src_chainid.into()),
-						GeneralKey(b"an asset".to_vec()),
+						GeneralKey(WrapSlice(b"an asset").into()),
 					),
 				);
 				let r_id: [u8; 32] = bridge_asset_location.clone().into_rid(src_chainid);
@@ -1977,7 +1996,7 @@ pub mod pallet {
 				let src_reserve_location: MultiLocation = (
 					0,
 					X2(
-						GeneralKey(CB_ASSET_KEY.to_vec()),
+						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
 						GeneralIndex(src_chainid.into()),
 					),
 				)
@@ -2049,7 +2068,7 @@ pub mod pallet {
 					1,
 					X2(
 						Parachain(2000),
-						GeneralKey(b"an asset from karura".to_vec()),
+						GeneralKey(WrapSlice(b"an asset from karura").into()),
 					),
 				);
 				let amount: Balance = 100;
@@ -2063,7 +2082,7 @@ pub mod pallet {
 				let src_reserve_location: MultiLocation = (
 					0,
 					X2(
-						GeneralKey(CB_ASSET_KEY.to_vec()),
+						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
 						GeneralIndex(src_chainid.into()),
 					),
 				)
@@ -2287,9 +2306,10 @@ pub mod pallet {
 			ParaA::execute_with(|| {
 				let dest_chain: u8 = 2;
 				let bridge_fee = 2;
-				let test_asset_location = MultiLocation::new(1, X1(GeneralKey(b"test".to_vec())));
+				let test_asset_location =
+					MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"test").into())));
 				let unregistered_asset_location =
-					MultiLocation::new(1, X1(GeneralKey(b"unregistered".to_vec())));
+					MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"unregistered").into())));
 
 				// Register asset, decimals: 18, rate with pha: 1 : 1
 				assert_ok!(AssetsRegistry::force_register_asset(

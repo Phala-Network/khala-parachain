@@ -1,9 +1,10 @@
-#![no_std]
-
 extern crate alloc;
 
 #[cfg(feature = "serde")]
 pub mod ser;
+
+mod memdb;
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -15,10 +16,9 @@ use parity_scale_codec::Codec;
 use sp_core::storage::ChildInfo;
 use sp_core::Hasher;
 use sp_state_machine::{Backend, TrieBackend};
-use sp_trie::{trie_types::TrieDBMutV0 as TrieDBMut, MemoryDB, TrieMut};
+use sp_trie::{trie_types::TrieDBMutV0 as TrieDBMut, TrieMut};
 
-#[cfg(feature = "serde")]
-use sp_trie::HashDBT as _;
+pub use memdb::GenericMemoryDB as MemoryDB;
 
 /// Storage key.
 pub type StorageKey = Vec<u8>;
@@ -32,7 +32,8 @@ pub type StorageCollection = Vec<(StorageKey, Option<StorageValue>)>;
 /// In memory arrays of storage values for multiple child tries.
 pub type ChildStorageCollection = Vec<(StorageKey, StorageCollection)>;
 
-pub struct TrieStorage<H: Hasher>(TrieBackend<MemoryDB<H>, H>);
+pub type InMemoryBackend<H> = TrieBackend<MemoryDB<H>, H>;
+pub struct TrieStorage<H: Hasher>(InMemoryBackend<H>);
 
 impl<H: Hasher> Default for TrieStorage<H>
 where
@@ -72,13 +73,7 @@ where
     S: Serializer,
 {
     let root = trie.root();
-    let kvs: Vec<_> = trie
-        .backend_storage()
-        .clone()
-        .drain()
-        .into_iter()
-        .map(|it| it.1)
-        .collect();
+    let kvs: im::HashMap<_, _> = trie.backend_storage().clone().drain();
     (root, kvs).serialize(serializer)
 }
 
@@ -90,13 +85,9 @@ where
     H::Out: Codec + Deserialize<'de>,
     De: Deserializer<'de>,
 {
-    let (root, kvs): (H::Out, Vec<(Vec<u8>, i32)>) = Deserialize::deserialize(deserializer)?;
-    let mut mdb = MemoryDB::default();
-    for value in kvs {
-        for _ in 0..value.1 {
-            mdb.insert((&[], None), &value.0);
-        }
-    }
+    let (root, kvs): (H::Out, im::HashMap<_, (Vec<u8>, i32)>) =
+        Deserialize::deserialize(deserializer)?;
+    let mdb = MemoryDB::from_inner(kvs);
     let backend = TrieBackend::new(mdb, root);
     Ok(backend)
 }
@@ -108,19 +99,9 @@ where
     H::Out: Codec,
 {
     let root = trie.root();
-    let kvs: Vec<_> = trie
+    let mdb = trie
         .backend_storage()
-        .clone()
-        .drain()
-        .into_iter()
-        .map(|it| it.1)
-        .collect();
-    let mut mdb = MemoryDB::default();
-    for value in kvs {
-        for _ in 0..value.1 {
-            mdb.insert((&[], None), &value.0);
-        }
-    }
+        .clone();
     TrieBackend::new(mdb, *root)
 }
 
@@ -167,9 +148,10 @@ where
     pub fn apply_changes(&mut self, root: H::Out, transaction: MemoryDB<H>) {
         let mut storage = core::mem::take(self).0.into_storage();
         storage.consolidate(transaction);
-        storage.purge();
         let _ = core::mem::replace(&mut self.0, TrieBackend::new(storage, root));
     }
+
+    pub fn purge(&mut self) {}
 
     /// Return the state root hash
     pub fn root(&self) -> &H::Out {

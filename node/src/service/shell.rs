@@ -71,7 +71,7 @@ pub fn parachain_build_import_queue<RuntimeApi>(
         client,
         |_, _| async { Ok(()) },
         &task_manager.spawn_essential_handle(),
-        config.prometheus_registry().clone(),
+        config.prometheus_registry(),
     )
         .map_err(Into::into)
 }
@@ -309,15 +309,15 @@ pub async fn start_parachain_node(
                 task_manager.spawn_handle(),
                 client.clone(),
                 transaction_pool,
-                prometheus_registry.clone(),
-                telemetry.clone(),
+                prometheus_registry,
+                telemetry,
             );
 
             Ok(cumulus_client_consensus_relay_chain::build_relay_chain_consensus(
                 cumulus_client_consensus_relay_chain::BuildRelayChainConsensusParams {
                     para_id: id,
                     proposer_factory,
-                    block_import: client.clone(),
+                    block_import: client,
                     relay_chain_interface: relay_chain_interface.clone(),
                     create_inherent_data_providers: move |_, (relay_parent, validation_data)| {
                         let relay_chain_interface = relay_chain_interface.clone();

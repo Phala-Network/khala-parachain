@@ -2,6 +2,7 @@ pub use self::pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use crate::helper::WrapSlice;
 	use crate::traits::*;
 	use assets_registry::AccountId32Conversion;
 	use frame_support::{
@@ -17,8 +18,6 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
-	// TODO: remove when we Vec get replaced by BoundedVec
-	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
@@ -151,7 +150,8 @@ pub mod pallet {
 			// TODO: Handle the sitution when forwarding failed. Maybe need to have something like `AssesTrap`
 			// and `AssetsClaim`.
 			let temporary_account =
-				MultiLocation::new(0, X1(GeneralKey(b"bridge_transfer".to_vec()))).into_account();
+				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"bridge_transfer").into())))
+					.into_account();
 			Self::do_transfer(
 				temporary_account.into(),
 				what.clone(),
@@ -168,6 +168,7 @@ pub mod pallet {
 	mod test {
 		use crate::chainbridge::Error as ChainbridgeError;
 		use crate::chainbridge::Event as ChainbridgeEvent;
+		use crate::helper::WrapSlice;
 		use crate::mock::para::Origin;
 		use crate::mock::para::Runtime;
 		use crate::mock::{
@@ -177,13 +178,9 @@ pub mod pallet {
 			ENDOWED_BALANCE,
 		};
 		use crate::traits::*;
-		use crate::xcmbridge::Error as XcmbridgeError;
-		use crate::xtransfer::Error as XTransferError;
-
 		use frame_support::{assert_noop, assert_ok};
 		use polkadot_parachain::primitives::Sibling;
-		use sp_runtime::traits::AccountIdConversion;
-		use sp_runtime::AccountId32;
+		use sp_runtime::{traits::AccountIdConversion, AccountId32};
 
 		use assets_registry::{
 			AccountId32Conversion, AssetProperties, ExtractReserveLocation, IntoResourceId,
@@ -201,7 +198,7 @@ pub mod pallet {
 			TestNet::reset();
 
 			let unregistered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(b"unregistered".to_vec())));
+				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"unregistered").into())));
 
 			ParaA::execute_with(|| {
 				// To parachains via Xcm(according to the dest)
@@ -231,7 +228,7 @@ pub mod pallet {
 			TestNet::reset();
 
 			let unregistered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(b"unregistered".to_vec())));
+				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"unregistered").into())));
 
 			ParaA::execute_with(|| {
 				// To solo chains via Chainbridge(according to the dest)
@@ -242,9 +239,9 @@ pub mod pallet {
 						Box::new(MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec()),
+								GeneralKey(WrapSlice(b"cb").into()),
 								GeneralIndex(0),
-								GeneralKey(b"recipient".to_vec())
+								GeneralKey(WrapSlice(b"recipient").into())
 							)
 						)),
 						None,
@@ -259,7 +256,7 @@ pub mod pallet {
 			TestNet::reset();
 
 			let registered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(b"registered".to_vec())));
+				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"registered").into())));
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -281,9 +278,9 @@ pub mod pallet {
 						Box::new(MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec()),
+								GeneralKey(WrapSlice(b"cb").into()),
 								GeneralIndex(0),
-								GeneralKey(b"recipient".to_vec())
+								GeneralKey(WrapSlice(b"recipient").into())
 							)
 						)),
 						None,
@@ -298,7 +295,7 @@ pub mod pallet {
 			TestNet::reset();
 
 			let registered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(b"registered".to_vec())));
+				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"registered").into())));
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -329,9 +326,9 @@ pub mod pallet {
 						Box::new(MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(b"cb".to_vec()),
+								GeneralKey(WrapSlice(b"cb").into()),
 								GeneralIndex(0),
-								GeneralKey(b"recipient".to_vec())
+								GeneralKey(WrapSlice(b"recipient").into())
 							)
 						)),
 						None,
@@ -346,7 +343,7 @@ pub mod pallet {
 			TestNet::reset();
 
 			let registered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(b"registered".to_vec())));
+				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"registered").into())));
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -387,7 +384,6 @@ pub mod pallet {
 			TestNet::reset();
 
 			let pha_location = MultiLocation::new(0, Here);
-			let recipient = vec![99];
 
 			ParaA::execute_with(|| {
 				// Set bridge fee and whitelist chain for the dest chain
@@ -401,9 +397,9 @@ pub mod pallet {
 					Box::new(MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(b"cb".to_vec()),
+							GeneralKey(WrapSlice(b"cb").into()),
 							GeneralIndex(0),
-							GeneralKey(recipient.clone())
+							GeneralKey(WrapSlice(b"recipient").into())
 						)
 					)),
 					None,
@@ -414,7 +410,7 @@ pub mod pallet {
 					1, // deposit nonce
 					pha_location.into_rid(0),
 					98u128.into(), // deducted fee: 2
-					recipient.into(),
+					b"recipient".to_vec(),
 				));
 
 				assert_eq!(ParaBalances::free_balance(&ALICE), ENDOWED_BALANCE - 100);
@@ -430,14 +426,13 @@ pub mod pallet {
 		fn test_transfer_asset_to_solochain_by_chainbridge() {
 			TestNet::reset();
 
-			let recipient = vec![99];
 			let registered_asset_location = para::SoloChain2AssetLocation::get();
 			let dest = MultiLocation::new(
 				0,
 				X3(
-					GeneralKey(b"cb".to_vec()),
+					GeneralKey(WrapSlice(b"cb").into()),
 					GeneralIndex(0),
-					GeneralKey(recipient.clone()),
+					GeneralKey(WrapSlice(b"recipient").into()),
 				),
 			);
 
@@ -501,7 +496,7 @@ pub mod pallet {
 					1, // deposit nonce
 					registered_asset_location.into_rid(0),
 					96u128.into(), // deducted fee: 4
-					recipient.into(),
+					b"recipient".to_vec(),
 				));
 
 				assert_eq!(Assets::balance(0, &ALICE), ENDOWED_BALANCE - 100);

@@ -297,6 +297,7 @@ pub mod pallet {
 			owner: T::AccountId,
 			race: RaceType,
 			career: CareerType,
+			generation_id: GenerationId,
 		},
 		/// Spirit collection id was set
 		SpiritCollectionIdSet { collection_id: CollectionId },
@@ -1454,6 +1455,7 @@ where
 			owner: sender,
 			race,
 			career,
+			generation_id: generation,
 		});
 
 		Ok(())
@@ -1531,17 +1533,6 @@ where
 		)?;
 
 		Ok(())
-	}
-
-	/// Decrement CareerType count for the `career`
-	///
-	/// Parameters:
-	/// - `career`: The Career to increment count
-	fn decrement_career_type(career: CareerType) {
-		CareerTypeCount::<T>::mutate(career, |career_count| {
-			*career_count -= 1;
-			*career_count
-		});
 	}
 
 	/// Increment RaceType count for the `race`

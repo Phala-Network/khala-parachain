@@ -9,6 +9,7 @@ pub mod pallet {
 		dispatch::DispatchResult,
 		pallet_prelude::*,
 		traits::{Currency, StorageVersion},
+		transactional,
 		weights::Weight,
 	};
 	use scale_info::TypeInfo;
@@ -24,8 +25,6 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
-	// TODO: remove when we Vec get replaced by BoundedVec
-	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
@@ -339,6 +338,7 @@ pub mod pallet {
 		}
 
 		/// Initiates a transfer of a fungible asset out of the chain. This should be called by another pallet.
+		#[transactional]
 		fn transfer_fungible(
 			&self,
 			sender: [u8; 32],
@@ -399,6 +399,7 @@ pub mod pallet {
 		}
 
 		/// Initiates a transfer of a nonfungible asset out of the chain. This should be called by another pallet.
+		#[transactional]
 		fn transfer_nonfungible(
 			&self,
 			_sender: [u8; 32],
@@ -410,6 +411,7 @@ pub mod pallet {
 		}
 
 		/// Initiates a transfer of generic data out of the chain. This should be called by another pallet.
+		#[transactional]
 		fn transfer_generic(
 			&self,
 			_sender: [u8; 32],

@@ -197,9 +197,6 @@ impl pallet_pw_incubation::Config for Test {
 	type IncubationDurationSec = IncubationDurationSec;
 }
 
-pub type SystemCall = frame_system::Call<Test>;
-pub type BalanceCall = pallet_balances::Call<Test>;
-
 pub fn fast_forward_to(n: u64) {
 	while System::block_number() < n {
 		System::set_block_number(System::block_number() + 1);
@@ -231,12 +228,7 @@ pub const CHARLIE: AccountId = AccountId::new([
 
 pub const PHA: Balance = 1;
 pub const UNITS: Balance = 100_000_000_000;
-
-pub const MILLISECS_PER_BLOCK: u64 = 3_000;
 // Time is measured by number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = MINUTES * 60;
-pub const DAYS: BlockNumber = HOURS * 24;
 pub const INCUBATION_DURATION_SEC: u64 = 600;
 
 pub struct ExtBuilder;

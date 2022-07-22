@@ -71,20 +71,20 @@ impl<BE, Block: BlockT, Client, P> NodeRpcExt<BE, Block, Client, P> {
 
 #[async_trait]
 impl<BE: 'static, Block: BlockT, Client: 'static, P> NodeRpcExtApiServer<Block::Hash>
-for NodeRpcExt<BE, Block, Client, P>
-    where
-        BE: Backend<Block>,
-        Client: StorageProvider<Block, BE>
+    for NodeRpcExt<BE, Block, Client, P>
+where
+    BE: Backend<Block>,
+    Client: StorageProvider<Block, BE>
         + HeaderBackend<Block>
         + BlockBackend<Block>
         + HeaderMetadata<Block, Error = sp_blockchain::Error>
         + ProvideRuntimeApi<Block>,
-        Client::Api:
+    Client::Api:
         sp_api::Metadata<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<BE, Block>>,
-        Client::Api: MqApi<Block>,
-        Block: BlockT + 'static,
-        <<Block as BlockT>::Header as Header>::Number: Into<u64>,
-        P: TransactionPool + 'static,
+    Client::Api: MqApi<Block>,
+    Block: BlockT + 'static,
+    <<Block as BlockT>::Header as Header>::Number: Into<u64>,
+    P: TransactionPool + 'static,
 {
     fn get_storage_changes(
         &self,
