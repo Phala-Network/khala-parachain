@@ -164,12 +164,12 @@ dependencies = [
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-support",
+ "frame-support-ex",
  "frame-system",
  "hex-literal",
  "log",
  "pallet-assets",
  "pallet-balances",
- "pallet-common",
  "pallet-parachain-info",
  "pallet-timestamp",
  "pallet-uniques",
@@ -2604,6 +2604,20 @@ dependencies = [
  "sp-std",
  "sp-tracing",
  "tt-call",
+]
+
+[[package]]
+name = "frame-support-ex"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -5469,20 +5483,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-common"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "frame-system",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -11289,13 +11289,13 @@ dependencies = [
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-support",
+ "frame-support-ex",
  "frame-system",
  "hex-literal",
  "impl-trait-for-tuples",
  "log",
  "pallet-assets",
  "pallet-balances",
- "pallet-common",
  "pallet-parachain-info",
  "pallet-timestamp",
  "pallet-xcm",

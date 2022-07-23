@@ -16,7 +16,7 @@ pub mod pallet {
 		PalletId, Parameter,
 	};
 	use frame_system::{self as system, pallet_prelude::*};
-	use pallet_common::WrapSlice;
+	use frame_support_ex::WrapSlice;
 	use scale_info::TypeInfo;
 	pub use sp_core::U256;
 	use sp_runtime::{
@@ -1088,7 +1088,7 @@ pub mod pallet {
 		};
 		use assets_registry::*;
 		use frame_support::{assert_noop, assert_ok};
-		use pallet_common::WrapSlice;
+		use frame_support_ex::WrapSlice;
 		use xcm_simulator::TestExt;
 
 		pub fn new_test_ext_initialized(
