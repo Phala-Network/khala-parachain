@@ -12,6 +12,31 @@ Khala parachain repo.
 
 `cargo build --profile testnet`
 
+### Special note for macOS
+
+You have to install LLVM from Homebrew because Xcode bundled doesn't have WASM target
+
+```
+brew install llvm
+```
+
+As formula note shows binaries locate at `/opt/homebrew/opt/llvm/bin`
+(You can revisit it via `brew info llvm`, beware Intel Mac has different location)
+
+Make alas for `ar` and `ranlib` to ensure use custom installed LLVM instead of Xcode bundled
+
+```
+cd /opt/homebrew/opt/llvm/bin
+ln -s llvm-ar ar
+ln -s llvm-ar ranlib
+```
+
+Before compiling `khala-node`, add custom installed LLVM to `$PATH`
+
+```
+export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+```
+
 ## Development Note
 
 ### Run a local testnet cluster
