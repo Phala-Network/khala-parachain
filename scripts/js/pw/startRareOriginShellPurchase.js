@@ -1,6 +1,7 @@
 require('dotenv').config();
+require("@polkadot/api-augment");
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
-const { waitTxAccepted, getNonce, setStatusType } = require('./pwUtils');
+const { waitTxAccepted, getNonce, setStatusType, waitExtrinsicFinished, token } = require('./pwUtils');
 
 const alicePrivkey = process.env.ROOT_PRIVKEY;
 const bobPrivkey = process.env.USER_PRIVKEY;
@@ -32,28 +33,22 @@ async function addOriginOfShellsMetadata(khalaApi, overlord, originOfShellsMetad
 }
 
 // Start rare origin of shells purchases
-async function usersPurchaseRareOriginOfShells(khalaApi, recipientsInfo) {
-    return new Promise(async (resolve) => {
-        console.log(`Starting Rare Origin of Shells purchases...`);
-        for (const recipient of recipientsInfo) {
-            const index = recipientsInfo.indexOf(recipient);
-            const account = recipient.account;
-            const rarity = recipient.rarity;
-            const race = recipient.race;
-            const career = recipient.career;
-            console.log(`[${index}]: Purchasing Rare Origin of Shell for owner: ${account.address}, rarity: ${rarity}, race: ${race}, career: ${career}`);
-            const unsub = await khalaApi.tx.pwNftSale.buyRareOriginOfShell(rarity, race, career).signAndSend(account, (result) => {
-                if (result.status.isInBlock) {
-                    console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
-                } else if (result.status.isFinalized) {
-                    console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
-                    unsub();
-                    resolve();
-                }
-            });
-            console.log(`[${index}]: Rare Origin of Shells purchases...DONE`);
-        }
-    });
+async function usersPurchaseRareOriginOfShells(khalaApi, root, recipientsInfo) {
+    let nonceRoot = await getNonce(khalaApi, root.address);
+    console.log(`Starting Rare Origin of Shells purchases...`);
+    for (const recipient of recipientsInfo) {
+        const index = recipientsInfo.indexOf(recipient);
+        const account = recipient.account;
+        const rarity = recipient.rarity;
+        const race = recipient.race;
+        const career = recipient.career;
+        const amount = recipient.amount;
+        console.log(`[${index}]: Purchasing Rare Origin of Shell for owner: ${account.address}, rarity: ${rarity}, race: ${race}, career: ${career}, amount: ${amount}`);
+        await khalaApi.tx.balances.transfer(account.address, token(amount)).signAndSend(root, {nonce: nonceRoot++});
+        await waitTxAccepted(khalaApi, root.address, nonceRoot - 1);
+        await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.buyRareOriginOfShell(rarity, race, career), account);
+        console.log(`[${index}]: Rare Origin of Shells purchases...DONE`);
+    }
 }
 
 async function main() {
@@ -72,9 +67,9 @@ async function main() {
     const david = keyring.addFromUri(davidPrivkey);
     const eve = keyring.addFromUri(evePrivkey);
     const userAccountsRareOriginOfShellInfo = [
-        {'account': bob, 'rarity': 'Legendary', 'race': 'Cyborg', 'career': 'HackerWizard'},
-        {'account': charlie, 'rarity': 'Magic', 'race': 'Pandroid', 'career': 'RoboWarrior'},
-        {'account': david, 'rarity': 'Magic', 'race': 'XGene', 'career': 'TradeNegotiator'}
+        {'account': bob, 'rarity': 'Legendary', 'race': 'Cyborg', 'career': 'HackerWizard', 'amount': 15_001},
+        {'account': charlie, 'rarity': 'Magic', 'race': 'Pandroid', 'career': 'RoboWarrior', 'amount': 10_001},
+        {'account': david, 'rarity': 'Magic', 'race': 'XGene', 'career': 'TradeNegotiator', 'amount': 10_001}
     ];
 
     // Add Metadata for Origin of Shell Races
@@ -83,7 +78,7 @@ async function main() {
     // Start Rare Origin of Shell purchases
     await setStatusType(api, overlord, 'PurchaseRareOriginOfShells', true);
     // Purchase Rare Origin of Shell
-    await usersPurchaseRareOriginOfShells(api, userAccountsRareOriginOfShellInfo);
+    await usersPurchaseRareOriginOfShells(api, overlord, userAccountsRareOriginOfShellInfo);
 }
 
 main().catch(console.error).finally(() => process.exit());

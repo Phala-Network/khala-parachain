@@ -1,6 +1,7 @@
 require('dotenv').config();
+require("@polkadot/api-augment");
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
-const { waitTxAccepted, getNonce, setStatusType } = require('./pwUtils');
+const { waitTxAccepted, getNonce, setStatusType, token, waitExtrinsicFinished } = require('./pwUtils');
 
 const alicePrivkey = process.env.ROOT_PRIVKEY;
 const bobPrivkey = process.env.USER_PRIVKEY;
@@ -32,24 +33,17 @@ async function addSpiritMetadata(khalaApi, overlord, metadata) {
 }
 
 // Start claiming spirits
-async function usersClaimSpirits(khalaApi, recipients) {
-    return new Promise(async (resolve) => {
-        console.log(`Starting Spirit Claims...`);
-        for (const recipient of recipients) {
-            const index = recipients.indexOf(recipient);
-            console.log(`[${index}]: Claiming Spirit for ${recipient.address}`);
-            const unsub = await khalaApi.tx.pwNftSale.claimSpirit().signAndSend(recipient, (result) => {
-                if (result.status.isInBlock) {
-                    console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
-                } else if (result.status.isFinalized) {
-                    console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
-                    unsub();
-                    resolve();
-                }
-            });
-            console.log(`[${index}]: Spirit Claims...DONE`);
-        }
-    });
+async function usersClaimSpirits(khalaApi, root, recipients) {
+    console.log(`Starting Spirit Claims...`);
+    let nonceRoot = await getNonce(khalaApi, root.address);
+    for (const recipient of recipients) {
+        const index = recipients.indexOf(recipient);
+        console.log(`[${index}]: Claiming Spirit for ${recipient.address}`);
+        await khalaApi.tx.balances.transfer(recipient.address, token(11)).signAndSend(root, {nonce: nonceRoot++});
+        await waitTxAccepted(khalaApi, root.address, nonceRoot - 1);
+        await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.claimSpirit(), recipient);
+        console.log(`[${index}]: Spirit Claims...DONE`);
+    }
 }
 
 async function main() {
@@ -74,7 +68,7 @@ async function main() {
     // Start Spirit Claims
     await setStatusType(api, overlord, 'ClaimSpirits', true);
     // Claim Spirits
-    await usersClaimSpirits(api, userAccounts);
+    await usersClaimSpirits(api, overlord, userAccounts);
 }
 
 main().catch(console.error).finally(() => process.exit());

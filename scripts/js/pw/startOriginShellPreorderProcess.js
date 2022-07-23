@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
-const { token, waitTxAccepted, getNonce, setStatusType, checkUntil } = require('./pwUtils');
+const { waitExtrinsicFinished, setStatusType } = require('./pwUtils');
 
 const alicePrivkey = process.env.ROOT_PRIVKEY;
 const bobPrivkey = process.env.USER_PRIVKEY;
@@ -11,23 +11,12 @@ const davidPrivkey = process.env.DAVID_PRIVKEY;
 const evePrivkey = process.env.EVE_PRIVKEY;
 const endpoint = process.env.ENDPOINT;
 
+
 // Start rare origin of shells purchases
 async function userPreorderOriginOfShell(khalaApi, account, race, career) {
-    let nonceAccount = await getNonce(khalaApi, account.address);
-    return new Promise(async (resolve) => {
-        console.log(`Starting Preorder Origin of Shell account: ${account}, race: ${race}, career: ${career}...`);
-        const unsub = await khalaApi.tx.pwNftSale.preorderOriginOfShell(race, career).signAndSend(account, {nonce: nonceAccount++}, (result) => {
-            if (result.status.isInBlock) {
-                console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
-            } else if (result.status.isFinalized) {
-                console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
-                unsub();
-                resolve();
-            }
-        });
-        console.log(`Preorder Origin of Shell...DONE`);
-
-    });
+    console.log(`Starting Preorder Origin of Shell account: ${account}, race: ${race}, career: ${career}...`);
+    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.preorderOriginOfShell(race, career), account);
+    console.log(`Preorder Origin of Shell...DONE`);
 }
 
 async function main() {
