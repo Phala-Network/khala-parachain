@@ -20,8 +20,12 @@
 
 use std::sync::Arc;
 
+use pallet_rmrk_core::{CollectionInfoOf, InstanceInfoOf, PropertyInfoOf, ResourceInfoOf};
+use pallet_rmrk_equip::{BaseInfoOf, BoundedThemeOf, PartTypeOf};
 use parachains_common::{AccountId, Balance, Block, Index as Nonce};
-use sc_client_api::{AuxStore, backend, Backend, BlockBackend, StorageProvider};
+pub use rmrk_rpc::RmrkApi;
+pub use rmrk_substrate_runtime::Runtime as RmrkRuntime;
+use sc_client_api::{backend, AuxStore, Backend, BlockBackend, StorageProvider};
 pub use sc_rpc::{DenyUnsafe, SubscriptionTaskExecutor};
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::{ApiExt, ProvideRuntimeApi};
@@ -66,6 +70,17 @@ where
         sp_api::Metadata<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<B, Block>>,
     C::Api: pallet_mq_runtime_api::MqApi<Block>,
     B: Backend<Block> + 'static,
+    C::Api: RmrkApi<
+        Block,
+        AccountId,
+        CollectionInfoOf<RmrkRuntime>,
+        InstanceInfoOf<RmrkRuntime>,
+        ResourceInfoOf<RmrkRuntime>,
+        PropertyInfoOf<RmrkRuntime>,
+        BaseInfoOf<RmrkRuntime>,
+        PartTypeOf<RmrkRuntime>,
+        BoundedThemeOf<RmrkRuntime>,
+    >,
     P: TransactionPool + Sync + Send + 'static,
 {
     use frame_rpc_system::{System, SystemApiServer};
@@ -82,6 +97,7 @@ where
 
     module.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
     module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
+    module.merge(RmrkApi::new(client.clone()).into_rpc())?;
 
     phala_node_rpc_ext::extend_rpc(
         &mut module,
@@ -99,18 +115,18 @@ where
 pub fn create_phala_full<C, B, P>(
     deps: FullDeps<C, B, P>,
 ) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
-    where
-        C: ProvideRuntimeApi<Block>
+where
+    C: ProvideRuntimeApi<Block>
         + HeaderBackend<Block>
         + AuxStore
         + HeaderMetadata<Block, Error = BlockChainError>
         + Send
         + Sync
         + 'static,
-        C::Api: frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
-        C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
-        C::Api: BlockBuilder<Block>,
-        P: TransactionPool + Sync + Send + 'static,
+    C::Api: frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
+    C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+    C::Api: BlockBuilder<Block>,
+    P: TransactionPool + Sync + Send + 'static,
 {
     use frame_rpc_system::{System, SystemApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
