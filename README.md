@@ -31,6 +31,8 @@ ln -s llvm-ar ar
 ln -s llvm-ar ranlib
 ```
 
+*NOTE: You have to re-do this step after you upgrade or reinstall LLVM*
+
 Before compiling `khala-node`, add custom installed LLVM to `$PATH`
 
 ```
