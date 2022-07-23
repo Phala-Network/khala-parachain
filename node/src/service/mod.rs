@@ -27,7 +27,6 @@ use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayC
 use cumulus_relay_chain_rpc_interface::RelayChainRPCInterface;
 use polkadot_service::CollatorPair;
 
-pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
 use sc_executor::WasmExecutor;
 
 use sc_network::NetworkService;
@@ -39,6 +38,18 @@ use sp_api::ConstructRuntimeApi;
 use sp_keystore::SyncCryptoStorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use substrate_prometheus_endpoint::Registry;
+
+use rmrk_traits::{BaseInfo, CollectionInfo, NftInfo, PartType, PropertyInfo, ResourceInfo, Theme, ThemeProperty};
+use rmrk_traits::primitives::{CollectionId, PartId};
+use sp_runtime::{BoundedVec, Permill};
+
+use parachains_common::{
+    uniques, rmrk_core, rmrk_equip,
+};
+
+pub use parachains_common::{
+    AccountId, Balance, Block, Hash, Header, Index as Nonce
+};
 
 #[cfg(feature = "phala-native")]
 pub mod phala;
@@ -227,6 +238,46 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         + cumulus_primitives_core::CollectCollationInfo<Block>
         + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
         + frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
+        + rmrk_rpc::RmrkApi<
+            Block,
+            AccountId,
+            CollectionInfo<
+                BoundedVec<u8, uniques::StringLimit>,
+                BoundedVec<u8, rmrk_core::CollectionSymbolLimit>,
+                AccountId
+            >,
+            NftInfo<
+                AccountId,
+                Permill,
+                BoundedVec<u8, uniques::StringLimit>,
+            >,
+            ResourceInfo<
+                BoundedVec<u8, uniques::StringLimit>,
+                BoundedVec<PartId, rmrk_core::PartsLimit>
+            >,
+            PropertyInfo<
+                BoundedVec<u8, uniques::KeyLimit>,
+                BoundedVec<u8, uniques::ValueLimit>
+            >,
+            BaseInfo<
+                AccountId,
+                BoundedVec<u8, uniques::StringLimit>
+            >,
+            PartType<
+                BoundedVec<u8, uniques::StringLimit>,
+                BoundedVec<
+                    CollectionId,
+                    rmrk_equip::MaxCollectionsEquippablePerPart
+                >
+            >,
+            Theme<
+                BoundedVec<u8, uniques::StringLimit>,
+                BoundedVec<
+                    ThemeProperty<BoundedVec<u8, uniques::StringLimit>>,
+                    rmrk_equip::MaxPropertiesPerTheme,
+                >,
+            >,
+        >
         + pallet_mq_runtime_api::MqApi<Block>,
         sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
         RB: Fn(

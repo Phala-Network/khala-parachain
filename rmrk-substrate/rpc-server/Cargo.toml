@@ -1,0 +1,22 @@
+[package]
+name = "rmrk-rpc-server"
+version = "0.0.1"
+license = ""
+edition = "2021"
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0" }
+scale-info = { version = "2.0" }
+jsonrpsee = { version = "0.14.0", features = ["server"] }
+
+# primitives
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
+
+# client dependencies
+sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
+sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
+
+rmrk-traits = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.26" }
+rmrk-rpc = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.26" }
