@@ -23,7 +23,7 @@ brew install llvm
 As formula note shows binaries locate at `/opt/homebrew/opt/llvm/bin`
 (You can revisit it via `brew info llvm`, beware Intel Mac has different location)
 
-Make alas for `ar` and `ranlib` to ensure use custom installed LLVM instead of Xcode bundled
+Make alias for `ar` and `ranlib` to ensure use custom installed LLVM instead of Xcode bundled
 
 ```
 cd /opt/homebrew/opt/llvm/bin
