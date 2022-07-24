@@ -53,11 +53,18 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto},
-    transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
+    traits::{
+        AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto,
+    },
+    transaction_validity::{
+        TransactionSource, TransactionValidity,
+    },
+    ApplyExtrinsicResult, FixedPointNumber, Perbill, Percent, Permill, Perquintill, DispatchError,
 };
-use sp_std::prelude::*;
+use sp_std::{
+    prelude::*,
+    collections::btree_set::BTreeSet,
+};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -70,12 +77,13 @@ pub use frame_support::{
         AsEnsureOriginWithArg, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Everything,
         Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem, LockIdentifier, Nothing,
         OnUnbalanced, Randomness, U128CurrencyToVote,
+        tokens::nonfungibles::*,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         ConstantMultiplier, DispatchClass, IdentityFee, Weight,
     },
-    PalletId, RuntimeDebug, StorageValue,
+    PalletId, RuntimeDebug, StorageValue, BoundedVec,
 };
 
 use frame_system::{
@@ -95,8 +103,11 @@ use xcm_builder::{
 };
 use xcm_executor::{Config, XcmExecutor};
 
-pub use parachains_common::Index;
-pub use parachains_common::*;
+use rmrk_traits::{primitives::*, NftChild};
+use pallet_rmrk_core::{CollectionInfoOf, InstanceInfoOf, ResourceInfoOf, PropertyInfoOf};
+use pallet_rmrk_equip::{BoundedThemeOf, BaseInfoOf, PartTypeOf};
+
+pub use parachains_common::{*, Index, uniques, rmrk_core, rmrk_equip};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
 pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
@@ -269,8 +280,8 @@ construct_runtime! {
 
         // Phala World
         Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 101,
-        RmrkCore: pallet_rmrk_core::{Pallet, Call, Storage, Event<T>} = 102,
-        RmrkEquip: pallet_rmrk_equip::{Pallet, Storage, Event<T>} = 103,
+        RmrkCore: pallet_rmrk_core::{Pallet, Call, Event<T>, Storage} = 102,
+        RmrkEquip: pallet_rmrk_equip::{Pallet, Call, Event<T>, Storage} = 103,
         RmrkMarket: pallet_rmrk_market::{Pallet, Call, Storage, Event<T>} = 104,
         PWNftSale: pallet_pw_nft_sale::{Pallet, Call, Storage, Event<T>} = 105,
         PWIncubation: pallet_pw_incubation::{Pallet, Call, Storage, Event<T>} = 106,
@@ -822,9 +833,6 @@ parameter_types! {
     pub const CollectionDeposit: Balance = 0 * DOLLARS;
     pub const ItemDeposit: Balance = 0 * DOLLARS;
     pub const ZeroDeposit: Balance = 0 * DOLLARS;
-    pub const KeyLimit: u32 = 32;
-    pub const ValueLimit: u32 = 256;
-    pub const StringLimit: u32 = 50;
 }
 
 impl pallet_uniques::Config for Runtime {
@@ -840,9 +848,9 @@ impl pallet_uniques::Config for Runtime {
     type MetadataDepositBase = ZeroDeposit;
     type AttributeDepositBase = ZeroDeposit;
     type DepositPerByte = ZeroDeposit;
-    type StringLimit = StringLimit;
-    type KeyLimit = KeyLimit;
-    type ValueLimit = ValueLimit;
+    type StringLimit = uniques::StringLimit;
+    type KeyLimit = uniques::KeyLimit;
+    type ValueLimit = uniques::ValueLimit;
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = ();
     type WeightInfo = pallet_uniques::weights::SubstrateWeight<Runtime>;
@@ -851,9 +859,7 @@ impl pallet_uniques::Config for Runtime {
 parameter_types! {
     pub const MaxRecursions: u32 = 10;
     pub const ResourceSymbolLimit: u32 = 10;
-    pub const PartsLimit: u32 = 25;
     pub const MaxPriorities: u32 = 25;
-    pub const CollectionSymbolLimit: u32 = 100;
     pub const MaxResourcesOnMint: u32 = 100;
 }
 
@@ -862,21 +868,16 @@ impl pallet_rmrk_core::Config for Runtime {
     type ProtocolOrigin = EnsureRoot<AccountId>;
     type MaxRecursions = MaxRecursions;
     type ResourceSymbolLimit = ResourceSymbolLimit;
-    type PartsLimit = PartsLimit;
+    type PartsLimit = rmrk_core::PartsLimit;
     type MaxPriorities = MaxPriorities;
-    type CollectionSymbolLimit = CollectionSymbolLimit;
+    type CollectionSymbolLimit = rmrk_core::CollectionSymbolLimit;
     type MaxResourcesOnMint = MaxResourcesOnMint;
-}
-
-parameter_types! {
-    pub const MaxPropertiesPerTheme: u32 = 100;
-    pub const MaxCollectionsEquippablePerPart: u32 = 100;
 }
 
 impl pallet_rmrk_equip::Config for Runtime {
     type Event = Event;
-    type MaxPropertiesPerTheme = MaxPropertiesPerTheme;
-    type MaxCollectionsEquippablePerPart = MaxCollectionsEquippablePerPart;
+    type MaxPropertiesPerTheme = rmrk_equip::MaxPropertiesPerTheme;
+    type MaxCollectionsEquippablePerPart = rmrk_equip::MaxCollectionsEquippablePerPart;
 }
 
 parameter_types! {
@@ -1569,6 +1570,22 @@ mod benches {
     );
 }
 
+// https://github.com/rmrk-team/rmrk-substrate/blob/main/runtime/src/lib.rs#L472
+fn option_filter_keys_to_set<StringLimit: frame_support::traits::Get<u32>>(
+    filter_keys: Option<Vec<rmrk_rpc::PropertyKey>>
+) -> rmrk_rpc::Result<Option<BTreeSet<BoundedVec<u8, StringLimit>>>> {
+    match filter_keys {
+        Some(filter_keys) => {
+            let tree = filter_keys.into_iter()
+                .map(|filter_keys| -> rmrk_rpc::Result<BoundedVec<u8, StringLimit>> {
+                    filter_keys.try_into().map_err(|_| DispatchError::Other("Can't read filter key"))
+                }).collect::<rmrk_rpc::Result<BTreeSet<_>>>()?;
+            Ok(Some(tree))
+        },
+        None => Ok(None)
+    }
+}
+
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
         fn slot_duration() -> sp_consensus_aura::SlotDuration {
@@ -1675,6 +1692,110 @@ impl_runtime_apis! {
     impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
         fn collect_collation_info(header: &<Block as BlockT>::Header) -> cumulus_primitives_core::CollationInfo {
             ParachainSystem::collect_collation_info(header)
+        }
+    }
+
+    impl rmrk_rpc::RmrkApi<
+        Block,
+        AccountId,
+        CollectionInfoOf<Runtime>,
+        InstanceInfoOf<Runtime>,
+        ResourceInfoOf<Runtime>,
+        PropertyInfoOf<Runtime>,
+        BaseInfoOf<Runtime>,
+        PartTypeOf<Runtime>,
+        BoundedThemeOf<Runtime>
+    > for Runtime
+    {
+        fn last_collection_idx() -> rmrk_rpc::Result<CollectionId> {
+            Ok(RmrkCore::collection_index())
+        }
+
+        fn collection_by_id(id: CollectionId) -> rmrk_rpc::Result<Option<CollectionInfoOf<Runtime>>> {
+            Ok(RmrkCore::collections(id))
+        }
+
+        fn nft_by_id(collection_id: CollectionId, nft_id: NftId) -> rmrk_rpc::Result<Option<InstanceInfoOf<Runtime>>> {
+            Ok(RmrkCore::nfts(collection_id, nft_id))
+        }
+
+        fn account_tokens(account_id: AccountId, collection_id: CollectionId) -> rmrk_rpc::Result<Vec<NftId>> {
+            Ok(Uniques::owned_in_collection(&collection_id, &account_id).collect())
+        }
+
+        fn nft_children(collection_id: CollectionId, nft_id: NftId) -> rmrk_rpc::Result<Vec<NftChild>> {
+            let children = RmrkCore::iterate_nft_children(collection_id, nft_id).collect();
+
+            Ok(children)
+        }
+
+        fn collection_properties(
+            collection_id: CollectionId,
+            filter_keys: Option<Vec<rmrk_rpc::PropertyKey>>
+        ) -> rmrk_rpc::Result<Vec<PropertyInfoOf<Runtime>>> {
+            let nft_id = None;
+
+            let filter_keys = option_filter_keys_to_set::<<Self as pallet_uniques::Config>::KeyLimit>(
+                filter_keys
+            )?;
+
+            Ok(RmrkCore::query_properties(collection_id, nft_id, filter_keys).collect())
+        }
+
+        fn nft_properties(
+            collection_id: CollectionId,
+            nft_id: NftId,
+            filter_keys: Option<Vec<rmrk_rpc::PropertyKey>>
+        ) -> rmrk_rpc::Result<Vec<PropertyInfoOf<Runtime>>> {
+            let filter_keys = option_filter_keys_to_set::<<Self as pallet_uniques::Config>::KeyLimit>(
+                filter_keys
+            )?;
+
+            Ok(RmrkCore::query_properties(collection_id, Some(nft_id), filter_keys).collect())
+        }
+
+        fn nft_resources(collection_id: CollectionId, nft_id: NftId) -> rmrk_rpc::Result<Vec<ResourceInfoOf<Runtime>>> {
+            Ok(RmrkCore::iterate_resources(collection_id, nft_id).collect())
+        }
+
+        fn nft_resource_priority(collection_id: CollectionId, nft_id: NftId, resource_id: ResourceId) -> rmrk_rpc::Result<Option<u32>> {
+            let priority = RmrkCore::priorities((collection_id, nft_id, resource_id));
+
+            Ok(priority)
+        }
+
+        fn base(base_id: BaseId) -> rmrk_rpc::Result<Option<BaseInfoOf<Runtime>>> {
+            Ok(RmrkEquip::bases(base_id))
+        }
+
+        fn base_parts(base_id: BaseId) -> rmrk_rpc::Result<Vec<PartTypeOf<Runtime>>> {
+            Ok(RmrkEquip::iterate_part_types(base_id).collect())
+        }
+
+        fn theme_names(base_id: BaseId) -> rmrk_rpc::Result<Vec<rmrk_rpc::ThemeName>> {
+            let names = RmrkEquip::iterate_theme_names(base_id)
+                .map(|name| name.into())
+                .collect();
+
+            Ok(names)
+        }
+
+        fn theme(
+            base_id: BaseId,
+            theme_name: rmrk_rpc::ThemeName,
+            filter_keys: Option<Vec<rmrk_rpc::PropertyKey>>
+        ) -> rmrk_rpc::Result<Option<BoundedThemeOf<Runtime>>> {
+            use pallet_rmrk_equip::StringLimitOf;
+
+            let theme_name: StringLimitOf<Self> = theme_name.try_into()
+                .map_err(|_| DispatchError::Other("Can't read theme_name"))?;
+
+            let filter_keys = option_filter_keys_to_set::<<Self as pallet_uniques::Config>::StringLimit>(
+                filter_keys
+            )?;
+
+            let theme = RmrkEquip::get_theme(base_id, theme_name, filter_keys)?;
+            Ok(theme)
         }
     }
 

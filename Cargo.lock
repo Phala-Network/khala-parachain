@@ -3641,6 +3641,8 @@ dependencies = [
  "khala-parachain-runtime",
  "log",
  "pallet-mq-runtime-api",
+ "pallet-rmrk-core",
+ "pallet-rmrk-equip",
  "pallet-transaction-payment-rpc",
  "parachains-common",
  "parity-scale-codec",
@@ -3651,6 +3653,9 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-service",
  "rhala-parachain-runtime",
+ "rmrk-rpc",
+ "rmrk-rpc-server",
+ "rmrk-traits",
  "sc-basic-authorship",
  "sc-chain-spec",
  "sc-cli",
@@ -3757,6 +3762,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "rmrk-rpc",
  "rmrk-traits",
  "scale-info",
  "serde",
@@ -5897,7 +5903,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-core"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.26#7d69ae1b0584e10d0263a6ac58cffd4f18ee940c"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.26#dbe81ddcbeb2631c2e42e3c3f2e9daf1e4435ee3"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5915,7 +5921,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-equip"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.26#7d69ae1b0584e10d0263a6ac58cffd4f18ee940c"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.26#dbe81ddcbeb2631c2e42e3c3f2e9daf1e4435ee3"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5934,7 +5940,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-market"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.26#7d69ae1b0584e10d0263a6ac58cffd4f18ee940c"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.26#dbe81ddcbeb2631c2e42e3c3f2e9daf1e4435ee3"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8585,6 +8591,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "rmrk-rpc",
  "rmrk-traits",
  "scale-info",
  "smallvec",
@@ -8646,9 +8653,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "rmrk-rpc"
+version = "0.0.1"
+dependencies = [
+ "parity-scale-codec",
+ "rmrk-traits",
+ "scale-info",
+ "serde",
+ "sp-api",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "rmrk-rpc-server"
+version = "0.0.1"
+dependencies = [
+ "jsonrpsee",
+ "parity-scale-codec",
+ "rmrk-rpc",
+ "rmrk-traits",
+ "sc-client-api",
+ "sc-rpc",
+ "scale-info",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+]
+
+[[package]]
 name = "rmrk-traits"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.26#7d69ae1b0584e10d0263a6ac58cffd4f18ee940c"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.26#dbe81ddcbeb2631c2e42e3c3f2e9daf1e4435ee3"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -11548,6 +11585,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "rmrk-rpc",
  "rmrk-traits",
  "scale-info",
  "smallvec",
@@ -12013,7 +12051,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.3",
  "rand 0.8.5",
  "static_assertions",

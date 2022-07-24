@@ -1,46 +1,15 @@
 require('dotenv').config();
-const BN = require('bn.js');
-const sleep = require('p-sleep');
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
+const { token, waitTxAccepted, getNonce } = require('./pwUtils');
 
 const alicePrivkey = process.env.ROOT_PRIVKEY;
 const bobPrivkey = process.env.USER_PRIVKEY;
-const overlordPrivkey = process.env.OVERLOAD_PRIVKEY;
+const overlordPrivkey = process.env.OVERLORD_PRIVKEY;
 const ferdiePrivkey = process.env.FERDIE_PRIVKEY;
 const charliePrivkey = process.env.CHARLIE_PRIVKEY;
 const davidPrivkey = process.env.DAVID_PRIVKEY;
 const evePrivkey = process.env.EVE_PRIVKEY;
 const endpoint = process.env.ENDPOINT;
-
-const bnUnit = new BN(1e12);
-function token(n) {
-    return new BN(n).mul(bnUnit);
-}
-
-async function checkUntil(async_fn, timeout) {
-    const t0 = new Date().getTime();
-    while (true) {
-        if (await async_fn()) {
-            return true;
-        }
-        const t = new Date().getTime();
-        if (t - t0 >= timeout) {
-            return false;
-        }
-        await sleep(100);
-    }
-}
-
-async function getNonce(khalaApi, address) {
-    const info = await khalaApi.query.system.account(address);
-    return info.nonce.toNumber();
-}
-
-async function waitTxAccepted(khalaApi, account, nonce) {
-    await checkUntil(async () => {
-        return await getNonce(khalaApi, account) === nonce + 1;
-    });
-}
 
 // Transfer balance to an account
 async function transferPha(khalaApi, sender, recipients, amount) {
