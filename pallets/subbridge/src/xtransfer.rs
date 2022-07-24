@@ -2,7 +2,6 @@ pub use self::pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use crate::helper::WrapSlice;
 	use crate::traits::*;
 	use assets_registry::AccountId32Conversion;
 	use frame_support::{
@@ -10,6 +9,7 @@ pub mod pallet {
 		weights::Weight,
 	};
 	use frame_system::pallet_prelude::*;
+	use phala_pallet_common::WrapSlice;
 	use sp_std::{boxed::Box, convert::From, vec::Vec};
 	use xcm::latest::{prelude::*, MultiAsset, MultiLocation};
 
@@ -168,7 +168,6 @@ pub mod pallet {
 	mod test {
 		use crate::chainbridge::Error as ChainbridgeError;
 		use crate::chainbridge::Event as ChainbridgeEvent;
-		use crate::helper::WrapSlice;
 		use crate::mock::para::Origin;
 		use crate::mock::para::Runtime;
 		use crate::mock::{
@@ -179,6 +178,7 @@ pub mod pallet {
 		};
 		use crate::traits::*;
 		use frame_support::{assert_noop, assert_ok};
+		use phala_pallet_common::WrapSlice;
 		use polkadot_parachain::primitives::Sibling;
 		use sp_runtime::{traits::AccountIdConversion, AccountId32};
 

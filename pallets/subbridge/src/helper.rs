@@ -1,6 +1,6 @@
 use assets_registry::{GetAssetRegistryInfo, NativeAssetChecker};
 use frame_support::pallet_prelude::*;
-use sp_runtime::{traits::CheckedConversion, BoundedVec, WeakBoundedVec};
+use sp_runtime::traits::CheckedConversion;
 use sp_std::{
 	convert::{Into, TryFrom, TryInto},
 	marker::PhantomData,
@@ -104,25 +104,5 @@ impl<
 			}),
 		);
 		let _ = Adapter::deposit_asset(&revenue, &beneficiary);
-	}
-}
-
-pub struct WrapSlice(pub &'static [u8]);
-
-impl<T: Get<u32>> Into<BoundedVec<u8, T>> for WrapSlice {
-	fn into(self) -> BoundedVec<u8, T> {
-		self.0
-			.to_vec()
-			.try_into()
-			.expect("less than length limit; qed")
-	}
-}
-
-impl<T: Get<u32>> Into<WeakBoundedVec<u8, T>> for WrapSlice {
-	fn into(self) -> WeakBoundedVec<u8, T> {
-		self.0
-			.to_vec()
-			.try_into()
-			.expect("less than length limit; qed")
 	}
 }
