@@ -37,7 +37,7 @@ cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", br
 
 # Local
 parachains-common = { path = "../../parachains-common", default-features = false }
-frame-support-ex = { path = "../../crates/frame-support-ex", default-features = false }
+phala-pallet-common = { path = "../../crates/phala-pallet-common", default-features = false }
 
 [dev-dependencies]
 assert_matches = "1.4.0"
@@ -73,7 +73,7 @@ cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", br
 # Local
 parachains-common = { path = "../../parachains-common" }
 pallet-parachain-info = { path = "../../pallets/parachain-info" }
-frame-support-ex = { path = "../../crates/frame-support-ex" }
+phala-pallet-common = { path = "../../crates/phala-pallet-common" }
 
 [features]
 default = ["std"]
@@ -104,5 +104,5 @@ std = [
 	"xcm/std",
 	"xcm-executor/std",
 	"xcm-builder/std",
-	"frame-support-ex/std",
+	"phala-pallet-common/std",
 ]

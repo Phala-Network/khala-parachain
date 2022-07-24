@@ -164,7 +164,6 @@ dependencies = [
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-support",
- "frame-support-ex",
  "frame-system",
  "hex-literal",
  "log",
@@ -176,6 +175,7 @@ dependencies = [
  "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
+ "phala-pallet-common",
  "polkadot-parachain",
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
@@ -2604,20 +2604,6 @@ dependencies = [
  "sp-std",
  "sp-tracing",
  "tt-call",
-]
-
-[[package]]
-name = "frame-support-ex"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
 ]
 
 [[package]]
@@ -6607,6 +6593,20 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
+]
+
+[[package]]
+name = "phala-pallet-common"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -11289,7 +11289,6 @@ dependencies = [
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-support",
- "frame-support-ex",
  "frame-system",
  "hex-literal",
  "impl-trait-for-tuples",
@@ -11301,6 +11300,7 @@ dependencies = [
  "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
+ "phala-pallet-common",
  "polkadot-parachain",
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",

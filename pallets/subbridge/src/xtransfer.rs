@@ -9,7 +9,7 @@ pub mod pallet {
 		weights::Weight,
 	};
 	use frame_system::pallet_prelude::*;
-	use frame_support_ex::WrapSlice;
+	use phala_pallet_common::WrapSlice;
 	use sp_std::{boxed::Box, convert::From, vec::Vec};
 	use xcm::latest::{prelude::*, MultiAsset, MultiLocation};
 
@@ -178,7 +178,7 @@ pub mod pallet {
 		};
 		use crate::traits::*;
 		use frame_support::{assert_noop, assert_ok};
-		use frame_support_ex::WrapSlice;
+		use phala_pallet_common::WrapSlice;
 		use polkadot_parachain::primitives::Sibling;
 		use sp_runtime::{traits::AccountIdConversion, AccountId32};
 

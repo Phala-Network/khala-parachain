@@ -22,7 +22,7 @@ pub mod pallet {
 		transactional, PalletId,
 	};
 	use frame_system::pallet_prelude::*;
-	use frame_support_ex::WrapSlice;
+	use phala_pallet_common::WrapSlice;
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::AccountIdConversion;
 	use sp_std::{boxed::Box, cmp, convert::From, vec, vec::Vec};
@@ -789,7 +789,7 @@ pub mod pallet {
 			GetAssetRegistryInfo, IntoResourceId, ASSETS_REGISTRY_ID,
 		};
 		use frame_support::{assert_noop, assert_ok};
-		use frame_support_ex::WrapSlice;
+		use phala_pallet_common::WrapSlice;
 		use sp_runtime::{traits::AccountIdConversion, AccountId32, DispatchError};
 
 		#[test]

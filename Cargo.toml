@@ -30,12 +30,12 @@ exclude = [
 members = [
 	"node",
 	"parachains-common",
-	"crates/frame-support-ex",
 	"crates/phala-serde-more",
 	"crates/phala-types",
 	"crates/phala-mq",
 	"crates/phala-node-rpc-ext",
 	"crates/phala-node-rpc-ext/types",
+	"crates/phala-pallet-common",
 	"crates/prpc",
 	"crates/phala-trie-storage",
 	"substrate/frame/utility",
