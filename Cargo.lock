@@ -175,6 +175,7 @@ dependencies = [
  "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
+ "phala-pallet-common",
  "polkadot-parachain",
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
@@ -6595,6 +6596,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "phala-pallet-common"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "phala-pallets"
 version = "4.1.0"
 dependencies = [
@@ -11285,6 +11300,7 @@ dependencies = [
  "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
+ "phala-pallet-common",
  "polkadot-parachain",
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",

@@ -2,7 +2,6 @@ pub use self::pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use crate::helper::WrapSlice;
 	use crate::traits::*;
 	use assets_registry::{
 		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, IntoResourceId,
@@ -17,6 +16,7 @@ pub mod pallet {
 		PalletId, Parameter,
 	};
 	use frame_system::{self as system, pallet_prelude::*};
+	use phala_pallet_common::WrapSlice;
 	use scale_info::TypeInfo;
 	pub use sp_core::U256;
 	use sp_runtime::{
@@ -1080,7 +1080,6 @@ pub mod pallet {
 		use super::*;
 		use crate::chainbridge::Error as ChainbridgeError;
 		use crate::chainbridge::Event as ChainbridgeEvent;
-		use crate::helper::WrapSlice;
 		use crate::mock::para::*;
 		use crate::mock::para::{Call, Event, Runtime};
 		use crate::mock::{
@@ -1089,6 +1088,7 @@ pub mod pallet {
 		};
 		use assets_registry::*;
 		use frame_support::{assert_noop, assert_ok};
+		use phala_pallet_common::WrapSlice;
 		use xcm_simulator::TestExt;
 
 		pub fn new_test_ext_initialized(
