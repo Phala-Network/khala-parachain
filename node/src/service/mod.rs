@@ -39,35 +39,35 @@ use sp_keystore::SyncCryptoStorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use substrate_prometheus_endpoint::Registry;
 
-use rmrk_traits::{BaseInfo, CollectionInfo, NftInfo, PartType, PropertyInfo, ResourceInfo, Theme, ThemeProperty};
 use rmrk_traits::primitives::{CollectionId, PartId};
+use rmrk_traits::{
+    BaseInfo, CollectionInfo, NftInfo, PartType, PropertyInfo, ResourceInfo, Theme, ThemeProperty,
+};
 use sp_runtime::{BoundedVec, Permill};
 
-use parachains_common::{
-    uniques, rmrk_core, rmrk_equip,
-};
+use parachains_common::{rmrk_core, rmrk_equip, uniques};
 
-pub use parachains_common::{
-    AccountId, Balance, Block, Hash, Header, Index as Nonce
-};
+pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
 
-#[cfg(feature = "phala-native")]
-pub mod phala;
 #[cfg(feature = "khala-native")]
 pub mod khala;
+#[cfg(feature = "phala-native")]
+pub mod phala;
 #[cfg(feature = "rhala-native")]
 pub mod rhala;
-#[cfg(feature = "thala-native")]
-pub mod thala;
 #[cfg(feature = "shell-native")]
 pub mod shell;
+#[cfg(feature = "thala-native")]
+pub mod thala;
 
 #[cfg(not(feature = "runtime-benchmarks"))]
 type HostFunctions = sp_io::SubstrateHostFunctions;
 
 #[cfg(feature = "runtime-benchmarks")]
-type HostFunctions =
-    (sp_io::SubstrateHostFunctions, frame_benchmarking::benchmarking::HostFunctions);
+type HostFunctions = (
+    sp_io::SubstrateHostFunctions,
+    frame_benchmarking::benchmarking::HostFunctions,
+);
 
 async fn build_relay_chain_interface(
     polkadot_config: Configuration,
@@ -76,10 +76,15 @@ async fn build_relay_chain_interface(
     task_manager: &mut TaskManager,
     collator_options: CollatorOptions,
     hwbench: Option<sc_sysinfo::HwBench>,
-) -> RelayChainResult<(Arc<(dyn RelayChainInterface + 'static)>, Option<CollatorPair>)> {
+) -> RelayChainResult<(
+    Arc<(dyn RelayChainInterface + 'static)>,
+    Option<CollatorPair>,
+)> {
     match collator_options.relay_chain_rpc_url {
-        Some(relay_chain_url) =>
-            Ok((Arc::new(RelayChainRPCInterface::new(relay_chain_url).await?) as Arc<_>, None)),
+        Some(relay_chain_url) => Ok((
+            Arc::new(RelayChainRPCInterface::new(relay_chain_url).await?) as Arc<_>,
+            None,
+        )),
         None => build_inprocess_relay_chain(
             polkadot_config,
             parachain_config,
@@ -115,12 +120,12 @@ pub fn new_partial<RuntimeApi, BIQ>(
     >,
     sc_service::Error,
 >
-    where
-        RuntimeApi: ConstructRuntimeApi<Block, TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>
+where
+    RuntimeApi: ConstructRuntimeApi<Block, TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>
         + Send
         + Sync
         + 'static,
-        RuntimeApi::RuntimeApi: sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
+    RuntimeApi::RuntimeApi: sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
         + sp_api::Metadata<Block>
         + sp_session::SessionKeys<Block>
         + sp_api::ApiExt<
@@ -128,19 +133,19 @@ pub fn new_partial<RuntimeApi, BIQ>(
             StateBackend = sc_client_api::StateBackendFor<TFullBackend<Block>, Block>,
         > + sp_offchain::OffchainWorkerApi<Block>
         + sp_block_builder::BlockBuilder<Block>,
-        sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
-        BIQ: FnOnce(
-            Arc<TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>,
-            &Configuration,
-            Option<TelemetryHandle>,
-            &TaskManager,
-        ) -> Result<
-            sc_consensus::DefaultImportQueue<
-                Block,
-                TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>,
-            >,
-            sc_service::Error,
+    sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
+    BIQ: FnOnce(
+        Arc<TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>,
+        &Configuration,
+        Option<TelemetryHandle>,
+        &TaskManager,
+    ) -> Result<
+        sc_consensus::DefaultImportQueue<
+            Block,
+            TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>,
         >,
+        sc_service::Error,
+    >,
 {
     let telemetry = config
         .telemetry_endpoints
@@ -172,7 +177,9 @@ pub fn new_partial<RuntimeApi, BIQ>(
     let telemetry_worker_handle = telemetry.as_ref().map(|(worker, _)| worker.handle());
 
     let telemetry = telemetry.map(|(worker, telemetry)| {
-        task_manager.spawn_handle().spawn("telemetry", None, worker.run());
+        task_manager
+            .spawn_handle()
+            .spawn("telemetry", None, worker.run());
         telemetry
     });
 
@@ -222,12 +229,12 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
     TaskManager,
     Arc<TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>,
 )>
-    where
-        RuntimeApi: ConstructRuntimeApi<Block, TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>
+where
+    RuntimeApi: ConstructRuntimeApi<Block, TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>
         + Send
         + Sync
         + 'static,
-        RuntimeApi::RuntimeApi: sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
+    RuntimeApi::RuntimeApi: sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
         + sp_api::Metadata<Block>
         + sp_session::SessionKeys<Block>
         + sp_api::ApiExt<
@@ -238,37 +245,24 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         + cumulus_primitives_core::CollectCollationInfo<Block>
         + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
         + frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
-        + rmrk_rpc::RmrkApi<
+        + pallet_rmrk_rpc_runtime_api::RmrkApi<
             Block,
             AccountId,
             CollectionInfo<
                 BoundedVec<u8, uniques::StringLimit>,
                 BoundedVec<u8, rmrk_core::CollectionSymbolLimit>,
-                AccountId
-            >,
-            NftInfo<
                 AccountId,
-                Permill,
-                BoundedVec<u8, uniques::StringLimit>,
             >,
+            NftInfo<AccountId, Permill, BoundedVec<u8, uniques::StringLimit>>,
             ResourceInfo<
                 BoundedVec<u8, uniques::StringLimit>,
-                BoundedVec<PartId, rmrk_core::PartsLimit>
+                BoundedVec<PartId, rmrk_core::PartsLimit>,
             >,
-            PropertyInfo<
-                BoundedVec<u8, uniques::KeyLimit>,
-                BoundedVec<u8, uniques::ValueLimit>
-            >,
-            BaseInfo<
-                AccountId,
-                BoundedVec<u8, uniques::StringLimit>
-            >,
+            PropertyInfo<BoundedVec<u8, uniques::KeyLimit>, BoundedVec<u8, uniques::ValueLimit>>,
+            BaseInfo<AccountId, BoundedVec<u8, uniques::StringLimit>>,
             PartType<
                 BoundedVec<u8, uniques::StringLimit>,
-                BoundedVec<
-                    CollectionId,
-                    rmrk_equip::MaxCollectionsEquippablePerPart
-                >
+                BoundedVec<CollectionId, rmrk_equip::MaxCollectionsEquippablePerPart>,
             >,
             Theme<
                 BoundedVec<u8, uniques::StringLimit>,
@@ -277,15 +271,14 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
                     rmrk_equip::MaxPropertiesPerTheme,
                 >,
             >,
-        >
-        + pallet_mq_runtime_api::MqApi<Block>,
-        sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
-        RB: Fn(
+        > + pallet_mq_runtime_api::MqApi<Block>,
+    sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
+    RB: Fn(
             Arc<TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>,
         ) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>
         + Send
         + 'static,
-        BIQ: FnOnce(
+    BIQ: FnOnce(
             Arc<TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>,
             &Configuration,
             Option<TelemetryHandle>,
@@ -297,25 +290,25 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             >,
             sc_service::Error,
         > + 'static,
-        BIC: FnOnce(
-            Arc<TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>,
-            Option<&Registry>,
-            Option<TelemetryHandle>,
-            &TaskManager,
-            Arc<dyn RelayChainInterface>,
-            Arc<
-                sc_transaction_pool::FullPool<
-                    Block,
-                    TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>,
-                >,
+    BIC: FnOnce(
+        Arc<TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>>,
+        Option<&Registry>,
+        Option<TelemetryHandle>,
+        &TaskManager,
+        Arc<dyn RelayChainInterface>,
+        Arc<
+            sc_transaction_pool::FullPool<
+                Block,
+                TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>,
             >,
-            Arc<NetworkService<Block, Hash>>,
-            SyncCryptoStorePtr,
-            bool,
-        ) -> Result<Box<dyn ParachainConsensus<Block>>, sc_service::Error>,
+        >,
+        Arc<NetworkService<Block, Hash>>,
+        SyncCryptoStorePtr,
+        bool,
+    ) -> Result<Box<dyn ParachainConsensus<Block>>, sc_service::Error>,
 {
     if matches!(parachain_config.role, Role::Light) {
-        return Err("Light client not supported!".into())
+        return Err("Light client not supported!".into());
     }
 
     let parachain_config = prepare_node_config(parachain_config);
@@ -335,11 +328,11 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         collator_options.clone(),
         hwbench.clone(),
     )
-        .await
-        .map_err(|e| match e {
-            RelayChainError::ServiceError(polkadot_service::Error::Sub(x)) => x,
-            s => s.to_string().into(),
-        })?;
+    .await
+    .map_err(|e| match e {
+        RelayChainError::ServiceError(polkadot_service::Error::Sub(x)) => x,
+        s => s.to_string().into(),
+    })?;
 
     let block_announce_validator = BlockAnnounceValidator::new(relay_chain_interface.clone(), id);
 
@@ -366,13 +359,11 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         let transaction_pool = transaction_pool.clone();
         let backend = backend.clone();
         let archive_enabled = match &parachain_config.state_pruning {
-            Some(m) => {
-                match m {
-                    PruningMode::Constrained(_) => false,
-                    PruningMode::ArchiveAll | PruningMode::ArchiveCanonical => true,
-                }
+            Some(m) => match m {
+                PruningMode::Constrained(_) => false,
+                PruningMode::ArchiveAll | PruningMode::ArchiveCanonical => true,
             },
-            None => true
+            None => true,
         };
 
         Box::new(move |deny_unsafe, _| {
