@@ -173,8 +173,8 @@ pub mod pallet {
 		use crate::mock::{
 			para, para_expect_event, ParaA, ParaAssets as Assets,
 			ParaAssetsRegistry as AssetsRegistry, ParaB, ParaBalances,
-			ParaChainBridge as ChainBridge, ParaXTransfer as XTransfer, TestNet, ALICE, BOB,
-			ENDOWED_BALANCE,
+			ParaChainBridge as ChainBridge, ParaResourceIdGenSalt, ParaXTransfer as XTransfer,
+			TestNet, ALICE, BOB, ENDOWED_BALANCE,
 		};
 		use crate::traits::*;
 		use frame_support::{assert_noop, assert_ok};
@@ -408,7 +408,7 @@ pub mod pallet {
 				para_expect_event(ChainbridgeEvent::FungibleTransfer(
 					0, // dest chain
 					1, // deposit nonce
-					pha_location.into_rid(0),
+					IntoResourceId::<ParaResourceIdGenSalt>::into_rid(pha_location, 0),
 					98u128.into(), // deducted fee: 2
 					b"recipient".to_vec(),
 				));
@@ -494,7 +494,7 @@ pub mod pallet {
 				para_expect_event(ChainbridgeEvent::FungibleTransfer(
 					0, // dest chain
 					1, // deposit nonce
-					registered_asset_location.into_rid(0),
+					IntoResourceId::<ParaResourceIdGenSalt>::into_rid(registered_asset_location, 0),
 					96u128.into(), // deducted fee: 4
 					b"recipient".to_vec(),
 				));
