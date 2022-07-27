@@ -90,7 +90,7 @@ pallet-rmrk-core = { git = "https://github.com/Phala-Network/rmrk-substrate", br
 pallet-rmrk-equip = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.26", default-features = false }
 pallet-rmrk-market = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.26", default-features = false }
 rmrk-traits = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.26", default-features = false }
-rmrk-rpc = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.26", default-features = false }
+pallet-rmrk-rpc-runtime-api = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.26", default-features = false }
 
 # Local dependencies
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
@@ -213,7 +213,7 @@ std = [
 	"pallet-rmrk-market/std",
 	"pallet-rmrk-equip/std",
 	"rmrk-traits/std",
-	"rmrk-rpc/std",
+	"pallet-rmrk-rpc-runtime-api/std",
 	"pallet-phala-world/std",
 ]
 

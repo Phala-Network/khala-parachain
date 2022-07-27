@@ -21,8 +21,11 @@
 use std::sync::Arc;
 
 use parachains_common::{
-    AccountId, Balance, Block, Index as Nonce,
-    uniques, rmrk_core, rmrk_equip
+    rmrk_core, rmrk_equip, uniques, AccountId, Balance, Block, Index as Nonce,
+};
+use rmrk_traits::primitives::{CollectionId, PartId};
+use rmrk_traits::{
+    BaseInfo, CollectionInfo, NftInfo, PartType, PropertyInfo, ResourceInfo, Theme, ThemeProperty,
 };
 use sc_client_api::{backend, AuxStore, Backend, BlockBackend, StorageProvider};
 pub use sc_rpc::{DenyUnsafe, SubscriptionTaskExecutor};
@@ -31,8 +34,6 @@ use sp_api::{ApiExt, ProvideRuntimeApi};
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_runtime::{BoundedVec, Permill};
-use rmrk_traits::{BaseInfo, CollectionInfo, NftInfo, PartType, PropertyInfo, ResourceInfo, Theme, ThemeProperty};
-use rmrk_traits::primitives::{CollectionId, PartId};
 
 /// A type representing all RPC extensions.
 pub type RpcExtension = jsonrpsee::RpcModule<()>;
@@ -70,37 +71,24 @@ where
     C::Api: BlockBuilder<Block>,
     C::Api:
         sp_api::Metadata<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<B, Block>>,
-    C::Api: rmrk_rpc::RmrkApi<
+    C::Api: pallet_rmrk_rpc_runtime_api::RmrkApi<
         Block,
         AccountId,
         CollectionInfo<
             BoundedVec<u8, uniques::StringLimit>,
             BoundedVec<u8, rmrk_core::CollectionSymbolLimit>,
-            AccountId
-        >,
-        NftInfo<
             AccountId,
-            Permill,
-            BoundedVec<u8, uniques::StringLimit>,
         >,
+        NftInfo<AccountId, Permill, BoundedVec<u8, uniques::StringLimit>>,
         ResourceInfo<
             BoundedVec<u8, uniques::StringLimit>,
-            BoundedVec<PartId, rmrk_core::PartsLimit>
+            BoundedVec<PartId, rmrk_core::PartsLimit>,
         >,
-        PropertyInfo<
-            BoundedVec<u8, uniques::KeyLimit>,
-            BoundedVec<u8, uniques::ValueLimit>
-        >,
-        BaseInfo<
-            AccountId,
-            BoundedVec<u8, uniques::StringLimit>
-        >,
+        PropertyInfo<BoundedVec<u8, uniques::KeyLimit>, BoundedVec<u8, uniques::ValueLimit>>,
+        BaseInfo<AccountId, BoundedVec<u8, uniques::StringLimit>>,
         PartType<
             BoundedVec<u8, uniques::StringLimit>,
-            BoundedVec<
-                CollectionId,
-                rmrk_equip::MaxCollectionsEquippablePerPart
-            >
+            BoundedVec<CollectionId, rmrk_equip::MaxCollectionsEquippablePerPart>,
         >,
         Theme<
             BoundedVec<u8, uniques::StringLimit>,
@@ -115,8 +103,8 @@ where
     P: TransactionPool + Sync + Send + 'static,
 {
     use frame_rpc_system::{System, SystemApiServer};
+    use pallet_rmrk_rpc::{Rmrk, RmrkApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
-    use rmrk_rpc_server::{Rmrk, RmrkApiServer};
 
     let mut module = RpcExtension::new(());
     let FullDeps {
