@@ -119,6 +119,7 @@ impl pallet_assets::Config for Test {
 
 parameter_types! {
 	pub NativeExecutionPrice: u128 = 1;
+	pub ResourceIdGenerationSalt: Option<u128> = Some(3);
 }
 impl assets_registry::Config for Test {
 	type Event = Event;
@@ -131,6 +132,7 @@ impl assets_registry::Config for Test {
 		ParachainInfo,
 		assets_registry::NativeAssetFilter<ParachainInfo>,
 	>;
+	type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
 }
 
 impl pallet_timestamp::Config for Test {

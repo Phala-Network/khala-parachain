@@ -2,7 +2,6 @@ pub use self::pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use crate::helper::WrapSlice;
 	use crate::traits::*;
 	use assets_registry::{
 		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, IntoResourceId,
@@ -17,6 +16,7 @@ pub mod pallet {
 		PalletId, Parameter,
 	};
 	use frame_system::{self as system, pallet_prelude::*};
+	use phala_pallet_common::WrapSlice;
 	use scale_info::TypeInfo;
 	pub use sp_core::U256;
 	use sp_runtime::{
@@ -160,6 +160,10 @@ pub mod pallet {
 		/// Maximum number of bridge events  allowed to exist in a single block
 		#[pallet::constant]
 		type BridgeEventLimit: Get<u32>;
+
+		/// Salt used to generation rid
+		#[pallet::constant]
+		type ResourceIdGenerationSalt: Get<Option<u128>>;
 	}
 
 	#[pallet::event]
@@ -804,7 +808,7 @@ pub mod pallet {
 		}
 
 		pub fn gen_pha_rid(chain_id: BridgeChainId) -> ResourceId {
-			MultiLocation::here().into_rid(chain_id)
+			IntoResourceId::<T::ResourceIdGenerationSalt>::into_rid(MultiLocation::here(), chain_id)
 		}
 
 		pub fn get_chainid(rid: &ResourceId) -> BridgeChainId {
@@ -858,7 +862,10 @@ pub mod pallet {
 				Self::extract_dest(&dest),
 			) {
 				(Some((asset_location, _)), Some((dest_id, _))) => {
-					let rid = asset_location.clone().into_rid(dest_id);
+					let rid = IntoResourceId::<T::ResourceIdGenerationSalt>::into_rid(
+						asset_location.clone(),
+						dest_id,
+					);
 					// Verify if dest chain has been whitelisted
 					if !Self::chain_whitelisted(dest_id) {
 						return false;
@@ -875,7 +882,6 @@ pub mod pallet {
 					{
 						return false;
 					}
-
 					// Verify if asset was enabled chainbridge transfer if is not native
 					if !T::NativeAssetChecker::is_native_asset(&asset)
 						&& Self::rid_to_assetid(&rid).is_err()
@@ -932,7 +938,10 @@ pub mod pallet {
 				// resource id to avoid ambiguity.
 				Pallet::<T>::gen_pha_rid(dest_id)
 			} else {
-				asset_location.clone().into_rid(dest_id)
+				IntoResourceId::<T::ResourceIdGenerationSalt>::into_rid(
+					asset_location.clone(),
+					dest_id,
+				)
 			};
 
 			log::trace!(
@@ -1080,15 +1089,16 @@ pub mod pallet {
 		use super::*;
 		use crate::chainbridge::Error as ChainbridgeError;
 		use crate::chainbridge::Event as ChainbridgeEvent;
-		use crate::helper::WrapSlice;
 		use crate::mock::para::*;
 		use crate::mock::para::{Call, Event, Runtime};
 		use crate::mock::{
 			para_assert_events, para_expect_event, para_ext, ParaA, ParaChainBridge as ChainBridge,
-			TestNet, ALICE, ENDOWED_BALANCE, RELAYER_A, RELAYER_B, RELAYER_C, TEST_THRESHOLD,
+			ParaResourceIdGenSalt, TestNet, ALICE, ENDOWED_BALANCE, RELAYER_A, RELAYER_B,
+			RELAYER_C, TEST_THRESHOLD,
 		};
 		use assets_registry::*;
 		use frame_support::{assert_noop, assert_ok};
+		use phala_pallet_common::WrapSlice;
 		use xcm_simulator::TestExt;
 
 		pub fn new_test_ext_initialized(
@@ -1280,8 +1290,10 @@ pub mod pallet {
 		#[test]
 		fn create_sucessful_proposal() {
 			let src_id = 1;
-			let r_id =
-				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"remark").into()))).into_rid(src_id);
+			let r_id = IntoResourceId::<ParaResourceIdGenSalt>::into_rid(
+				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"remark").into()))),
+				src_id,
+			);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1351,9 +1363,10 @@ pub mod pallet {
 		#[test]
 		fn create_unsucessful_proposal() {
 			let src_id = 1;
-			let r_id = MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"transfer").into())))
-				.into_rid(src_id);
-
+			let r_id = IntoResourceId::<ParaResourceIdGenSalt>::into_rid(
+				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"transfer").into()))),
+				src_id,
+			);
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
 				let proposal = make_proposal(vec![11]);
@@ -1427,8 +1440,10 @@ pub mod pallet {
 		#[test]
 		fn execute_after_threshold_change() {
 			let src_id = 1;
-			let r_id = MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"transfer").into())))
-				.into_rid(src_id);
+			let r_id = IntoResourceId::<ParaResourceIdGenSalt>::into_rid(
+				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"transfer").into()))),
+				src_id,
+			);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1489,8 +1504,10 @@ pub mod pallet {
 		#[test]
 		fn proposal_expires() {
 			let src_id = 1;
-			let r_id =
-				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"remark").into()))).into_rid(src_id);
+			let r_id = IntoResourceId::<ParaResourceIdGenSalt>::into_rid(
+				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"remark").into()))),
+				src_id,
+			);
 
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
 				let prop_id = 1;
@@ -1983,7 +2000,11 @@ pub mod pallet {
 						GeneralKey(WrapSlice(b"an asset").into()),
 					),
 				);
-				let r_id: [u8; 32] = bridge_asset_location.clone().into_rid(src_chainid);
+				let r_id = IntoResourceId::<ParaResourceIdGenSalt>::into_rid(
+					bridge_asset_location.clone(),
+					src_chainid,
+				);
+
 				let amount: Balance = 100;
 				let alice_location = MultiLocation::new(
 					0,
@@ -2138,7 +2159,10 @@ pub mod pallet {
 					Origin::signed(MODULE_ID.into_account_truncating()),
 					alice_location.encode(),
 					amount,
-					para_asset_location.clone().into_rid(src_chainid),
+					IntoResourceId::<ParaResourceIdGenSalt>::into_rid(
+						para_asset_location.clone(),
+						src_chainid
+					),
 				));
 				assert_eq!(Assets::balance(0, &ALICE), amount);
 				assert_eq!(
