@@ -55,6 +55,28 @@ mod types {
 
 	/// Aura consensus authority.
 	pub type AuraId = sp_consensus_aura::sr25519::AuthorityId;
+
+	pub mod uniques {
+		use sp_runtime::traits::ConstU32;
+
+		pub type StringLimit = ConstU32<50>;
+		pub type KeyLimit = ConstU32<32>;
+		pub type ValueLimit = ConstU32<256>;
+	}
+
+	pub mod rmrk_core {
+		use sp_runtime::traits::ConstU32;
+
+		pub type CollectionSymbolLimit = ConstU32<100>;
+		pub type PartsLimit = ConstU32<25>;
+	}
+
+	pub mod rmrk_equip {
+		use sp_runtime::traits::ConstU32;
+
+		pub type MaxCollectionsEquippablePerPart = ConstU32<100>;
+		pub type MaxPropertiesPerTheme = ConstU32<100>;
+	}
 }
 
 /// Common constants of parachains.

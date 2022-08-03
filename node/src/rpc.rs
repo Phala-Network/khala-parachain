@@ -20,13 +20,20 @@
 
 use std::sync::Arc;
 
-use parachains_common::{AccountId, Balance, Block, Index as Nonce};
-use sc_client_api::{AuxStore, backend, Backend, BlockBackend, StorageProvider};
+use parachains_common::{
+    rmrk_core, rmrk_equip, uniques, AccountId, Balance, Block, Index as Nonce,
+};
+use rmrk_traits::primitives::{CollectionId, PartId};
+use rmrk_traits::{
+    BaseInfo, CollectionInfo, NftInfo, PartType, PropertyInfo, ResourceInfo, Theme, ThemeProperty,
+};
+use sc_client_api::{backend, AuxStore, Backend, BlockBackend, StorageProvider};
 pub use sc_rpc::{DenyUnsafe, SubscriptionTaskExecutor};
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::{ApiExt, ProvideRuntimeApi};
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
+use sp_runtime::{BoundedVec, Permill};
 
 /// A type representing all RPC extensions.
 pub type RpcExtension = jsonrpsee::RpcModule<()>;
@@ -64,11 +71,39 @@ where
     C::Api: BlockBuilder<Block>,
     C::Api:
         sp_api::Metadata<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<B, Block>>,
+    C::Api: pallet_rmrk_rpc_runtime_api::RmrkApi<
+        Block,
+        AccountId,
+        CollectionInfo<
+            BoundedVec<u8, uniques::StringLimit>,
+            BoundedVec<u8, rmrk_core::CollectionSymbolLimit>,
+            AccountId,
+        >,
+        NftInfo<AccountId, Permill, BoundedVec<u8, uniques::StringLimit>>,
+        ResourceInfo<
+            BoundedVec<u8, uniques::StringLimit>,
+            BoundedVec<PartId, rmrk_core::PartsLimit>,
+        >,
+        PropertyInfo<BoundedVec<u8, uniques::KeyLimit>, BoundedVec<u8, uniques::ValueLimit>>,
+        BaseInfo<AccountId, BoundedVec<u8, uniques::StringLimit>>,
+        PartType<
+            BoundedVec<u8, uniques::StringLimit>,
+            BoundedVec<CollectionId, rmrk_equip::MaxCollectionsEquippablePerPart>,
+        >,
+        Theme<
+            BoundedVec<u8, uniques::StringLimit>,
+            BoundedVec<
+                ThemeProperty<BoundedVec<u8, uniques::StringLimit>>,
+                rmrk_equip::MaxPropertiesPerTheme,
+            >,
+        >,
+    >,
     C::Api: pallet_mq_runtime_api::MqApi<Block>,
     B: Backend<Block> + 'static,
     P: TransactionPool + Sync + Send + 'static,
 {
     use frame_rpc_system::{System, SystemApiServer};
+    use pallet_rmrk_rpc::{Rmrk, RmrkApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 
     let mut module = RpcExtension::new(());
@@ -82,6 +117,7 @@ where
 
     module.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
     module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
+    module.merge(Rmrk::new(client.clone()).into_rpc())?;
 
     phala_node_rpc_ext::extend_rpc(
         &mut module,
@@ -99,18 +135,18 @@ where
 pub fn create_phala_full<C, B, P>(
     deps: FullDeps<C, B, P>,
 ) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
-    where
-        C: ProvideRuntimeApi<Block>
+where
+    C: ProvideRuntimeApi<Block>
         + HeaderBackend<Block>
         + AuxStore
         + HeaderMetadata<Block, Error = BlockChainError>
         + Send
         + Sync
         + 'static,
-        C::Api: frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
-        C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
-        C::Api: BlockBuilder<Block>,
-        P: TransactionPool + Sync + Send + 'static,
+    C::Api: frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
+    C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+    C::Api: BlockBuilder<Block>,
+    P: TransactionPool + Sync + Send + 'static,
 {
     use frame_rpc_system::{System, SystemApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};

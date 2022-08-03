@@ -3645,6 +3645,10 @@ dependencies = [
  "khala-parachain-runtime",
  "log",
  "pallet-mq-runtime-api",
+ "pallet-rmrk-core",
+ "pallet-rmrk-equip",
+ "pallet-rmrk-rpc",
+ "pallet-rmrk-rpc-runtime-api",
  "pallet-transaction-payment-rpc",
  "parachains-common",
  "parity-scale-codec",
@@ -3655,6 +3659,7 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-service",
  "rhala-parachain-runtime",
+ "rmrk-traits",
  "sc-basic-authorship",
  "sc-chain-spec",
  "sc-cli",
@@ -3744,6 +3749,7 @@ dependencies = [
  "pallet-rmrk-core",
  "pallet-rmrk-equip",
  "pallet-rmrk-market",
+ "pallet-rmrk-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
  "pallet-timestamp",
@@ -5944,6 +5950,38 @@ dependencies = [
  "rmrk-traits",
  "scale-info",
  "serde",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-rmrk-rpc"
+version = "0.0.1"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.26#1be1f7853ca8a282ccf6c981af5cd580b0cb6c4f"
+dependencies = [
+ "jsonrpsee",
+ "pallet-rmrk-rpc-runtime-api",
+ "parity-scale-codec",
+ "rmrk-traits",
+ "sc-client-api",
+ "sc-rpc",
+ "scale-info",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-rmrk-rpc-runtime-api"
+version = "0.0.1"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.26#1be1f7853ca8a282ccf6c981af5cd580b0cb6c4f"
+dependencies = [
+ "parity-scale-codec",
+ "rmrk-traits",
+ "scale-info",
+ "serde",
+ "sp-api",
+ "sp-core",
  "sp-runtime",
  "sp-std",
 ]
@@ -8581,6 +8619,7 @@ dependencies = [
  "pallet-rmrk-core",
  "pallet-rmrk-equip",
  "pallet-rmrk-market",
+ "pallet-rmrk-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
@@ -11544,6 +11583,7 @@ dependencies = [
  "pallet-rmrk-core",
  "pallet-rmrk-equip",
  "pallet-rmrk-market",
+ "pallet-rmrk-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
