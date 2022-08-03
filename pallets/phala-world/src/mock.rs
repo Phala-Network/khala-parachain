@@ -119,6 +119,7 @@ parameter_types! {
 	pub const KeyLimit: u32 = 32; // Max 32 bytes per key
 	pub const ValueLimit: u32 = 256; // Max 64 bytes per value
 	pub const UniquesMetadataDepositBase: Balance = 1000 * PHA;
+	pub const ZeroDeposit: Balance = 0 * PHA;
 	pub const AttributeDepositBase: Balance = 100 * PHA;
 	pub const DepositPerByte: Balance = 10 * PHA;
 }
@@ -131,11 +132,11 @@ impl pallet_uniques::Config for Test {
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
 	type Locker = pallet_rmrk_core::Pallet<Test>;
-	type CollectionDeposit = CollectionDeposit;
-	type ItemDeposit = ItemDeposit;
-	type MetadataDepositBase = UniquesMetadataDepositBase;
-	type AttributeDepositBase = AttributeDepositBase;
-	type DepositPerByte = DepositPerByte;
+	type CollectionDeposit = ZeroDeposit;
+	type ItemDeposit = ZeroDeposit;
+	type MetadataDepositBase = ZeroDeposit;
+	type AttributeDepositBase = ZeroDeposit;
+	type DepositPerByte = ZeroDeposit;
 	type StringLimit = StringLimit;
 	type KeyLimit = KeyLimit;
 	type ValueLimit = ValueLimit;
