@@ -17,6 +17,7 @@ use sp_std::prelude::*;
 
 pub use pallet_rmrk_core::types::*;
 pub use pallet_rmrk_market;
+use rmrk_traits::{Collection, Nft, Property};
 
 pub use crate::traits::{
 	primitives::*, CareerType, NftSaleInfo, NftSaleType, OverlordMessage, PreorderInfo, Purpose,
@@ -382,7 +383,6 @@ pub mod pallet {
 		OriginOfShellInventoryCorrupted,
 		OriginOfShellInventoryAlreadySet,
 		OriginOfShellsMetadataNotSet,
-		UnableToAddAttributes,
 		KeyTooLong,
 		NoAvailableRaceGivewayLeft,
 		NoAvailableRaceReservedLeft,
@@ -1336,15 +1336,13 @@ where
 		);
 		// Get Spirits metadata
 		let metadata = SpiritsMetadata::<T>::get().ok_or(Error::<T>::SpiritsMetadataNotSet)?;
-		// Get NFT ID to be minted
-		let spirit_nft_id = pallet_rmrk_core::NextNftId::<T>::get(spirit_collection_id);
 		// Mint new Spirit and transfer to sender
 		// Note: Transferable is set to false bc we use the Uniques pallet freeze function as that
 		// will allow for Spirit recovery through Overlord account if account is lost and prevents
 		// the NFT from being transferred by the owner.
-		pallet_rmrk_core::Pallet::<T>::mint_nft(
-			Origin::<T>::Signed(overlord.clone()).into(),
-			Some(sender.clone()),
+		let (_, spirit_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
+			sender.clone(),
+			sender.clone(),
 			spirit_collection_id,
 			None,
 			None,
@@ -1403,8 +1401,6 @@ where
 				Error::<T>::OriginOfShellAlreadyPurchased
 			);
 		}
-		// Get next NFT ID
-		let nft_id = pallet_rmrk_core::NextNftId::<T>::get(origin_of_shell_collection_id);
 		// Get the Race's Origin of Shell metadata
 		let metadata = Self::get_origin_of_shell_metadata(race)?;
 		// Check if race and career types have mints left
@@ -1417,18 +1413,18 @@ where
 			ExistenceRequirement::KeepAlive,
 		)?;
 		// Mint Origin of Shell and transfer Origin of Shell to new owner
-		pallet_rmrk_core::Pallet::<T>::mint_nft(
-			Origin::<T>::Signed(overlord.clone()).into(),
-			Some(sender.clone()),
+		let (_, nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
+			sender.clone(),
+			sender.clone(),
 			origin_of_shell_collection_id,
-			None,
+			Some(overlord.clone()),
 			None,
 			metadata,
 			true,
 			None,
 		)?;
-		// Set Rarity Type, Race and Career attributes for NFT
-		Self::set_nft_attributes(
+		// Set Rarity Type, Race and Career properties for NFT
+		Self::set_nft_properties(
 			origin_of_shell_collection_id,
 			nft_id,
 			rarity_type,
@@ -1461,15 +1457,15 @@ where
 		Ok(())
 	}
 
-	/// Set the attributes for Origin of Shell or Shell NFT's rarity, race and career.
+	/// Set the properties for Origin of Shell or Shell NFT's rarity, race and career.
 	///
 	/// Parameters:
 	/// - `collection_id`: Collection id of the Origin of Shell or Shell NFT
 	/// - `nft_id`: NFT id of the Origin of Shell or Shell NFT
 	/// - `rarity_type`: Origin of Shell or Shell rarity type for the NFT
-	/// - `race`: Race attribute to set for the Origin of Shell or Shell NFT
-	/// - `career`: Career attribute to set for the Origin of Shell or Shell NFT
-	pub(crate) fn set_nft_attributes(
+	/// - `race`: Race property to set for the Origin of Shell or Shell NFT
+	/// - `career`: Career property to set for the Origin of Shell or Shell NFT
+	pub(crate) fn set_nft_properties(
 		collection_id: CollectionId,
 		nft_id: NftId,
 		rarity_type: RarityType,
@@ -1477,8 +1473,6 @@ where
 		career: CareerType,
 		generation: GenerationId,
 	) -> DispatchResult {
-		let overlord = Self::overlord()?;
-
 		let rarity_type_key: BoundedVec<u8, T::KeyLimit> = Self::to_boundedvec_key("rarity")?;
 		let rarity_type_value = rarity_type
 			.encode()
@@ -1500,32 +1494,28 @@ where
 			.expect("[generation] should not fail");
 
 		// Set Rarity Type
-		pallet_uniques::Pallet::<T>::set_attribute(
-			Origin::<T>::Signed(overlord.clone()).into(),
+		pallet_rmrk_core::Pallet::<T>::do_set_property(
 			collection_id,
 			Some(nft_id),
 			rarity_type_key,
 			rarity_type_value,
 		)?;
 		// Set Race
-		pallet_uniques::Pallet::<T>::set_attribute(
-			Origin::<T>::Signed(overlord.clone()).into(),
+		pallet_rmrk_core::Pallet::<T>::do_set_property(
 			collection_id,
 			Some(nft_id),
 			race_key,
 			race_value,
 		)?;
 		// Set Career
-		pallet_uniques::Pallet::<T>::set_attribute(
-			Origin::<T>::Signed(overlord.clone()).into(),
+		pallet_rmrk_core::Pallet::<T>::do_set_property(
 			collection_id,
 			Some(nft_id),
 			career_key,
 			career_value,
 		)?;
 		// Set Generation
-		pallet_uniques::Pallet::<T>::set_attribute(
-			Origin::<T>::Signed(overlord).into(),
+		pallet_rmrk_core::Pallet::<T>::do_set_property(
 			collection_id,
 			Some(nft_id),
 			generation_key,

@@ -15,7 +15,7 @@ use frame_support::{
 use frame_system::{ensure_signed, pallet_prelude::*};
 pub use pallet_rmrk_core::types::*;
 pub use pallet_rmrk_market;
-use rmrk_traits::primitives::*;
+use rmrk_traits::{primitives::*, Nft, Property};
 use sp_std::vec::Vec;
 
 pub use self::pallet::*;
@@ -363,17 +363,24 @@ pub mod pallet {
 			let career_key = pallet_pw_nft_sale::pallet::Pallet::<T>::to_boundedvec_key("career")?;
 			let rarity_type_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("rarity")?;
 			let generation_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("generation")?;
-			let race = pallet_uniques::Pallet::<T>::attribute(&collection_id, &nft_id, &race_key)
-				.ok_or(Error::<T>::RaceNotDetected)?;
+			let race =
+				pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &race_key))
+					.ok_or(Error::<T>::RaceNotDetected)?;
 			let career =
-				pallet_uniques::Pallet::<T>::attribute(&collection_id, &nft_id, &career_key)
+				pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &career_key))
 					.ok_or(Error::<T>::CareerNotDetected)?;
-			let rarity_type_value =
-				pallet_uniques::Pallet::<T>::attribute(&collection_id, &nft_id, &rarity_type_key)
-					.ok_or(Error::<T>::RarityTypeNotDetected)?;
-			let generation =
-				pallet_uniques::Pallet::<T>::attribute(&collection_id, &nft_id, &generation_key)
-					.ok_or(Error::<T>::GenerationNotDetected)?;
+			let rarity_type_value = pallet_rmrk_core::Properties::<T>::get((
+				collection_id,
+				Some(nft_id),
+				&rarity_type_key,
+			))
+			.ok_or(Error::<T>::RarityTypeNotDetected)?;
+			let generation = pallet_rmrk_core::Properties::<T>::get((
+				collection_id,
+				Some(nft_id),
+				&generation_key,
+			))
+			.ok_or(Error::<T>::GenerationNotDetected)?;
 			let race_type: RaceType =
 				Decode::decode(&mut race.as_slice()).expect("[race] should not fail");
 			let career_type: CareerType =
@@ -382,8 +389,6 @@ pub mod pallet {
 				.expect("[rarity] should not fail");
 			let generation_id: GenerationId =
 				Decode::decode(&mut generation.as_slice()).expect("[generation] should not fail");
-			// Get Shell Collection next NFT ID
-			let shell_nft_id = pallet_rmrk_core::NextNftId::<T>::get(shell_collection_id);
 			// Burn Origin of Shell NFT then Mint Shell NFT
 			pallet_rmrk_core::Pallet::<T>::burn_nft(
 				Origin::<T>::Signed(owner.clone()).into(),
@@ -391,35 +396,31 @@ pub mod pallet {
 				nft_id,
 				1,
 			)?;
-			// Remove Attributes from Uniques pallet
-			pallet_uniques::Pallet::<T>::clear_attribute(
-				origin.clone(),
+			// Remove Properties from Uniques pallet
+			pallet_rmrk_core::Pallet::<T>::do_remove_property(
 				collection_id,
 				Some(nft_id),
 				race_key,
 			)?;
-			pallet_uniques::Pallet::<T>::clear_attribute(
-				origin.clone(),
+			pallet_rmrk_core::Pallet::<T>::do_remove_property(
 				collection_id,
 				Some(nft_id),
 				career_key,
 			)?;
-			pallet_uniques::Pallet::<T>::clear_attribute(
-				origin.clone(),
+			pallet_rmrk_core::Pallet::<T>::do_remove_property(
 				collection_id,
 				Some(nft_id),
 				rarity_type_key,
 			)?;
-			pallet_uniques::Pallet::<T>::clear_attribute(
-				origin.clone(),
+			pallet_rmrk_core::Pallet::<T>::do_remove_property(
 				collection_id,
 				Some(nft_id),
 				generation_key,
 			)?;
-			// Mint Shell NFT to Overlord to add attributes and resource before sending to owner
-			pallet_rmrk_core::Pallet::<T>::mint_nft(
-				origin.clone(),
-				Some(owner.clone()),
+			// Mint Shell NFT to Overlord to add properties and resource before sending to owner
+			let (_, shell_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
+				owner.clone(),
+				owner.clone(),
 				shell_collection_id,
 				None,
 				None,
@@ -427,8 +428,8 @@ pub mod pallet {
 				true,
 				None,
 			)?;
-			// Set Rarity Type, Race and Career attributes for NFT
-			pallet_pw_nft_sale::Pallet::<T>::set_nft_attributes(
+			// Set Rarity Type, Race and Career properties for NFT
+			pallet_pw_nft_sale::Pallet::<T>::set_nft_properties(
 				shell_collection_id,
 				shell_nft_id,
 				rarity_type,
