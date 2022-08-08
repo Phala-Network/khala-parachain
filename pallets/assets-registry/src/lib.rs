@@ -30,8 +30,8 @@ pub mod pallet {
 
 	/// Const used to indicate chainbridge path. str "cb"
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
-	/// const used to indicate celerbridge path. str "cr"
-	pub const CR_PATH_KEY: &[u8] = &[0x63, 0x72];
+	/// const used to indicate pbridge path. str "bp"
+	pub const PB_PATH_KEY: &[u8] = &[0x70, 0x62];
 	/// Account that would be reserved when register an asset
 	pub const ASSETS_REGISTRY_ID: PalletId = PalletId(*b"phala/ar");
 
