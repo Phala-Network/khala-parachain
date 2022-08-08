@@ -5,9 +5,9 @@ pub mod dynamic_trader;
 pub mod fungible_adapter;
 pub mod helper;
 mod mock;
+pub mod pbridge;
 pub mod traits;
 pub mod xcmbridge;
-pub mod pbridge;
 pub mod xtransfer;
 
 pub mod migration;

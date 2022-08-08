@@ -2,7 +2,6 @@ pub use self::pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use phala_pallet_common::WrapSlice;
 	use crate::traits::*;
 	use assets_registry::{
 		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, NativeAssetChecker,
@@ -17,6 +16,7 @@ pub mod pallet {
 		PalletId, Parameter,
 	};
 	use frame_system::{self as system, pallet_prelude::*};
+	use phala_pallet_common::WrapSlice;
 	use scale_info::TypeInfo;
 	pub use sp_core::U256;
 	use sp_runtime::traits::{AccountIdConversion, Dispatchable};
@@ -71,12 +71,12 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Relayer added to set
 		BridgeContractAdded {
-            cluster_id: u8,
+			cluster_id: u8,
 			bridge_contract: [u8; 32],
 		},
 		/// Relayer removed from set
 		BridgeContractRemoved {
-            cluster_id: u8,
+			cluster_id: u8,
 			bridge_contract: [u8; 32],
 		},
 	}
@@ -105,7 +105,7 @@ pub mod pallet {
 		Unimplemented,
 	}
 
-    /// Map cluster and coressponding deployed bridge contract
+	/// Map cluster and coressponding deployed bridge contract
 	#[pallet::storage]
 	#[pallet::getter(fn storemans)]
 	pub type BridgeContracts<T: Config> = StorageMap<_, Twox64Concat, u8, [u8; 32]>;
@@ -132,7 +132,10 @@ pub mod pallet {
 			);
 			BridgeContracts::<T>::insert(&cluster_id, &bridge_contract);
 
-			Self::deposit_event(Event::BridgeContractAdded { cluster_id, bridge_contract });
+			Self::deposit_event(Event::BridgeContractAdded {
+				cluster_id,
+				bridge_contract,
+			});
 			Ok(())
 		}
 
@@ -141,10 +144,14 @@ pub mod pallet {
 		pub fn remove_bridgecontract(origin: OriginFor<T>, cluster_id: u8) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
 
-            let bridge_contract = BridgeContracts::<T>::get(&cluster_id).ok_or(Error::<T>::BridgeContractNotExisted)?;
+			let bridge_contract = BridgeContracts::<T>::get(&cluster_id)
+				.ok_or(Error::<T>::BridgeContractNotExisted)?;
 			BridgeContracts::<T>::remove(&cluster_id);
 
-			Self::deposit_event(Event::BridgeContractRemoved { cluster_id, bridge_contract });
+			Self::deposit_event(Event::BridgeContractRemoved {
+				cluster_id,
+				bridge_contract,
+			});
 			Ok(())
 		}
 
@@ -160,11 +167,11 @@ pub mod pallet {
 			recipient: Vec<u8>,
 			tx_id: Vec<u8>,
 		) -> DispatchResult {
-            // TODO: Get origin from pRuntime
+			// TODO: Get origin from pRuntime
 
-            // TODO: Check origin
+			// TODO: Check origin
 
-            // TODO: Do transfer
+			// TODO: Do transfer
 
 			Ok(())
 		}
@@ -253,7 +260,6 @@ pub mod pallet {
 				Self::extract_dest(&dest),
 			) {
 				(Some((asset_location, _)), Some((dest_id, _))) => {
-
 					// Reject all non-native assets that are not registered in the registry
 					if !T::NativeAssetChecker::is_native_asset(&asset)
 						&& T::AssetsRegistry::id(&asset_location) == None
@@ -358,7 +364,7 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::TransactFailed)?;
 			}
 
-            // TODO: Send message to pRuntime
+			// TODO: Send message to pRuntime
 
 			Ok(())
 		}
