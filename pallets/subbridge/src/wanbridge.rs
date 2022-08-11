@@ -365,10 +365,18 @@ pub mod pallet {
 				// Destnation is a standalone chain.
 				(
 					0,
-					Junctions::X3(GeneralKey(_), GeneralIndex(chain_id), GeneralKey(recipient)),
+					Junctions::X3(
+						GeneralKey(wb_key),
+						GeneralIndex(chain_id),
+						GeneralKey(recipient),
+					),
 				) => {
+					// Destnation is a standalone chain.
+					if wb_key.clone().into_inner() != WB_PATH_KEY.to_vec() {
+						return None;
+					}
+
 					if let Some(chain_id) = TryInto::<u128>::try_into(*chain_id).ok() {
-						// We don't verify wb_key here because can_deposit_asset did it.
 						Some((chain_id, recipient.to_vec()))
 					} else {
 						None
