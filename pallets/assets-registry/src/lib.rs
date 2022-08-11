@@ -97,10 +97,19 @@ pub mod pallet {
 	impl ExtractReserveLocation for Junctions {
 		fn reserve_location(&self) -> Option<MultiLocation> {
 			match (self.at(0), self.at(1)) {
+				// - Assets from solo chains briged by  ChainBridge
 				(Some(GeneralKey(cb_key)), Some(GeneralIndex(chain_id)))
 					if cb_key.clone().into_inner() == CB_ASSET_KEY.to_vec() =>
 				{
 					Some((0, X2(GeneralKey(cb_key.clone()), GeneralIndex(*chain_id))).into())
+				}
+				// - Assets from solo chains briged by  ChainBridge
+				// To be merge
+				// - Assets from FatContract bridged by PBridge
+				(Some(GeneralKey(pb_key)), Some(GeneralKey(_contract)))
+					if pb_key.clone().into_inner() == PB_PATH_KEY.to_vec() =>
+				{
+					Some((0, X1(GeneralKey(pb_key.clone()))).into())
 				}
 				_ => None,
 			}
