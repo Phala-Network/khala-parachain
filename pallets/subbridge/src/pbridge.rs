@@ -17,6 +17,7 @@ pub mod pallet {
 	};
 	use frame_system::{self as system, pallet_prelude::*};
 	use phala_pallet_common::WrapSlice;
+	use phala_types::messaging::{bind_topic, DecodedMessage, MessageOrigin};
 	use scale_info::TypeInfo;
 	pub use sp_core::U256;
 	use sp_runtime::traits::{AccountIdConversion, Dispatchable};
@@ -28,9 +29,16 @@ pub mod pallet {
 	use xcm::latest::{
 		prelude::*, AssetId as XcmAssetId, Fungibility::Fungible, MultiAsset, MultiLocation,
 	};
-	use xcm_executor::traits::TransactAsset;
+	use xcm_executor::traits::{TransactAsset, WeightBounds};
 
-	const LOG_TARGET: &str = "runtime::wanbridge";
+	bind_topic!(PBridgeReport, b"phala/contract/pbridge/report");
+	#[derive(Encode, Decode, Debug, TypeInfo)]
+	pub enum PBridgeReport {
+		// Encoded xcm message
+		Xcm(Vec<u8>),
+	}
+
+	const LOG_TARGET: &str = "runtime::pbridge";
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 	const MODULE_ID: PalletId = PalletId(*b"phala/bg");
 
@@ -64,6 +72,12 @@ pub mod pallet {
 
 		/// Fungible assets registry
 		type AssetsRegistry: GetAssetRegistryInfo<<Self as pallet_assets::Config>::AssetId>;
+
+		/// Something to execute an XCM message.
+		type XcmExecutor: ExecuteXcm<Self::Call>;
+
+		/// Means of measuring the weight consumed by an XCM message locally.
+		type Weigher: WeightBounds<Self::Call>;
 	}
 
 	#[pallet::event]
@@ -83,18 +97,23 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
+		IllegalOrigin,
 		DestUnrecognized,
 		ExtractDestFailed,
 		InsufficientBalance,
 		AssetNotRegistered,
 		AssetConversionFailed,
+		XcmDecodeFailed,
 		ExtractAssetFailed,
+		XcmExecutionFailed,
+		UnweighableMessage,
 		TransactFailed,
 		CannotDetermineReservedLocation,
 		BridgeContractAlreadyExisted,
 		BridgeContractNotExisted,
 		/// Asset not been registered or not been supported
 		AssetNotFound,
+		BridgeContractNotFound,
 		/// Extract dest location failed
 		IllegalDestination,
 		/// Can not transfer asset to dest
@@ -154,27 +173,6 @@ pub mod pallet {
 			});
 			Ok(())
 		}
-
-		/// Triggered by a initial transfer on source chain, executed by wanbridge storeman group when proposal was resolved.
-		#[pallet::weight(195_000_000)]
-		#[transactional]
-		pub fn handle_fungible_transfer(
-			origin: OriginFor<T>,
-			smg_id: [u8; 32],
-			token_pair: u32,
-			src_chainid: U256,
-			amount: BalanceOf<T>,
-			recipient: Vec<u8>,
-			tx_id: Vec<u8>,
-		) -> DispatchResult {
-			// TODO: Get origin from pRuntime
-
-			// TODO: Check origin
-
-			// TODO: Do transfer
-
-			Ok(())
-		}
 	}
 
 	impl<T: Config> Pallet<T>
@@ -183,6 +181,45 @@ pub mod pallet {
 		<T as frame_system::Config>::AccountId: From<[u8; 32]> + Into<[u8; 32]>,
 		<T as pallet_assets::Config>::Balance: From<u128> + Into<u128>,
 	{
+		/// Triggered by a initial transfer on source chain, executed by pbridge storeman group when proposal was resolved.
+		#[transactional]
+		pub fn on_fatcontract_message_received(
+			message: DecodedMessage<PBridgeReport>,
+		) -> DispatchResult {
+			let _ = match message.sender {
+				MessageOrigin::Cluster(cluster) => cluster,
+				_ => return Err(Error::<T>::IllegalOrigin.into()),
+			};
+
+			match message.payload {
+				PBridgeReport::Xcm(encoded_xcm) => {
+					let origin_location = Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: Self::fatcontract_reserve_location()
+							.clone()
+							.into_account()
+							.into(),
+					}
+					.into();
+					let xcm: &mut Xcm<T::Call> = &mut Decode::decode(&mut encoded_xcm.as_slice())
+						.map_err(|_| Error::<T>::XcmDecodeFailed)?;
+					let weight =
+						T::Weigher::weight(xcm).map_err(|()| Error::<T>::UnweighableMessage)?;
+					// TODO: barriers check
+					T::XcmExecutor::execute_xcm_in_credit(
+						origin_location,
+						xcm.clone(),
+						weight,
+						weight,
+					)
+					.ensure_complete()
+					.map_err(|_| Error::<T>::XcmExecutionFailed)?;
+				}
+			}
+
+			Ok(())
+		}
+
 		fn extract_fungible(asset: MultiAsset) -> Option<(MultiLocation, u128)> {
 			match (asset.fun, asset.id) {
 				(Fungible(amount), Concrete(location)) => Some((location, amount)),
@@ -190,16 +227,13 @@ pub mod pallet {
 			}
 		}
 
-		fn extract_dest(dest: &MultiLocation) -> Option<(u128, Vec<u8>)> {
+		fn extract_dest(dest: &MultiLocation) -> Option<Vec<u8>> {
 			match (dest.parents, &dest.interior) {
 				// Destnation is a standalone chain.
-				(
-					0,
-					Junctions::X3(GeneralKey(_), GeneralIndex(chain_id), GeneralKey(recipient)),
-				) => {
-					if let Some(chain_id) = TryInto::<u128>::try_into(*chain_id).ok() {
-						// We don't verify wb_key here because can_deposit_asset did it.
-						Some((chain_id, recipient.to_vec()))
+				(0, Junctions::X2(GeneralKey(pb_key), GeneralKey(recipient))) => {
+					if pb_key.clone().into_inner() == PB_PATH_KEY.to_vec() {
+						// Return account in FatContract
+						Some(recipient.to_vec())
 					} else {
 						None
 					}
@@ -246,6 +280,25 @@ pub mod pallet {
 				amount.saturating_div(10u128.saturating_pow(12 - decimals as u32))
 			}
 		}
+
+		fn fatcontract_reserve_location() -> MultiLocation {
+			(0, X1(GeneralKey(WrapSlice(PB_PATH_KEY).into()))).into()
+		}
+
+		fn parse_asset_contract(asset_location: &MultiLocation) -> Option<[u8; 32]> {
+			// TODO
+			None
+		}
+
+		fn parse_bridge_contract(cluster: &H256) -> Option<[u8; 32]> {
+			// TODO
+			None
+		}
+
+		fn parse_cluster(contract: &[u8; 32]) -> Option<H256> {
+			// TODO
+			None
+		}
 	}
 
 	impl<T: Config> BridgeChecker for Pallet<T>
@@ -259,7 +312,7 @@ pub mod pallet {
 				Self::extract_fungible(asset.clone()),
 				Self::extract_dest(&dest),
 			) {
-				(Some((asset_location, _)), Some((dest_id, _))) => {
+				(Some((asset_location, _)), Some(_)) => {
 					// Reject all non-native assets that are not registered in the registry
 					if !T::NativeAssetChecker::is_native_asset(&asset)
 						&& T::AssetsRegistry::id(&asset_location) == None
@@ -307,12 +360,18 @@ pub mod pallet {
 
 			let (asset_location, amount) = Pallet::<T>::extract_fungible(asset.clone())
 				.ok_or(Error::<T>::ExtractAssetFailed)?;
-			let (dest_id, recipient) =
+			let recipient =
 				Pallet::<T>::extract_dest(&dest).ok_or(Error::<T>::ExtractDestFailed)?;
+			let asset_contract = Pallet::<T>::parse_asset_contract(&asset_location)
+				.ok_or(Error::<T>::AssetNotFound)?;
+			let cluster = Pallet::<T>::parse_cluster(&asset_contract)
+				.ok_or(Error::<T>::AssetConversionFailed)?;
+			let bridge_contract = Pallet::<T>::parse_bridge_contract(&cluster)
+				.ok_or(Error::<T>::BridgeContractNotFound)?;
 
 			log::trace!(
 				target: LOG_TARGET,
-				" Wanbridge fungible transfer, sender: {:?}, asset: {:?}, dest: {:?}.",
+				" pbridge fungible transfer, sender: {:?}, asset: {:?}, dest: {:?}.",
 				sender,
 				&asset,
 				&dest,
@@ -333,14 +392,7 @@ pub mod pallet {
 			.map_err(|_| Error::<T>::TransactFailed)?;
 
 			// Deposit `amount` of asset to reserve account if asset is not reserved in dest.
-			let dest_reserve_location: MultiLocation = (
-				0,
-				X2(
-					GeneralKey(WrapSlice(PB_PATH_KEY).into()),
-					GeneralIndex(dest_id.into()),
-				),
-			)
-				.into();
+			let dest_reserve_location = Pallet::<T>::fatcontract_reserve_location();
 			let asset_reserve_location = asset_location
 				.clone()
 				.reserve_location()
