@@ -741,13 +741,18 @@ pub mod pallet {
 
 		fn extract_dest(dest: &MultiLocation) -> Option<(BridgeChainId, Vec<u8>)> {
 			match (dest.parents, &dest.interior) {
-				// Destnation is a foreign chain. Forward it through the bridge
 				(
 					0,
-					Junctions::X3(GeneralKey(_), GeneralIndex(chain_id), GeneralKey(recipient)),
+					Junctions::X3(
+						GeneralKey(cb_key),
+						GeneralIndex(chain_id),
+						GeneralKey(recipient),
+					),
 				) => {
+					if cb_key.clone().into_inner() != CB_ASSET_KEY.to_vec() {
+						return None;
+					}
 					if let Some(chain_id) = TryInto::<BridgeChainId>::try_into(*chain_id).ok() {
-						// We don't verify cb_key here because can_deposit_asset did it.
 						Some((chain_id, recipient.to_vec()))
 					} else {
 						None
