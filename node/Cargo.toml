@@ -1,6 +1,6 @@
 [package]
 name = "khala-node"
-version = "0.1.17"
+version = "0.1.18-dev"
 license = "Apache-2.0"
 homepage = "https://phala.network/"
 repository = "https://github.com/Phala-Network/khala-parachain"
