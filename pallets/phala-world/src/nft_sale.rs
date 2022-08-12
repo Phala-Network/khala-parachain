@@ -17,7 +17,7 @@ use sp_std::prelude::*;
 
 pub use pallet_rmrk_core::types::*;
 pub use pallet_rmrk_market;
-use rmrk_traits::{Collection, Nft, Property};
+use rmrk_traits::{Nft, Property};
 
 pub use crate::traits::{
 	primitives::*, CareerType, NftSaleInfo, NftSaleType, OverlordMessage, PreorderInfo, Purpose,
