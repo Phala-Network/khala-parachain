@@ -17,7 +17,13 @@ pub mod pallet {
 	};
 	use frame_system::{self as system, pallet_prelude::*};
 	use phala_pallet_common::WrapSlice;
-	use phala_types::messaging::{bind_topic, DecodedMessage, MessageOrigin};
+	use phala_pallets::pallet_mq;
+	use phala_types::{
+        contract::{
+			ContractClusterId, ContractId,
+		},
+        messaging::{bind_topic, DecodedMessage, MessageOrigin}
+    };
 	use scale_info::TypeInfo;
 	pub use sp_core::U256;
 	use sp_runtime::traits::{AccountIdConversion, Dispatchable};
@@ -53,7 +59,7 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_assets::Config {
+	pub trait Config: frame_system::Config + pallet_assets::Config + pallet_mq::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		/// Origin used to administer the pallet
@@ -78,6 +84,9 @@ pub mod pallet {
 
 		/// Means of measuring the weight consumed by an XCM message locally.
 		type Weigher: WeightBounds<Self::Call>;
+
+		#[pallet::constant]
+		type ContractSelector: Get<[u8; 4]>;
 	}
 
 	#[pallet::event]
@@ -285,17 +294,17 @@ pub mod pallet {
 			(0, X1(GeneralKey(WrapSlice(PB_PATH_KEY).into()))).into()
 		}
 
-		fn parse_asset_contract(asset_location: &MultiLocation) -> Option<[u8; 32]> {
+		fn parse_asset_contract(asset_location: &MultiLocation) -> Option<ContractId> {
 			// TODO
 			None
 		}
 
-		fn parse_bridge_contract(cluster: &H256) -> Option<[u8; 32]> {
+		fn parse_bridge_contract(cluster: &ContractClusterId) -> Option<ContractId> {
 			// TODO
 			None
 		}
 
-		fn parse_cluster(contract: &[u8; 32]) -> Option<H256> {
+		fn parse_cluster(contract: &ContractId) -> Option<ContractClusterId> {
 			// TODO
 			None
 		}
@@ -416,7 +425,16 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::TransactFailed)?;
 			}
 
-			// TODO: Send message to pRuntime
+			// Call bridge contract method deployed in pRuntime
+			let payload = (
+				T::ContractSelector::get(),
+				asset_contract,
+				recipient,
+				amount,
+			)
+				.encode();
+            // TODO: waiting to be merged: https://github.com/Phala-Network/phala-blockchain/pull/918
+			// Pallet::<T>::push_ink_message(bridge_contract, payload);
 
 			Ok(())
 		}

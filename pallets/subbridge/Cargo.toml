@@ -40,6 +40,7 @@ assets-registry = { path = "../assets-registry", default-features = false }
 parachains-common = { path = "../../parachains-common", default-features = false }
 phala-pallet-common = { path = "../../crates/phala-pallet-common", default-features = false }
 phala-types = { path = "../../crates/phala-types", default-features = false }
+phala-pallets = {path = "../phala", default-features = false }
 
 [dev-dependencies]
 assert_matches = "1.4.0"
@@ -77,6 +78,7 @@ assets-registry = { path = "../assets-registry" }
 phala-pallet-common = { path = "../../crates/phala-pallet-common" }
 pallet-parachain-info = { path = "../parachain-info" }
 phala-types = {path = "../../crates/phala-types" }
+phala-pallets = {path = "../phala" }
 
 [features]
 default = ["std"]

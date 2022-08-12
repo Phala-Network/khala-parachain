@@ -11337,6 +11337,7 @@ dependencies = [
  "parachains-common",
  "parity-scale-codec",
  "phala-pallet-common",
+ "phala-pallets",
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
