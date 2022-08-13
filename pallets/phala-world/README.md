@@ -222,15 +222,6 @@ collection_id: CollectionId,
 nft_id: NftId,
 ```
 
-### update_incubation_time
-This is an admin function to update origin of shells incubation times based on being in the top 10 of fed origin of shells within that era
-```rust
-origin: OriginFor<T>,
-collection_id: CollectionId,
-nft_id: NftId,
-reduced_time: u64,
-```
-
 ### set_overlord
 Privileged function set the Overlord Admin account of Phala World.
 ```rust

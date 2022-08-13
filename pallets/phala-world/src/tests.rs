@@ -1026,123 +1026,6 @@ fn can_initiate_incubation_process() {
 }
 
 #[test]
-fn can_update_incubation_hatch_time() {
-	ExtBuilder::default().build(OVERLORD).execute_with(|| {
-		// Set Overlord and configuration then enable preorder origin of shells
-		setup_config(StatusType::PreorderOriginOfShells);
-		mint_spirit(ALICE, None);
-		mint_spirit(BOB, None);
-		mint_spirit(CHARLIE, None);
-		// BOB preorders an origin of shell
-		assert_ok!(PWNftSale::preorder_origin_of_shell(
-			Origin::signed(BOB),
-			RaceType::Cyborg,
-			CareerType::HardwareDruid,
-		));
-		// Check if event triggered
-		System::assert_last_event(MockEvent::PWNftSale(
-			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
-				owner: BOB,
-				preorder_id: 0,
-			},
-		));
-		// CHARLIE preorders an origin of shell
-		assert_ok!(PWNftSale::preorder_origin_of_shell(
-			Origin::signed(CHARLIE),
-			RaceType::Pandroid,
-			CareerType::HardwareDruid,
-		));
-		// Check if event triggered
-		System::assert_last_event(MockEvent::PWNftSale(
-			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
-				owner: CHARLIE,
-				preorder_id: 1,
-			},
-		));
-		// ALICE preorders an origin of shell successfully
-		assert_ok!(PWNftSale::preorder_origin_of_shell(
-			Origin::signed(ALICE),
-			RaceType::AISpectre,
-			CareerType::HackerWizard,
-		));
-		let preorders: Vec<PreorderId> = vec![0u32, 1u32, 2u32];
-		// Set ALICE & BOB has Chosen and CHARLIE as NotChosen
-		assert_ok!(PWNftSale::mint_chosen_preorders(
-			Origin::signed(OVERLORD),
-			preorders
-		));
-		System::assert_last_event(MockEvent::PWNftSale(
-			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
-				preorder_id: 2u32,
-				owner: ALICE,
-			},
-		));
-		// ALICE preorders an origin of shell but max value is reached
-		assert_noop!(
-			PWNftSale::preorder_origin_of_shell(
-				Origin::signed(ALICE),
-				RaceType::Cyborg,
-				CareerType::HackerWizard,
-			),
-			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
-		);
-		assert_ok!(PWNftSale::set_status_type(
-			Origin::signed(OVERLORD),
-			false,
-			StatusType::PreorderOriginOfShells
-		));
-		// Check Balances of ALICE, BOB, CHARLIE & OVERLORD
-		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
-		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
-		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
-		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
-		assert_ok!(PWIncubation::set_can_start_incubation_status(
-			Origin::signed(OVERLORD),
-			true
-		));
-		let now = INIT_TIMESTAMP_SECONDS;
-		let official_hatch_time = now + INCUBATION_DURATION_SEC;
-		System::assert_last_event(MockEvent::PWIncubation(
-			crate::pallet_pw_incubation::Event::CanStartIncubationStatusChanged {
-				status: true,
-				start_time: now,
-				official_hatch_time,
-			},
-		));
-		// ALICE initiates incubation process
-		assert_ok!(PWIncubation::start_incubation(
-			Origin::signed(ALICE),
-			1u32,
-			2u32
-		));
-		let alice_now = INIT_TIMESTAMP_SECONDS;
-		System::assert_last_event(MockEvent::PWIncubation(
-			crate::pallet_pw_incubation::Event::StartedIncubation {
-				collection_id: 1u32,
-				nft_id: 2u32,
-				owner: ALICE,
-				start_time: alice_now,
-				hatch_time: official_hatch_time,
-			},
-		));
-		// Update ALICE hatch time
-		let update_hatch_time_vec = vec![((1u32, 2u32), 10)];
-		assert_ok!(PWIncubation::update_incubation_time(
-			Origin::signed(OVERLORD),
-			update_hatch_time_vec
-		));
-		System::assert_last_event(MockEvent::PWIncubation(
-			crate::pallet_pw_incubation::Event::HatchTimeUpdated {
-				collection_id: 1u32,
-				nft_id: 2u32,
-				old_hatch_time: official_hatch_time,
-				new_hatch_time: official_hatch_time - 10,
-			},
-		));
-	});
-}
-
-#[test]
 fn can_send_food_to_origin_of_shell() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
 		// Set Overlord and configuration then enable preorder origin of shells
@@ -1252,20 +1135,6 @@ fn can_send_food_to_origin_of_shell() {
 				hatch_time: official_hatch_time,
 			},
 		));
-		// Update ALICE hatch time
-		let update_hatch_time_vec = vec![((1u32, 2u32), 10)];
-		assert_ok!(PWIncubation::update_incubation_time(
-			Origin::signed(OVERLORD),
-			update_hatch_time_vec
-		));
-		System::assert_last_event(MockEvent::PWIncubation(
-			crate::pallet_pw_incubation::Event::HatchTimeUpdated {
-				collection_id: 1u32,
-				nft_id: 2u32,
-				old_hatch_time: official_hatch_time,
-				new_hatch_time: official_hatch_time - 10,
-			},
-		));
 		// CHARLIE feeds ALICE's Origin of Shell Twice and fails on the third
 		assert_ok!(PWIncubation::feed_origin_of_shell(
 			Origin::signed(CHARLIE),
@@ -1327,7 +1196,7 @@ fn can_send_food_to_origin_of_shell() {
 		// OVERLORD cannot send food bc they do not own an Origin of Shell
 		assert_noop!(
 			PWIncubation::feed_origin_of_shell(Origin::signed(OVERLORD), 1u32, 0u32),
-			pallet_pw_incubation::Error::<Test>::CannotSendFoodToOriginOfShell
+			pallet_pw_incubation::Error::<Test>::NoPermission
 		);
 	});
 }
@@ -1444,20 +1313,6 @@ fn can_hatch_origin_of_shell() {
 				hatch_time: official_hatch_time,
 			},
 		));
-		// Update ALICE hatch time
-		let update_hatch_time_vec = vec![((1u32, 2u32), 10)];
-		assert_ok!(PWIncubation::update_incubation_time(
-			Origin::signed(OVERLORD),
-			update_hatch_time_vec
-		));
-		System::assert_last_event(MockEvent::PWIncubation(
-			crate::pallet_pw_incubation::Event::HatchTimeUpdated {
-				collection_id: 1u32,
-				nft_id: 2u32,
-				old_hatch_time: official_hatch_time,
-				new_hatch_time: official_hatch_time - 10,
-			},
-		));
 		// CHARLIE feeds ALICE's Origin of Shell Twice and fails on the third
 		assert_ok!(PWIncubation::feed_origin_of_shell(
 			Origin::signed(CHARLIE),
@@ -1490,7 +1345,7 @@ fn can_hatch_origin_of_shell() {
 		// CHARLIE cannot send food to BOB since he hasn't started incubation process
 		assert_noop!(
 			PWIncubation::feed_origin_of_shell(Origin::signed(CHARLIE), 1u32, 0u32),
-			pallet_pw_incubation::Error::<Test>::NoHatchTimeDetected
+			pallet_pw_incubation::Error::<Test>::CannotSendFoodToOriginOfShell
 		);
 		// CHARLIE can feed now that a new Era has started
 		fast_forward_to(7);
@@ -1525,14 +1380,8 @@ fn can_hatch_origin_of_shell() {
 		// OVERLORD cannot send food bc they do not own an Origin of Shell
 		assert_noop!(
 			PWIncubation::feed_origin_of_shell(Origin::signed(OVERLORD), 1u32, 2u32),
-			pallet_pw_incubation::Error::<Test>::CannotSendFoodToOriginOfShell
+			pallet_pw_incubation::Error::<Test>::NoPermission
 		);
-		// Update ALICE hatch time
-		let update_hatch_time_vec = vec![((1u32, 2u32), now - 10)];
-		assert_ok!(PWIncubation::update_incubation_time(
-			Origin::signed(OVERLORD),
-			update_hatch_time_vec
-		));
 		let shell_collection_id = RmrkCore::collection_index();
 		// Mint Shell Collection
 		mint_collection(OVERLORD);
@@ -1540,7 +1389,7 @@ fn can_hatch_origin_of_shell() {
 			Origin::signed(OVERLORD),
 			shell_collection_id
 		));
-		fast_forward_to(600);
+		fast_forward_to(630);
 		// ALICE can hatch origin of shell from OVERLORD admin call
 		assert_ok!(PWIncubation::hatch_origin_of_shell(
 			Origin::signed(OVERLORD),
@@ -1577,3 +1426,7 @@ fn can_hatch_origin_of_shell() {
 		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
 	});
 }
+
+// TODO: Add tests for parts configuration logic
+
+// TODO: Add hatch shell with minting of additional shell parts based on accounts saved configuration
