@@ -1,7 +1,7 @@
 use super::ParachainXcmRouter;
 use crate::{
 	chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
-	xcmbridge, xtransfer,
+	pbridge, xcmbridge, xtransfer,
 };
 
 use assets_registry;
@@ -21,6 +21,10 @@ use sp_runtime::{
 };
 
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
+use phala_pallets::{
+	attestation::{Attestation, AttestationValidator, Error as AttestationError, IasFields},
+	pallet_mq, pallet_registry,
+};
 use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -51,6 +55,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
 
@@ -63,8 +68,11 @@ construct_runtime!(
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
 
 		// Local palelts
+		PhalaMq: pallet_mq::{Pallet, Call},
+		PhalaRegistry: pallet_registry::{Pallet, Event<T>, Storage, Config<T>},
 		AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>},
 		XcmBridge: xcmbridge::{Pallet, Storage, Event<T>},
+		PBridge: pbridge::{Pallet, Call, Storage, Event<T>},
 		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
 		XTransfer: xtransfer::{Pallet, Call, Storage, Event<T>},
 	}
@@ -104,6 +112,13 @@ impl system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
 	type MaxConsumers = ConstU32<2>;
+}
+
+impl pallet_timestamp::Config for Runtime {
+	type Moment = u64;
+	type OnTimestampSet = ();
+	type MinimumPeriod = MinimumPeriod;
+	type WeightInfo = ();
 }
 
 impl pallet_balances::Config for Runtime {
@@ -181,6 +196,9 @@ parameter_types! {
 	);
 	pub NativeExecutionPrice: u128 = 1;
 	pub WeightPerSecond: u64 = 1;
+	pub PBridgeSelector: [u8; 4] = [1, 1, 1, 1];
+	pub const VerifyPRuntime: bool = false;
+	pub const VerifyRelaychainGenesisBlockHash: bool = true;
 }
 
 pub type LocationToAccountId = (
@@ -375,10 +393,78 @@ impl chainbridge::Config for Runtime {
 	type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
 }
 
+pub struct MockValidator;
+impl AttestationValidator for MockValidator {
+	fn validate(
+		_attestation: &Attestation,
+		_user_data_hash: &[u8; 32],
+		_now: u64,
+		_verify_pruntime: bool,
+		_pruntime_allowlist: Vec<Vec<u8>>,
+	) -> Result<IasFields, AttestationError> {
+		Ok(IasFields {
+			mr_enclave: [0u8; 32],
+			mr_signer: [0u8; 32],
+			isv_prod_id: [0u8; 2],
+			isv_svn: [0u8; 2],
+			report_data: [0u8; 64],
+			confidence_level: 128u8,
+		})
+	}
+}
+
+impl pallet_registry::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type AttestationValidator = MockValidator;
+	type UnixTime = Timestamp;
+	type VerifyPRuntime = VerifyPRuntime;
+	type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
+	type GovernanceOrigin = frame_system::EnsureRoot<Self::AccountId>;
+}
+
+impl pallet_mq::Config for Runtime {
+	type QueueNotifyConfig = ();
+	type CallMatcher = MqCallMatcher;
+}
+
+pub struct MqCallMatcher;
+impl pallet_mq::CallMatcher<Runtime> for MqCallMatcher {
+	fn match_call(call: &Call) -> Option<&pallet_mq::Call<Runtime>> {
+		match call {
+			Call::PhalaMq(mq_call) => Some(mq_call),
+			_ => None,
+		}
+	}
+}
+
+impl pbridge::Config for Runtime {
+	type Event = Event;
+	type BridgeCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type Currency = Balances;
+	type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
+	type TreasuryAccount = TREASURY;
+	type FungibleAdapter = XTransferAdapter<
+		CurrencyTransactor,
+		FungiblesTransactor,
+		XTransfer,
+		assets_registry::NativeAssetFilter<ParachainInfo>,
+		assets_registry::ReserveAssetFilter<
+			ParachainInfo,
+			assets_registry::NativeAssetFilter<ParachainInfo>,
+		>,
+	>;
+	type AssetsRegistry = AssetsRegistry;
+	type XcmExecutor = XcmExecutor<XcmConfig>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+	type ContractSelector = PBridgeSelector;
+}
+
 impl xtransfer::Config for Runtime {
 	type Event = Event;
 	type Bridge = (
 		xcmbridge::BridgeTransactImpl<Runtime>,
+		pbridge::BridgeTransactImpl<Runtime>,
 		chainbridge::BridgeTransactImpl<Runtime>,
 	);
 }

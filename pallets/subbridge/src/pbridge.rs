@@ -17,13 +17,11 @@ pub mod pallet {
 	};
 	use frame_system::{self as system, pallet_prelude::*};
 	use phala_pallet_common::WrapSlice;
-	use phala_pallets::pallet_mq;
+	use phala_pallets::{pallet_mq, pallet_mq::MessageOriginInfo};
 	use phala_types::{
-        contract::{
-			ContractClusterId, ContractId,
-		},
-        messaging::{bind_topic, DecodedMessage, MessageOrigin}
-    };
+		contract::{ContractClusterId, ContractId},
+		messaging::{bind_topic, DecodedMessage, MessageOrigin},
+	};
 	use scale_info::TypeInfo;
 	pub use sp_core::U256;
 	use sp_runtime::traits::{AccountIdConversion, Dispatchable};
@@ -310,6 +308,10 @@ pub mod pallet {
 		}
 	}
 
+	impl<T: Config + pallet_mq::Config> MessageOriginInfo for Pallet<T> {
+		type Config = T;
+	}
+
 	impl<T: Config> BridgeChecker for Pallet<T>
 	where
 		BalanceOf<T>: From<u128> + Into<u128>,
@@ -433,8 +435,9 @@ pub mod pallet {
 				amount,
 			)
 				.encode();
-            // TODO: waiting to be merged: https://github.com/Phala-Network/phala-blockchain/pull/918
-			// Pallet::<T>::push_ink_message(bridge_contract, payload);
+
+			// TODO: waiting to be merged: https://github.com/Phala-Network/phala-blockchain/pull/918
+			Pallet::<T>::push_ink_message(bridge_contract, payload);
 
 			Ok(())
 		}

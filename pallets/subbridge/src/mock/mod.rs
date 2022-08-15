@@ -1,6 +1,8 @@
 #![cfg(test)]
 use assets_registry::ASSETS_REGISTRY_ID;
 use frame_support::{traits::GenesisBuild, PalletId};
+use phala_pallets::pallet_mq;
+use phala_types::messaging::Message;
 use sp_io::TestExternalities;
 use sp_runtime::{traits::AccountIdConversion, AccountId32};
 
@@ -165,4 +167,11 @@ pub fn para_assert_events(mut expected: Vec<para::Event>) {
 		let next = actual.pop().expect("event expected");
 		assert_eq!(next, evt.into(), "Events don't match");
 	}
+}
+
+pub fn take_messages() -> Vec<Message> {
+	let messages = pallet_mq::Pallet::<para::Runtime>::messages();
+	println!("messages(): {:?}", messages);
+	pallet_mq::OutboundMessages::<para::Runtime>::kill();
+	messages
 }
