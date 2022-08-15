@@ -76,6 +76,24 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
+	/// Next available NFT ID
+	#[pallet::storage]
+	#[pallet::getter(fn next_nft_id)]
+	pub type NextNftId<T: Config> = StorageMap<_, Twox64Concat, CollectionId, NftId, ValueQuery>;
+
+	/// Next available Resource ID
+	#[pallet::storage]
+	#[pallet::getter(fn next_resource_id)]
+	pub type NextResourceId<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		CollectionId,
+		Twox64Concat,
+		NftId,
+		ResourceId,
+		ValueQuery,
+	>;
+
 	/// Preorder index that is the key to the Preorders StorageMap
 	#[pallet::storage]
 	#[pallet::getter(fn preorder_index)]
