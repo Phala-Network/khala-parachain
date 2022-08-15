@@ -12,10 +12,12 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 
-	use phala_types::contract::{command_topic, InkCommand};
-	use phala_types::messaging::ContractId;
-	use phala_types::messaging::{
-		BindTopic, CommandPayload, ContractCommand, Message, MessageOrigin, Path, SignedMessage,
+	use phala_types::{
+		contract::{command_topic, InkCommand},
+		messaging::{
+			BindTopic, CommandPayload, ContractCommand, ContractId, Message, MessageOrigin, Path,
+			SignedMessage,
+		},
 	};
 	use primitive_types::H256;
 	use sp_std::vec::Vec;

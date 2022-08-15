@@ -20,6 +20,11 @@ pub const GEOLOCATION: ContractId32 = 8;
 pub const GUESS_NUMBER: ContractId32 = 100;
 pub const BTC_PRICE_BOT: ContractId32 = 101;
 
+#[derive(Decode, Encode, TypeInfo)]
+pub enum InkCommand {
+    InkMessage { nonce: Vec<u8>, message: Vec<u8> },
+}
+
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub enum CodeIndex<CodeHash> {
     NativeCode(ContractId32),
