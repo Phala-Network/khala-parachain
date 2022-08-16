@@ -7,7 +7,7 @@ use frame_support::{
 	ensure,
 	pallet_prelude::Get,
 	traits::{
-		tokens::nonfungibles::{Inspect, InspectEnumerable},
+		tokens::nonfungibles::InspectEnumerable,
 		UnixTime,
 	},
 	transactional, BoundedVec,

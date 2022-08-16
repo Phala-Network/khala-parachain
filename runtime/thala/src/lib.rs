@@ -70,6 +70,7 @@ pub use frame_support::{
         tokens::nonfungibles::*, AsEnsureOriginWithArg, Contains, Currency, EitherOfDiverse,
         EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem,
         LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
+        ConstU32,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -1537,6 +1538,8 @@ impl pallet_stakepool::Config for Runtime {
 }
 impl pallet_fat::Config for Runtime {
     type Event = Event;
+    type InkCodeSizeLimit = ConstU32<{1024*1024*2}>;
+    type SidevmCodeSizeLimit = ConstU32<{1024*1024*8}>;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
