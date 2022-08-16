@@ -149,6 +149,45 @@ fn setup_config(enable_status_type: StatusType) {
 }
 
 #[test]
+fn nft_id_increment_works() {
+	ExtBuilder::default().build(OVERLORD).execute_with(|| {
+		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
+		// Set Overlord and configuration then enable spirits to be claimed
+		setup_config(StatusType::ClaimSpirits);
+		let message = OverlordMessage {
+			account: BOB,
+			purpose: Purpose::RedeemSpirit,
+		};
+		// Sign BOB's Public Key and Metadata encoding with OVERLORD account
+		let claim = Encode::encode(&message);
+		let overlord_signature = overlord_pair.sign(&claim);
+		// Dispatch a redeem_spirit from BOB's account
+		assert_ok!(PWNftSale::redeem_spirit(
+			Origin::signed(BOB),
+			overlord_signature
+		));
+		// Check if event triggered and BOB has Spirit NFT ID 0
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::SpiritClaimed {
+				owner: BOB,
+				collection_id: 0,
+				nft_id: 0,
+			},
+		));
+		// ALICE should be able to claim since she has minimum amount of PHA
+		assert_ok!(PWNftSale::claim_spirit(Origin::signed(ALICE)));
+		// Check if event triggered and ALICE has Spirit NFT ID 1
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::SpiritClaimed {
+				owner: ALICE,
+				collection_id: 0,
+				nft_id: 1,
+			},
+		));
+	});
+}
+
+#[test]
 fn claimed_spirit_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
 		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");

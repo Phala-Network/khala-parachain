@@ -113,3 +113,8 @@ pub struct FoodInfo<BoundedOriginOfShellsFed> {
 	/// A BoundedVec of (CollectionId, NftId)
 	pub origin_of_shells_fed: BoundedOriginOfShellsFed,
 }
+
+/// Shell Part info
+#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct ShellPartsInfo {}

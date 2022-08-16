@@ -20,7 +20,6 @@ pub use self::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use crate::mock::StringLimit;
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 	use frame_system::Origin;
 
@@ -393,6 +392,9 @@ pub mod pallet {
 				.expect("[rarity] should not fail");
 			let generation_id: GenerationId =
 				Decode::decode(&mut generation.as_slice()).expect("[generation] should not fail");
+			// Get next expected Shell NFT ID
+			let next_shell_nft_id =
+				pallet_pw_nft_sale::Pallet::<T>::get_next_nft_id(shell_collection_id)?;
 			// Burn Origin of Shell NFT then Mint Shell NFT
 			pallet_rmrk_core::Pallet::<T>::burn_nft(
 				Origin::<T>::Signed(owner.clone()).into(),
@@ -425,6 +427,7 @@ pub mod pallet {
 			let (_, shell_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
 				owner.clone(),
 				owner.clone(),
+				next_shell_nft_id,
 				shell_collection_id,
 				None,
 				None,

@@ -30,10 +30,10 @@ pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "p
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
 
 # RMRK dependencies
-pallet-rmrk-core = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.27", default-features = false }
-pallet-rmrk-equip = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.27", default-features = false }
-pallet-rmrk-market = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.27", default-features = false }
-rmrk-traits = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.27", default-features = false }
+pallet-rmrk-core = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "update-v0.9.27", default-features = false }
+pallet-rmrk-equip = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "update-v0.9.27", default-features = false }
+pallet-rmrk-market = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "update-v0.9.27", default-features = false }
+rmrk-traits = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "update-v0.9.27", default-features = false }
 
 [dev-dependencies]
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
