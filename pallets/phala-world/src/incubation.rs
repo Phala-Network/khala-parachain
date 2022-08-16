@@ -394,7 +394,7 @@ pub mod pallet {
 				Decode::decode(&mut generation.as_slice()).expect("[generation] should not fail");
 			// Get next expected Shell NFT ID
 			let next_shell_nft_id =
-				pallet_pw_nft_sale::Pallet::<T>::get_next_nft_id(shell_collection_id)?;
+				pallet_rmrk_core::Pallet::<T>::get_next_nft_id(shell_collection_id)?;
 			// Burn Origin of Shell NFT then Mint Shell NFT
 			pallet_rmrk_core::Pallet::<T>::burn_nft(
 				Origin::<T>::Signed(owner.clone()).into(),

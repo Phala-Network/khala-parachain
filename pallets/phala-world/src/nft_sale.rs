@@ -76,24 +76,6 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
-	/// Next available NFT ID
-	#[pallet::storage]
-	#[pallet::getter(fn next_nft_id)]
-	pub type NextNftId<T: Config> = StorageMap<_, Twox64Concat, CollectionId, NftId, ValueQuery>;
-
-	/// Next available Resource ID
-	#[pallet::storage]
-	#[pallet::getter(fn next_resource_id)]
-	pub type NextResourceId<T: Config> = StorageDoubleMap<
-		_,
-		Twox64Concat,
-		CollectionId,
-		Twox64Concat,
-		NftId,
-		ResourceId,
-		ValueQuery,
-	>;
-
 	/// Preorder index that is the key to the Preorders StorageMap
 	#[pallet::storage]
 	#[pallet::getter(fn preorder_index)]
@@ -1356,7 +1338,8 @@ where
 		);
 		// Get Spirits metadata
 		let metadata = SpiritsMetadata::<T>::get().ok_or(Error::<T>::SpiritsMetadataNotSet)?;
-		let next_spirit_nft_id = Self::get_next_nft_id(spirit_collection_id)?;
+		let next_spirit_nft_id =
+			pallet_rmrk_core::Pallet::<T>::get_next_nft_id(spirit_collection_id)?;
 		// Mint new Spirit and transfer to sender
 		// Note: Transferable is set to false bc we use the Uniques pallet freeze function as that
 		// will allow for Spirit recovery through Overlord account if account is lost and prevents
@@ -1428,7 +1411,8 @@ where
 		// Check if race and career types have mints left
 		Self::has_race_type_left(rarity_type, race, nft_sale_type)?;
 		// Get expected next available NFT ID to mint
-		let next_nft_id = Self::get_next_nft_id(origin_of_shell_collection_id)?;
+		let next_nft_id =
+			pallet_rmrk_core::Pallet::<T>::get_next_nft_id(origin_of_shell_collection_id)?;
 		// Transfer the amount for the rare Origin of Shell NFT then mint the origin_of_shell
 		<T as pallet::Config>::Currency::transfer(
 			&sender,
@@ -1691,27 +1675,5 @@ where
 			None => Err(Error::<T>::OriginOfShellsMetadataNotSet),
 			Some(metadata) => Ok(metadata),
 		}
-	}
-
-	/// Helper function to get the next available NFT ID then increments `NextNftId` in Storage.
-	pub fn get_next_nft_id(collection_id: CollectionId) -> Result<NftId, Error<T>> {
-		NextNftId::<T>::try_mutate(collection_id, |id| {
-			let current_id = *id;
-			*id = id.checked_add(1).ok_or(Error::<T>::NoAvailableNftId)?;
-			Ok(current_id)
-		})
-	}
-
-	/// Helper function to get the next available Resource ID then increments `NextResourceId` in
-	/// Storage.
-	pub fn get_next_resource_id(
-		collection_id: CollectionId,
-		nft_id: NftId,
-	) -> Result<ResourceId, Error<T>> {
-		NextResourceId::<T>::try_mutate(collection_id, nft_id, |id| {
-			let current_id = *id;
-			*id = id.checked_add(1).ok_or(Error::<T>::NoAvailableResourceId)?;
-			Ok(current_id)
-		})
 	}
 }

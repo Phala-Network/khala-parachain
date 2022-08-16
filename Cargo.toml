@@ -25,6 +25,7 @@ exclude = [
 	"vendor/webpki",
 	"vendor/ring",
 	"polkadot/node/service",
+	"rmrk-substrate/rmrk-core",
 ]
 
 members = [
@@ -57,3 +58,6 @@ polkadot-service = { path = "polkadot/node/service" }
 
 [patch.crates-io]
 memory-lru = { git = "https://github.com/paritytech/memory-lru" } # TODO: REMOVE after it releases new version
+
+[patch."https://github.com/Phala-Network/rmrk-substrate"]
+pallet-rmrk-core = { path = "rmrk-substrate/rmrk-core" }
