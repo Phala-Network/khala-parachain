@@ -114,7 +114,12 @@ pub struct FoodInfo<BoundedOriginOfShellsFed> {
 	pub origin_of_shells_fed: BoundedOriginOfShellsFed,
 }
 
-/// Shell Part info
+/// Shell Sub-Part info
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct ShellPartsInfo {}
+pub struct ShellSubPartInfo {}
+
+/// Shell Parts info
+#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct ShellPartInfo {}
