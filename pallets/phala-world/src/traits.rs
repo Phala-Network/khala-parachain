@@ -114,12 +114,27 @@ pub struct FoodInfo<BoundedOriginOfShellsFed> {
 	pub origin_of_shells_fed: BoundedOriginOfShellsFed,
 }
 
-/// Shell Sub-Part info
-#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+/// Shell Part types to determine if a ShellPartInfo is BasicPart, ComposablePart or a SubPart
+#[derive(Encode, Decode, Debug, Clone, Copy, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct ShellSubPartInfo {}
+pub enum ShellPartType {
+	BasicPart,
+	ComposablePart,
+	SubPart,
+}
 
 /// Shell Parts info
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct ShellPartInfo {}
+pub struct ShellPartInfo<BoundedString> {
+	/// Name of the Part
+	pub name: String,
+	/// BasicPart, ComposablePart or SubPart
+	pub part_type: ShellPartType,
+	/// Metadata is None if the Part is composed of Sub-Parts
+	pub metadata: Option<BoundedString>,
+	/// If Metadata is None then this is a BoundedVec of ShellPartInfo that compose the Part
+	pub sub_parts: Option<BoundedString>,
+	/// Layer in the png file
+	pub layer: u32,
+}
