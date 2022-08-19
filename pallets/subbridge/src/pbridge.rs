@@ -464,4 +464,101 @@ pub mod pallet {
 			Err(Error::<T>::Unimplemented.into())
 		}
 	}
+
+	#[cfg(test)]
+	mod test {
+		use super::*;
+		use crate::mock::para::Origin;
+		use crate::mock::para::Runtime;
+		use crate::mock::{
+			para, para_expect_event, take_messages, ParaA, ParaAssets as Assets,
+			ParaAssetsRegistry as AssetsRegistry, ParaB, ParaBalances, ParaPBridge as PBridge,
+			ParaSystem, ParaXTransfer as XTransfer, TestNet, ALICE, BOB, ENDOWED_BALANCE,
+		};
+		use crate::pbridge::Error as PBridgeError;
+		use crate::pbridge::Event as PBridgeEvent;
+		use crate::traits::*;
+		use frame_support::{assert_noop, assert_ok};
+		use phala_pallet_common::WrapSlice;
+		use polkadot_parachain::primitives::Sibling;
+		use sp_runtime::{traits::AccountIdConversion, AccountId32};
+
+		use assets_registry::{
+			AccountId32Conversion, AssetProperties, ExtractReserveLocation, IntoResourceId,
+			ASSETS_REGISTRY_ID,
+		};
+		use xcm::latest::{prelude::*, MultiLocation};
+		use xcm_simulator::TestExt;
+
+		fn sibling_account(para_id: u32) -> AccountId32 {
+			Sibling::from(para_id).into_account_truncating()
+		}
+
+		#[test]
+		fn test_transfer_pha_to_fatcontract() {
+			use phala_types::messaging::{SystemEvent, Topic};
+
+			TestNet::reset();
+
+			ParaA::execute_with(|| {
+				ParaSystem::set_block_number(1);
+				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
+				// ParaA send it's own native asset to paraB
+				assert_ok!(bridge_impl.transfer_fungible(
+					ALICE.into(),
+					(Concrete(MultiLocation::new(0, Here)), Fungible(10u128)).into(),
+					MultiLocation::new(
+						1,
+						X2(
+							Parachain(2u32.into()),
+							Junction::AccountId32 {
+								network: NetworkId::Any,
+								id: BOB.into()
+							}
+						)
+					),
+					Some(1),
+				));
+
+				// Check mq messages
+				let msgs = take_messages();
+				let message = match msgs.as_slice() {
+					[m] => m,
+					_ => panic!("Wrong message events"),
+				};
+
+				// Check the message destnation
+				let contract_id: ContractId = U256::from(0);
+				assert_eq!(
+					message.destination,
+					Topic::new(format!(
+						"phala/contract/{}/command",
+						hex::encode(&contract_id)
+					))
+				);
+
+				// Check the oubound message payload
+				let payload = match message.decode_payload::<InkCommand>() {
+					Some(InkMessage { nonce, message }) => (nonce, message),
+					_ => panic!("Wrong outbound message"),
+				};
+				let message = (
+					T::ContractSelector::get(),
+					asset_contract,
+					recipient,
+					amount,
+				)
+					.encode();
+				assert_eq!(payload.0, 0);
+				assert_eq!(payload.1, message);
+
+				// Check balances
+				assert_eq!(ParaBalances::free_balance(&ALICE), ENDOWED_BALANCE - 10);
+				assert_eq!(
+					ParaBalances::free_balance(&MODULE_ID.into_account_truncating()),
+					10
+				);
+			});
+		}
+	}
 }
