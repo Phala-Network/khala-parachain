@@ -126,15 +126,35 @@ pub enum ShellPartType {
 /// Shell Parts info
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct ShellPartInfo<BoundedString> {
+pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
 	/// Name of the Part
-	pub name: String,
+	pub name: BoundedString,
 	/// BasicPart, ComposablePart or SubPart
 	pub part_type: ShellPartType,
 	/// Metadata is None if the Part is composed of Sub-Parts
 	pub metadata: Option<BoundedString>,
-	/// If Metadata is None then this is a BoundedVec of ShellPartInfo that compose the Part
-	pub sub_parts: Option<BoundedString>,
+	/// If Metadata is None then this is a BoundedVec of ShellSubPartInfo that compose the Part
+	pub sub_parts: Option<BoundedSubParts>,
 	/// Layer in the png file
 	pub layer: u32,
+	/// x coordinate
+	pub x: u32,
+	/// y coordinate
+	pub y: u32,
+}
+
+/// Shell Sub-Parts info
+#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct ShellSubPartInfo<BoundedString> {
+	/// Name of the Part
+	pub name: BoundedString,
+	/// Metadata is None if the Part is composed of Sub-Parts
+	pub metadata: BoundedString,
+	/// Layer in the png file
+	pub layer: u32,
+	/// x coordinate
+	pub x: u32,
+	/// y coordinate
+	pub y: u32,
 }

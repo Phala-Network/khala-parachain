@@ -1,7 +1,10 @@
 //! Phala World Incubation Pallet
 
 pub use crate::pallet_pw_nft_sale;
-pub use crate::traits::{primitives::*, CareerType, FoodInfo, RaceType, RarityType};
+pub use crate::traits::{
+	primitives::*, CareerType, FoodInfo, RaceType, RarityType, ShellPartInfo, ShellPartType,
+	ShellSubPartInfo,
+};
 use codec::Decode;
 use frame_support::{
 	ensure,
@@ -13,6 +16,7 @@ use frame_system::{ensure_signed, pallet_prelude::*};
 pub use pallet_rmrk_core::types::*;
 pub use pallet_rmrk_market;
 use rmrk_traits::{primitives::*, Nft, Property};
+use sp_runtime::DispatchResult;
 use sp_std::vec::Vec;
 
 pub use self::pallet::*;
@@ -22,6 +26,14 @@ pub mod pallet {
 	use super::*;
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 	use frame_system::Origin;
+
+	pub type ShellPartInfoOf<T> = ShellPartInfo<
+		BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>,
+		BoundedVec<
+			ShellSubPartInfo<BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>>,
+			<T as pallet_rmrk_core::Config>::PartsLimit,
+		>,
+	>;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -94,7 +106,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn origin_of_shells_chosen_parts)]
 	pub type OriginOfShellsChosenParts<T: Config> =
-		StorageMap<_, Blake2_128Concat, (CollectionId, NftId), BoundedVec<u8, T::StringLimit>>;
+		StorageMap<_, Blake2_128Concat, (CollectionId, NftId), ShellPartInfoOf<T>>;
 
 	// Pallets use events to inform users when important changes are made.
 	#[pallet::event]
@@ -124,8 +136,8 @@ pub mod pallet {
 		OriginOfShellChosenPartsUpdated {
 			collection_id: CollectionId,
 			nft_id: NftId,
-			old_chosen_parts: Option<BoundedVec<u8, T::StringLimit>>,
-			new_chosen_parts: BoundedVec<u8, T::StringLimit>,
+			old_chosen_parts: Option<ShellPartInfoOf<T>>,
+			new_chosen_parts: ShellPartInfoOf<T>,
 		},
 		/// Shell Collection ID is set.
 		ShellCollectionIdSet { collection_id: CollectionId },
@@ -164,6 +176,7 @@ pub mod pallet {
 		RarityTypeNotDetected,
 		GenerationNotDetected,
 		FoodInfoUpdateError,
+		ChosenPartsDataCorrupted,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -479,13 +492,32 @@ pub mod pallet {
 			collection_id: CollectionId,
 			nft_id: NftId,
 			shell_metadata: BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>,
-			chosen_parts_metadata: BoundedVec<BoundedVec<u8, T::StringLimit>, T::PartsLimit>,
+			chosen_parts_metadata: BoundedVec<
+				ShellPartInfoOf<T>,
+				<T as pallet_rmrk_core::Config>::PartsLimit,
+			>,
 		) -> DispatchResult {
 			// TODO: replace `hatch_origin_of_shell`
 			// Use previous version hatching logic above
 			// Will need to create a scheme to iterate through the BoundedVec and based on the "Key"
 			// value we will mint the NFT into the parts collection with the proper attributes. We will
 			// have to figure this out to ensure we mint the NFT with the proper info and metadata.
+
+			// Iterate through the chosen parts
+			for chosen_part in chosen_parts_metadata {
+				let part_type = chosen_part.part_type;
+				match part_type {
+					ShellPartType::ComposablePart => {
+						// The Shell part is a composable and made up of Shell Sub-Parts
+						()
+					}
+					ShellPartType::BasicPart => {
+						// A basic Shell part
+						()
+					}
+					_ => (), //Err(Error::<T>::ChosenPartsDataCorrupted),
+				}
+			}
 			Ok(())
 		}
 
@@ -557,7 +589,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
 			nft_id: NftId,
-			chosen_parts: BoundedVec<u8, T::StringLimit>,
+			chosen_parts: ShellPartInfoOf<T>,
 		) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
@@ -637,6 +669,9 @@ where
 	}
 
 	/// Helper function to get new FoodOf<T> struct
+	///
+	/// Parameters:
+	/// - `era`: The current Era of Phala World
 	fn get_new_food_info(
 		era: EraId,
 	) -> FoodInfo<BoundedVec<(CollectionId, NftId), <T as Config>::FoodPerEra>> {
@@ -644,5 +679,54 @@ where
 			era,
 			origin_of_shells_fed: Default::default(),
 		}
+	}
+
+	/// Helper function to mint a Top level Shell part. These are transferable Shell part NFTs.
+	///
+	/// Parameters:
+	/// - `name`: Name of the Shell part
+	/// - `generation`: Generation ID of the Shell Part
+	/// - `rarity_type`: Rarity type of the Shell Part
+	/// - `race_type`: Race type of the Shell Part
+	/// - `career_type`: Career type of the Shell Part
+	/// - `metadata`: Optional of metadata URI that will point to decentralized storage of the media
+	/// file
+	/// - `parent_nft_id`: NFT ID of the Shell NFT that owns the Shell Part
+	fn do_mint_shell_part_nft(
+		name: BoundedVec<u8, T::StringLimit>,
+		generation: GenerationId,
+		rarity_type: RarityType,
+		race_type: RaceType,
+		career_type: CareerType,
+		metadata: BoundedVec<u8, T::StringLimit>,
+		parent_collection_id: CollectionId,
+		parent_nft_id: NftId,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	/// Helper function to mint a Top level Shell part. These are non-transferable Shell sub-part NFTs
+	/// that are owned by the parent Shell part NFT.
+	///
+	/// Parameters:
+	/// - `name`: Name of the Shell part
+	/// - `generation`: Generation ID of the Shell Part
+	/// - `rarity_type`: Rarity type of the Shell Part
+	/// - `race_type`: Race type of the Shell Part
+	/// - `career_type`: Career type of the Shell Part
+	/// - `metadata`: Optional of metadata URI that will point to decentralized storage of the media
+	/// file
+	/// - `parent_nft_id`: NFT ID of the Shell NFT that owns the Shell Part
+	fn do_mint_shell_sub_part_nft(
+		name: BoundedVec<u8, T::StringLimit>,
+		generation: GenerationId,
+		rarity_type: RarityType,
+		race_type: RaceType,
+		career_type: CareerType,
+		metadata: BoundedVec<u8, T::StringLimit>,
+		parent_collection_id: CollectionId,
+		parent_nft_id: NftId,
+	) -> DispatchResult {
+		Ok(())
 	}
 }
