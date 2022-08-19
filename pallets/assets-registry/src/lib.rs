@@ -1381,7 +1381,7 @@ pub mod pallet {
 		#[test]
 		fn test_dump_rid() {
 			// khala: 00e6dfb61a2fb903df487c401663825643bb825d41695e63df8af6162ab145a6
-			// phala: 00170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314
+			// phala: 00b14e071ddad0b12be5aca6dffc5f2584ea158d9b0ce73e1437115e97a32a3e
 			let rid = IntoResourceId::<<Test as assets_registry::Config>::ResourceIdGenerationSalt>::into_rid(MultiLocation::here(), 0);
 			log::info!("ResourceId: ");
 			for i in 0..32 {
