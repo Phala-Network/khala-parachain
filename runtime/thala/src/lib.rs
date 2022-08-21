@@ -55,7 +55,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto},
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
+    ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill, AccountId32, FixedU128,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 #[cfg(feature = "std")]
@@ -70,13 +70,15 @@ pub use frame_support::{
         tokens::nonfungibles::*, AsEnsureOriginWithArg, Contains, Currency, EitherOfDiverse,
         EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem,
         LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
-        ConstU32,
+        ConstU32, ConstU64, ConstU128,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         ConstantMultiplier, DispatchClass, IdentityFee, Weight,
     },
     BoundedVec, PalletId, RuntimeDebug, StorageValue,
+    dispatch::Input,
+    pallet_prelude::Get,
 };
 
 use frame_system::{
@@ -103,7 +105,7 @@ use rmrk_traits::{primitives::*, NftChild};
 pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
-pub use phala_pallets::{pallet_fat, pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
+pub use phala_pallets_v2::{pallet_fat, pallet_mining, pallet_mq, pallet_registry, pallet_stakepool, pallet_basepool, pallet_pawnshop,};
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
     xcmbridge, xtransfer,
@@ -266,9 +268,11 @@ construct_runtime! {
         PhalaRegistry: pallet_registry::{Pallet, Call, Event<T>, Storage, Config<T>} = 86,
         PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
-        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
-        AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
-        PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 91,
+        PhalaPawnshop: pallet_pawnshop::{Pallet, Event<T>, Storage} = 89,
+		PhalaBasePool: pallet_basepool::{Pallet, Event<T>, Storage} = 90,
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 91,
+        AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 92,
+        PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 93,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` was used in Khala, we avoid to use the index
@@ -1540,6 +1544,42 @@ impl pallet_fat::Config for Runtime {
     type Event = Event;
     type InkCodeSizeLimit = ConstU32<{1024*1024*2}>;
     type SidevmCodeSizeLimit = ConstU32<{1024*1024*8}>;
+}
+
+parameter_types! {
+	pub const PPhaAssetId: u32 = 1;
+}
+
+pub struct PawnShopGet;
+
+impl Get<AccountId32> for PawnShopGet {
+	fn get() -> AccountId32 {
+		AccountId32::new([1; 32])
+	}
+}
+
+impl pallet_pawnshop::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type PPhaAssetId = PPhaAssetId;
+	type PawnShopAccountId = PawnShopGet;
+}
+
+impl pallet_basepool::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+}
+
+impl Decode for Runtime {
+	fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
+		Ok(Self)
+	}
+}
+
+impl Encode for Runtime {
+	fn size_hint(&self) -> usize {
+		0
+	}
 }
 
 #[cfg(feature = "runtime-benchmarks")]
