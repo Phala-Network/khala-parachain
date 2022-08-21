@@ -92,13 +92,13 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Relayer added to set
 		BridgeContractAdded {
-			cluster_id: u8,
-			bridge_contract: [u8; 32],
+			cluster_id: ContractClusterId,
+			bridge_contract: ContractId,
 		},
 		/// Relayer removed from set
 		BridgeContractRemoved {
-			cluster_id: u8,
-			bridge_contract: [u8; 32],
+			cluster_id: ContractClusterId,
+			bridge_contract: ContractId,
 		},
 	}
 
@@ -134,7 +134,8 @@ pub mod pallet {
 	/// Map cluster and coressponding deployed bridge contract
 	#[pallet::storage]
 	#[pallet::getter(fn storemans)]
-	pub type BridgeContracts<T: Config> = StorageMap<_, Twox64Concat, u8, [u8; 32]>;
+	pub type BridgeContracts<T: Config> =
+		StorageMap<_, Twox64Concat, ContractClusterId, ContractId>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
@@ -147,8 +148,8 @@ pub mod pallet {
 		#[pallet::weight(195_000_000)]
 		pub fn add_bridgecontract(
 			origin: OriginFor<T>,
-			cluster_id: u8,
-			bridge_contract: [u8; 32],
+			cluster_id: ContractClusterId,
+			bridge_contract: ContractId,
 		) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
 
@@ -167,7 +168,10 @@ pub mod pallet {
 
 		/// Remove an account as storeman on chain
 		#[pallet::weight(195_000_000)]
-		pub fn remove_bridgecontract(origin: OriginFor<T>, cluster_id: u8) -> DispatchResult {
+		pub fn remove_bridgecontract(
+			origin: OriginFor<T>,
+			cluster_id: ContractClusterId,
+		) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
 
 			let bridge_contract = BridgeContracts::<T>::get(&cluster_id)
@@ -234,13 +238,13 @@ pub mod pallet {
 			}
 		}
 
-		fn extract_dest(dest: &MultiLocation) -> Option<Vec<u8>> {
+		fn extract_dest(dest: &MultiLocation) -> Option<[u8; 32]> {
 			match (dest.parents, &dest.interior) {
 				// Destnation is a standalone chain.
-				(0, Junctions::X2(GeneralKey(pb_key), GeneralKey(recipient))) => {
+				(0, Junctions::X2(GeneralKey(pb_key), AccountId32 { network: _, id })) => {
 					if pb_key.clone().into_inner() == PB_PATH_KEY.to_vec() {
 						// Return account in FatContract
-						Some(recipient.to_vec())
+						Some(*id)
 					} else {
 						None
 					}
@@ -293,18 +297,28 @@ pub mod pallet {
 		}
 
 		fn parse_asset_contract(asset_location: &MultiLocation) -> Option<ContractId> {
-			// TODO
-			None
+			if T::NativeAssetChecker::is_native_asset_location(asset_location) {
+				return Some([0; 32].into());
+			}
+			match (asset_location.parents, &asset_location.interior) {
+				(0, Junctions::X2(GeneralKey(pb_key), AccountId32 { network: _, id })) => {
+					if pb_key.clone().into_inner() == PB_PATH_KEY.to_vec() {
+						Some(id.into())
+					} else {
+						None
+					}
+				}
+				_ => None,
+			}
 		}
 
 		fn parse_bridge_contract(cluster: &ContractClusterId) -> Option<ContractId> {
-			// TODO
-			None
+			BridgeContracts::<T>::get(cluster)
 		}
 
 		fn parse_cluster(contract: &ContractId) -> Option<ContractClusterId> {
-			// TODO
-			None
+			// TODO: Lookup cluster id by given ContractId from onchain contract registry
+			Some([0; 32].into())
 		}
 	}
 
@@ -468,8 +482,10 @@ pub mod pallet {
 	#[cfg(test)]
 	mod test {
 		use super::*;
-		use crate::mock::para::Origin;
-		use crate::mock::para::Runtime;
+		use crate::mock::para::{
+			Origin, Runtime, TEST_PHA_CLUSTER_ID, TEST_PHA_CONTRACT_ID, TEST_SUBBRIDGE_CLUSTER_ID,
+			TEST_SUBBRIDGE_CONTRACT_ID,
+		};
 		use crate::mock::{
 			para, para_expect_event, take_messages, ParaA, ParaAssets as Assets,
 			ParaAssetsRegistry as AssetsRegistry, ParaB, ParaBalances, ParaPBridge as PBridge,
@@ -478,14 +494,22 @@ pub mod pallet {
 		use crate::pbridge::Error as PBridgeError;
 		use crate::pbridge::Event as PBridgeEvent;
 		use crate::traits::*;
-		use frame_support::{assert_noop, assert_ok};
-		use phala_pallet_common::WrapSlice;
-		use polkadot_parachain::primitives::Sibling;
-		use sp_runtime::{traits::AccountIdConversion, AccountId32};
-
 		use assets_registry::{
 			AccountId32Conversion, AssetProperties, ExtractReserveLocation, IntoResourceId,
 			ASSETS_REGISTRY_ID,
+		};
+		use frame_support::{assert_noop, assert_ok};
+		use hex_literal as hex;
+		use phala_pallet_common::WrapSlice;
+		use phala_types::{
+			contract::{command_topic, InkCommand},
+			messaging::{bind_topic, CommandPayload, DecodedMessage, MessageOrigin},
+		};
+		use polkadot_parachain::primitives::Sibling;
+		use sp_runtime::{traits::AccountIdConversion, AccountId32};
+		use sp_std::{
+			convert::{From, Into, TryInto},
+			prelude::*,
 		};
 		use xcm::latest::{prelude::*, MultiLocation};
 		use xcm_simulator::TestExt;
@@ -496,21 +520,27 @@ pub mod pallet {
 
 		#[test]
 		fn test_transfer_pha_to_fatcontract() {
-			use phala_types::messaging::{SystemEvent, Topic};
-
 			TestNet::reset();
 
 			ParaA::execute_with(|| {
 				ParaSystem::set_block_number(1);
+				// Insert dummy SubBridge contract to storage
+				assert_ok!(PBridge::add_bridgecontract(
+					Origin::root(),
+					TEST_SUBBRIDGE_CLUSTER_ID::get(),
+					TEST_SUBBRIDGE_CONTRACT_ID::get()
+				));
+
+				let amount = 100u128;
 				let bridge_impl = BridgeTransactImpl::<Runtime>::new();
 				// ParaA send it's own native asset to paraB
 				assert_ok!(bridge_impl.transfer_fungible(
 					ALICE.into(),
-					(Concrete(MultiLocation::new(0, Here)), Fungible(10u128)).into(),
+					(Concrete(MultiLocation::new(0, Here)), Fungible(amount)).into(),
 					MultiLocation::new(
-						1,
+						0,
 						X2(
-							Parachain(2u32.into()),
+							GeneralKey(WrapSlice(PB_PATH_KEY).into()),
 							Junction::AccountId32 {
 								network: NetworkId::Any,
 								id: BOB.into()
@@ -528,35 +558,34 @@ pub mod pallet {
 				};
 
 				// Check the message destnation
-				let contract_id: ContractId = U256::from(0);
 				assert_eq!(
 					message.destination,
-					Topic::new(format!(
-						"phala/contract/{}/command",
-						hex::encode(&contract_id)
-					))
+					command_topic(TEST_SUBBRIDGE_CONTRACT_ID::get()).into(),
 				);
 
 				// Check the oubound message payload
-				let payload = match message.decode_payload::<InkCommand>() {
-					Some(InkMessage { nonce, message }) => (nonce, message),
-					_ => panic!("Wrong outbound message"),
-				};
-				let message = (
-					T::ContractSelector::get(),
-					asset_contract,
-					recipient,
+				let target = (
+					<Runtime as Config>::ContractSelector::get(),
+					TEST_PHA_CONTRACT_ID::get(),
+					Into::<[u8; 32]>::into(BOB),
 					amount,
 				)
 					.encode();
-				assert_eq!(payload.0, 0);
-				assert_eq!(payload.1, message);
+				// assert_eq!(payload.0, vec![0]);
+				assert_eq!(
+					message.payload,
+					CommandPayload::Plain(InkCommand::InkMessage {
+						nonce: Default::default(),
+						message: target,
+					})
+					.encode()
+				);
 
 				// Check balances
-				assert_eq!(ParaBalances::free_balance(&ALICE), ENDOWED_BALANCE - 10);
+				assert_eq!(ParaBalances::free_balance(&ALICE), ENDOWED_BALANCE - amount);
 				assert_eq!(
 					ParaBalances::free_balance(&MODULE_ID.into_account_truncating()),
-					10
+					ENDOWED_BALANCE + amount
 				);
 			});
 		}

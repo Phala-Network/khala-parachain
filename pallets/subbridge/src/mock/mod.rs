@@ -65,7 +65,7 @@ decl_test_network! {
 	}
 }
 
-pub type ParaSystem = pallet_system::Pallet<para::Runtime>;
+pub type ParaSystem = frame_system::Pallet<para::Runtime>;
 pub type ParaBalances = pallet_balances::Pallet<para::Runtime>;
 pub type ParaAssets = pallet_assets::Pallet<para::Runtime>;
 pub type ParaAssetsRegistry = assets_registry::Pallet<para::Runtime>;
@@ -173,7 +173,6 @@ pub fn para_assert_events(mut expected: Vec<para::Event>) {
 
 pub fn take_messages() -> Vec<Message> {
 	let messages = pallet_mq::Pallet::<para::Runtime>::messages();
-	println!("messages(): {:?}", messages);
 	pallet_mq::OutboundMessages::<para::Runtime>::kill();
 	messages
 }

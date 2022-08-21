@@ -25,6 +25,7 @@ use phala_pallets::{
 	attestation::{Attestation, AttestationValidator, Error as AttestationError, IasFields},
 	pallet_mq, pallet_registry,
 };
+use phala_types::contract::{ContractClusterId, ContractId};
 use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -199,6 +200,13 @@ parameter_types! {
 	pub PBridgeSelector: [u8; 4] = [1, 1, 1, 1];
 	pub const VerifyPRuntime: bool = false;
 	pub const VerifyRelaychainGenesisBlockHash: bool = true;
+	// Dummy contract id of PHA in fat contract
+	pub TEST_PHA_CONTRACT_ID: ContractId = [0; 32].into();
+	// Dummy cluster id of relevant PHA contract
+	pub TEST_PHA_CLUSTER_ID: ContractClusterId = [0; 32].into();
+	// Dummy SubBridge contract address deployed in relevant cluster
+	pub TEST_SUBBRIDGE_CONTRACT_ID: ContractId = [255; 32].into();
+	pub TEST_SUBBRIDGE_CLUSTER_ID: ContractClusterId = [0; 32].into();
 }
 
 pub type LocationToAccountId = (
