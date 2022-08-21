@@ -41,6 +41,7 @@ members = [
 	"substrate/frame/utility",
 	"pallets/assets-registry",
 	"pallets/phala",
+	"pallets/phala-v2",
 	"pallets/phala/mq-runtime-api",
 	"pallets/subbridge",
 	"pallets/parachain-info",

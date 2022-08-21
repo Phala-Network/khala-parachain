@@ -95,7 +95,7 @@ pallet-rmrk-rpc-runtime-api = { git = "https://github.com/Phala-Network/rmrk-sub
 # Local dependencies
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
-phala-pallets = { path = "../../pallets/phala", default-features = false }
+phala-pallets-v2 = { path = "../../pallets/phala-v2", default-features = false }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }
 subbridge-pallets = { path = "../../pallets/subbridge", default-features = false }
 pallet-phala-world = { path = "../../pallets/phala-world", default-features = false }
@@ -133,7 +133,7 @@ runtime-benchmarks = [
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
 	"pallet-tips/runtime-benchmarks",
-	"phala-pallets/runtime-benchmarks",
+	"phala-pallets-v2/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
@@ -205,7 +205,7 @@ std = [
 	"pallet-assets/std",
 	"pallet-parachain-info/std",
 	"pallet-uniques/std",
-	"phala-pallets/std",
+	"phala-pallets-v2/std",
 	"pallet-mq-runtime-api/std",
 	"assets-registry/std",
 	"subbridge-pallets/std",
@@ -247,5 +247,5 @@ try-runtime = [
 	"pallet-tips/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-uniques/try-runtime",
-	"phala-pallets/try-runtime",
+	"phala-pallets-v2/try-runtime",
 ]
