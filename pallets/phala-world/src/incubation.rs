@@ -388,147 +388,6 @@ pub mod pallet {
 
 		/// Hatch the origin_of_shell that is currently being hatched. This will trigger the end of
 		/// the incubation process and the origin_of_shell will be burned. After burning, the user
-		/// will receive the awakened Shell RMRK NFT.
-		///
-		/// Parameters:
-		/// - origin: The origin of the extrinsic incubation the origin_of_shell
-		/// - collection_id: The collection id of the Origin of Shell RMRK NFT
-		/// - nft_id: The NFT id of the Origin of Shell RMRK NFT
-		/// - metadata: File resource URI in decentralized storage
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		#[transactional]
-		pub fn hatch_origin_of_shell(
-			origin: OriginFor<T>,
-			collection_id: CollectionId,
-			nft_id: NftId,
-			shape: BoundedVec<u8, T::StringLimit>,
-			metadata: BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>,
-		) -> DispatchResult {
-			let sender = ensure_signed(origin.clone())?;
-			pallet_pw_nft_sale::pallet::Pallet::<T>::ensure_overlord(&sender)?;
-			// Check if Incubation Phase has started
-			ensure!(
-				CanStartIncubation::<T>::get(),
-				Error::<T>::StartIncubationNotAvailable
-			);
-			// Ensure that the collection is an Origin of Shell Collection
-			ensure!(
-				Self::is_origin_of_shell_collection_id(collection_id),
-				Error::<T>::WrongCollectionId
-			);
-			// Get owner of the Origin of Shell NFT
-			let (owner, _) =
-				pallet_rmrk_core::Pallet::<T>::lookup_root_owner(collection_id, nft_id)?;
-			// Check if the incubation has started and the official hatch time has been met
-			ensure!(
-				HasOriginOfShellStartedIncubation::<T>::get((collection_id, nft_id))
-					&& Self::can_hatch(),
-				Error::<T>::CannotHatchOriginOfShell
-			);
-			// Check if Shell Collection ID is set
-			let shell_collection_id = Self::get_shell_collection_id()?;
-			// Get race, key and Rarity Type before burning origin of shell NFT
-			let race_key = pallet_pw_nft_sale::pallet::Pallet::<T>::to_boundedvec_key("race")?;
-			let career_key = pallet_pw_nft_sale::pallet::Pallet::<T>::to_boundedvec_key("career")?;
-			let rarity_type_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("rarity")?;
-			let generation_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("generation")?;
-			let race =
-				pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &race_key))
-					.ok_or(Error::<T>::RaceNotDetected)?;
-			let career =
-				pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &career_key))
-					.ok_or(Error::<T>::CareerNotDetected)?;
-			let rarity_type_value = pallet_rmrk_core::Properties::<T>::get((
-				collection_id,
-				Some(nft_id),
-				&rarity_type_key,
-			))
-			.ok_or(Error::<T>::RarityTypeNotDetected)?;
-			let generation = pallet_rmrk_core::Properties::<T>::get((
-				collection_id,
-				Some(nft_id),
-				&generation_key,
-			))
-			.ok_or(Error::<T>::GenerationNotDetected)?;
-			let race_type: RaceType =
-				Decode::decode(&mut race.as_slice()).expect("[race] should not fail");
-			let career_type: CareerType =
-				Decode::decode(&mut career.as_slice()).expect("[career] should not fail");
-			let rarity_type: RarityType = Decode::decode(&mut rarity_type_value.as_slice())
-				.expect("[rarity] should not fail");
-			let generation_id: GenerationId =
-				Decode::decode(&mut generation.as_slice()).expect("[generation] should not fail");
-			// Get next expected Shell NFT ID
-			let next_shell_nft_id =
-				pallet_pw_nft_sale::Pallet::<T>::get_next_nft_id(shell_collection_id)?;
-			// Burn Origin of Shell NFT then Mint Shell NFT
-			pallet_rmrk_core::Pallet::<T>::burn_nft(
-				Origin::<T>::Signed(owner.clone()).into(),
-				collection_id,
-				nft_id,
-				1,
-			)?;
-			// Remove Properties from Uniques pallet
-			pallet_rmrk_core::Pallet::<T>::do_remove_property(
-				collection_id,
-				Some(nft_id),
-				race_key,
-			)?;
-			pallet_rmrk_core::Pallet::<T>::do_remove_property(
-				collection_id,
-				Some(nft_id),
-				career_key,
-			)?;
-			pallet_rmrk_core::Pallet::<T>::do_remove_property(
-				collection_id,
-				Some(nft_id),
-				rarity_type_key,
-			)?;
-			pallet_rmrk_core::Pallet::<T>::do_remove_property(
-				collection_id,
-				Some(nft_id),
-				generation_key,
-			)?;
-			// Mint Shell NFT to Overlord to add properties and resource before sending to owner
-			let (_, shell_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
-				owner.clone(),
-				owner.clone(),
-				next_shell_nft_id,
-				shell_collection_id,
-				None,
-				None,
-				metadata,
-				true,
-				None,
-			)?;
-			// Set Rarity Type, Race and Career properties for NFT
-			pallet_pw_nft_sale::Pallet::<T>::set_nft_properties(
-				shell_collection_id,
-				shell_nft_id,
-				rarity_type,
-				race_type,
-				career_type,
-				generation_id,
-			)?;
-
-			Self::deposit_event(Event::ShellAwakened {
-				shell_collection_id,
-				shell_nft_id,
-				rarity: rarity_type,
-				career: career_type,
-				race: race_type,
-				generation_id,
-				shape,
-				origin_of_shell_collection_id: collection_id,
-				origin_of_shell_nft_id: nft_id,
-				owner,
-			});
-
-			Ok(())
-		}
-
-		/// Hatch the origin_of_shell that is currently being hatched. This will trigger the end of
-		/// the incubation process and the origin_of_shell will be burned. After burning, the user
 		/// will receive the awakened Shell RMRK NFT and the nested NFT parts that renders the Shell
 		/// NFT.
 		///
@@ -541,7 +400,7 @@ pub mod pallet {
 		///	parts that render the Shell NFT
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
-		pub fn hatch_origin_of_shell2(
+		pub fn hatch_origin_of_shell(
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
 			nft_id: NftId,
@@ -872,7 +731,7 @@ pub mod pallet {
 			let rarity_type: RarityType = Decode::decode(&mut rarity_type_value.as_slice())
 				.expect("[rarity] should not fail");
 
-			let is_special_part = chosen_part.special;
+			let mut special_parts_count = Self::get_special_parts_count(chosen_part.clone());
 
 			let old_chosen_part =
 				OriginOfShellsChosenParts::<T>::get((collection_id, nft_id), shell_part.clone())
@@ -881,21 +740,50 @@ pub mod pallet {
 			// If old chosen part is None or not a special part && is_special_part is true
 			// then increment the special parts count. If old chosen part is a special part and the
 			// the new chosen part is not then decrement the special parts count
+			let mut old_special_parts_count = 0;
 			match old_chosen_part.clone() {
 				Some(old_chosen_part_value) => {
-					if old_chosen_part_value.special && !is_special_part {
-						Self::decrement_origin_of_shell_special_parts_count(collection_id, nft_id);
-					} else if !old_chosen_part_value.special && is_special_part {
-						// Check if can add another special part
-						Self::can_add_special_part(collection_id, nft_id, rarity_type)?;
-						Self::increment_origin_of_shell_special_parts_count(collection_id, nft_id);
+					old_special_parts_count =
+						Self::get_special_parts_count(old_chosen_part_value.clone());
+					if special_parts_count > old_special_parts_count {
+						special_parts_count -= old_special_parts_count;
+						// Check if can add special parts
+						Self::can_add_special_parts(
+							collection_id,
+							nft_id,
+							rarity_type,
+							special_parts_count,
+						)?;
+						Self::increment_origin_of_shell_special_parts_count(
+							collection_id,
+							nft_id,
+							special_parts_count,
+						);
+					} else if old_special_parts_count > special_parts_count {
+						// Subtract the removed special parts
+						old_special_parts_count -= special_parts_count;
+						Self::decrement_origin_of_shell_special_parts_count(
+							collection_id,
+							nft_id,
+							old_special_parts_count,
+						);
 					}
+					// else there is no need to make a change
 				}
 				None => {
-					if is_special_part {
+					if special_parts_count > 0 {
 						// Check if can add another special part
-						Self::can_add_special_part(collection_id, nft_id, rarity_type)?;
-						Self::increment_origin_of_shell_special_parts_count(collection_id, nft_id);
+						Self::can_add_special_parts(
+							collection_id,
+							nft_id,
+							rarity_type,
+							special_parts_count,
+						)?;
+						Self::increment_origin_of_shell_special_parts_count(
+							collection_id,
+							nft_id,
+							special_parts_count,
+						);
 					}
 				}
 			}
@@ -986,6 +874,31 @@ where
 		}
 	}
 
+	/// Helper function to get the count of special parts in a `ShellPartInfoOf<T>`
+	///
+	/// Parameters:
+	/// - `shell_part_info`: ShellPartInfoOf<T>
+	fn get_special_parts_count(shell_part_info: ShellPartInfoOf<T>) -> u16 {
+		let mut count = 0;
+		if shell_part_info.special {
+			count += 1;
+		}
+		if shell_part_info.part_type == ShellPartType::ComposablePart {
+			let shell_sub_parts = shell_part_info.sub_parts;
+			match shell_sub_parts {
+				Some(shell_sub_parts) => {
+					for shell_sub_part in shell_sub_parts {
+						if shell_sub_part.special {
+							count += 1;
+						}
+					}
+				}
+				None => (),
+			}
+		}
+		count
+	}
+
 	/// Helper function to check if a special chosen part can be chosen based on the `Raritytype` of
 	/// the Origin of Shell. Legendary have unlimited special parts, Magic has up to 5 special parts
 	/// and Prime can have up to 2 special parts
@@ -994,24 +907,27 @@ where
 	/// `collection_id`: Collection ID of the Origin of Shell
 	/// `nft_id`: NFT ID of the Origin of Shell
 	/// `rarity_type`: Rarity typeof the Origin of Shell
-	fn can_add_special_part(
+	/// `num_of_special_parts`: Number of special parts to be added
+	fn can_add_special_parts(
 		collection_id: CollectionId,
 		nft_id: NftId,
 		rarity_type: RarityType,
+		num_of_special_parts: u16,
 	) -> DispatchResult {
 		let current_special_parts_count =
 			OriginOfShellsSpecialPartsCount::<T>::get((collection_id, nft_id));
+		let new_special_parts_count = current_special_parts_count + num_of_special_parts;
 		match rarity_type {
 			RarityType::Legendary => Ok(()),
 			RarityType::Magic => {
-				if current_special_parts_count < 5 {
+				if new_special_parts_count < 6 {
 					Ok(())
 				} else {
 					return Err(Error::<T>::MaxSpecialPartsLimitReached.into());
 				}
 			}
 			RarityType::Prime => {
-				if current_special_parts_count < 2 {
+				if new_special_parts_count < 3 {
 					Ok(())
 				} else {
 					return Err(Error::<T>::MaxSpecialPartsLimitReached.into());
@@ -1025,11 +941,16 @@ where
 	/// Parameters:
 	/// - `collection_id`: Collection ID of the chosen parts
 	/// - `nft_id`: NFT ID of the chosen parts
-	fn increment_origin_of_shell_special_parts_count(collection_id: CollectionId, nft_id: NftId) {
+	/// - `count`: Count of new special parts to add
+	fn increment_origin_of_shell_special_parts_count(
+		collection_id: CollectionId,
+		nft_id: NftId,
+		count: u16,
+	) {
 		OriginOfShellsSpecialPartsCount::<T>::mutate(
 			(collection_id, nft_id),
 			|special_parts_count| {
-				*special_parts_count += 1;
+				*special_parts_count += count;
 				*special_parts_count
 			},
 		);
@@ -1040,11 +961,16 @@ where
 	/// Parameters:
 	/// - `collection_id`: Collection ID of the chosen parts
 	/// - `nft_id`: NFT ID of the chosen parts
-	fn decrement_origin_of_shell_special_parts_count(collection_id: CollectionId, nft_id: NftId) {
+	/// - `count`: Count of new special parts to subtract
+	fn decrement_origin_of_shell_special_parts_count(
+		collection_id: CollectionId,
+		nft_id: NftId,
+		count: u16,
+	) {
 		OriginOfShellsSpecialPartsCount::<T>::mutate(
 			(collection_id, nft_id),
 			|special_parts_count| {
-				*special_parts_count -= 1;
+				*special_parts_count -= count;
 				*special_parts_count
 			},
 		);

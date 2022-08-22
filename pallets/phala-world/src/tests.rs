@@ -6,12 +6,24 @@ use crate::mock::*;
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::Currency};
 use sp_core::{crypto::AccountId32, sr25519, Pair};
+use sp_runtime::BoundedVec;
 
+use crate::incubation::ShellPartInfoOf;
 use crate::traits::{
 	primitives::*, CareerType, NftSaleType, OverlordMessage, Purpose, RaceType, RarityType,
-	StatusType,
+	ShellPartInfo, ShellPartType, ShellSubPartInfo, StatusType,
 };
 use mock::{Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
+
+// pub type ShellPartInfoOf<Test> = ShellPartInfo<
+// 	BoundedVec<u8, StringLimit>,
+// 	BoundedVec<ShellSubPartInfo<BoundedVec<u8, StringLimit>>, PartsLimit>,
+// >;
+
+/// Turns a string into a BoundedVec
+fn stb(s: &str) -> BoundedVec<u8, StringLimit> {
+	s.as_bytes().to_vec().try_into().unwrap()
+}
 
 macro_rules! bvec {
 	($( $x:tt )*) => {
@@ -144,6 +156,122 @@ fn setup_config(enable_status_type: StatusType) {
 				true,
 				StatusType::LastDayOfSale
 			));
+		}
+	}
+}
+
+fn setup_incubation_config() {
+	let shell_collection_id = RmrkCore::collection_index();
+	// Mint Shell Collection
+	mint_collection(OVERLORD);
+	assert_ok!(PWIncubation::set_shell_collection_id(
+		Origin::signed(OVERLORD),
+		shell_collection_id
+	));
+	let shell_parts_collection_id = RmrkCore::collection_index();
+	// Mint Shell Parts Collection
+	mint_collection(OVERLORD);
+	assert_ok!(PWIncubation::set_shell_parts_collection_id(
+		Origin::signed(OVERLORD),
+		shell_parts_collection_id
+	));
+}
+
+fn get_shell_part(shell_part_type: ShellPartType) -> ShellPartInfoOf<Test> {
+	match shell_part_type {
+		ShellPartType::ComposablePart => {
+			let shell_part_info: ShellPartInfoOf<Test> = ShellPartInfo {
+				name: stb("jacket"),
+				shape: stb("Male"),
+				special: false,
+				part_type: ShellPartType::ComposablePart,
+				metadata: None,
+				sub_parts: Some(bvec![
+					ShellSubPartInfo {
+						name: stb("jacket-details"),
+						shape: stb("Male"),
+						special: true,
+						part_type: ShellPartType::SubPart,
+						metadata: stb("ar://jacket-details-uri"),
+						layer: 0,
+						x: 0,
+						y: 0,
+					},
+					ShellSubPartInfo {
+						name: stb("jacket"),
+						shape: stb("Male"),
+						special: false,
+						part_type: ShellPartType::SubPart,
+						metadata: stb("ar://jacket-uri"),
+						layer: 0,
+						x: 0,
+						y: 0,
+					},
+					ShellSubPartInfo {
+						name: stb("jacket-hat"),
+						shape: stb("Male"),
+						special: true,
+						part_type: ShellPartType::SubPart,
+						metadata: stb("ar://jacket-hat-uri"),
+						layer: 0,
+						x: 0,
+						y: 0,
+					},
+				]),
+				layer: 0,
+				x: 0,
+				y: 0,
+			};
+			shell_part_info.into()
+		}
+		ShellPartType::BasicPart => {
+			let shell_part_info = ShellPartInfo {
+				name: stb("t_shirt"),
+				shape: stb("Male"),
+				special: false,
+				part_type: ShellPartType::BasicPart,
+				metadata: Some(stb("ar://t-shirt-uri")),
+				sub_parts: None,
+				layer: 0,
+				x: 0,
+				y: 0,
+			};
+			shell_part_info.into()
+		}
+		ShellPartType::SubPart => {
+			let shell_part_info = ShellPartInfo {
+				name: stb("shoes"),
+				shape: stb("Male"),
+				special: false,
+				part_type: ShellPartType::ComposablePart,
+				metadata: None,
+				sub_parts: Some(bvec![
+					ShellSubPartInfo {
+						name: stb("shoes-details"),
+						shape: stb("Male"),
+						special: true,
+						part_type: ShellPartType::SubPart,
+						metadata: stb("ar://shoes-details-uri"),
+						layer: 0,
+						x: 0,
+						y: 0,
+					},
+					ShellSubPartInfo {
+						name: stb("shoes"),
+						shape: stb("Male"),
+						special: false,
+						part_type: ShellPartType::SubPart,
+						metadata: stb("ar://shoes-uri"),
+						layer: 0,
+						x: 0,
+						y: 0,
+					},
+				]),
+				layer: 0,
+				x: 0,
+				y: 0,
+			};
+			shell_part_info.into()
 		}
 	}
 }
@@ -1421,27 +1549,70 @@ fn can_hatch_origin_of_shell() {
 			PWIncubation::feed_origin_of_shell(Origin::signed(OVERLORD), 1u32, 2u32),
 			pallet_pw_incubation::Error::<Test>::NoPermission
 		);
-		let shell_collection_id = RmrkCore::collection_index();
-		// Mint Shell Collection
-		mint_collection(OVERLORD);
-		assert_ok!(PWIncubation::set_shell_collection_id(
+		setup_incubation_config();
+		let composable_part = get_shell_part(ShellPartType::ComposablePart);
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
 			Origin::signed(OVERLORD),
-			shell_collection_id
+			1u32,
+			2u32,
+			stb("jacket"),
+			composable_part.clone(),
 		));
+
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
+				collection_id: 1u32,
+				nft_id: 2u32,
+				shell_part: stb("jacket"),
+				old_chosen_part: None,
+				new_chosen_part: composable_part,
+			},
+		));
+		let basic_part = get_shell_part(ShellPartType::BasicPart);
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+			Origin::signed(OVERLORD),
+			1u32,
+			2u32,
+			stb("t_shirt"),
+			basic_part.clone(),
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
+				collection_id: 1u32,
+				nft_id: 2u32,
+				shell_part: stb("t_shirt"),
+				old_chosen_part: None,
+				new_chosen_part: basic_part,
+			},
+		));
+
+		let sub_part = get_shell_part(ShellPartType::SubPart);
+		// CHARLIE has a Prime NFT that is limited to only 2 Special parts
+		assert_noop!(
+			PWIncubation::set_origin_of_shell_chosen_parts(
+				Origin::signed(OVERLORD),
+				1u32,
+				2u32,
+				stb("shoes"),
+				sub_part.clone(),
+			),
+			pallet_pw_incubation::Error::<Test>::MaxSpecialPartsLimitReached
+		);
+
 		fast_forward_to(630);
 		// ALICE can hatch origin of shell from OVERLORD admin call
 		assert_ok!(PWIncubation::hatch_origin_of_shell(
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
-			bvec![0u8; 32],
+			stb("Male"),
 			bvec![0u8; 15]
 		));
 		System::assert_last_event(MockEvent::PWIncubation(
 			crate::pallet_pw_incubation::Event::ShellAwakened {
 				shell_collection_id: 2u32,
 				shell_nft_id: 0u32,
-				shape: bvec![0u8; 32],
+				shape: stb("Male"),
 				origin_of_shell_collection_id: 1u32,
 				origin_of_shell_nft_id: 2u32,
 				rarity: RarityType::Prime,
@@ -1468,6 +1639,305 @@ fn can_hatch_origin_of_shell() {
 	});
 }
 
-// TODO: Add tests for parts configuration logic
+#[test]
+fn can_add_origin_of_shell_chosen_parts() {
+	ExtBuilder::default().build(OVERLORD).execute_with(|| {
+		// Set Overlord and configuration then enable preorder origin of shells
+		setup_config(StatusType::PreorderOriginOfShells);
+		mint_spirit(ALICE, None);
+		mint_spirit(BOB, None);
+		mint_spirit(CHARLIE, None);
+		mint_spirit(OVERLORD, None);
+		// ALICE purchases Legendary Origin of Shell
+		assert_ok!(PWNftSale::buy_rare_origin_of_shell(
+			Origin::signed(ALICE),
+			RarityType::Legendary,
+			RaceType::AISpectre,
+			CareerType::HackerWizard,
+		));
+		// Check if event triggered
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::OriginOfShellMinted {
+				rarity_type: RarityType::Legendary,
+				collection_id: 1,
+				nft_id: 0,
+				owner: ALICE,
+				race: RaceType::AISpectre,
+				career: CareerType::HackerWizard,
+				generation_id: 0,
+			},
+		));
+		// BOB preorders an origin of shell
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(BOB),
+			RaceType::Cyborg,
+			CareerType::HardwareDruid,
+		));
+		// Check if event triggered
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
+				owner: BOB,
+				preorder_id: 0,
+			},
+		));
+		// CHARLIE preorders an origin of shell
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(CHARLIE),
+			RaceType::Pandroid,
+			CareerType::HardwareDruid,
+		));
+		// Check if event triggered
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
+				owner: CHARLIE,
+				preorder_id: 1,
+			},
+		));
+		let preorders: Vec<PreorderId> = vec![0u32, 1u32];
+		// Set ALICE & BOB has Chosen and CHARLIE as NotChosen
+		assert_ok!(PWNftSale::mint_chosen_preorders(
+			Origin::signed(OVERLORD),
+			preorders
+		));
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
+				preorder_id: 1u32,
+				owner: CHARLIE,
+			},
+		));
+		// Reassign PreorderIndex to max value
+		pallet_pw_nft_sale::PreorderIndex::<Test>::mutate(|id| *id = PreorderId::max_value());
+		// OVERLORD preorders an origin of shell but max value is reached
+		assert_noop!(
+			PWNftSale::preorder_origin_of_shell(
+				Origin::signed(OVERLORD),
+				RaceType::Cyborg,
+				CareerType::HackerWizard,
+			),
+			pallet_pw_nft_sale::Error::<Test>::NoAvailablePreorderId
+		);
+		// ALICE preorders but can't because already minted origin of shell
+		assert_noop!(
+			PWNftSale::preorder_origin_of_shell(
+				Origin::signed(ALICE),
+				RaceType::Cyborg,
+				CareerType::HackerWizard,
+			),
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
+		);
+		assert_ok!(PWNftSale::set_status_type(
+			Origin::signed(OVERLORD),
+			false,
+			StatusType::PreorderOriginOfShells
+		));
+		// Check Balances of ALICE, BOB, CHARLIE & OVERLORD
+		assert_eq!(Balances::total_balance(&ALICE), 19_000_000 * PHA);
+		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
+		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_814_308_024 * PHA);
+		assert_ok!(PWIncubation::set_can_start_incubation_status(
+			Origin::signed(OVERLORD),
+			true
+		));
+		let now = INIT_TIMESTAMP_SECONDS;
+		let official_hatch_time = now + INCUBATION_DURATION_SEC;
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::CanStartIncubationStatusChanged {
+				status: true,
+				start_time: now,
+				official_hatch_time,
+			},
+		));
+		// ALICE initiates incubation process
+		assert_ok!(PWIncubation::start_incubation(
+			Origin::signed(ALICE),
+			1u32,
+			0u32
+		));
+		let alice_now = INIT_TIMESTAMP_SECONDS;
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::StartedIncubation {
+				collection_id: 1u32,
+				nft_id: 0u32,
+				owner: ALICE,
+				start_time: alice_now,
+				hatch_time: official_hatch_time,
+			},
+		));
+		assert_ok!(PWIncubation::start_incubation(
+			Origin::signed(CHARLIE),
+			1u32,
+			2u32
+		));
+		// CHARLIE feeds ALICE's Origin of Shell Twice and fails on the third
+		assert_ok!(PWIncubation::feed_origin_of_shell(
+			Origin::signed(CHARLIE),
+			1u32,
+			2u32
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellReceivedFood {
+				collection_id: 1u32,
+				nft_id: 2u32,
+				sender: CHARLIE,
+			},
+		));
+		assert_ok!(PWIncubation::feed_origin_of_shell(
+			Origin::signed(CHARLIE),
+			1u32,
+			2u32
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellReceivedFood {
+				collection_id: 1u32,
+				nft_id: 2u32,
+				sender: CHARLIE,
+			},
+		));
+		assert_noop!(
+			PWIncubation::feed_origin_of_shell(Origin::signed(CHARLIE), 1u32, 2u32),
+			pallet_pw_incubation::Error::<Test>::AlreadySentFoodTwice
+		);
+		// CHARLIE cannot send food to BOB since he hasn't started incubation process
+		assert_noop!(
+			PWIncubation::feed_origin_of_shell(Origin::signed(CHARLIE), 1u32, 1u32),
+			pallet_pw_incubation::Error::<Test>::CannotSendFoodToOriginOfShell
+		);
+		// CHARLIE can feed now that a new Era has started
+		fast_forward_to(7);
+		let bob_now = 7 * BLOCK_TIME_SECONDS + INIT_TIMESTAMP_SECONDS;
+		assert_ok!(PWIncubation::start_incubation(
+			Origin::signed(BOB),
+			1u32,
+			1u32
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::StartedIncubation {
+				collection_id: 1u32,
+				nft_id: 1u32,
+				owner: BOB,
+				start_time: bob_now,
+				hatch_time: official_hatch_time,
+			},
+		));
+		// CHARLIE can feed BOB's Origin of Shell now
+		assert_ok!(PWIncubation::feed_origin_of_shell(
+			Origin::signed(CHARLIE),
+			1u32,
+			1u32
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellReceivedFood {
+				collection_id: 1u32,
+				nft_id: 1u32,
+				sender: CHARLIE,
+			},
+		));
+		// OVERLORD cannot send food bc they do not own an Origin of Shell
+		assert_noop!(
+			PWIncubation::feed_origin_of_shell(Origin::signed(OVERLORD), 1u32, 2u32),
+			pallet_pw_incubation::Error::<Test>::NoPermission
+		);
+		setup_incubation_config();
+		let composable_part = get_shell_part(ShellPartType::ComposablePart);
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+			Origin::signed(OVERLORD),
+			1u32,
+			2u32,
+			stb("jacket"),
+			composable_part.clone(),
+		));
 
-// TODO: Add hatch shell with minting of additional shell parts based on accounts saved configuration
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
+				collection_id: 1u32,
+				nft_id: 2u32,
+				shell_part: stb("jacket"),
+				old_chosen_part: None,
+				new_chosen_part: composable_part.clone(),
+			},
+		));
+		let basic_part = get_shell_part(ShellPartType::BasicPart);
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+			Origin::signed(OVERLORD),
+			1u32,
+			2u32,
+			stb("t_shirt"),
+			basic_part.clone(),
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
+				collection_id: 1u32,
+				nft_id: 2u32,
+				shell_part: stb("t_shirt"),
+				old_chosen_part: None,
+				new_chosen_part: basic_part.clone(),
+			},
+		));
+
+		let sub_part = get_shell_part(ShellPartType::SubPart);
+		// CHARLIE has a Prime NFT that is limited to only 2 Special parts
+		assert_noop!(
+			PWIncubation::set_origin_of_shell_chosen_parts(
+				Origin::signed(OVERLORD),
+				1u32,
+				2u32,
+				stb("shoes"),
+				sub_part.clone(),
+			),
+			pallet_pw_incubation::Error::<Test>::MaxSpecialPartsLimitReached
+		);
+		// ALICE can add all 3 parts bc she owns a Legendary Origin of shell
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+			Origin::signed(OVERLORD),
+			1u32,
+			0u32,
+			stb("jacket"),
+			composable_part.clone(),
+		));
+
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
+				collection_id: 1u32,
+				nft_id: 0u32,
+				shell_part: stb("jacket"),
+				old_chosen_part: None,
+				new_chosen_part: composable_part.clone(),
+			},
+		));
+
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+			Origin::signed(OVERLORD),
+			1u32,
+			0u32,
+			stb("t_shirt"),
+			basic_part.clone(),
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
+				collection_id: 1u32,
+				nft_id: 0u32,
+				shell_part: stb("t_shirt"),
+				old_chosen_part: None,
+				new_chosen_part: basic_part.clone(),
+			},
+		));
+
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+			Origin::signed(OVERLORD),
+			1u32,
+			0u32,
+			stb("shoes"),
+			sub_part.clone(),
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
+				collection_id: 1u32,
+				nft_id: 0u32,
+				shell_part: stb("shoes"),
+				old_chosen_part: None,
+				new_chosen_part: sub_part.clone(),
+			},
+		));
+	});
+}
