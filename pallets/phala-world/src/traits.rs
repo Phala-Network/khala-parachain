@@ -114,27 +114,6 @@ pub struct FoodInfo<BoundedOriginOfShellsFed> {
 	pub origin_of_shells_fed: BoundedOriginOfShellsFed,
 }
 
-#[derive(Encode, Decode, Debug, Clone, Copy, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum ShellShape {
-	/// Cyborg male shape
-	CyborgMale,
-	/// Cyborg female shape
-	CyborgFemale,
-	/// X-Gene XA shape
-	XGeneXA,
-	/// X-Gene XB shape
-	XGeneXB,
-	/// X-Gene XC shape
-	XGeneXC,
-	/// Pandroid PAC shape
-	PandroidPAC,
-	/// Pandroid PD shape
-	PandroidPD,
-	/// AISpectre shape
-	AISpectreAIS,
-}
-
 /// Shell Part types to determine if a ShellPartInfo is BasicPart, ComposablePart or a SubPart
 #[derive(Encode, Decode, Debug, Clone, Copy, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -151,7 +130,7 @@ pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
 	/// Name of the Part
 	pub name: BoundedString,
 	/// Shell part shape
-	pub shape: ShellShape,
+	pub shape: BoundedString,
 	/// Is a special part
 	pub special: bool,
 	/// BasicPart, ComposablePart or SubPart
@@ -175,7 +154,7 @@ pub struct ShellSubPartInfo<BoundedString> {
 	/// Name of the Part
 	pub name: BoundedString,
 	/// Shell part shape
-	pub shape: ShellShape,
+	pub shape: BoundedString,
 	/// Is a special part
 	pub special: bool,
 	/// BasicPart, ComposablePart or SubPart

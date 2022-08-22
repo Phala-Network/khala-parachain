@@ -3,7 +3,7 @@
 pub use crate::pallet_pw_nft_sale;
 pub use crate::traits::{
 	primitives::*, CareerType, FoodInfo, RaceType, RarityType, ShellPartInfo, ShellPartType,
-	ShellShape, ShellSubPartInfo,
+	ShellSubPartInfo,
 };
 use codec::{Decode, Encode};
 use frame_support::{
@@ -169,7 +169,7 @@ pub mod pallet {
 			career: CareerType,
 			race: RaceType,
 			generation_id: GenerationId,
-			shape: ShellShape,
+			shape: BoundedVec<u8, T::StringLimit>,
 			special: bool,
 			owner: T::AccountId,
 		},
@@ -182,7 +182,7 @@ pub mod pallet {
 			career: CareerType,
 			race: RaceType,
 			generation_id: GenerationId,
-			shape: ShellShape,
+			shape: BoundedVec<u8, T::StringLimit>,
 			special: bool,
 			owner: T::AccountId,
 		},
@@ -194,7 +194,7 @@ pub mod pallet {
 			career: CareerType,
 			race: RaceType,
 			generation_id: GenerationId,
-			shape: ShellShape,
+			shape: BoundedVec<u8, T::StringLimit>,
 			origin_of_shell_collection_id: CollectionId,
 			origin_of_shell_nft_id: NftId,
 			owner: T::AccountId,
@@ -401,7 +401,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
 			nft_id: NftId,
-			shape: ShellShape,
+			shape: BoundedVec<u8, T::StringLimit>,
 			metadata: BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
@@ -545,7 +545,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
 			nft_id: NftId,
-			shape: ShellShape,
+			shape: BoundedVec<u8, T::StringLimit>,
 			default_shell_metadata: BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
@@ -1068,7 +1068,7 @@ where
 	fn do_mint_shell_part_nft(
 		owner: T::AccountId,
 		name: BoundedVec<u8, T::StringLimit>,
-		shape: ShellShape,
+		shape: BoundedVec<u8, T::StringLimit>,
 		shell_part: BoundedVec<u8, T::StringLimit>,
 		generation: GenerationId,
 		special: bool,
@@ -1208,7 +1208,7 @@ where
 	fn do_mint_shell_sub_part_nft(
 		owner: T::AccountId,
 		name: BoundedVec<u8, T::StringLimit>,
-		shape: ShellShape,
+		shape: BoundedVec<u8, T::StringLimit>,
 		generation: GenerationId,
 		special: bool,
 		race: RaceType,

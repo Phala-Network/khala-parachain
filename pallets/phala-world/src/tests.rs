@@ -1434,12 +1434,14 @@ fn can_hatch_origin_of_shell() {
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
+			bvec![0u8; 32],
 			bvec![0u8; 15]
 		));
 		System::assert_last_event(MockEvent::PWIncubation(
 			crate::pallet_pw_incubation::Event::ShellAwakened {
 				shell_collection_id: 2u32,
 				shell_nft_id: 0u32,
+				shape: bvec![0u8; 32],
 				origin_of_shell_collection_id: 1u32,
 				origin_of_shell_nft_id: 2u32,
 				rarity: RarityType::Prime,
