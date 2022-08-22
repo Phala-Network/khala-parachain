@@ -114,6 +114,27 @@ pub struct FoodInfo<BoundedOriginOfShellsFed> {
 	pub origin_of_shells_fed: BoundedOriginOfShellsFed,
 }
 
+#[derive(Encode, Decode, Debug, Clone, Copy, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum ShellPartShape {
+	/// Cyborg male shape
+	CyborgMale,
+	/// Cyborg female shape
+	CyborgFemale,
+	/// X-Gene XA shape
+	XGeneXA,
+	/// X-Gene XB shape
+	XGeneXB,
+	/// X-Gene XC shape
+	XGeneXC,
+	/// Pandroid PAC shape
+	PandroidPAC,
+	/// Pandroid PD shape
+	PandroidPD,
+	/// AISpectre shape
+	AISpectreAIS,
+}
+
 /// Shell Part types to determine if a ShellPartInfo is BasicPart, ComposablePart or a SubPart
 #[derive(Encode, Decode, Debug, Clone, Copy, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -129,6 +150,10 @@ pub enum ShellPartType {
 pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
 	/// Name of the Part
 	pub name: BoundedString,
+	/// Shell part shape
+	pub shape: ShellPartShape,
+	/// Is a special part
+	pub special: bool,
 	/// BasicPart, ComposablePart or SubPart
 	pub part_type: ShellPartType,
 	/// Metadata is None if the Part is composed of Sub-Parts
@@ -149,6 +174,12 @@ pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
 pub struct ShellSubPartInfo<BoundedString> {
 	/// Name of the Part
 	pub name: BoundedString,
+	/// Shell part shape
+	pub shape: ShellPartShape,
+	/// Is a special part
+	pub special: bool,
+	/// BasicPart, ComposablePart or SubPart
+	pub part_type: ShellPartType,
 	/// Metadata is None if the Part is composed of Sub-Parts
 	pub metadata: BoundedString,
 	/// Layer in the png file

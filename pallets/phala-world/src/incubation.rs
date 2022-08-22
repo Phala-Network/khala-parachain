@@ -2,8 +2,8 @@
 
 pub use crate::pallet_pw_nft_sale;
 pub use crate::traits::{
-	primitives::*, CareerType, FoodInfo, RaceType, RarityType, ShellPartInfo, ShellPartType,
-	ShellSubPartInfo,
+	primitives::*, CareerType, FoodInfo, RaceType, RarityType, ShellPartInfo, ShellPartShape,
+	ShellPartType, ShellSubPartInfo,
 };
 use codec::Decode;
 use frame_support::{
@@ -102,11 +102,28 @@ pub mod pallet {
 	#[pallet::getter(fn shell_collection_id)]
 	pub type ShellCollectionId<T: Config> = StorageValue<_, CollectionId>;
 
+	/// Collection ID of the Shell Parts NFTs.
+	#[pallet::storage]
+	#[pallet::getter(fn shell_parts_collection_id)]
+	pub type ShellPartsCollectionId<T: Config> = StorageValue<_, CollectionId>;
+
 	/// Storage of an account's selected parts during the incubation process.
 	#[pallet::storage]
 	#[pallet::getter(fn origin_of_shells_chosen_parts)]
-	pub type OriginOfShellsChosenParts<T: Config> =
-		StorageMap<_, Blake2_128Concat, (CollectionId, NftId), ShellPartInfoOf<T>>;
+	pub type OriginOfShellsChosenParts<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		(CollectionId, NftId),
+		Blake2_128Concat,
+		BoundedVec<u8, T::StringLimit>,
+		ShellPartInfoOf<T>,
+	>;
+
+	/// Number of special parts chosen for each Origin of Shell
+	#[pallet::storage]
+	#[pallet::getter(fn origin_of_shells_special_parts_count)]
+	pub type OriginOfShellsSpecialPartsCount<T: Config> =
+		StorageMap<_, Blake2_128Concat, (CollectionId, NftId), u16, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	#[pallet::event]
@@ -136,11 +153,14 @@ pub mod pallet {
 		OriginOfShellChosenPartsUpdated {
 			collection_id: CollectionId,
 			nft_id: NftId,
-			old_chosen_parts: Option<ShellPartInfoOf<T>>,
-			new_chosen_parts: ShellPartInfoOf<T>,
+			shell_part: BoundedVec<u8, T::StringLimit>,
+			old_chosen_part: Option<ShellPartInfoOf<T>>,
+			new_chosen_part: ShellPartInfoOf<T>,
 		},
 		/// Shell Collection ID is set.
 		ShellCollectionIdSet { collection_id: CollectionId },
+		/// Shell Parts Collection ID is set.
+		ShellPartsCollectionIdSet { collection_id: CollectionId },
 		/// Shell has been awakened from an origin_of_shell being hatched and burned.
 		ShellAwakened {
 			shell_collection_id: CollectionId,
@@ -170,13 +190,19 @@ pub mod pallet {
 		NoPermission,
 		WrongCollectionId,
 		ShellCollectionIdAlreadySet,
+		ShellPartsCollectionIdAlreadySet,
 		ShellCollectionIdNotSet,
+		ShellPartsCollectionIdNotSet,
 		RaceNotDetected,
 		CareerNotDetected,
 		RarityTypeNotDetected,
 		GenerationNotDetected,
 		FoodInfoUpdateError,
 		ChosenPartsDataCorrupted,
+		MaxSpecialPartsLimitReached,
+		MissingShellSubParts,
+		MissingShellPartMetadata,
+		ExpectedShellSubPartType,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -483,7 +509,6 @@ pub mod pallet {
 		/// - `collection_id`: The collection id of the Origin of Shell RMRK NFT
 		/// - `nft_id`: The NFT id of the Origin of Shell RMRK NFT
 		/// - `shell_metadata`: File resource URI in decentralized storage for Shell NFT
-		/// - `chosen_parts_metadata`: File resources' URI in decentralized storage for the chosen
 		///	parts that render the Shell NFT
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
@@ -491,33 +516,199 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
 			nft_id: NftId,
-			shell_metadata: BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>,
-			chosen_parts_metadata: BoundedVec<
-				ShellPartInfoOf<T>,
-				<T as pallet_rmrk_core::Config>::PartsLimit,
-			>,
+			default_shell_metadata: BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>,
 		) -> DispatchResult {
-			// TODO: replace `hatch_origin_of_shell`
-			// Use previous version hatching logic above
-			// Will need to create a scheme to iterate through the BoundedVec and based on the "Key"
-			// value we will mint the NFT into the parts collection with the proper attributes. We will
-			// have to figure this out to ensure we mint the NFT with the proper info and metadata.
+			let sender = ensure_signed(origin.clone())?;
+			pallet_pw_nft_sale::pallet::Pallet::<T>::ensure_overlord(&sender)?;
+			// Check if Incubation Phase has started
+			ensure!(
+				CanStartIncubation::<T>::get(),
+				Error::<T>::StartIncubationNotAvailable
+			);
+			// Ensure that the collection is an Origin of Shell Collection
+			ensure!(
+				Self::is_origin_of_shell_collection_id(collection_id),
+				Error::<T>::WrongCollectionId
+			);
+			// Get owner of the Origin of Shell NFT
+			let (owner, _) =
+				pallet_rmrk_core::Pallet::<T>::lookup_root_owner(collection_id, nft_id)?;
+			// Check if the incubation has started and the official hatch time has been met
+			ensure!(
+				HasOriginOfShellStartedIncubation::<T>::get((collection_id, nft_id))
+					&& Self::can_hatch(),
+				Error::<T>::CannotHatchOriginOfShell
+			);
+			// Check if Shell Collection ID is set
+			let shell_collection_id = Self::get_shell_collection_id()?;
+			// Check if Shell Parts Collection ID is set
+			let shell_parts_collection_id = Self::get_shell_parts_collection_id()?;
+			// Get race, key and Rarity Type before burning origin of shell NFT
+			let race_key = pallet_pw_nft_sale::pallet::Pallet::<T>::to_boundedvec_key("race")?;
+			let career_key = pallet_pw_nft_sale::pallet::Pallet::<T>::to_boundedvec_key("career")?;
+			let rarity_type_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("rarity")?;
+			let generation_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("generation")?;
+			let race =
+				pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &race_key))
+					.ok_or(Error::<T>::RaceNotDetected)?;
+			let career =
+				pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &career_key))
+					.ok_or(Error::<T>::CareerNotDetected)?;
+			let rarity_type_value = pallet_rmrk_core::Properties::<T>::get((
+				collection_id,
+				Some(nft_id),
+				&rarity_type_key,
+			))
+			.ok_or(Error::<T>::RarityTypeNotDetected)?;
+			let generation = pallet_rmrk_core::Properties::<T>::get((
+				collection_id,
+				Some(nft_id),
+				&generation_key,
+			))
+			.ok_or(Error::<T>::GenerationNotDetected)?;
+			let race_type: RaceType =
+				Decode::decode(&mut race.as_slice()).expect("[race] should not fail");
+			let career_type: CareerType =
+				Decode::decode(&mut career.as_slice()).expect("[career] should not fail");
+			let rarity_type: RarityType = Decode::decode(&mut rarity_type_value.as_slice())
+				.expect("[rarity] should not fail");
+			let generation_id: GenerationId =
+				Decode::decode(&mut generation.as_slice()).expect("[generation] should not fail");
+			// Get next expected Shell NFT ID
+			let next_shell_nft_id =
+				pallet_pw_nft_sale::Pallet::<T>::get_next_nft_id(shell_collection_id)?;
+			// Burn Origin of Shell NFT then Mint Shell NFT
+			pallet_rmrk_core::Pallet::<T>::burn_nft(
+				Origin::<T>::Signed(owner.clone()).into(),
+				collection_id,
+				nft_id,
+				1,
+			)?;
+			// Remove Properties from Uniques pallet
+			pallet_rmrk_core::Pallet::<T>::do_remove_property(
+				collection_id,
+				Some(nft_id),
+				race_key,
+			)?;
+			pallet_rmrk_core::Pallet::<T>::do_remove_property(
+				collection_id,
+				Some(nft_id),
+				career_key,
+			)?;
+			pallet_rmrk_core::Pallet::<T>::do_remove_property(
+				collection_id,
+				Some(nft_id),
+				rarity_type_key,
+			)?;
+			pallet_rmrk_core::Pallet::<T>::do_remove_property(
+				collection_id,
+				Some(nft_id),
+				generation_key,
+			)?;
+			// Mint Shell NFT to Overlord to add properties and resource before sending to owner
+			let (_, shell_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
+				owner.clone(),
+				owner.clone(),
+				next_shell_nft_id,
+				shell_collection_id,
+				None,
+				None,
+				default_shell_metadata,
+				true,
+				None,
+			)?;
+			// Set Rarity Type, Race and Career properties for NFT
+			pallet_pw_nft_sale::Pallet::<T>::set_nft_properties(
+				shell_collection_id,
+				shell_nft_id,
+				rarity_type,
+				race_type,
+				career_type,
+				generation_id,
+			)?;
 
 			// Iterate through the chosen parts
-			for chosen_part in chosen_parts_metadata {
+			for (shell_part, chosen_part) in
+				OriginOfShellsChosenParts::<T>::drain_prefix((collection_id, nft_id))
+			{
+				let special = chosen_part.special;
 				let part_type = chosen_part.part_type;
 				match part_type {
 					ShellPartType::ComposablePart => {
+						let shell_sub_parts = chosen_part
+							.sub_parts
+							.ok_or(Error::<T>::MissingShellSubParts)?;
 						// The Shell part is a composable and made up of Shell Sub-Parts
-						()
+						let (_, shell_part_nft_id) = Self::do_mint_shell_part_nft(
+							owner.clone(),
+							chosen_part.name,
+							chosen_part.shape,
+							shell_part,
+							generation_id,
+							special,
+							race_type,
+							career_type,
+							Default::default(),
+							shell_parts_collection_id,
+							shell_collection_id,
+							shell_nft_id,
+						)?;
+						for shell_sub_part in shell_sub_parts {
+							ensure!(
+								shell_sub_part.part_type == ShellPartType::SubPart,
+								Error::<T>::ExpectedShellSubPartType
+							);
+							Self::do_mint_shell_sub_part_nft(
+								owner.clone(),
+								shell_sub_part.name,
+								shell_sub_part.shape,
+								generation_id,
+								special,
+								race_type,
+								career_type,
+								shell_sub_part.metadata,
+								shell_parts_collection_id,
+								shell_parts_collection_id,
+								shell_part_nft_id,
+							)?;
+						}
 					}
 					ShellPartType::BasicPart => {
 						// A basic Shell part
-						()
+						let shell_part_metadata = chosen_part
+							.metadata
+							.ok_or(Error::<T>::MissingShellPartMetadata)?;
+						let (_, shell_part_nft_id) = Self::do_mint_shell_part_nft(
+							owner.clone(),
+							chosen_part.name,
+							chosen_part.shape,
+							shell_part,
+							generation_id,
+							special,
+							race_type,
+							career_type,
+							shell_part_metadata,
+							shell_parts_collection_id,
+							shell_collection_id,
+							shell_nft_id,
+						)?;
 					}
-					_ => (), //Err(Error::<T>::ChosenPartsDataCorrupted),
+					_ => return Err(Error::<T>::ChosenPartsDataCorrupted.into()),
 				}
 			}
+
+			Self::deposit_event(Event::ShellAwakened {
+				shell_collection_id,
+				shell_nft_id,
+				rarity: rarity_type,
+				career: career_type,
+				race: race_type,
+				generation_id,
+				origin_of_shell_collection_id: collection_id,
+				origin_of_shell_nft_id: nft_id,
+				owner,
+			});
+
 			Ok(())
 		}
 
@@ -566,7 +757,7 @@ pub mod pallet {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
 			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
-			// If Spirit Collection ID is greater than 0 then the collection ID was already set
+			// If Spirit Collection ID is not None then the collection ID was already set
 			ensure!(
 				ShellCollectionId::<T>::get().is_none(),
 				Error::<T>::ShellCollectionIdAlreadySet
@@ -574,6 +765,31 @@ pub mod pallet {
 			<ShellCollectionId<T>>::put(collection_id);
 
 			Self::deposit_event(Event::ShellCollectionIdSet { collection_id });
+
+			Ok(Pays::No.into())
+		}
+
+		/// Privileged function to set the collection id for the Shell Parts collection.
+		///
+		/// Parameters:
+		/// - `origin` - Expected Overlord admin account to set the Shell Parts Collection ID
+		/// - `collection_id` - Collection ID of the Shell Parts Collection
+		#[pallet::weight(0)]
+		pub fn set_shell_parts_collection_id(
+			origin: OriginFor<T>,
+			collection_id: CollectionId,
+		) -> DispatchResultWithPostInfo {
+			// Ensure Overlord account makes call
+			let sender = ensure_signed(origin)?;
+			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
+			// Shell Parts Collection ID is None or else the collection ID was already set
+			ensure!(
+				ShellPartsCollectionId::<T>::get().is_none(),
+				Error::<T>::ShellPartsCollectionIdAlreadySet
+			);
+			<ShellPartsCollectionId<T>>::put(collection_id);
+
+			Self::deposit_event(Event::ShellPartsCollectionIdSet { collection_id });
 
 			Ok(Pays::No.into())
 		}
@@ -589,7 +805,8 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
 			nft_id: NftId,
-			chosen_parts: ShellPartInfoOf<T>,
+			shell_part: BoundedVec<u8, T::StringLimit>,
+			chosen_part: ShellPartInfoOf<T>,
 		) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
@@ -605,16 +822,57 @@ pub mod pallet {
 				Error::<T>::CannotSetOriginOfShellChosenParts
 			);
 
-			let old_chosen_parts =
-				OriginOfShellsChosenParts::<T>::get((collection_id, nft_id)).clone();
+			let rarity_type_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("rarity")?;
+			let rarity_type_value = pallet_rmrk_core::Properties::<T>::get((
+				collection_id,
+				Some(nft_id),
+				&rarity_type_key,
+			))
+			.ok_or(Error::<T>::RarityTypeNotDetected)?;
+			let rarity_type: RarityType = Decode::decode(&mut rarity_type_value.as_slice())
+				.expect("[rarity] should not fail");
+
+			let is_special_part = chosen_part.special;
+
+			let old_chosen_part =
+				OriginOfShellsChosenParts::<T>::get((collection_id, nft_id), shell_part.clone())
+					.clone();
+
+			// If old chosen part is None or not a special part && is_special_part is true
+			// then increment the special parts count. If old chosen part is a special part and the
+			// the new chosen part is not then decrement the special parts count
+			match old_chosen_part.clone() {
+				Some(old_chosen_part_value) => {
+					if old_chosen_part_value.special && !is_special_part {
+						Self::decrement_origin_of_shell_special_parts_count(collection_id, nft_id);
+					} else if !old_chosen_part_value.special && is_special_part {
+						// Check if can add another special part
+						Self::can_add_special_part(collection_id, nft_id, rarity_type)?;
+						Self::increment_origin_of_shell_special_parts_count(collection_id, nft_id);
+					}
+				}
+				None => {
+					if is_special_part {
+						// Check if can add another special part
+						Self::can_add_special_part(collection_id, nft_id, rarity_type)?;
+						Self::increment_origin_of_shell_special_parts_count(collection_id, nft_id);
+					}
+				}
+			}
+
 			// Update chosen parts storage
-			OriginOfShellsChosenParts::<T>::insert((collection_id, nft_id), chosen_parts.clone());
+			OriginOfShellsChosenParts::<T>::insert(
+				(collection_id, nft_id),
+				shell_part.clone(),
+				chosen_part.clone(),
+			);
 
 			Self::deposit_event(Event::OriginOfShellChosenPartsUpdated {
 				collection_id,
 				nft_id,
-				old_chosen_parts,
-				new_chosen_parts: chosen_parts,
+				shell_part,
+				old_chosen_part,
+				new_chosen_part: chosen_part,
 			});
 
 			Ok(Pays::No.into())
@@ -661,11 +919,18 @@ where
 		now > OfficialHatchTime::<T>::get()
 	}
 
-	/// Helper function to get collection id spirit collection
+	/// Helper function to get collection id Shell collection
 	fn get_shell_collection_id() -> Result<CollectionId, Error<T>> {
 		let shell_collection_id =
 			ShellCollectionId::<T>::get().ok_or(Error::<T>::ShellCollectionIdNotSet)?;
 		Ok(shell_collection_id)
+	}
+
+	/// Helper function to get collection id Shell Parts collection
+	fn get_shell_parts_collection_id() -> Result<CollectionId, Error<T>> {
+		let shell_parts_collection_id =
+			ShellPartsCollectionId::<T>::get().ok_or(Error::<T>::ShellPartsCollectionIdNotSet)?;
+		Ok(shell_parts_collection_id)
 	}
 
 	/// Helper function to get new FoodOf<T> struct
@@ -681,10 +946,76 @@ where
 		}
 	}
 
+	/// Helper function to check if a special chosen part can be chosen based on the `Raritytype` of
+	/// the Origin of Shell. Legendary have unlimited special parts, Magic has up to 5 special parts
+	/// and Prime can have up to 2 special parts
+	///
+	/// Parameters:
+	/// `collection_id`: Collection ID of the Origin of Shell
+	/// `nft_id`: NFT ID of the Origin of Shell
+	/// `rarity_type`: Rarity typeof the Origin of Shell
+	fn can_add_special_part(
+		collection_id: CollectionId,
+		nft_id: NftId,
+		rarity_type: RarityType,
+	) -> DispatchResult {
+		let current_special_parts_count =
+			OriginOfShellsSpecialPartsCount::<T>::get((collection_id, nft_id));
+		match rarity_type {
+			RarityType::Legendary => Ok(()),
+			RarityType::Magic => {
+				if current_special_parts_count < 5 {
+					Ok(())
+				} else {
+					return Err(Error::<T>::MaxSpecialPartsLimitReached.into());
+				}
+			}
+			RarityType::Prime => {
+				if current_special_parts_count < 2 {
+					Ok(())
+				} else {
+					return Err(Error::<T>::MaxSpecialPartsLimitReached.into());
+				}
+			}
+		}
+	}
+
+	/// Helper function to increment the special chosen parts for an Origin of Shell NFT
+	///
+	/// Parameters:
+	/// - `collection_id`: Collection ID of the chosen parts
+	/// - `nft_id`: NFT ID of the chosen parts
+	fn increment_origin_of_shell_special_parts_count(collection_id: CollectionId, nft_id: NftId) {
+		OriginOfShellsSpecialPartsCount::<T>::mutate(
+			(collection_id, nft_id),
+			|special_parts_count| {
+				*special_parts_count += 1;
+				*special_parts_count
+			},
+		);
+	}
+
+	/// Helper function to decrement the special chosen parts for an Origin of Shell NFT
+	///
+	/// Parameters:
+	/// - `collection_id`: Collection ID of the chosen parts
+	/// - `nft_id`: NFT ID of the chosen parts
+	fn decrement_origin_of_shell_special_parts_count(collection_id: CollectionId, nft_id: NftId) {
+		OriginOfShellsSpecialPartsCount::<T>::mutate(
+			(collection_id, nft_id),
+			|special_parts_count| {
+				*special_parts_count -= 1;
+				*special_parts_count
+			},
+		);
+	}
+
 	/// Helper function to mint a Top level Shell part. These are transferable Shell part NFTs.
 	///
 	/// Parameters:
+	/// - `owner`: Root owner of the Shell part
 	/// - `name`: Name of the Shell part
+	/// - `shape`: Shell part shape of the Shell part
 	/// - `generation`: Generation ID of the Shell Part
 	/// - `rarity_type`: Rarity type of the Shell Part
 	/// - `race_type`: Race type of the Shell Part
@@ -693,23 +1024,31 @@ where
 	/// file
 	/// - `parent_nft_id`: NFT ID of the Shell NFT that owns the Shell Part
 	fn do_mint_shell_part_nft(
+		owner: T::AccountId,
 		name: BoundedVec<u8, T::StringLimit>,
+		shape: ShellPartShape,
+		shell_part: BoundedVec<u8, T::StringLimit>,
 		generation: GenerationId,
-		rarity_type: RarityType,
+		special: bool,
 		race_type: RaceType,
 		career_type: CareerType,
 		metadata: BoundedVec<u8, T::StringLimit>,
+		shell_parts_collection_id: CollectionId,
 		parent_collection_id: CollectionId,
 		parent_nft_id: NftId,
-	) -> DispatchResult {
-		Ok(())
+	) -> Result<(CollectionId, NftId), Error<T>> {
+		let name_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("name");
+		let shell_part_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("shell_part");
+		Ok((parent_collection_id, parent_nft_id))
 	}
 
 	/// Helper function to mint a Top level Shell part. These are non-transferable Shell sub-part NFTs
 	/// that are owned by the parent Shell part NFT.
 	///
 	/// Parameters:
+	/// - `owner`: Root owner of the Shell part
 	/// - `name`: Name of the Shell part
+	/// - `shape`: Shell part shape of the Shell part
 	/// - `generation`: Generation ID of the Shell Part
 	/// - `rarity_type`: Rarity type of the Shell Part
 	/// - `race_type`: Race type of the Shell Part
@@ -718,12 +1057,15 @@ where
 	/// file
 	/// - `parent_nft_id`: NFT ID of the Shell NFT that owns the Shell Part
 	fn do_mint_shell_sub_part_nft(
+		owner: T::AccountId,
 		name: BoundedVec<u8, T::StringLimit>,
+		shape: ShellPartShape,
 		generation: GenerationId,
-		rarity_type: RarityType,
+		special: bool,
 		race_type: RaceType,
 		career_type: CareerType,
 		metadata: BoundedVec<u8, T::StringLimit>,
+		shell_parts_collection_id: CollectionId,
 		parent_collection_id: CollectionId,
 		parent_nft_id: NftId,
 	) -> DispatchResult {
