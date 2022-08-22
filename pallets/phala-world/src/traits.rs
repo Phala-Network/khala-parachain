@@ -116,7 +116,7 @@ pub struct FoodInfo<BoundedOriginOfShellsFed> {
 
 #[derive(Encode, Decode, Debug, Clone, Copy, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum ShellPartShape {
+pub enum ShellShape {
 	/// Cyborg male shape
 	CyborgMale,
 	/// Cyborg female shape
@@ -151,7 +151,7 @@ pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
 	/// Name of the Part
 	pub name: BoundedString,
 	/// Shell part shape
-	pub shape: ShellPartShape,
+	pub shape: ShellShape,
 	/// Is a special part
 	pub special: bool,
 	/// BasicPart, ComposablePart or SubPart
@@ -175,7 +175,7 @@ pub struct ShellSubPartInfo<BoundedString> {
 	/// Name of the Part
 	pub name: BoundedString,
 	/// Shell part shape
-	pub shape: ShellPartShape,
+	pub shape: ShellShape,
 	/// Is a special part
 	pub special: bool,
 	/// BasicPart, ComposablePart or SubPart
