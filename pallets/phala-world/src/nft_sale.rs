@@ -1336,6 +1336,8 @@ where
 		);
 		// Get Spirits metadata
 		let metadata = SpiritsMetadata::<T>::get().ok_or(Error::<T>::SpiritsMetadataNotSet)?;
+		let collection = pallet_rmrk_core::Pallet::<T>::collections(spirit_collection_id).ok_or(pallet_rmrk_core::Error::<T>::CollectionUnknown)?;
+		let nft_id = collection.nfts_count + 1;
 		// Mint new Spirit and transfer to sender
 		// Note: Transferable is set to false bc we use the Uniques pallet freeze function as that
 		// will allow for Spirit recovery through Overlord account if account is lost and prevents
@@ -1344,6 +1346,7 @@ where
 			sender.clone(),
 			sender.clone(),
 			spirit_collection_id,
+			nft_id,
 			None,
 			None,
 			metadata,
@@ -1412,11 +1415,14 @@ where
 			price,
 			ExistenceRequirement::KeepAlive,
 		)?;
+		let collection = pallet_rmrk_core::Pallet::<T>::collections(origin_of_shell_collection_id).ok_or(pallet_rmrk_core::Error::<T>::CollectionUnknown)?;
+		let nft_id = collection.nfts_count + 1;
 		// Mint Origin of Shell and transfer Origin of Shell to new owner
 		let (_, nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
 			sender.clone(),
 			sender.clone(),
 			origin_of_shell_collection_id,
+			nft_id,
 			Some(overlord.clone()),
 			None,
 			metadata,
