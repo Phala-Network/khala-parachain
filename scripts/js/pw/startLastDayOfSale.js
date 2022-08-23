@@ -12,7 +12,7 @@ const evePrivkey = process.env.EVE_PRIVKEY;
 const endpoint = process.env.ENDPOINT;
 
 
-// Start preorders origin of shells purchases
+// Start preorder origin of shells purchases
 async function userPreorderOriginOfShell(khalaApi, root, preordersInfo) {
     let nonceRoot = await getNonce(khalaApi, root.address);
     for (const preorder of preordersInfo) {
@@ -57,26 +57,24 @@ async function main() {
     const charlie = keyring.addFromUri(charliePrivkey);
     const david = keyring.addFromUri(davidPrivkey);
     const eve = keyring.addFromUri(evePrivkey);
-    const userAccountPreordersOriginOfShellInfo = [
+    const userAccountLastDayPreordersOriginOfShellInfo = [
         {'account': alice, 'race': 'AISpectre', 'career': 'Web3Monk'},
         {'account': ferdie, 'race': 'Pandroid', 'career': 'RoboWarrior'},
-        {'account': eve, 'race': 'XGene', 'career': 'TradeNegotiator'}
+        {'account': eve, 'race': 'XGene', 'career': 'TradeNegotiator'},
+        {'account': bob, 'race': 'Cyborg', 'career': 'HackerWizard'},
+        {'account': charlie, 'race': 'XGene', 'career': 'RoboWarrior'},
+        {'account': david, 'race': 'Cyborg', 'career': 'TradeNegotiator'}
     ]
 
-    const chosenPreorders = [0, 1];
-    const notChosenPreorders = [2];
+    const chosenPreorders = [2, 3, 4, 5];
+    const notChosenPreorders = [0, 1];
 
-    // Disable the Whitelist sale
-    await setStatusType(api, overlord, 'PurchasePrimeOriginOfShells', false);
-    // Increase available NFTs for sale since the whitelist sale is over
-    await api.tx.pwNftSale.updateRarityTypeCounts('Prime', 900, 50)
-        .signAndSend(overlord);
-    // Enable Preorder Process
-    await setStatusType(api, overlord, 'PreorderOriginOfShells', true);
-    // Preorder Prime Origin of Shell
-    await userPreorderOriginOfShell(api, overlord, userAccountPreordersOriginOfShellInfo);
-    // Disable the Preorders
+    // Disable the Preorders sale
     await setStatusType(api, overlord, 'PreorderOriginOfShells', false);
+    // Enable Preorder Process
+    await setStatusType(api, overlord, 'LastDayOfSale', true);
+    // Preorder Prime Origin of Shell
+    await userPreorderOriginOfShell(api, overlord, userAccountLastDayPreordersOriginOfShellInfo);
     // Mint chosen preorders
     await mintChosenPreorders(api, overlord, chosenPreorders);
     // Refund not chosen preorders
