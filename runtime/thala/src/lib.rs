@@ -568,6 +568,7 @@ impl InstanceFilter<Call> for ProxyType {
                     | Call::PhalaStakePool(pallet_stakepool::Call::remove_worker { .. })
                     | Call::PhalaStakePool(pallet_stakepool::Call::start_mining { .. })
                     | Call::PhalaStakePool(pallet_stakepool::Call::stop_mining { .. })
+                    | Call::PhalaStakePool(pallet_stakepool::Call::restart_mining { .. })
                     | Call::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker { .. })
                     | Call::PhalaStakePool(pallet_stakepool::Call::create { .. })
                     | Call::PhalaRegistry(pallet_registry::Call::register_worker { .. })
