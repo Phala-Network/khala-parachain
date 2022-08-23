@@ -417,10 +417,13 @@ pub mod pallet {
 				Some(nft_id),
 				generation_key,
 			)?;
+			let collection = pallet_rmrk_core::Pallet::<T>::collections(shell_collection_id).ok_or(pallet_rmrk_core::Error::<T>::CollectionUnknown)?;
+			let nft_id = collection.nfts_count + 1;
 			// Mint Shell NFT to Overlord to add properties and resource before sending to owner
 			let (_, shell_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
 				owner.clone(),
 				owner.clone(),
+				nft_id,
 				shell_collection_id,
 				None,
 				None,
