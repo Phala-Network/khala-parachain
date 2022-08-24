@@ -322,7 +322,7 @@ pub mod pallet {
 
 	// Mapping fat contract asset contract id to corresponding asset id
 	#[pallet::storage]
-	#[pallet::getter(fn contractid_to_id)]
+	#[pallet::getter(fn id_to_contractid)]
 	pub type ContractIdById<T: Config> =
 		StorageMap<_, Twox64Concat, <T as pallet_assets::Config>::AssetId, ContractId>;
 
