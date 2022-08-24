@@ -17,10 +17,7 @@ pub mod phala_world_migration {
 			+ pallet_uniques::Config<CollectionId = u32>,
 	{
 		let collection_info = Collections::<T>::get(collection_id);
-		match collection_info {
-			Some(collection_info) => Some(collection_info.nfts_count),
-			None => None,
-		}
+		collection_info.map(|info| info.nfts_count)
 	}
 
 	pub fn migrate<T>() -> frame_support::weights::Weight
