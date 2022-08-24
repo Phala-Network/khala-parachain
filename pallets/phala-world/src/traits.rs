@@ -1,4 +1,5 @@
-use codec::{Decode, Encode};
+use alloc::collections::BTreeMap;
+use codec::{alloc, Decode, Encode};
 use frame_support::pallet_prelude::*;
 use primitives::*;
 use scale_info::TypeInfo;
@@ -114,31 +115,26 @@ pub struct FoodInfo<BoundedOriginOfShellsFed> {
 	pub origin_of_shells_fed: BoundedOriginOfShellsFed,
 }
 
-/// Shell Part types to determine if a ShellPartInfo is BasicPart, ComposablePart or a SubPart
-#[derive(Encode, Decode, Debug, Clone, Copy, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum ShellPartType {
-	BasicPart,
-	ComposablePart,
-	SubPart,
-}
-
 /// Shell Parts info
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
+	pub shell_part: PartInfo<BoundedString>,
+	/// If Metadata is None then this is a BoundedVec of ShellSubPartInfo that compose the Part
+	pub sub_parts: Option<BoundedSubParts>,
+}
+
+#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct PartInfo<BoundedString> {
 	/// Name of the Part
 	pub name: BoundedString,
-	/// Shell part shape
+	/// Shell shape
 	pub shape: BoundedString,
 	/// Is a special part
 	pub special: bool,
-	/// BasicPart, ComposablePart or SubPart
-	pub part_type: ShellPartType,
 	/// Metadata is None if the Part is composed of Sub-Parts
 	pub metadata: Option<BoundedString>,
-	/// If Metadata is None then this is a BoundedVec of ShellSubPartInfo that compose the Part
-	pub sub_parts: Option<BoundedSubParts>,
 	/// Layer in the png file
 	pub layer: u32,
 	/// x coordinate
@@ -147,24 +143,7 @@ pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
 	pub y: u32,
 }
 
-/// Shell Sub-Parts info
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct ShellSubPartInfo<BoundedString> {
-	/// Name of the Part
-	pub name: BoundedString,
-	/// Shell part shape
-	pub shape: BoundedString,
-	/// Is a special part
-	pub special: bool,
-	/// BasicPart, ComposablePart or SubPart
-	pub part_type: ShellPartType,
-	/// Metadata is None if the Part is composed of Sub-Parts
-	pub metadata: BoundedString,
-	/// Layer in the png file
-	pub layer: u32,
-	/// x coordinate
-	pub x: u32,
-	/// y coordinate
-	pub y: u32,
+pub struct ShellParts<BoundedString, BoundedParts> {
+	pub parts: BTreeMap<BoundedString, BoundedParts>,
 }

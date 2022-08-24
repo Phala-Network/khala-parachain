@@ -1448,15 +1448,33 @@ where
 			true,
 			None,
 		)?;
+		let rarity_type_key: BoundedVec<u8, T::KeyLimit> = Self::to_boundedvec_key("rarity")?;
+		let rarity_type_value = rarity_type
+			.encode()
+			.try_into()
+			.expect("[rarity] should not fail");
+
+		let race_key: BoundedVec<u8, T::KeyLimit> = Self::to_boundedvec_key("race")?;
+		let race_value = race.encode().try_into().expect("[race] should not fail");
+
+		let career_key = Self::to_boundedvec_key("career")?;
+		let career_value = career
+			.encode()
+			.try_into()
+			.expect("[career] should not fail");
+		let generation_key = Self::to_boundedvec_key("generation")?;
+		let generation_value = generation
+			.encode()
+			.try_into()
+			.expect("[generation] should not fail");
+		let properties = vec![
+			(rarity_type_key, rarity_type_value),
+			(race_key, race_value),
+			(career_key, career_value),
+			(generation_key, generation_value),
+		];
 		// Set Rarity Type, Race and Career properties for NFT
-		Self::set_nft_properties(
-			origin_of_shell_collection_id,
-			nft_id,
-			rarity_type,
-			race,
-			career,
-			generation,
-		)?;
+		Self::set_nft_properties(origin_of_shell_collection_id, nft_id, properties)?;
 		// Update storage
 		Self::decrement_race_type_left(rarity_type, race, nft_sale_type)?;
 		Self::increment_race_type(rarity_type, race)?;
@@ -1482,70 +1500,45 @@ where
 		Ok(())
 	}
 
-	/// Set the properties for Origin of Shell or Shell NFT's rarity, race and career.
+	/// Set the properties for PhalaWorld NFT.
 	///
 	/// Parameters:
-	/// - `collection_id`: Collection id of the Origin of Shell or Shell NFT
-	/// - `nft_id`: NFT id of the Origin of Shell or Shell NFT
-	/// - `rarity_type`: Origin of Shell or Shell rarity type for the NFT
-	/// - `race`: Race property to set for the Origin of Shell or Shell NFT
-	/// - `career`: Career property to set for the Origin of Shell or Shell NFT
+	/// - `collection_id`: Collection id of the PhalaWorld NFT
+	/// - `nft_id`: NFT id of the PhalaWorld NFT
+	/// - `properties`: Properties vec of (key, value) to set
 	pub(crate) fn set_nft_properties(
 		collection_id: CollectionId,
 		nft_id: NftId,
-		rarity_type: RarityType,
-		race: RaceType,
-		career: CareerType,
-		generation: GenerationId,
+		properties: Vec<(BoundedVec<u8, T::KeyLimit>, BoundedVec<u8, T::ValueLimit>)>,
 	) -> DispatchResult {
-		let rarity_type_key: BoundedVec<u8, T::KeyLimit> = Self::to_boundedvec_key("rarity")?;
-		let rarity_type_value = rarity_type
-			.encode()
-			.try_into()
-			.expect("[rarity] should not fail");
+		// Iterate through and set properties
+		for (key, value) in properties {
+			pallet_rmrk_core::Pallet::<T>::do_set_property(
+				collection_id,
+				Some(nft_id),
+				key,
+				value,
+			)?;
+		}
 
-		let race_key: BoundedVec<u8, T::KeyLimit> = Self::to_boundedvec_key("race")?;
-		let race_value = race.encode().try_into().expect("[race] should not fail");
+		Ok(())
+	}
 
-		let career_key = Self::to_boundedvec_key("career")?;
-		let career_value = career
-			.encode()
-			.try_into()
-			.expect("[career] should not fail");
-		let generation_key = Self::to_boundedvec_key("generation")?;
-		let generation_value = generation
-			.encode()
-			.try_into()
-			.expect("[generation] should not fail");
-
-		// Set Rarity Type
-		pallet_rmrk_core::Pallet::<T>::do_set_property(
-			collection_id,
-			Some(nft_id),
-			rarity_type_key,
-			rarity_type_value,
-		)?;
-		// Set Race
-		pallet_rmrk_core::Pallet::<T>::do_set_property(
-			collection_id,
-			Some(nft_id),
-			race_key,
-			race_value,
-		)?;
-		// Set Career
-		pallet_rmrk_core::Pallet::<T>::do_set_property(
-			collection_id,
-			Some(nft_id),
-			career_key,
-			career_value,
-		)?;
-		// Set Generation
-		pallet_rmrk_core::Pallet::<T>::do_set_property(
-			collection_id,
-			Some(nft_id),
-			generation_key,
-			generation_value,
-		)?;
+	/// Remove the properties for a PhalaWorld NFT.
+	///
+	/// Parameters:
+	/// - `collection_id`: Collection id of the PhalaWorld NFT
+	/// - `nft_id`: NFT id of the PhalaWorld NFT
+	/// - `properties`: Properties vec of (key, value) to remove
+	pub(crate) fn remove_nft_properties(
+		collection_id: CollectionId,
+		nft_id: NftId,
+		properties: Vec<(BoundedVec<u8, T::KeyLimit>, BoundedVec<u8, T::ValueLimit>)>,
+	) -> DispatchResult {
+		// Iterate through and remove properties
+		for (key, _) in properties {
+			pallet_rmrk_core::Pallet::<T>::do_remove_property(collection_id, Some(nft_id), key)?;
+		}
 
 		Ok(())
 	}

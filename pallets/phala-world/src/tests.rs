@@ -10,8 +10,8 @@ use sp_runtime::BoundedVec;
 
 use crate::incubation::ShellPartInfoOf;
 use crate::traits::{
-	primitives::*, CareerType, NftSaleType, OverlordMessage, Purpose, RaceType, RarityType,
-	ShellPartInfo, ShellPartType, ShellSubPartInfo, StatusType,
+	primitives::*, CareerType, NftSaleType, OverlordMessage, PartInfo, Purpose, RaceType,
+	RarityType, ShellPartInfo, StatusType,
 };
 use mock::{Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
 
@@ -177,99 +177,97 @@ fn setup_incubation_config() {
 	));
 }
 
-fn get_shell_part(shell_part_type: ShellPartType) -> ShellPartInfoOf<Test> {
+fn get_shell_part(shell_part_type: u8) -> ShellPartInfoOf<Test> {
 	match shell_part_type {
-		ShellPartType::ComposablePart => {
+		1 => {
 			let shell_part_info: ShellPartInfoOf<Test> = ShellPartInfo {
-				name: stb("jacket"),
-				shape: stb("Male"),
-				special: false,
-				part_type: ShellPartType::ComposablePart,
-				metadata: None,
+				shell_part: PartInfo {
+					name: stb("jacket"),
+					shape: stb("Male"),
+					special: false,
+					metadata: None,
+					layer: 0,
+					x: 0,
+					y: 0,
+				},
 				sub_parts: Some(bvec![
-					ShellSubPartInfo {
+					PartInfo {
 						name: stb("jacket-details"),
 						shape: stb("Male"),
 						special: true,
-						part_type: ShellPartType::SubPart,
-						metadata: stb("ar://jacket-details-uri"),
+						metadata: Some(stb("ar://jacket-details-uri")),
 						layer: 0,
 						x: 0,
 						y: 0,
 					},
-					ShellSubPartInfo {
+					PartInfo {
 						name: stb("jacket"),
 						shape: stb("Male"),
 						special: false,
-						part_type: ShellPartType::SubPart,
-						metadata: stb("ar://jacket-uri"),
+						metadata: Some(stb("ar://jacket-uri")),
 						layer: 0,
 						x: 0,
 						y: 0,
 					},
-					ShellSubPartInfo {
+					PartInfo {
 						name: stb("jacket-hat"),
 						shape: stb("Male"),
 						special: true,
-						part_type: ShellPartType::SubPart,
-						metadata: stb("ar://jacket-hat-uri"),
+						metadata: Some(stb("ar://jacket-hat-uri")),
 						layer: 0,
 						x: 0,
 						y: 0,
 					},
 				]),
-				layer: 0,
-				x: 0,
-				y: 0,
 			};
 			shell_part_info.into()
 		}
-		ShellPartType::BasicPart => {
+		2 => {
 			let shell_part_info = ShellPartInfo {
-				name: stb("t_shirt"),
-				shape: stb("Male"),
-				special: false,
-				part_type: ShellPartType::BasicPart,
-				metadata: Some(stb("ar://t-shirt-uri")),
+				shell_part: PartInfo {
+					name: stb("t_shirt"),
+					shape: stb("Male"),
+					special: false,
+					metadata: Some(stb("ar://t-shirt-uri")),
+					layer: 0,
+					x: 0,
+					y: 0,
+				},
 				sub_parts: None,
-				layer: 0,
-				x: 0,
-				y: 0,
 			};
 			shell_part_info.into()
 		}
-		ShellPartType::SubPart => {
+		_ => {
 			let shell_part_info = ShellPartInfo {
-				name: stb("shoes"),
-				shape: stb("Male"),
-				special: false,
-				part_type: ShellPartType::ComposablePart,
-				metadata: None,
+				shell_part: PartInfo {
+					name: stb("shoes"),
+					shape: stb("Male"),
+					special: false,
+					metadata: None,
+					layer: 0,
+					x: 0,
+					y: 0,
+				},
 				sub_parts: Some(bvec![
-					ShellSubPartInfo {
+					PartInfo {
 						name: stb("shoes-details"),
 						shape: stb("Male"),
 						special: true,
-						part_type: ShellPartType::SubPart,
-						metadata: stb("ar://shoes-details-uri"),
+						metadata: Some(stb("ar://shoes-details-uri")),
 						layer: 0,
 						x: 0,
 						y: 0,
 					},
-					ShellSubPartInfo {
+					PartInfo {
 						name: stb("shoes"),
 						shape: stb("Male"),
 						special: false,
-						part_type: ShellPartType::SubPart,
-						metadata: stb("ar://shoes-uri"),
+						metadata: Some(stb("ar://shoes-uri")),
 						layer: 0,
 						x: 0,
 						y: 0,
 					},
 				]),
-				layer: 0,
-				x: 0,
-				y: 0,
 			};
 			shell_part_info.into()
 		}
@@ -1550,8 +1548,8 @@ fn can_hatch_origin_of_shell() {
 			pallet_pw_incubation::Error::<Test>::NoPermission
 		);
 		setup_incubation_config();
-		let composable_part = get_shell_part(ShellPartType::ComposablePart);
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+		let composable_part = get_shell_part(1);
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
@@ -1559,45 +1557,38 @@ fn can_hatch_origin_of_shell() {
 			composable_part.clone(),
 		));
 
+		let new_chosen_parts =
+			pallet_pw_incubation::OriginOfShellsChosenParts::<Test>::get((1u32, 2u32))
+				.expect("good");
 		System::assert_last_event(MockEvent::PWIncubation(
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 2u32,
-				shell_part: stb("jacket"),
-				old_chosen_part: None,
-				new_chosen_part: composable_part,
+				slot_name: stb("jacket"),
+				old_chosen_parts: None,
+				new_chosen_parts: new_chosen_parts.clone(),
 			},
 		));
-		let basic_part = get_shell_part(ShellPartType::BasicPart);
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+		let basic_part = get_shell_part(2);
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
 			stb("t_shirt"),
 			basic_part.clone(),
 		));
+		let new_chosen_parts2 =
+			pallet_pw_incubation::OriginOfShellsChosenParts::<Test>::get((1u32, 2u32))
+				.expect("good");
 		System::assert_last_event(MockEvent::PWIncubation(
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 2u32,
-				shell_part: stb("t_shirt"),
-				old_chosen_part: None,
-				new_chosen_part: basic_part,
+				slot_name: stb("t_shirt"),
+				old_chosen_parts: Some(new_chosen_parts),
+				new_chosen_parts: new_chosen_parts2.clone(),
 			},
 		));
-
-		let sub_part = get_shell_part(ShellPartType::SubPart);
-		// CHARLIE has a Prime NFT that is limited to only 2 Special parts
-		assert_noop!(
-			PWIncubation::set_origin_of_shell_chosen_parts(
-				Origin::signed(OVERLORD),
-				1u32,
-				2u32,
-				stb("shoes"),
-				sub_part.clone(),
-			),
-			pallet_pw_incubation::Error::<Test>::MaxSpecialPartsLimitReached
-		);
 
 		fast_forward_to(630);
 		// ALICE can hatch origin of shell from OVERLORD admin call
@@ -1839,56 +1830,54 @@ fn can_add_origin_of_shell_chosen_parts() {
 			pallet_pw_incubation::Error::<Test>::NoPermission
 		);
 		setup_incubation_config();
-		let composable_part = get_shell_part(ShellPartType::ComposablePart);
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+		let composable_part = get_shell_part(1);
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
 			stb("jacket"),
 			composable_part.clone(),
 		));
+		let chosen_parts =
+			pallet_pw_incubation::OriginOfShellsChosenParts::<Test>::get((1u32, 2u32))
+				.expect("good");
 
 		System::assert_last_event(MockEvent::PWIncubation(
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 2u32,
-				shell_part: stb("jacket"),
-				old_chosen_part: None,
-				new_chosen_part: composable_part.clone(),
+				slot_name: stb("jacket"),
+				old_chosen_parts: None,
+				new_chosen_parts: chosen_parts.clone(),
 			},
 		));
-		let basic_part = get_shell_part(ShellPartType::BasicPart);
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+		let basic_part = get_shell_part(2);
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
 			stb("t_shirt"),
 			basic_part.clone(),
 		));
+
+		let chosen_parts2 =
+			pallet_pw_incubation::OriginOfShellsChosenParts::<Test>::get((1u32, 2u32))
+				.expect("good");
+
 		System::assert_last_event(MockEvent::PWIncubation(
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 2u32,
-				shell_part: stb("t_shirt"),
-				old_chosen_part: None,
-				new_chosen_part: basic_part.clone(),
+				slot_name: stb("t_shirt"),
+				old_chosen_parts: Some(chosen_parts),
+				new_chosen_parts: chosen_parts2,
 			},
 		));
 
-		let sub_part = get_shell_part(ShellPartType::SubPart);
-		// CHARLIE has a Prime NFT that is limited to only 2 Special parts
-		assert_noop!(
-			PWIncubation::set_origin_of_shell_chosen_parts(
-				Origin::signed(OVERLORD),
-				1u32,
-				2u32,
-				stb("shoes"),
-				sub_part.clone(),
-			),
-			pallet_pw_incubation::Error::<Test>::MaxSpecialPartsLimitReached
-		);
+		let sub_part = get_shell_part(3);
+
 		// ALICE can add all 3 parts bc she owns a Legendary Origin of shell
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
 			Origin::signed(OVERLORD),
 			1u32,
 			0u32,
@@ -1896,47 +1885,61 @@ fn can_add_origin_of_shell_chosen_parts() {
 			composable_part.clone(),
 		));
 
+		let new_chosen_parts =
+			pallet_pw_incubation::OriginOfShellsChosenParts::<Test>::get((1u32, 0u32))
+				.expect("good");
+
 		System::assert_last_event(MockEvent::PWIncubation(
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 0u32,
-				shell_part: stb("jacket"),
-				old_chosen_part: None,
-				new_chosen_part: composable_part.clone(),
+				slot_name: stb("jacket"),
+				old_chosen_parts: None,
+				new_chosen_parts: new_chosen_parts.clone(),
 			},
 		));
 
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
 			Origin::signed(OVERLORD),
 			1u32,
 			0u32,
 			stb("t_shirt"),
 			basic_part.clone(),
 		));
+
+		let new_chosen_parts2 =
+			pallet_pw_incubation::OriginOfShellsChosenParts::<Test>::get((1u32, 0u32))
+				.expect("good");
+
 		System::assert_last_event(MockEvent::PWIncubation(
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 0u32,
-				shell_part: stb("t_shirt"),
-				old_chosen_part: None,
-				new_chosen_part: basic_part.clone(),
+				slot_name: stb("t_shirt"),
+				old_chosen_parts: Some(new_chosen_parts),
+				new_chosen_parts: new_chosen_parts2.clone(),
 			},
 		));
 
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
 			Origin::signed(OVERLORD),
 			1u32,
 			0u32,
 			stb("shoes"),
 			sub_part.clone(),
 		));
+
+		let new_chosen_parts3 =
+			pallet_pw_incubation::OriginOfShellsChosenParts::<Test>::get((1u32, 0u32))
+				.expect("good");
+
 		System::assert_last_event(MockEvent::PWIncubation(
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 0u32,
-				shell_part: stb("shoes"),
-				old_chosen_part: None,
-				new_chosen_part: sub_part.clone(),
+				slot_name: stb("shoes"),
+				old_chosen_parts: Some(new_chosen_parts2),
+				new_chosen_parts: new_chosen_parts3,
 			},
 		));
 	});
