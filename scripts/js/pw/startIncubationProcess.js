@@ -151,17 +151,20 @@ async function main() {
 
     const jacketChosenPart =
     {
-        'name': "jacket",
-        'shape': "Male",
-        'special': false,
-        'part_type': 'ComposablePart',
-        'metadata': null,
+        'shell_part': {
+            'name': "jacket",
+            'shape': "Male",
+            'special': false,
+            'metadata': null,
+            'layer': 0,
+            'x': 0,
+            'y': 0,
+        },
         'sub_parts': [
             {
                 'name': "jacket-details",
                 'shape': "Male",
                 'special': true,
-                'part_type': 'SubPart',
                 'metadata': "ar://jacket-details-uri",
                 'layer': 0,
                 'x': 0,
@@ -171,7 +174,6 @@ async function main() {
                 'name': "jacket-hat",
                 'shape': "Male",
                 'special': true,
-                'part_type': 'SubPart',
                 'metadata': "ar://jacket-hat-uri",
                 'layer': 0,
                 'x': 0,
@@ -181,16 +183,12 @@ async function main() {
                 'name': "jacket",
                 'shape': "Male",
                 'special': false,
-                'part_type': 'SubPart',
                 'metadata': "ar://jacket-uri",
                 'layer': 0,
                 'x': 0,
                 'y': 0
             }
         ],
-        'layer': 0,
-        'x': 0,
-        'y': 0,
     };
     // Set chosen part for NFT ID 0
     await setOriginOfShellChosenPart(api, overlord, 1, 0, "jacket", jacketChosenPart);

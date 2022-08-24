@@ -15,11 +15,6 @@ use crate::traits::{
 };
 use mock::{Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
 
-// pub type ShellPartInfoOf<Test> = ShellPartInfo<
-// 	BoundedVec<u8, StringLimit>,
-// 	BoundedVec<ShellSubPartInfo<BoundedVec<u8, StringLimit>>, PartsLimit>,
-// >;
-
 /// Turns a string into a BoundedVec
 fn stb(s: &str) -> BoundedVec<u8, StringLimit> {
 	s.as_bytes().to_vec().try_into().unwrap()
