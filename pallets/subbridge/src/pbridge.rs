@@ -38,7 +38,9 @@ pub mod pallet {
 	bind_topic!(PBridgeReport, b"phala/contract/pbridge/report");
 	#[derive(Encode, Decode, Debug, TypeInfo)]
 	pub enum PBridgeReport {
-		// Encoded xcm message
+		/// [asset, dest, amount]
+		FungibleTransfer(ContractId, Vec<u8>, u128),
+		/// Encoded xcm message
 		Xcm(Vec<u8>),
 	}
 
@@ -85,6 +87,9 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type ContractSelector: Get<[u8; 4]>;
+
+		#[pallet::constant]
+		type NativeAssetContractId: Get<ContractId>;
 	}
 
 	#[pallet::event]
@@ -198,11 +203,66 @@ pub mod pallet {
 			message: DecodedMessage<PBridgeReport>,
 		) -> DispatchResult {
 			let _ = match message.sender {
-				MessageOrigin::Cluster(cluster) => cluster,
+				MessageOrigin::Contract(contract_id) => contract_id,
 				_ => return Err(Error::<T>::IllegalOrigin.into()),
 			};
 
 			match message.payload {
+				PBridgeReport::FungibleTransfer(asset, dest, amount) => {
+					// For solo chain assets, we encode solo chain id as the first byte of resourceId
+					let src_reserve_location = Self::fatcontract_reserve_location();
+					let dest_location: MultiLocation = Decode::decode(&mut dest.as_slice())
+						.map_err(|_| Error::<T>::DestUnrecognized)?;
+					let asset_location = Self::asset_contractid_to_location(&asset)?;
+					let asset_reserve_location = asset_location
+						.reserve_location()
+						.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
+
+					log::trace!(
+						target: LOG_TARGET,
+						"Reserve location of assset ${:?}, reserve location of source: {:?}.",
+						&asset_reserve_location,
+						&src_reserve_location,
+					);
+
+					// We received asset send from non-reserve chain, which reserved
+					// in the local or other parachains/relaychain. That means we had
+					// reserved the asset in a reserve account while it was transfered
+					// the the source chain, so here we need withdraw/burn from the reserve
+					// account in advance.
+					//
+					// Note: If we received asset send from its reserve chain, we just need
+					// mint the same amount of asset at local
+					if asset_reserve_location != src_reserve_location {
+						let reserve_account: T::AccountId =
+							if asset == T::NativeAssetContractId::get() {
+								// PHA need to be released from bridge account due to historical reason
+								MODULE_ID.into_account_truncating()
+							} else {
+								src_reserve_location.into_account().into()
+							};
+						T::FungibleAdapter::withdraw_asset(
+							&(asset_location.clone(), amount).into(),
+							&Junction::AccountId32 {
+								network: NetworkId::Any,
+								id: reserve_account.into(),
+							}
+							.into(),
+						)
+						.map_err(|_| Error::<T>::TransactFailed)?;
+						log::trace!(
+                            target: LOG_TARGET,
+                            "Reserve of asset and src dismatch, withdraw asset form source reserve location.",
+                        );
+					}
+
+					// If dest_location is not a local account, adapter will forward it to other bridges
+					T::FungibleAdapter::deposit_asset(
+						&(asset_location.clone(), amount).into(),
+						&dest_location,
+					)
+					.map_err(|_| Error::<T>::TransactFailed)?;
+				}
 				PBridgeReport::Xcm(encoded_xcm) => {
 					let origin_location = Junction::AccountId32 {
 						network: NetworkId::Any,
@@ -320,6 +380,32 @@ pub mod pallet {
 			// TODO: Lookup cluster id by given ContractId from onchain contract registry
 			Some([0; 32].into())
 		}
+
+		fn asset_contractid_to_location(
+			asset: &ContractId,
+		) -> Result<MultiLocation, DispatchError> {
+			if asset == &T::NativeAssetContractId::get() {
+				Ok(MultiLocation::here())
+			} else {
+				let mut asset_location: MultiLocation =
+					T::NativeAssetChecker::native_asset_location()
+						.reserve_location()
+						.ok_or(Error::<T>::AssetConversionFailed)?;
+				asset_location
+					.push_interior(GeneralKey(WrapSlice(PB_PATH_KEY).into()))
+					.map_err(|_| Error::<T>::AssetConversionFailed)?;
+				asset_location
+					.push_interior(GeneralKey(
+						asset
+							.as_bytes()
+							.to_vec()
+							.try_into()
+							.expect("less than length limit; qed"),
+					))
+					.map_err(|_| Error::<T>::AssetConversionFailed)?;
+				Ok(asset_location)
+			}
+		}
 	}
 
 	impl<T: Config + pallet_mq::Config> MessageOriginInfo for Pallet<T> {
@@ -338,13 +424,13 @@ pub mod pallet {
 				Self::extract_dest(&dest),
 			) {
 				(Some((asset_location, _)), Some(_)) => {
-					// Reject all non-native assets that are not registered in the registry
-					if !T::NativeAssetChecker::is_native_asset(&asset)
-						&& T::AssetsRegistry::id(&asset_location) == None
-					{
+					// Reject all non-native assets that are not registered or not enable pbridge in the registry
+					if !T::NativeAssetChecker::is_native_asset(&asset) {
+						if let Some(asset_id) = T::AssetsRegistry::id(&asset_location) {
+							return T::AssetsRegistry::has_enabled_pbridge(&asset_id) == true;
+						}
 						return false;
 					}
-
 					true
 				}
 				_ => false,
@@ -589,5 +675,41 @@ pub mod pallet {
 				);
 			});
 		}
+
+		#[test]
+		fn test_transfer_pha_from_fatcontract_to_local_by_instruction() {
+			TestNet::reset();
+
+			ParaA::execute_with(|| {
+				let amount = 100u128;
+				let message = DecodedMessage {
+					sender: MessageOrigin::Contract(TEST_SUBBRIDGE_CONTRACT_ID::get()),
+					destination: command_topic(TEST_SUBBRIDGE_CONTRACT_ID::get()).into(),
+					payload: PBridgeReport::FungibleTransfer(
+						TEST_PHA_CONTRACT_ID::get(),
+						MultiLocation::new(
+							0,
+							X1(Junction::AccountId32 {
+								network: NetworkId::Any,
+								id: BOB.into(),
+							}),
+						)
+						.encode(),
+						amount,
+					),
+				};
+				assert_ok!(PBridge::on_fatcontract_message_received(message));
+
+				// Check balances
+				assert_eq!(ParaBalances::free_balance(&BOB), ENDOWED_BALANCE + amount);
+				assert_eq!(
+					ParaBalances::free_balance(&MODULE_ID.into_account_truncating()),
+					ENDOWED_BALANCE - amount
+				);
+			});
+		}
+
+		#[test]
+		fn test_transfer_pha_from_fatcontract_to_local_by_xcm() {}
 	}
 }

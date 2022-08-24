@@ -466,6 +466,7 @@ impl pbridge::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type ContractSelector = PBridgeSelector;
+	type NativeAssetContractId = TEST_PHA_CONTRACT_ID;
 }
 
 impl xtransfer::Config for Runtime {
