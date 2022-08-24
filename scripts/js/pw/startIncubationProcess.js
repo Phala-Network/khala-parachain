@@ -15,7 +15,7 @@ async function setIncubationProcess(khalaApi, overlord, status) {
     let nonceOverlord = await getNonce(khalaApi, overlord.address);
     return new Promise(async (resolve) => {
         console.log(`Setting CanStartIncubationStatus to ${status}...`);
-        const unsub = await khalaApi.tx.pwNftSale.setCanStartIncubationStatus(status
+        const unsub = await khalaApi.tx.pwIncubation.setCanStartIncubationStatus(status
         ).signAndSend(overlord, {nonce: nonceOverlord++}, (result) => {
             if (result.status.isInBlock) {
                 console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
@@ -34,7 +34,7 @@ async function setIncubationProcess(khalaApi, overlord, status) {
 async function initializeAccountsIncubationProcess(khalaApi, addresses) {
     for (const accountId of addresses) {
         const originOfShellCollectionId = await khalaApi.query.pwNftSale.originOfShellCollectionId();
-        let nonceOwner = await getNonce(accountId.address);
+        let nonceOwner = await getNonce(khalaApi, accountId.address);
         let nfts = [];
         if (originOfShellCollectionId.isSome) {
             const originOfShells = await khalaApi.query.uniques.account.entries(accountId.address, originOfShellCollectionId.unwrap());
@@ -59,7 +59,7 @@ async function initializeAccountsIncubationProcess(khalaApi, addresses) {
             await khalaApi.tx.pwIncubation.startIncubation(originOfShellCollectionId.unwrap(), nft).signAndSend(accountId, { nonce: nonceOwner++});
             console.log(`${accountId.address} starting incubation for NFT ID: ${nft}...Done`);
         }
-        await waitTxAccepted(accountId.address, nonceOwner - 1);
+        await waitTxAccepted(khalaApi, accountId.address, nonceOwner - 1);
     }
 }
 
@@ -68,7 +68,7 @@ async function simulateFeeding(khalaApi, accountFeedSimulation) {
     console.log(`Starting Origin of Shell Feeding Simulation...`);
     const originOfShellCollectionId = await khalaApi.query.pwNftSale.originOfShellCollectionId();
     if (originOfShellCollectionId.isSome) {
-        for (const accountFeedInfo in accountFeedSimulation) {
+        for (const accountFeedInfo of accountFeedSimulation) {
             const account = accountFeedInfo.account;
             const nftId = accountFeedInfo.feedTo;
             console.log(`${account.address} feeding [${originOfShellCollectionId.unwrap()}, ${nftId}]`);
@@ -81,7 +81,7 @@ async function simulateFeeding(khalaApi, accountFeedSimulation) {
 // Set the ChosenPart for an account
 async function setOriginOfShellChosenPart(khalaApi, root, collectionId, nftId, shellPart, chosenParts) {
     console.log(`Setting Origin of Shell Part...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwIncubation.setOriginOfShellChosenParts(collectionId, nftId, shellPart, chosenParts), root);
+    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwIncubation.setOriginOfShellChosenPart(collectionId, nftId, shellPart, chosenParts), root);
     console.log(`Setting Origin of Shell Part...DONE`);
 }
 
