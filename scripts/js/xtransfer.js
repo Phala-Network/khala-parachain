@@ -11,14 +11,16 @@ const bn1e9 = new BN(10).pow(new BN(9));
 const bn1e12 = new BN(10).pow(new BN(12));
 const bn1e18 = new BN(10).pow(new BN(18));
 const khalaParaId = 2004;
+const phalaParaId = 2035;
 const karuraParaId = 2000;
 const bifrostParaId = 2001;
 const moonriverParaId = 2023;
+const moonbeamParaId = 2004;
 const heikoParaId = 2085;
 const basiliskParaId = 2090;
 
 const bridgeAddressOnRinkeby = '0x0712Cf53B9fA1A33018d180a4AbcC7f1803F55f4';
-const xtokenAddressOnMoonriver = '0x0000000000000000000000000000000000000804';
+const xtokenPrecompiledAddress = '0x0000000000000000000000000000000000000804';
 
 function getPhaAssetId(khalaApi) {
     return khalaApi.createType('XcmV1MultiassetAssetId', {
@@ -58,6 +60,24 @@ function getMovrAssetId(khalaApi) {
                         Parachain: khalaApi.createType('Compact<U32>', moonriverParaId)
                     }),
                     khalaApi.createType('XcmV1Junction', {
+                        PalletInstance: 10
+                    }),
+                ]
+            })
+        })
+    })
+}
+
+function getGLMRAssetId(phalaApi) {
+    return phalaApi.createType('XcmV1MultiassetAssetId', {
+        Concrete: phalaApi.createType('XcmV1MultiLocation', {
+            parents: 1,
+            interior: phalaApi.createType('Junctions', {
+                X2: [
+                    phalaApi.createType('XcmV1Junction', {
+                        Parachain: phalaApi.createType('Compact<U32>', moonbeamParaId)
+                    }),
+                    phalaApi.createType('XcmV1Junction', {
                         PalletInstance: 10
                     }),
                 ]
@@ -406,6 +426,34 @@ async function transferPhaFromEvmToKhala(khalaApi, bridge, sender, recipient, am
 
 }
 
+// simulate EVM => Phala, call Bridge.Deposit()
+async function transferPhaFromEvmToPhala(khalaApi, bridge, sender, recipient, amount) {
+    let phalaChainId = 3;
+    let phaResourceId = '0x00b14e071ddad0b12be5aca6dffc5f2584ea158d9b0ce73e1437115e97a32a3e';
+    // dest is not Account public key any more.
+    let dest = khalaApi.createType('XcmV1MultiLocation', {
+        // parents = 0 means we send to xcm local network(e.g. Khala network here)
+        parents: 0,
+        interior: khalaApi.createType('Junctions', {
+            X1: khalaApi.createType('XcmV1Junction', {
+                AccountId32: {
+                    network: khalaApi.createType('XcmV0JunctionNetworkId', 'Any'),
+                    id: '0x' + Buffer.from(recipient.publicKey).toString('hex'),
+                }
+            })
+        })
+    }).toHex();
+
+    let data = '0x' +
+        ethers.utils.hexZeroPad(ethers.BigNumber.from(amount.toString()).toHexString(), 32).substr(2) +
+        ethers.utils.hexZeroPad(ethers.utils.hexlify((dest.length - 2) / 2), 32).substr(2) +
+        dest.substr(2);
+
+    const tx = await bridge.deposit(phalaChainId, phaResourceId, data);
+    console.log(`Transfer PHA from EVM to Phala: ${tx.hash}`);
+
+}
+
 // simulate EVM => Khala => Karura, call Bridge.Deposit()
 async function transferPhaFromEvmToKarura(khalaApi, bridge, sender, recipient, amount) {
     let khalaChainId = 1;
@@ -456,6 +504,27 @@ async function transferPhaFromMoonriverToKhala(xtoken, recipient, amount) {
     console.log(`Transfer PHA from Moonriver EVM to Khala: ${tx.hash}`);
 }
 
+async function transferPhaFromMoonbeamToPhala(xtoken, recipient, amount) {
+    let xcPhaAddress = '0xffffffff63d24ecc8eb8a7b5d0803e900f7b6ced';
+
+    const tx = await xtoken.transfer(
+        xcPhaAddress,
+        amount.toString(),
+        {
+            'parents': 1,
+            'interior': [
+                "0x00000007F3", // Selector Parachain, ID = 2035 (Phala)
+                '0x01' + recipient.substr(2) + '00' // AccountKey32 Selector + Address in hex + Network = Any
+            ]
+        },
+        bn1e9.mul(new BN(6)).toString()
+    );
+    // Test tx:
+    // https://moonbeam.moonscan.io/tx/0x5d27a3ec0e021fabd71d1bd6e9ea8ff33e75df62e391920f1f729c9760240b0e
+    // https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fapi.phala.network%2Fws#/explorer/query/0x68e5c904676b04236a852bebe0c1f53d539178eb573ab30bfd66acbdd1bab7e9
+    console.log(`Transfer PHA from Moonbeam EVM to Phala: ${tx.hash}`);
+}
+
 async function transferMovrFromMoonriverToKhala(xtoken, recipient, amount) {
     let xcMovrAddress = '0x0000000000000000000000000000000000000802';
 
@@ -471,10 +540,31 @@ async function transferMovrFromMoonriverToKhala(xtoken, recipient, amount) {
         },
         bn1e9.mul(new BN(6000000)).toString()  // dest_weight: 6 * 10^15
     );
-    // Test tx: 
+    // Test tx:
     // https://moonriver.moonscan.io/tx/0x01d94d659774c260a5c77185f42a6d9568f0ab661a346f316bcc772bc7d7f38a
     // https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fkhala.api.onfinality.io%2Fpublic-ws#/explorer/query/0x8ba9114c61116457d20198b5bc247494fc44514875822fee399fbfdb5a23cee4
     console.log(`Transfer MOVR from Moonriver EVM to Khala: ${tx.hash}`);
+}
+
+async function transferGlmrFromMoonbeamToPhala(xtoken, recipient, amount) {
+    let xcGlmrAddress = '0x0000000000000000000000000000000000000802';
+
+    const tx = await xtoken.transfer(
+        xcGlmrAddress,
+        amount.toString(),
+        {
+            'parents': 1,
+            'interior': [
+                "0x00000007F3", // Selector Parachain, ID = 2035 (Phala)
+                '0x01' + recipient.substr(2) + '00' // AccountKey32 Selector + Address in hex + Network = Any
+            ]
+        },
+        bn1e9.mul(new BN(6000000)).toString()  // dest_weight: 6 * 10^15
+    );
+    // Test tx: 
+    // https://moonbeam.moonscan.io/tx/0xeb1570582b6a56b17dcd192310e8831f55918fa68cfc972dbd02d416e813ba81
+    // https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fapi.phala.network%2Fws#/explorer/query/0xbd8fad5acf507c501be1f9a462d4c40963b556a4e230aa04645792ef174b4070
+    console.log(`Transfer GLMR from Moonbeam EVM to Phala: ${tx.hash}`);
 }
 
 function dumpResourceId(khalaApi, soloChainId) {
@@ -515,7 +605,7 @@ async function main() {
     // replace it with your owns, make sure private key used to sign transaction matchs address
     const evmSender = "0xA29D4E0F035cb50C0d78c8CeBb56Ca292616Ab20";
     const evmRecipient = evmSender;
-    const khalaAccountPubKey = '0x7804e66ec9eea3d8daf6273ffbe0a8af25a8879cf43f14d0ebbb30941f578242';
+    const SubAccountPubKey = '0x7804e66ec9eea3d8daf6273ffbe0a8af25a8879cf43f14d0ebbb30941f578242';
 
     // transfer 100 PHA from khalaAccount on khala network to karuraAccount on karura network
     await transferPhaFromKhalaToKarura(khalaApi, khalaAccount, karuraAccount, bn1e12.mul(new BN(100)));
@@ -541,26 +631,32 @@ async function main() {
     let privateKey = process.env.KEY;
     let provider = new ethers.providers.JsonRpcProvider('https://rinkeby.infura.io/v3/6d61e7957c1c489ea8141e947447405b');
     let ethereumWallet = new ethers.Wallet(privateKey, provider);
+    // Moonbeam endpoint: https://moonbeam.api.onfinality.io/public
     let moonriverProvider = new ethers.providers.JsonRpcProvider('https://moonriver.api.onfinality.io/public');
     let moonriverWallet = new ethers.Wallet(privateKey, moonriverProvider);
 
-    // let bridge = new ethers.Contract(bridgeAddressOnRinkeby, BridgeJson.abi, ethereumWallet);
-    let xtoken = new ethers.Contract(xtokenAddressOnMoonriver, XtokenJson.abi, moonriverWallet);
+    let bridge = new ethers.Contract(bridgeAddressOnRinkeby, BridgeJson.abi, ethereumWallet);
+
+    // Both Moonriver and Moonbeam use the same precompiled address
+    let xtoken = new ethers.Contract(xtokenPrecompiledAddress, XtokenJson.abi, moonriverWallet);
 
     // transfer 10 PHA from rinkeby testnet to khala network
     // note: should confirm with maintainer whether the testnet relayer is running before run
     await transferPhaFromEvmToKhala(khalaApi, bridge, evmSender, khalaAccount, bn1e18.mul(new BN(10)));
+    // await transferPhaFromEvmToPhala(phalaApi, bridge, evmSender, khalaAccount, bn1e18.mul(new BN(10)));
 
     // transfer 10 PHA from rinkeby testnet to karura network
     // note: should confirm with maintainer whether the testnet relayer is running before run
     await transferPhaFromEvmToKarura(khalaApi, bridge, evmSender, karuraAccount, bn1e18.mul(new BN(10)));
 
     // transfer 1 PHA from moonriver(evm) to khala network
-    await transferPhaFromMoonriverToKhala(xtoken, khalaAccountPubKey, bn1e12.mul(new BN(1)));
+    await transferPhaFromMoonriverToKhala(xtoken, SubAccountPubKey, bn1e12.mul(new BN(1)));
+    // await transferPhaFromMoonbeamToPhala(xtoken, SubAccountPubKey, bn1e12.mul(new BN(1)));
 
     // transfer 0.01 MOVR from moonriver(evm) to khala network
     // Note decimals of MOVR is 18, so bn1e12.mul(new BN(10000) = 0.01 MOVR
-    await transferMovrFromMoonriverToKhala(xtoken, khalaAccountPubKey, bn1e12.mul(new BN(10000)));
+    await transferMovrFromMoonriverToKhala(xtoken, SubAccountPubKey, bn1e12.mul(new BN(10000)));
+    // await transferGlmrFromMoonbeamToPhala(xtoken, SubAccountPubKey, bn1e18.mul(new BN(10)));
 }
 
 main().catch(console.error).finally(() => process.exit());
