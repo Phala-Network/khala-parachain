@@ -23,6 +23,7 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use phala_pallet_common::WrapSlice;
+	use phala_types::contract::{ContractClusterId, ContractId};
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::AccountIdConversion;
 	use sp_std::{boxed::Box, cmp, convert::From, vec, vec::Vec};
@@ -41,6 +42,12 @@ pub mod pallet {
 		ChainBridge {
 			chain_id: u8,
 			resource_id: [u8; 32],
+			reserve_account: [u8; 32],
+			is_mintable: bool,
+		},
+		PBridge {
+			cluster_id: ContractClusterId,
+			contract_id: ContractId,
 			reserve_account: [u8; 32],
 			is_mintable: bool,
 		},
@@ -74,6 +81,7 @@ pub mod pallet {
 		fn lookup_by_resource_id(resource_id: &[u8; 32]) -> Option<MultiLocation>;
 		fn decimals(id: &AssetId) -> Option<u8>;
 		fn price(location: &MultiLocation) -> Option<(XcmAssetId, u128)>;
+		fn has_enabled_pbridge(asset_id: &AssetId) -> bool;
 	}
 
 	pub trait AccountId32Conversion {
@@ -306,6 +314,18 @@ pub mod pallet {
 	pub type IdByResourceId<T: Config> =
 		StorageMap<_, Twox64Concat, [u8; 32], <T as pallet_assets::Config>::AssetId>;
 
+	// Mapping fat contract asset contract id to corresponding asset id
+	#[pallet::storage]
+	#[pallet::getter(fn contractid_to_id)]
+	pub type IdByContractId<T: Config> =
+		StorageMap<_, Twox64Concat, ContractId, <T as pallet_assets::Config>::AssetId>;
+
+	// Mapping fat contract asset contract id to corresponding asset id
+	#[pallet::storage]
+	#[pallet::getter(fn contractid_to_id)]
+	pub type ContractIdById<T: Config> =
+		StorageMap<_, Twox64Concat, <T as pallet_assets::Config>::AssetId, ContractId>;
+
 	// Mapping fungible assets id to corresponding registry info
 	#[pallet::storage]
 	#[pallet::getter(fn id_to_registry_info)]
@@ -336,6 +356,17 @@ pub mod pallet {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			chain_id: u8,
 			resource_id: [u8; 32],
+		},
+		/// Asset enabled pbridge.
+		PBridgeEnabled {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			contract_id: ContractId,
+			cluster_id: ContractClusterId,
+		},
+		/// Asset disabled pbridge.
+		PBridgeDisabled {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			contract_id: ContractId,
 		},
 		/// Force mint asset to an certain account.
 		ForceMinted {
@@ -735,6 +766,87 @@ pub mod pallet {
 			});
 			Ok(())
 		}
+
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_enable_pbridge(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			contract_id: ContractId,
+			cluster_id: ContractClusterId,
+			is_mintable: bool,
+			metadata: Box<Vec<u8>>,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+
+			ensure!(
+				IdByContractId::<T>::get(&contract_id) == None,
+				Error::<T>::BridgeAlreadyEnabled,
+			);
+			IdByContractId::<T>::insert(&contract_id, &asset_id);
+			ContractIdById::<T>::insert(&asset_id, &contract_id);
+			// Save into registry info
+			let reserve_location: MultiLocation =
+				(0, X1(GeneralKey(WrapSlice(PB_PATH_KEY).into()))).into();
+			info.enabled_bridges.push(XBridge {
+				config: XBridgeConfig::PBridge {
+					contract_id,
+					cluster_id,
+					reserve_account: reserve_location.into_account(),
+					is_mintable,
+				},
+				metadata,
+			});
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
+
+			Self::deposit_event(Event::PBridgeEnabled {
+				asset_id,
+				contract_id,
+				cluster_id,
+			});
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_disable_pbridge(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			contract_id: ContractId,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+
+			ensure!(
+				IdByContractId::<T>::get(&contract_id).is_some(),
+				Error::<T>::BridgeAlreadyDisabled,
+			);
+			// Unbind contract id and asset id
+			IdByContractId::<T>::remove(&contract_id);
+			ContractIdById::<T>::remove(&asset_id);
+			// Remove pbridge info
+			if let Some(idx) = info
+				.enabled_bridges
+				.iter()
+				.position(|item| match item.config {
+					XBridgeConfig::PBridge {
+						contract_id: cid, ..
+					} => cid == contract_id,
+					_ => false,
+				}) {
+				info.enabled_bridges.remove(idx);
+			}
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
+
+			Self::deposit_event(Event::PBridgeDisabled {
+				asset_id,
+				contract_id,
+			});
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T>
@@ -816,6 +928,10 @@ pub mod pallet {
 					)
 				})
 			})
+		}
+
+		fn has_enabled_pbridge(asset_id: &<T as pallet_assets::Config>::AssetId) -> bool {
+			ContractIdById::<T>::get(asset_id).is_some()
 		}
 	}
 
