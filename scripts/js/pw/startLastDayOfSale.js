@@ -13,16 +13,13 @@ const endpoint = process.env.ENDPOINT;
 
 
 // Start preorder origin of shells purchases
-async function userPreorderOriginOfShell(khalaApi, root, preordersInfo) {
-    let nonceRoot = await getNonce(khalaApi, root.address);
+async function userPreorderOriginOfShell(khalaApi, preordersInfo) {
     for (const preorder of preordersInfo) {
         const index = preordersInfo.indexOf(preorder);
         const account = preorder.account;
-        const race = recipient.race;
-        const career = recipient.career;
-        console.log(`[${index}]: Starting Preorder Origin of Shell account: ${account}, race: ${race}, career: ${career}...`);
-        await khalaApi.tx.balances.transfer(account.address, token(501)).signAndSend(root, {nonce: nonceRoot++});
-        await waitTxAccepted(khalaApi, root.address, nonceRoot - 1);
+        const race = preorder.race;
+        const career = preorder.career;
+        console.log(`[${index}]: Starting Preorder Origin of Shell account: ${account.address}, race: ${race}, career: ${career}...`);
         await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.preorderOriginOfShell(race, career), account);
     }
     console.log(`Preorder Origin of Shell...DONE`);
@@ -31,14 +28,15 @@ async function userPreorderOriginOfShell(khalaApi, root, preordersInfo) {
 // Mint chosen preorders
 async function mintChosenPreorders(khalaApi, root, chosenPreorders) {
     console.log(`Minting chosen preorders...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.mintChosenPreorders(chosenPreorders), account);
+
+    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.mintChosenPreorders(chosenPreorders), root);
     console.log(`Minting chosen preorders...DONE`);
 }
 
 // Refund not chosen preorders
 async function refundNotChosenPreorders(khalaApi, root, notChosenPreorders) {
     console.log(`Refunding not chosen preorders...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.refundNotChosenPreorders(notChosenPreorders), account);
+    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.refundNotChosenPreorders(notChosenPreorders), root);
     console.log(`Refunding not chosen preorders...DONE`);
 }
 
@@ -74,7 +72,7 @@ async function main() {
     // Enable Preorder Process
     await setStatusType(api, overlord, 'LastDayOfSale', true);
     // Preorder Prime Origin of Shell
-    await userPreorderOriginOfShell(api, overlord, userAccountLastDayPreordersOriginOfShellInfo);
+    await userPreorderOriginOfShell(api, userAccountLastDayPreordersOriginOfShellInfo);
     // Mint chosen preorders
     await mintChosenPreorders(api, overlord, chosenPreorders);
     // Refund not chosen preorders

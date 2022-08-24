@@ -13,16 +13,13 @@ const endpoint = process.env.ENDPOINT;
 
 
 // Start preorders origin of shells purchases
-async function userPreorderOriginOfShell(khalaApi, root, preordersInfo) {
-    let nonceRoot = await getNonce(khalaApi, root.address);
+async function userPreorderOriginOfShell(khalaApi, preordersInfo) {
     for (const preorder of preordersInfo) {
         const index = preordersInfo.indexOf(preorder);
         const account = preorder.account;
         const race = recipient.race;
         const career = recipient.career;
         console.log(`[${index}]: Starting Preorder Origin of Shell account: ${account}, race: ${race}, career: ${career}...`);
-        await khalaApi.tx.balances.transfer(account.address, token(501)).signAndSend(root, {nonce: nonceRoot++});
-        await waitTxAccepted(khalaApi, root.address, nonceRoot - 1);
         await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.preorderOriginOfShell(race, career), account);
     }
     console.log(`Preorder Origin of Shell...DONE`);
@@ -74,7 +71,7 @@ async function main() {
     // Enable Preorder Process
     await setStatusType(api, overlord, 'PreorderOriginOfShells', true);
     // Preorder Prime Origin of Shell
-    await userPreorderOriginOfShell(api, overlord, userAccountPreordersOriginOfShellInfo);
+    await userPreorderOriginOfShell(api, userAccountPreordersOriginOfShellInfo);
     // Disable the Preorders
     await setStatusType(api, overlord, 'PreorderOriginOfShells', false);
     // Mint chosen preorders
