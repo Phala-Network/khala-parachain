@@ -150,45 +150,42 @@ async function main() {
     console.log(topTenFed.toString());
 
     const jacketChosenPart =
-    {
-        'shell_part': {
-            'name': "jacket",
-            'shape': "Male",
-            'special': false,
-            'metadata': null,
-            'layer': 0,
-            'x': 0,
-            'y': 0,
-        },
-        'sub_parts': [
-            {
-                'name': "jacket-details",
-                'shape': "Male",
-                'special': true,
-                'metadata': "ar://jacket-details-uri",
-                'layer': 0,
-                'x': 0,
-                'y': 0
-            },
-            {
-                'name': "jacket-hat",
-                'shape': "Male",
-                'special': true,
-                'metadata': "ar://jacket-hat-uri",
-                'layer': 0,
-                'x': 0,
-                'y': 0
-            },
-            {
+    {   "jacket": {
+            'shell_part': {
                 'name': "jacket",
-                'shape': "Male",
-                'special': false,
-                'metadata': "ar://jacket-uri",
+                'rarity': 'Magic',
+                'metadata': null,
                 'layer': 0,
                 'x': 0,
-                'y': 0
-            }
-        ],
+                'y': 0,
+            },
+            'sub_parts': [
+                {
+                    'name': "jacket-details",
+                    'rarity': 'Legendary',
+                    'metadata': "ar://jacket-details-uri",
+                    'layer': 0,
+                    'x': 0,
+                    'y': 0
+                },
+                {
+                    'name': "jacket-hat",
+                    'rarity': 'Magic',
+                    'metadata': "ar://jacket-hat-uri",
+                    'layer': 0,
+                    'x': 0,
+                    'y': 0
+                },
+                {
+                    'name': "jacket",
+                    'rarity': 'Prime',
+                    'metadata': "ar://jacket-uri",
+                    'layer': 0,
+                    'x': 0,
+                    'y': 0
+                }
+            ],
+        }
     };
     // Set chosen part for NFT ID 0
     await setOriginOfShellChosenPart(api, overlord, 1, 0, "jacket", jacketChosenPart);

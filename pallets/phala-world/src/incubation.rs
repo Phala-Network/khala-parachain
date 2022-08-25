@@ -4,7 +4,7 @@ pub use crate::pallet_pw_nft_sale;
 pub use crate::traits::{
 	primitives::*, CareerType, FoodInfo, PartInfo, RaceType, RarityType, ShellPartInfo, ShellParts,
 };
-use alloc::{collections::BTreeMap, vec};
+use alloc::vec;
 use codec::{alloc, Decode, Encode};
 use frame_support::{
 	ensure,
@@ -142,7 +142,6 @@ pub mod pallet {
 		OriginOfShellChosenPartsUpdated {
 			collection_id: CollectionId,
 			nft_id: NftId,
-			slot_name: BoundedVec<u8, T::StringLimit>,
 			old_chosen_parts: Option<ShellPartsOf<T>>,
 			new_chosen_parts: ShellPartsOf<T>,
 		},
@@ -167,7 +166,6 @@ pub mod pallet {
 			career: CareerType,
 			race: RaceType,
 			generation_id: GenerationId,
-			shape: BoundedVec<u8, T::StringLimit>,
 			origin_of_shell_collection_id: CollectionId,
 			origin_of_shell_nft_id: NftId,
 			owner: T::AccountId,
@@ -363,7 +361,6 @@ pub mod pallet {
 		/// - `origin`: The origin of the extrinsic incubation the origin_of_shell
 		/// - `collection_id`: The collection id of the Origin of Shell RMRK NFT
 		/// - `nft_id`: The NFT id of the Origin of Shell RMRK NFT
-		/// - `shape`: Chosen shape of the Shell NFT to be minted
 		/// - `default_shell_metadata`: File resource URI in decentralized storage for Shell NFT
 		///	parts that render the Shell NFT
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
@@ -372,7 +369,6 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
 			nft_id: NftId,
-			shape: BoundedVec<u8, T::StringLimit>,
 			default_shell_metadata: BoundedVec<u8, T::StringLimit>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
@@ -431,10 +427,7 @@ pub mod pallet {
 				.expect("[rarity] should not fail");
 			let generation_id: GenerationId =
 				Decode::decode(&mut generation.as_slice()).expect("[generation] should not fail");
-			let shape_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("shape")?;
-			let shape_value = shape.encode().try_into().expect("[shape] should not fail");
 			let parts_properties = vec![
-				(shape_key, shape_value),
 				(race_key, race),
 				(career_key, career),
 				(generation_key, generation),
@@ -501,17 +494,17 @@ pub mod pallet {
 					.encode()
 					.try_into()
 					.expect("[slot_name] should not fail");
-				let special_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("special")?;
-				let special_value = part_info
-					.special
+				let part_rarity_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("rarity")?;
+				let part_rarity_value = part_info
+					.rarity
 					.encode()
 					.try_into()
-					.expect("[special] should not fail");
+					.expect("[rarity] should not fail");
 				// Append shell part properties
 				shell_part_properties.append(&mut vec![
 					(name_key, name_value),
 					(slot_name_key.clone(), slot_name_value.clone()),
-					(special_key, special_value),
+					(part_rarity_key, part_rarity_value),
 				]);
 				let (_, shell_part_nft_id) = Self::do_mint_shell_part_nft(
 					owner.clone(),
@@ -537,18 +530,18 @@ pub mod pallet {
 								.encode()
 								.try_into()
 								.expect("[name] should not fail");
-							let special_key =
-								pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("special")?;
-							let special_value = sub_part_info
-								.special
+							let subpart_rarity_key =
+								pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("rarity")?;
+							let subpart_rarity_value = sub_part_info
+								.rarity
 								.encode()
 								.try_into()
-								.expect("[special] should not fail");
+								.expect("[rarity] should not fail");
 							// Append sub part properties
 							sub_part_properties.append(&mut vec![
 								(name_key, name_value),
 								(slot_name_key.clone(), slot_name_value.clone()),
-								(special_key, special_value),
+								(subpart_rarity_key, subpart_rarity_value),
 							]);
 							Self::do_mint_shell_part_nft(
 								owner.clone(),
@@ -572,7 +565,6 @@ pub mod pallet {
 				career: career_type,
 				race: race_type,
 				generation_id,
-				shape,
 				origin_of_shell_collection_id: collection_id,
 				origin_of_shell_nft_id: nft_id,
 				owner,
@@ -675,8 +667,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
 			nft_id: NftId,
-			slot_name: BoundedVec<u8, T::StringLimit>,
-			chosen_part: ShellPartInfoOf<T>,
+			chosen_parts: ShellPartsOf<T>,
 		) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
@@ -694,33 +685,13 @@ pub mod pallet {
 
 			let old_chosen_parts = OriginOfShellsChosenParts::<T>::get((collection_id, nft_id));
 
-			let new_chosen_parts = match old_chosen_parts.clone() {
-				Some(mut new_chosen_parts) => {
-					new_chosen_parts
-						.parts
-						.insert(slot_name.clone(), chosen_part);
-					new_chosen_parts
-				}
-				None => {
-					let mut new_shell_parts = ShellParts {
-						parts: BTreeMap::new(),
-					};
-					new_shell_parts.parts.insert(slot_name.clone(), chosen_part);
-					new_shell_parts
-				}
-			};
-
-			OriginOfShellsChosenParts::<T>::insert(
-				(collection_id, nft_id),
-				new_chosen_parts.clone(),
-			);
+			OriginOfShellsChosenParts::<T>::insert((collection_id, nft_id), chosen_parts.clone());
 
 			Self::deposit_event(Event::OriginOfShellChosenPartsUpdated {
 				collection_id,
 				nft_id,
-				slot_name,
 				old_chosen_parts,
-				new_chosen_parts,
+				new_chosen_parts: chosen_parts,
 			});
 
 			Ok(Pays::No.into())

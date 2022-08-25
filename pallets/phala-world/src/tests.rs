@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use super::*;
+use std::collections::BTreeMap;
 
 use crate::mock::*;
 use codec::Encode;
@@ -8,10 +9,10 @@ use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::Currency};
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use sp_runtime::BoundedVec;
 
-use crate::incubation::ShellPartInfoOf;
+use crate::incubation::{ShellPartInfoOf, ShellPartsOf};
 use crate::traits::{
 	primitives::*, CareerType, NftSaleType, OverlordMessage, PartInfo, Purpose, RaceType,
-	RarityType, ShellPartInfo, StatusType,
+	RarityType, ShellPartInfo, ShellParts, StatusType,
 };
 use mock::{Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
 
@@ -172,101 +173,102 @@ fn setup_incubation_config() {
 	));
 }
 
-fn get_shell_part(shell_part_type: u8) -> ShellPartInfoOf<Test> {
+fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
+	let mut shell_part_info: BTreeMap<BoundedVec<u8, StringLimit>, ShellPartInfoOf<Test>> =
+		BTreeMap::new();
+	let shell_part_info1: ShellPartInfoOf<Test> = ShellPartInfo {
+		shell_part: PartInfo {
+			name: stb("jacket"),
+			rarity: RarityType::Magic,
+			metadata: None,
+			layer: 0,
+			x: 0,
+			y: 0,
+		},
+		sub_parts: Some(bvec![
+			PartInfo {
+				name: stb("jacket-details"),
+				rarity: RarityType::Legendary,
+				metadata: Some(stb("ar://jacket-details-uri")),
+				layer: 0,
+				x: 0,
+				y: 0,
+			},
+			PartInfo {
+				name: stb("jacket"),
+				rarity: RarityType::Prime,
+				metadata: Some(stb("ar://jacket-uri")),
+				layer: 0,
+				x: 0,
+				y: 0,
+			},
+			PartInfo {
+				name: stb("jacket-hat"),
+				rarity: RarityType::Magic,
+				metadata: Some(stb("ar://jacket-hat-uri")),
+				layer: 0,
+				x: 0,
+				y: 0,
+			},
+		]),
+	};
+	let shell_part_info2 = ShellPartInfo {
+		shell_part: PartInfo {
+			name: stb("t_shirt"),
+			rarity: RarityType::Prime,
+			metadata: Some(stb("ar://t-shirt-uri")),
+			layer: 0,
+			x: 0,
+			y: 0,
+		},
+		sub_parts: None,
+	};
+	let shell_part_info3 = ShellPartInfo {
+		shell_part: PartInfo {
+			name: stb("shoes"),
+			rarity: RarityType::Prime,
+			metadata: None,
+			layer: 0,
+			x: 0,
+			y: 0,
+		},
+		sub_parts: Some(bvec![
+			PartInfo {
+				name: stb("shoes-details"),
+				rarity: RarityType::Magic,
+				metadata: Some(stb("ar://shoes-details-uri")),
+				layer: 0,
+				x: 0,
+				y: 0,
+			},
+			PartInfo {
+				name: stb("shoes"),
+				rarity: RarityType::Prime,
+				metadata: Some(stb("ar://shoes-uri")),
+				layer: 0,
+				x: 0,
+				y: 0,
+			},
+		]),
+	};
 	match shell_part_type {
 		1 => {
-			let shell_part_info: ShellPartInfoOf<Test> = ShellPartInfo {
-				shell_part: PartInfo {
-					name: stb("jacket"),
-					shape: stb("Male"),
-					special: false,
-					metadata: None,
-					layer: 0,
-					x: 0,
-					y: 0,
-				},
-				sub_parts: Some(bvec![
-					PartInfo {
-						name: stb("jacket-details"),
-						shape: stb("Male"),
-						special: true,
-						metadata: Some(stb("ar://jacket-details-uri")),
-						layer: 0,
-						x: 0,
-						y: 0,
-					},
-					PartInfo {
-						name: stb("jacket"),
-						shape: stb("Male"),
-						special: false,
-						metadata: Some(stb("ar://jacket-uri")),
-						layer: 0,
-						x: 0,
-						y: 0,
-					},
-					PartInfo {
-						name: stb("jacket-hat"),
-						shape: stb("Male"),
-						special: true,
-						metadata: Some(stb("ar://jacket-hat-uri")),
-						layer: 0,
-						x: 0,
-						y: 0,
-					},
-				]),
-			};
-			shell_part_info.into()
+			shell_part_info.insert(stb("jacket"), shell_part_info1);
 		}
 		2 => {
-			let shell_part_info = ShellPartInfo {
-				shell_part: PartInfo {
-					name: stb("t_shirt"),
-					shape: stb("Male"),
-					special: false,
-					metadata: Some(stb("ar://t-shirt-uri")),
-					layer: 0,
-					x: 0,
-					y: 0,
-				},
-				sub_parts: None,
-			};
-			shell_part_info.into()
+			shell_part_info.insert(stb("jacket"), shell_part_info1);
+			shell_part_info.insert(stb("t_shirt"), shell_part_info2);
 		}
 		_ => {
-			let shell_part_info = ShellPartInfo {
-				shell_part: PartInfo {
-					name: stb("shoes"),
-					shape: stb("Male"),
-					special: false,
-					metadata: None,
-					layer: 0,
-					x: 0,
-					y: 0,
-				},
-				sub_parts: Some(bvec![
-					PartInfo {
-						name: stb("shoes-details"),
-						shape: stb("Male"),
-						special: true,
-						metadata: Some(stb("ar://shoes-details-uri")),
-						layer: 0,
-						x: 0,
-						y: 0,
-					},
-					PartInfo {
-						name: stb("shoes"),
-						shape: stb("Male"),
-						special: false,
-						metadata: Some(stb("ar://shoes-uri")),
-						layer: 0,
-						x: 0,
-						y: 0,
-					},
-				]),
-			};
-			shell_part_info.into()
+			shell_part_info.insert(stb("jacket"), shell_part_info1);
+			shell_part_info.insert(stb("t_shirt"), shell_part_info2);
+			shell_part_info.insert(stb("shoes"), shell_part_info3);
 		}
 	}
+	let shell_parts_of: ShellPartsOf<Test> = ShellParts {
+		parts: shell_part_info.clone(),
+	};
+	shell_parts_of.into()
 }
 
 #[test]
@@ -1548,7 +1550,6 @@ fn can_hatch_origin_of_shell() {
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
-			stb("jacket"),
 			composable_part.clone(),
 		));
 
@@ -1559,7 +1560,6 @@ fn can_hatch_origin_of_shell() {
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 2u32,
-				slot_name: stb("jacket"),
 				old_chosen_parts: None,
 				new_chosen_parts: new_chosen_parts.clone(),
 			},
@@ -1569,7 +1569,6 @@ fn can_hatch_origin_of_shell() {
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
-			stb("t_shirt"),
 			basic_part.clone(),
 		));
 		let new_chosen_parts2 =
@@ -1579,7 +1578,6 @@ fn can_hatch_origin_of_shell() {
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 2u32,
-				slot_name: stb("t_shirt"),
 				old_chosen_parts: Some(new_chosen_parts),
 				new_chosen_parts: new_chosen_parts2.clone(),
 			},
@@ -1591,14 +1589,12 @@ fn can_hatch_origin_of_shell() {
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
-			stb("Male"),
 			bvec![0u8; 15]
 		));
 		System::assert_last_event(MockEvent::PWIncubation(
 			crate::pallet_pw_incubation::Event::ShellAwakened {
 				shell_collection_id: 2u32,
 				shell_nft_id: 0u32,
-				shape: stb("Male"),
 				origin_of_shell_collection_id: 1u32,
 				origin_of_shell_nft_id: 2u32,
 				rarity: RarityType::Prime,
@@ -1830,7 +1826,6 @@ fn can_add_origin_of_shell_chosen_parts() {
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
-			stb("jacket"),
 			composable_part.clone(),
 		));
 		let chosen_parts =
@@ -1841,7 +1836,6 @@ fn can_add_origin_of_shell_chosen_parts() {
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 2u32,
-				slot_name: stb("jacket"),
 				old_chosen_parts: None,
 				new_chosen_parts: chosen_parts.clone(),
 			},
@@ -1851,7 +1845,6 @@ fn can_add_origin_of_shell_chosen_parts() {
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
-			stb("t_shirt"),
 			basic_part.clone(),
 		));
 
@@ -1863,7 +1856,6 @@ fn can_add_origin_of_shell_chosen_parts() {
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 2u32,
-				slot_name: stb("t_shirt"),
 				old_chosen_parts: Some(chosen_parts),
 				new_chosen_parts: chosen_parts2,
 			},
@@ -1876,7 +1868,6 @@ fn can_add_origin_of_shell_chosen_parts() {
 			Origin::signed(OVERLORD),
 			1u32,
 			0u32,
-			stb("jacket"),
 			composable_part.clone(),
 		));
 
@@ -1888,7 +1879,6 @@ fn can_add_origin_of_shell_chosen_parts() {
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 0u32,
-				slot_name: stb("jacket"),
 				old_chosen_parts: None,
 				new_chosen_parts: new_chosen_parts.clone(),
 			},
@@ -1898,7 +1888,6 @@ fn can_add_origin_of_shell_chosen_parts() {
 			Origin::signed(OVERLORD),
 			1u32,
 			0u32,
-			stb("t_shirt"),
 			basic_part.clone(),
 		));
 
@@ -1910,7 +1899,6 @@ fn can_add_origin_of_shell_chosen_parts() {
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 0u32,
-				slot_name: stb("t_shirt"),
 				old_chosen_parts: Some(new_chosen_parts),
 				new_chosen_parts: new_chosen_parts2.clone(),
 			},
@@ -1920,7 +1908,6 @@ fn can_add_origin_of_shell_chosen_parts() {
 			Origin::signed(OVERLORD),
 			1u32,
 			0u32,
-			stb("shoes"),
 			sub_part.clone(),
 		));
 
@@ -1932,7 +1919,6 @@ fn can_add_origin_of_shell_chosen_parts() {
 			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
 				collection_id: 1u32,
 				nft_id: 0u32,
-				slot_name: stb("shoes"),
 				old_chosen_parts: Some(new_chosen_parts2),
 				new_chosen_parts: new_chosen_parts3,
 			},

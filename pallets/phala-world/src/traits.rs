@@ -129,10 +129,8 @@ pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
 pub struct PartInfo<BoundedString> {
 	/// Name of the Part
 	pub name: BoundedString,
-	/// Shell shape
-	pub shape: BoundedString,
-	/// Is a special part
-	pub special: bool,
+	/// Shell part rarity typea
+	pub rarity: RarityType,
 	/// Metadata is None if the Part is composed of Sub-Parts
 	pub metadata: Option<BoundedString>,
 	/// Layer in the png file
