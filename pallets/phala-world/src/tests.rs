@@ -1546,7 +1546,7 @@ fn can_hatch_origin_of_shell() {
 		);
 		setup_incubation_config();
 		let composable_part = get_shell_part(1);
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
@@ -1565,7 +1565,7 @@ fn can_hatch_origin_of_shell() {
 			},
 		));
 		let basic_part = get_shell_part(2);
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
@@ -1822,7 +1822,7 @@ fn can_add_origin_of_shell_chosen_parts() {
 		);
 		setup_incubation_config();
 		let composable_part = get_shell_part(1);
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
@@ -1841,7 +1841,7 @@ fn can_add_origin_of_shell_chosen_parts() {
 			},
 		));
 		let basic_part = get_shell_part(2);
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
 			Origin::signed(OVERLORD),
 			1u32,
 			2u32,
@@ -1864,7 +1864,7 @@ fn can_add_origin_of_shell_chosen_parts() {
 		let sub_part = get_shell_part(3);
 
 		// ALICE can add all 3 parts bc she owns a Legendary Origin of shell
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
 			Origin::signed(OVERLORD),
 			1u32,
 			0u32,
@@ -1884,7 +1884,7 @@ fn can_add_origin_of_shell_chosen_parts() {
 			},
 		));
 
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
 			Origin::signed(OVERLORD),
 			1u32,
 			0u32,
@@ -1904,7 +1904,7 @@ fn can_add_origin_of_shell_chosen_parts() {
 			},
 		));
 
-		assert_ok!(PWIncubation::set_origin_of_shell_chosen_part(
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
 			Origin::signed(OVERLORD),
 			1u32,
 			0u32,

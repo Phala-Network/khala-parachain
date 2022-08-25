@@ -661,9 +661,9 @@ pub mod pallet {
 		/// - `origin` - Expected Overlord admin account to set the chosen part to the Origin of Shell
 		/// - `collection_id` - Collection ID of Origin of Shell
 		/// - `nft_id` - NFT ID of the Origin of Shell
-		/// - `chosen_part` - Shell parts to be stored in Storage
+		/// - `chosen_parts` - Shell parts to be stored in Storage
 		#[pallet::weight(0)]
-		pub fn set_origin_of_shell_chosen_part(
+		pub fn set_origin_of_shell_chosen_parts(
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
 			nft_id: NftId,

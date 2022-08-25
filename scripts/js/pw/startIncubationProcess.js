@@ -79,10 +79,10 @@ async function simulateFeeding(khalaApi, accountFeedSimulation) {
 }
 
 // Set the ChosenPart for an account
-async function setOriginOfShellChosenPart(khalaApi, root, collectionId, nftId, shellPart, chosenParts) {
-    console.log(`Setting Origin of Shell Part...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwIncubation.setOriginOfShellChosenPart(collectionId, nftId, shellPart, chosenParts), root);
-    console.log(`Setting Origin of Shell Part...DONE`);
+async function setOriginOfShellChosenParts(khalaApi, root, collectionId, nftId, chosenParts) {
+    console.log(`Setting Origin of Shell Parts...`);
+    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwIncubation.setOriginOfShellChosenParts(collectionId, nftId, chosenParts), root);
+    console.log(`Setting Origin of Shell Parts...DONE`);
 }
 
 async function main() {
@@ -101,11 +101,11 @@ async function main() {
     const david = keyring.addFromUri(davidPrivkey);
     const eve = keyring.addFromUri(evePrivkey);
     // Use Overlord account to enable the incubation phase
-    await setIncubationProcess(api, overlord, true);
+    //await setIncubationProcess(api, overlord, true);
     // Accounts with Origin of Shells
     const addresses = [alice, bob, charlie, david, eve, ferdie];
     // Initialize incubation process
-    await initializeAccountsIncubationProcess(api, addresses);
+    //await initializeAccountsIncubationProcess(api, addresses);
     // Start Feeding simulation
     const accountFeedSimulation = [
         {'account': alice, 'feedTo': 0},
@@ -121,7 +121,7 @@ async function main() {
         {'account': eve, 'feedTo': 1},
         {'account': ferdie, 'feedTo': 4},
     ];
-    await simulateFeeding(api, accountFeedSimulation);
+    //await simulateFeeding(api, accountFeedSimulation);
     const currentEra = await api.query.pwNftSale.era();
     console.log(`Current Era: ${currentEra}`);
     // Times fed in era 0 for the [collectionId, nftId], era
@@ -149,46 +149,48 @@ async function main() {
     }
     console.log(topTenFed.toString());
 
-    const jacketChosenPart =
-    {   "jacket": {
-            'shell_part': {
-                'name': "jacket",
-                'rarity': 'Magic',
-                'metadata': null,
-                'layer': 0,
-                'x': 0,
-                'y': 0,
-            },
-            'sub_parts': [
-                {
-                    'name': "jacket-details",
-                    'rarity': 'Legendary',
-                    'metadata': "ar://jacket-details-uri",
-                    'layer': 0,
-                    'x': 0,
-                    'y': 0
-                },
-                {
-                    'name': "jacket-hat",
-                    'rarity': 'Magic',
-                    'metadata': "ar://jacket-hat-uri",
-                    'layer': 0,
-                    'x': 0,
-                    'y': 0
-                },
-                {
+    const jacketChosenPart = {
+        'parts': {
+                "jacket": {
+                'shell_part': {
                     'name': "jacket",
-                    'rarity': 'Prime',
-                    'metadata': "ar://jacket-uri",
+                    'rarity': 'Magic',
+                    'metadata': null,
                     'layer': 0,
                     'x': 0,
-                    'y': 0
-                }
-            ],
+                    'y': 0,
+                },
+                'sub_parts': [
+                    {
+                        'name': "jacket-details",
+                        'rarity': 'Legendary',
+                        'metadata': "ar://jacket-details-uri",
+                        'layer': 0,
+                        'x': 0,
+                        'y': 0
+                    },
+                    {
+                        'name': "jacket-hat",
+                        'rarity': 'Magic',
+                        'metadata': "ar://jacket-hat-uri",
+                        'layer': 0,
+                        'x': 0,
+                        'y': 0
+                    },
+                    {
+                        'name': "jacket",
+                        'rarity': 'Prime',
+                        'metadata': "ar://jacket-uri",
+                        'layer': 0,
+                        'x': 0,
+                        'y': 0
+                    }
+                ],
+            },
         }
     };
     // Set chosen part for NFT ID 0
-    await setOriginOfShellChosenPart(api, overlord, 1, 0, "jacket", jacketChosenPart);
+    await setOriginOfShellChosenParts(api, overlord, 1, 0, jacketChosenPart);
 
 }
 
