@@ -137,6 +137,7 @@ pub mod pallet {
 			collection_id: CollectionId,
 			nft_id: NftId,
 			sender: T::AccountId,
+			era: EraId,
 		},
 		/// Origin of Shell updated chosen parts.
 		OriginOfShellChosenPartsUpdated {
@@ -347,6 +348,7 @@ pub mod pallet {
 				collection_id,
 				nft_id,
 				sender,
+				era: current_era,
 			});
 
 			Ok(())
