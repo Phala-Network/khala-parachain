@@ -85,11 +85,14 @@ The Start Incubation process with perform the following:
 - Generate a Top 10 log of Origin of Shells fed with `api.query.pwIncubation.originOfShellFoodStats.entries(currentEra.toNumber())`.
 - Simulate an Origin of Shell setting their chosen part with `setOriginOfShellChosenPart(api, overlord, 1, 0, "jacket", jacketChosenPart)`.
 
-## 7) TODO: Start Hatching Origin of Shells
+## 7) Start Hatching Origin of Shells
 > Execute the startHatchingOriginOfShells.js script:
 >```shell
 >node ./startHatchingOriginOfShells.js
 >```
+The start hatching Origin of Shells with perform the following:
+- Disable the incubation process with `setIncubationProcess(api, overlord, false)`.
+- Simulate hatchh all Origin of Shells based on Owners with `hatchOriginOfShell(api, overlord, originOfShellsOwners)`
 
 ## Function Calls and Extra Explanations
 ### Enable Spirit Claims

@@ -101,11 +101,11 @@ async function main() {
     const david = keyring.addFromUri(davidPrivkey);
     const eve = keyring.addFromUri(evePrivkey);
     // Use Overlord account to enable the incubation phase
-    //await setIncubationProcess(api, overlord, true);
+    await setIncubationProcess(api, overlord, true);
     // Accounts with Origin of Shells
     const addresses = [alice, bob, charlie, david, eve, ferdie];
     // Initialize incubation process
-    //await initializeAccountsIncubationProcess(api, addresses);
+    await initializeAccountsIncubationProcess(api, addresses);
     // Start Feeding simulation
     const accountFeedSimulation = [
         {'account': alice, 'feedTo': 0},
@@ -121,7 +121,7 @@ async function main() {
         {'account': eve, 'feedTo': 1},
         {'account': ferdie, 'feedTo': 4},
     ];
-    //await simulateFeeding(api, accountFeedSimulation);
+    await simulateFeeding(api, accountFeedSimulation);
     const currentEra = await api.query.pwNftSale.era();
     console.log(`Current Era: ${currentEra}`);
     // Times fed in era 0 for the [collectionId, nftId], era
@@ -151,7 +151,7 @@ async function main() {
 
     const jacketChosenPart = {
         'parts': {
-                "jacket": {
+            "jacket": {
                 'shell_part': {
                     'name': "jacket",
                     'rarity': 'Magic',
@@ -187,6 +187,45 @@ async function main() {
                     }
                 ],
             },
+            't_shirt': {
+                'shell_part': {
+                    'name': 't_shirt',
+                    'rarity': 'Prime',
+                    'metadata': "ar://t-shirt-uri",
+                    'layer': 0,
+                    'x': 0,
+                    'y': 0,
+                },
+                'sub_parts': null,
+            },
+            'shoes': {
+                'shell_part': {
+                    'name': "shoes",
+                    'rarity': 'Prime',
+                    'metadata': null,
+                    'layer': 0,
+                    'x': 0,
+                    'y': 0,
+                },
+                'sub_parts': [
+                    {
+                        'name': "shoes-details",
+                        'rarity': 'Prime',
+                        'metadata': "ar://shoes-details-uri",
+                        'layer': 0,
+                        'x': 0,
+                        'y': 0
+                    },
+                    {
+                        'name': "shoes",
+                        'rarity': 'Prime',
+                        'metadata': "ar://shoes-uri",
+                        'layer': 0,
+                        'x': 0,
+                        'y': 0
+                    }
+                ],
+            }
         }
     };
     // Set chosen part for NFT ID 0
