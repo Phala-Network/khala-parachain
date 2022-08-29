@@ -155,7 +155,6 @@ pub mod pallet {
 			shell_part_nft_id: NftId,
 			parent_shell_collection_id: CollectionId,
 			parent_shell_nft_id: NftId,
-			properties: Vec<(BoundedVec<u8, T::KeyLimit>, BoundedVec<u8, T::ValueLimit>)>,
 			owner: T::AccountId,
 		},
 		/// Shell has been awakened from an origin_of_shell being hatched and burned.
@@ -179,20 +178,23 @@ pub mod pallet {
 		HatchingInProgress,
 		CannotHatchOriginOfShell,
 		CannotSendFoodToOriginOfShell,
+		_Deprecated_MaxFoodFedLimitReached,
 		CannotSetOriginOfShellChosenParts,
 		AlreadySentFoodTwice,
+		_Deprecated_NoFoodAvailable,
 		NotOwner,
 		NoPermission,
 		WrongCollectionId,
+		_Deprecated_NoHatchTimeDetected,
 		ShellCollectionIdAlreadySet,
-		ShellPartsCollectionIdAlreadySet,
 		ShellCollectionIdNotSet,
-		ShellPartsCollectionIdNotSet,
 		RaceNotDetected,
 		CareerNotDetected,
 		RarityTypeNotDetected,
 		GenerationNotDetected,
 		FoodInfoUpdateError,
+		ShellPartsCollectionIdAlreadySet,
+		ShellPartsCollectionIdNotSet,
 		ChosenPartsNotDetected,
 		MissingShellPartMetadata,
 	}
@@ -396,28 +398,21 @@ pub mod pallet {
 			let shell_collection_id = Self::get_shell_collection_id()?;
 			// Check if Shell Parts Collection ID is set
 			let shell_parts_collection_id = Self::get_shell_parts_collection_id()?;
-			// Get race, key and Rarity Type before burning origin of shell NFT
-			let race_key = pallet_pw_nft_sale::pallet::Pallet::<T>::to_boundedvec_key("race")?;
-			let career_key = pallet_pw_nft_sale::pallet::Pallet::<T>::to_boundedvec_key("career")?;
-			let rarity_type_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("rarity")?;
-			let generation_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("generation")?;
+			// Get race, career, generation and rarity before burning origin of shell NFT
 			let race =
-				pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &race_key))
+				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id, nft_id, "race")
 					.ok_or(Error::<T>::RaceNotDetected)?;
 			let career =
-				pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &career_key))
+				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id, nft_id, "career")
 					.ok_or(Error::<T>::CareerNotDetected)?;
-			let rarity_type_value = pallet_rmrk_core::Properties::<T>::get((
+			let rarity_type_value =
+				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id, nft_id, "rarity")
+					.ok_or(Error::<T>::RarityTypeNotDetected)?;
+			let generation = pallet_pw_nft_sale::Pallet::<T>::get_nft_property(
 				collection_id,
-				Some(nft_id),
-				&rarity_type_key,
-			))
-			.ok_or(Error::<T>::RarityTypeNotDetected)?;
-			let generation = pallet_rmrk_core::Properties::<T>::get((
-				collection_id,
-				Some(nft_id),
-				&generation_key,
-			))
+				nft_id,
+				"generation",
+			)
 			.ok_or(Error::<T>::GenerationNotDetected)?;
 			let race_type: RaceType =
 				Decode::decode(&mut race.as_slice()).expect("[race] should not fail");
@@ -428,12 +423,12 @@ pub mod pallet {
 			let generation_id: GenerationId =
 				Decode::decode(&mut generation.as_slice()).expect("[generation] should not fail");
 			let parts_properties = vec![
-				(race_key, race),
-				(career_key, career),
-				(generation_key, generation),
+				("race", race),
+				("career", career),
+				("generation", generation),
 			];
 			let mut shell_properties = parts_properties.clone();
-			shell_properties.push((rarity_type_key, rarity_type_value));
+			shell_properties.push(("rarity", rarity_type_value));
 
 			// Get next expected Shell NFT ID
 			let next_shell_nft_id =
@@ -482,29 +477,53 @@ pub mod pallet {
 				};
 				// Add shell part properties
 				let mut shell_part_properties = parts_properties.clone();
-				let name_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("name")?;
-				let name_value = part_info
-					.name
-					.encode()
-					.try_into()
-					.expect("[name] should not fail");
-				let slot_name_key =
-					pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("slot_name")?;
 				let slot_name_value: BoundedVec<u8, T::ValueLimit> = slot_name
 					.encode()
 					.try_into()
 					.expect("[slot_name] should not fail");
-				let part_rarity_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("rarity")?;
-				let part_rarity_value = part_info
-					.rarity
-					.encode()
-					.try_into()
-					.expect("[rarity] should not fail");
 				// Append shell part properties
 				shell_part_properties.append(&mut vec![
-					(name_key, name_value),
-					(slot_name_key.clone(), slot_name_value.clone()),
-					(part_rarity_key, part_rarity_value),
+					(
+						"name",
+						part_info
+							.name
+							.encode()
+							.try_into()
+							.expect("[name] should not fail"),
+					),
+					("slot_name", slot_name_value.clone()),
+					(
+						"rarity",
+						part_info
+							.rarity
+							.encode()
+							.try_into()
+							.expect("[rarity] should not fail"),
+					),
+					(
+						"layer",
+						part_info
+							.layer
+							.encode()
+							.try_into()
+							.expect("[layer] should not fail"),
+					),
+					(
+						"x",
+						part_info
+							.x
+							.encode()
+							.try_into()
+							.expect("[x] should not fail"),
+					),
+					(
+						"y",
+						part_info
+							.y
+							.encode()
+							.try_into()
+							.expect("[y] should not fail"),
+					),
 				]);
 				let (_, shell_part_nft_id) = Self::do_mint_shell_part_nft(
 					owner.clone(),
@@ -523,25 +542,49 @@ pub mod pallet {
 								.ok_or(Error::<T>::MissingShellPartMetadata)?;
 							// Add shell subpart properties
 							let mut sub_part_properties = parts_properties.clone();
-							let name_key =
-								pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("name")?;
-							let name_value = sub_part_info
-								.name
-								.encode()
-								.try_into()
-								.expect("[name] should not fail");
-							let subpart_rarity_key =
-								pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("rarity")?;
-							let subpart_rarity_value = sub_part_info
-								.rarity
-								.encode()
-								.try_into()
-								.expect("[rarity] should not fail");
 							// Append sub part properties
 							sub_part_properties.append(&mut vec![
-								(name_key, name_value),
-								(slot_name_key.clone(), slot_name_value.clone()),
-								(subpart_rarity_key, subpart_rarity_value),
+								(
+									"name",
+									sub_part_info
+										.name
+										.encode()
+										.try_into()
+										.expect("[name] should not fail"),
+								),
+								("slot_name", slot_name_value.clone()),
+								(
+									"rarity",
+									sub_part_info
+										.rarity
+										.encode()
+										.try_into()
+										.expect("[rarity] should not fail"),
+								),
+								(
+									"layer",
+									sub_part_info
+										.layer
+										.encode()
+										.try_into()
+										.expect("[layer] should not fail"),
+								),
+								(
+									"x",
+									sub_part_info
+										.x
+										.encode()
+										.try_into()
+										.expect("[x] should not fail"),
+								),
+								(
+									"y",
+									sub_part_info
+										.y
+										.encode()
+										.try_into()
+										.expect("[y] should not fail"),
+								),
 							]);
 							Self::do_mint_shell_part_nft(
 								owner.clone(),
@@ -778,7 +821,7 @@ where
 	/// - `transferable`: If Part is transferable
 	fn do_mint_shell_part_nft(
 		owner: T::AccountId,
-		properties: Vec<(BoundedVec<u8, T::KeyLimit>, BoundedVec<u8, T::ValueLimit>)>,
+		properties: Vec<(&str, BoundedVec<u8, T::ValueLimit>)>,
 		metadata: BoundedVec<u8, T::StringLimit>,
 		shell_parts_collection_id: CollectionId,
 		parent_collection_id: CollectionId,
@@ -813,7 +856,6 @@ where
 			shell_part_nft_id,
 			parent_shell_collection_id: parent_collection_id,
 			parent_shell_nft_id: parent_nft_id,
-			properties,
 			owner,
 		});
 

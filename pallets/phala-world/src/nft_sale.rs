@@ -12,7 +12,7 @@ use frame_system::{ensure_signed, pallet_prelude::*, Origin};
 
 use codec::Encode;
 use sp_core::{sr25519, H256};
-use sp_runtime::DispatchResult;
+use sp_runtime::{DispatchError, DispatchResult};
 use sp_std::prelude::*;
 
 pub use pallet_rmrk_core::types::*;
@@ -407,6 +407,7 @@ pub mod pallet {
 		WrongNftSaleType,
 		NoAvailableResourceId,
 		NoAvailableNftId,
+		ValueNotDetected,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -1448,30 +1449,33 @@ where
 			true,
 			None,
 		)?;
-		let rarity_type_key: BoundedVec<u8, T::KeyLimit> = Self::to_boundedvec_key("rarity")?;
-		let rarity_type_value = rarity_type
-			.encode()
-			.try_into()
-			.expect("[rarity] should not fail");
 
-		let race_key: BoundedVec<u8, T::KeyLimit> = Self::to_boundedvec_key("race")?;
-		let race_value = race.encode().try_into().expect("[race] should not fail");
-
-		let career_key = Self::to_boundedvec_key("career")?;
-		let career_value = career
-			.encode()
-			.try_into()
-			.expect("[career] should not fail");
-		let generation_key = Self::to_boundedvec_key("generation")?;
-		let generation_value = generation
-			.encode()
-			.try_into()
-			.expect("[generation] should not fail");
 		let properties = vec![
-			(rarity_type_key, rarity_type_value),
-			(race_key, race_value),
-			(career_key, career_value),
-			(generation_key, generation_value),
+			(
+				"rarity",
+				rarity_type
+					.encode()
+					.try_into()
+					.expect("[rarity] should not fail"),
+			),
+			(
+				"race",
+				race.encode().try_into().expect("[race] should not fail"),
+			),
+			(
+				"career",
+				career
+					.encode()
+					.try_into()
+					.expect("[career] should not fail"),
+			),
+			(
+				"generation",
+				generation
+					.encode()
+					.try_into()
+					.expect("[generation] should not fail"),
+			),
 		];
 		// Set Rarity Type, Race and Career properties for NFT
 		Self::set_nft_properties(origin_of_shell_collection_id, nft_id, properties)?;
@@ -1500,6 +1504,21 @@ where
 		Ok(())
 	}
 
+	/// Get the property for PhalaWorld NFT.
+	///
+	/// Parameters:
+	/// - `collection_id`: Collection id of the PhalaWorld NFT
+	/// - `nft_id`: NFT id of the PhalaWorld NFT
+	/// - `key_str`: Key `&str` for the Key in Storage
+	pub(crate) fn get_nft_property(
+		collection_id: CollectionId,
+		nft_id: NftId,
+		key_str: &str,
+	) -> Option<BoundedVec<u8, T::ValueLimit>> {
+		let key = Self::to_boundedvec_key(key_str).expect("should not fail");
+		pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &key))
+	}
+
 	/// Set the properties for PhalaWorld NFT.
 	///
 	/// Parameters:
@@ -1509,10 +1528,11 @@ where
 	pub(crate) fn set_nft_properties(
 		collection_id: CollectionId,
 		nft_id: NftId,
-		properties: Vec<(BoundedVec<u8, T::KeyLimit>, BoundedVec<u8, T::ValueLimit>)>,
+		properties: Vec<(&str, BoundedVec<u8, T::ValueLimit>)>,
 	) -> DispatchResult {
 		// Iterate through and set properties
-		for (key, value) in properties {
+		for (key_str, value) in properties {
+			let key = Self::to_boundedvec_key(key_str)?;
 			pallet_rmrk_core::Pallet::<T>::do_set_property(
 				collection_id,
 				Some(nft_id),
@@ -1533,10 +1553,11 @@ where
 	pub(crate) fn remove_nft_properties(
 		collection_id: CollectionId,
 		nft_id: NftId,
-		properties: Vec<(BoundedVec<u8, T::KeyLimit>, BoundedVec<u8, T::ValueLimit>)>,
+		properties: Vec<(&str, BoundedVec<u8, T::ValueLimit>)>,
 	) -> DispatchResult {
 		// Iterate through and remove properties
-		for (key, _) in properties {
+		for (key_str, _) in properties {
+			let key = Self::to_boundedvec_key(key_str)?;
 			pallet_rmrk_core::Pallet::<T>::do_remove_property(collection_id, Some(nft_id), key)?;
 		}
 
