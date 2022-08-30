@@ -7,6 +7,7 @@ use frame_support::{
 		Currency, UnixTime,
 	},
 	transactional, BoundedVec,
+	dispatch::DispatchError,
 };
 use frame_system::{ensure_signed, pallet_prelude::*, Origin};
 
@@ -307,6 +308,8 @@ pub mod pallet {
 		OriginOfShellPreordered {
 			owner: T::AccountId,
 			preorder_id: PreorderId,
+			race: RaceType,
+			career: CareerType,
 		},
 		/// Origin of Shell minted from the preorder
 		OriginOfShellMinted {
@@ -336,6 +339,7 @@ pub mod pallet {
 		ChosenPreorderMinted {
 			preorder_id: PreorderId,
 			owner: T::AccountId,
+			nft_id: NftId,
 		},
 		/// Not chosen preorder was refunded to owner
 		NotChosenPreorderRefunded {
@@ -644,6 +648,8 @@ pub mod pallet {
 			Self::deposit_event(Event::OriginOfShellPreordered {
 				owner: sender,
 				preorder_id,
+				race,
+				career,
 			});
 
 			Ok(())
@@ -685,7 +691,7 @@ pub mod pallet {
 						origin_of_shell_price,
 					);
 					// Mint origin of shell
-					Self::do_mint_origin_of_shell_nft(
+					let nft_id = Self::do_mint_origin_of_shell_nft(
 						sender.clone(),
 						preorder_owner.clone(),
 						RarityType::Prime,
@@ -704,6 +710,7 @@ pub mod pallet {
 					Self::deposit_event(Event::ChosenPreorderMinted {
 						preorder_id,
 						owner: preorder_owner,
+						nft_id: nft_id,
 					});
 					index += 1;
 				} else {
@@ -1408,7 +1415,7 @@ where
 		price: BalanceOf<T>,
 		nft_sale_type: NftSaleType,
 		check_owned_origin_of_shell: bool,
-	) -> DispatchResult {
+	) -> Result<NftId, DispatchError> {
 		// Has Spirit Collection been set
 		let spirit_collection_id = Self::get_spirit_collection_id()?;
 		ensure!(
@@ -1501,7 +1508,7 @@ where
 			generation_id: generation,
 		});
 
-		Ok(())
+		Ok(nft_id)
 	}
 
 	/// Get the property for PhalaWorld NFT.
