@@ -600,6 +600,8 @@ fn preorder_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: BOB,
 				preorder_id: 0,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// ALICE preorders an origin of shell
@@ -613,6 +615,8 @@ fn preorder_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: ALICE,
 				preorder_id: 1,
+				race: RaceType::Pandroid,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// Reassign PreorderIndex to max value
@@ -664,6 +668,8 @@ fn preorder_origin_of_shell_works_2() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: BOB,
 				preorder_id: 0,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// BOB cannot preorder again
@@ -686,6 +692,8 @@ fn preorder_origin_of_shell_works_2() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: ALICE,
 				preorder_id: 1,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// CHARLIE preorders an origin of shell but already purchased origin of shell
@@ -719,6 +727,8 @@ fn mint_preorder_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: BOB,
 				preorder_id: 0,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// CHARLIE preorders an origin of shell
@@ -732,6 +742,8 @@ fn mint_preorder_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: CHARLIE,
 				preorder_id: 1,
+				race: RaceType::Pandroid,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// ALICE preorders an origin of shell successfully
@@ -750,6 +762,7 @@ fn mint_preorder_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
 				preorder_id: 2u32,
 				owner: ALICE,
+				nft_id: 2,
 			},
 		));
 		// ALICE preorders an origin of shell but already purchased NFT
@@ -793,6 +806,8 @@ fn claim_refund_preorder_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: BOB,
 				preorder_id: 0,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// CHARLIE preorders an origin of shell
@@ -806,6 +821,8 @@ fn claim_refund_preorder_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: CHARLIE,
 				preorder_id: 1,
+				race: RaceType::Pandroid,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// ALICE preorders an origin of shell successfully
@@ -870,6 +887,8 @@ fn last_day_preorder_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: BOB,
 				preorder_id: 0,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// CHARLIE preorders an origin of shell
@@ -883,6 +902,8 @@ fn last_day_preorder_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: CHARLIE,
 				preorder_id: 1,
+				race: RaceType::Pandroid,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// ALICE preorders an origin of shell successfully
@@ -901,6 +922,7 @@ fn last_day_preorder_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
 				preorder_id: 2u32,
 				owner: ALICE,
+				nft_id: 2,
 			},
 		));
 		// ALICE preorders an origin of shell but already purchased NFT
@@ -971,6 +993,8 @@ fn mint_gift_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: BOB,
 				preorder_id: 0,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// Update inventory to have a giveaway then gift giveaway
@@ -1032,6 +1056,7 @@ fn mint_gift_origin_of_shell_works() {
 			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
 				preorder_id: 1u32,
 				owner: ALICE,
+				nft_id: 3,
 			},
 		));
 		// ALICE preorders an origin of shell but max value is reached
@@ -1075,6 +1100,8 @@ fn can_initiate_incubation_process() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: BOB,
 				preorder_id: 0,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// CHARLIE preorders an origin of shell
@@ -1088,6 +1115,8 @@ fn can_initiate_incubation_process() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: CHARLIE,
 				preorder_id: 1,
+				race: RaceType::Pandroid,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// ALICE preorders an origin of shell successfully
@@ -1106,6 +1135,7 @@ fn can_initiate_incubation_process() {
 			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
 				preorder_id: 2u32,
 				owner: ALICE,
+				nft_id: 2,
 			},
 		));
 		// ALICE preorders an origin of shell but already minted NFT
@@ -1206,6 +1236,8 @@ fn can_send_food_to_origin_of_shell() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: BOB,
 				preorder_id: 0,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// CHARLIE preorders an origin of shell
@@ -1219,6 +1251,8 @@ fn can_send_food_to_origin_of_shell() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: CHARLIE,
 				preorder_id: 1,
+				race: RaceType::Pandroid,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// ALICE preorders an origin of shell successfully
@@ -1237,6 +1271,7 @@ fn can_send_food_to_origin_of_shell() {
 			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
 				preorder_id: 2u32,
 				owner: ALICE,
+				nft_id: 2,
 			},
 		));
 		// ALICE preorders an origin of shell but max value is reached
@@ -1308,6 +1343,7 @@ fn can_send_food_to_origin_of_shell() {
 				collection_id: 1u32,
 				nft_id: 2u32,
 				sender: CHARLIE,
+				era: 0,
 			},
 		));
 		assert_ok!(PWIncubation::feed_origin_of_shell(
@@ -1320,6 +1356,7 @@ fn can_send_food_to_origin_of_shell() {
 				collection_id: 1u32,
 				nft_id: 2u32,
 				sender: CHARLIE,
+				era: 0,
 			},
 		));
 		assert_noop!(
@@ -1353,6 +1390,7 @@ fn can_send_food_to_origin_of_shell() {
 				collection_id: 1u32,
 				nft_id: 0u32,
 				sender: CHARLIE,
+				era: 1,
 			},
 		));
 		// OVERLORD cannot send food bc they do not own an Origin of Shell
@@ -1383,6 +1421,8 @@ fn can_hatch_origin_of_shell() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: BOB,
 				preorder_id: 0,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// CHARLIE preorders an origin of shell
@@ -1396,6 +1436,8 @@ fn can_hatch_origin_of_shell() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: CHARLIE,
 				preorder_id: 1,
+				race: RaceType::Pandroid,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// ALICE preorders an origin of shell successfully
@@ -1414,6 +1456,7 @@ fn can_hatch_origin_of_shell() {
 			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
 				preorder_id: 2u32,
 				owner: ALICE,
+				nft_id: 2,
 			},
 		));
 		// Reassign PreorderIndex to max value
@@ -1486,6 +1529,7 @@ fn can_hatch_origin_of_shell() {
 				collection_id: 1u32,
 				nft_id: 2u32,
 				sender: CHARLIE,
+				era: 0,
 			},
 		));
 		assert_ok!(PWIncubation::feed_origin_of_shell(
@@ -1498,6 +1542,7 @@ fn can_hatch_origin_of_shell() {
 				collection_id: 1u32,
 				nft_id: 2u32,
 				sender: CHARLIE,
+				era: 0,
 			},
 		));
 		assert_noop!(
@@ -1537,6 +1582,7 @@ fn can_hatch_origin_of_shell() {
 				collection_id: 1u32,
 				nft_id: 0u32,
 				sender: CHARLIE,
+				era: 1,
 			},
 		));
 		// OVERLORD cannot send food bc they do not own an Origin of Shell
@@ -1660,6 +1706,8 @@ fn can_add_origin_of_shell_chosen_parts() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: BOB,
 				preorder_id: 0,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		// CHARLIE preorders an origin of shell
@@ -1673,6 +1721,8 @@ fn can_add_origin_of_shell_chosen_parts() {
 			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
 				owner: CHARLIE,
 				preorder_id: 1,
+				race: RaceType::Pandroid,
+				career: CareerType::HardwareDruid,
 			},
 		));
 		let preorders: Vec<PreorderId> = vec![0u32, 1u32];
@@ -1685,6 +1735,7 @@ fn can_add_origin_of_shell_chosen_parts() {
 			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
 				preorder_id: 1u32,
 				owner: CHARLIE,
+				nft_id: 2,
 			},
 		));
 		// Reassign PreorderIndex to max value
@@ -1762,6 +1813,7 @@ fn can_add_origin_of_shell_chosen_parts() {
 				collection_id: 1u32,
 				nft_id: 2u32,
 				sender: CHARLIE,
+				era: 0,
 			},
 		));
 		assert_ok!(PWIncubation::feed_origin_of_shell(
@@ -1774,6 +1826,7 @@ fn can_add_origin_of_shell_chosen_parts() {
 				collection_id: 1u32,
 				nft_id: 2u32,
 				sender: CHARLIE,
+				era: 0,
 			},
 		));
 		assert_noop!(
@@ -1813,6 +1866,7 @@ fn can_add_origin_of_shell_chosen_parts() {
 				collection_id: 1u32,
 				nft_id: 1u32,
 				sender: CHARLIE,
+				era: 1,
 			},
 		));
 		// OVERLORD cannot send food bc they do not own an Origin of Shell
