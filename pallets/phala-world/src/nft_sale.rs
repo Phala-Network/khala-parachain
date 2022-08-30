@@ -7,7 +7,6 @@ use frame_support::{
 		Currency, UnixTime,
 	},
 	transactional, BoundedVec,
-	dispatch::DispatchError,
 };
 use frame_system::{ensure_signed, pallet_prelude::*, Origin};
 
