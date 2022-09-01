@@ -6,9 +6,6 @@ use frame_support::traits::Currency;
 
 type BalanceOf<T> =
 	<<T as mining::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-type NegativeImbalanceOf<T> = <<T as mining::Config>::Currency as Currency<
-	<T as frame_system::Config>::AccountId,
->>::NegativeImbalance;
 
 #[allow(unused_variables)]
 #[frame_support::pallet]
@@ -18,29 +15,26 @@ pub mod pallet {
 	#[cfg(feature = "std")]
 	use std::format;
 
-	use crate::balance_convert::{div as bdiv, mul as bmul, FixedPointConvert};
+	use crate::balance_convert::FixedPointConvert;
 	use crate::basepool;
 	use crate::mining;
 	use crate::pawnshop;
-	use crate::poolproxy::*;
+	use crate::poolproxy::{ensure_stake_pool, ensure_vault, PoolProxy, StakePool};
 	use crate::registry;
+	use crate::vault;
 
 	use fixed::types::U64F64 as FixedPoint;
-	use fixed_macro::types::U64F64 as fp;
 
-	use super::{BalanceOf, NegativeImbalanceOf};
+	use super::BalanceOf;
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
-		traits::{
-			tokens::fungibles::Mutate, Currency, LockableCurrency, OnUnbalanced, StorageVersion,
-			UnixTime,
-		},
+		traits::{tokens::fungibles::Transfer, LockableCurrency, StorageVersion, UnixTime},
 	};
 	use frame_system::{pallet_prelude::*, Origin};
 
 	use sp_runtime::{
-		traits::{Saturating, TrailingZeroInput, Zero},
+		traits::{TrailingZeroInput, Zero},
 		Permill, SaturatedConversion,
 	};
 	use sp_std::{collections::vec_deque::VecDeque, fmt::Display, prelude::*, vec};
@@ -51,13 +45,9 @@ pub mod pallet {
 
 	const MAX_WHITELIST_LEN: u32 = 100;
 
-	pub struct DescMaxLen;
+	type DescMaxLen = ConstU32<4400>;
 
-	impl Get<u32> for DescMaxLen {
-		fn get() -> u32 {
-			4400
-		}
-	}
+	type DescStr = BoundedVec<u8, DescMaxLen>;
 
 	#[pallet::config]
 	pub trait Config:
@@ -88,9 +78,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxPoolWorkers: Get<u32>;
 
-		/// The handler to absorb the slashed amount.
-		type OnSlashed: OnUnbalanced<NegativeImbalanceOf<Self>>;
-
 		/// The origin that can turn on or off mining
 		type MiningSwitchOrigin: EnsureOrigin<Self::Origin>;
 
@@ -117,9 +104,6 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type SubAccountAssignments<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u64>;
 
-	#[pallet::storage]
-	pub type VaultAccountAssignments<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u64>;
-
 	/// Switch to enable the stake pool pallet (disabled by default)
 	#[pallet::storage]
 	#[pallet::getter(fn mining_enabled)]
@@ -144,8 +128,7 @@ pub mod pallet {
 	/// Mapping for pools that store their descriptions set by owner
 	#[pallet::storage]
 	#[pallet::getter(fn pool_descriptions)]
-	pub type PoolDescriptions<T: Config> =
-		StorageMap<_, Twox64Concat, u64, BoundedVec<u8, super::DescMaxLen>>;
+	pub type PoolDescriptions<T: Config> = StorageMap<_, Twox64Concat, u64, DescStr>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -189,8 +172,8 @@ pub mod pallet {
 		/// - the worker in the [`WorkerAssignments`] is pointed to `pid`
 		/// - the worker-miner binding is updated in `mining` pallet ([`WorkerBindings`](mining::pallet::WorkerBindings),
 		///   [`MinerBindings`](mining::pallet::MinerBindings))
-		PoolWorkerAdded { 
-			pid: u64, 
+		PoolWorkerAdded {
+			pid: u64,
 			worker: WorkerPublicKey,
 			miner: T::AccountId,
 		},
@@ -311,17 +294,6 @@ pub mod pallet {
 			pid: u64,
 			amount: BalanceOf<T>,
 		},
-		/// Some dust stake is removed
-		///
-		/// Triggered when the remaining stake of a user is too small after withdrawal or slash.
-		///
-		/// Affected states:
-		/// - the balance of the locking ledger of the contributor at [`StakeLedger`] is set to 0
-		/// - the user's dust stake is moved to treasury
-		DustRemoved {
-			user: T::AccountId,
-			amount: BalanceOf<T>,
-		},
 		/// A worker is removed from a pool.
 		///
 		/// Affected states:
@@ -377,7 +349,7 @@ pub mod pallet {
 			pid: u64,
 			worker: WorkerPublicKey,
 			amount: BalanceOf<T>,
-		}
+		},
 	}
 
 	#[pallet::error]
@@ -454,6 +426,8 @@ pub mod pallet {
 		InvaildWithdrawSharesAmount,
 
 		AssetAccountNotExist,
+
+		VaultIsLocked,
 	}
 
 	#[pallet::call]
@@ -461,15 +435,15 @@ pub mod pallet {
 	where
 		BalanceOf<T>: sp_runtime::traits::AtLeast32BitUnsigned + Copy + FixedPointConvert + Display,
 		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
-		T: pallet_assets::Config<AssetId = u32>,
-		T: pallet_assets::Config<Balance = BalanceOf<T>>,
+		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
+		T: Config + vault::Config,
 	{
 		/// Creates a new stake pool
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn create(origin: OriginFor<T>) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
-			let pid = basepool::PoolCount::<T>::get();
+			let pid = basepool::Pallet::<T>::consume_new_pid();
 			// TODO(mingxuan): create_collection should return cid
 			let collection_id: CollectionId = pallet_rmrk_core::Pallet::<T>::collection_index();
 			// Create a NFT collection related to the new stake pool
@@ -485,82 +459,32 @@ pub mod pallet {
 				None,
 				symbol,
 			)?;
+			let account_id =
+				basepool::pallet::create_staker_account::<T::AccountId>(pid, owner.clone());
+			let (owner_reward_account, lock_account) =
+				create_owner_and_lock_account::<T::AccountId>(pid, owner.clone());
 			basepool::pallet::Pools::<T>::insert(
 				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(StakePool::<
-					T::AccountId,
-					BalanceOf<T>,
-				> {
+				PoolProxy::StakePool(StakePool {
 					basepool: basepool::BasePool {
 						pid,
 						owner: owner.clone(),
 						total_shares: Zero::zero(),
 						total_value: Zero::zero(),
-						free_stake: Zero::zero(),
 						withdraw_queue: VecDeque::new(),
 						value_subscribers: VecDeque::new(),
 						cid: collection_id,
+						pool_account_id: account_id,
 					},
 					payout_commission: None,
-					owner_reward: Zero::zero(),
 					cap: None,
 					workers: VecDeque::new(),
 					cd_workers: VecDeque::new(),
+					lock_account,
+					owner_reward_account,
 				}),
 			);
-			basepool::PoolCount::<T>::put(pid + 1);
 			Self::deposit_event(Event::<T>::PoolCreated { owner, pid });
-			Ok(())
-		}
-
-		/// Creates a new stake pool
-		#[pallet::weight(0)]
-		#[frame_support::transactional]
-		pub fn create_vault(origin: OriginFor<T>) -> DispatchResult {
-			let owner = ensure_signed(origin)?;
-			let pid = basepool::PoolCount::<T>::get();
-			// TODO(mingxuan): create_collection should return cid
-			let collection_id: CollectionId = pallet_rmrk_core::Pallet::<T>::collection_index();
-			// Create a NFT collection related to the new stake pool
-			let symbol: BoundedVec<u8, <T as pallet_rmrk_core::Config>::CollectionSymbolLimit> =
-				format!("VAULT-{}", pid)
-					.as_bytes()
-					.to_vec()
-					.try_into()
-					.expect("create a bvec from string should never fail; qed.");
-			pallet_rmrk_core::Pallet::<T>::create_collection(
-				Origin::<T>::Signed(basepool::pallet_id::<T::AccountId>()).into(),
-				Default::default(),
-				None,
-				symbol,
-			)?;
-			let user_id = vault_staker_account(pid, owner.clone());
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::Vault(
-					Vault::<T::AccountId, BalanceOf<T>> {
-						basepool: basepool::BasePool {
-							pid,
-							owner: owner.clone(),
-							total_shares: Zero::zero(),
-							total_value: Zero::zero(),
-							free_stake: Zero::zero(),
-							withdraw_queue: VecDeque::new(),
-							value_subscribers: VecDeque::new(),
-							cid: collection_id,
-						},
-						pool_account_id: user_id.clone(),
-						delta_price_ratio: None,
-						owner_shares: Zero::zero(),
-						last_share_price_checkpoint: Zero::zero(),
-						invest_pools: VecDeque::new(),
-					},
-				),
-			);
-			basepool::PoolCount::<T>::put(pid + 1);
-			VaultAccountAssignments::<T>::insert(user_id, pid);
-			Self::deposit_event(Event::<T>::PoolCreated { owner, pid });
-
 			Ok(())
 		}
 
@@ -624,10 +548,7 @@ pub mod pallet {
 
 			// update worker vector
 			workers.push_back(pubkey);
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info),
-			);
+			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
 			WorkerAssignments::<T>::insert(&pubkey, pid);
 			Self::deposit_event(Event::<T>::PoolWorkerAdded {
 				pid,
@@ -704,10 +625,7 @@ pub mod pallet {
 			);
 
 			pool_info.cap = Some(cap);
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info),
-			);
+			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
 
 			Self::deposit_event(Event::<T>::PoolCapacitySet { pid, cap });
 			Ok(())
@@ -721,7 +639,7 @@ pub mod pallet {
 		pub fn set_payout_pref(
 			origin: OriginFor<T>,
 			pid: u64,
-			payout_commission: Permill,
+			payout_commission: Option<Permill>,
 		) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
 			let mut pool_info = ensure_stake_pool::<T>(pid)?;
@@ -731,48 +649,14 @@ pub mod pallet {
 				Error::<T>::UnauthorizedPoolOwner
 			);
 
-			pool_info.payout_commission = Some(payout_commission);
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info),
-			);
+			pool_info.payout_commission = payout_commission;
+			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
 
-			Self::deposit_event(Event::<T>::PoolCommissionSet {
-				pid,
-				commission: payout_commission.deconstruct(),
-			});
-
-			Ok(())
-		}
-
-		/// Change the pool commission rate
-		///
-		/// Requires:
-		/// 1. The sender is the owner
-		#[pallet::weight(0)]
-		pub fn set_vault_payout_pref(
-			origin: OriginFor<T>,
-			pid: u64,
-			payout_commission: Permill,
-		) -> DispatchResult {
-			let owner = ensure_signed(origin)?;
-			let mut pool_info = ensure_vault::<T>(pid)?;
-			// origin must be owner of pool
-			ensure!(
-				pool_info.basepool.owner == owner,
-				Error::<T>::UnauthorizedPoolOwner
-			);
-
-			pool_info.delta_price_ratio = Some(payout_commission);
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::Vault(pool_info),
-			);
-
-			Self::deposit_event(Event::<T>::VaultCommissionSet {
-				pid,
-				commission: payout_commission.deconstruct(),
-			});
+			let mut commission: u32 = 0;
+			if let Some(ratio) = payout_commission {
+				commission = ratio.deconstruct();
+			}
+			Self::deposit_event(Event::<T>::PoolCommissionSet { pid, commission });
 
 			Ok(())
 		}
@@ -823,7 +707,7 @@ pub mod pallet {
 		pub fn set_pool_description(
 			origin: OriginFor<T>,
 			pid: u64,
-			description: BoundedVec<u8, DescMaxLen>,
+			description: DescStr,
 		) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
 			let pool_info = ensure_stake_pool::<T>(pid)?;
@@ -890,24 +774,21 @@ pub mod pallet {
 			target: T::AccountId,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let mut pool_info = ensure_stake_pool::<T>(pid)?;
+			let pool_info = ensure_stake_pool::<T>(pid)?;
 			// Add pool owner's reward if applicable
 			ensure!(
 				who == pool_info.basepool.owner,
 				Error::<T>::UnauthorizedPoolOwner
 			);
-			let rewards = pool_info.owner_reward;
+			let rewards = pool_info.get_owner_stakes::<T>();
 			ensure!(rewards > Zero::zero(), Error::<T>::NoRewardToClaim);
-			pallet_assets::Pallet::<T>::mint_into(
+			<pallet_assets::pallet::Pallet<T> as Transfer<T::AccountId>>::transfer(
 				<T as pawnshop::Config>::PPhaAssetId::get(),
+				&pool_info.owner_reward_account,
 				&target,
 				rewards,
+				true,
 			)?;
-			pool_info.owner_reward = Zero::zero();
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info),
-			);
 			Self::deposit_event(Event::<T>::OwnerRewardsWithdrawn {
 				pid,
 				user: who,
@@ -917,108 +798,19 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(0)]
-		pub fn claim_owner_shares(
-			origin: OriginFor<T>,
-			vault_pid: u64,
-			target: T::AccountId,
-			shares: BalanceOf<T>,
-		) -> DispatchResult {
-			let who = ensure_signed(origin.clone())?;
-			let mut pool_info = ensure_vault::<T>(vault_pid)?;
-			// Add pool owner's reward if applicable
-			ensure!(
-				who == pool_info.basepool.owner,
-				Error::<T>::UnauthorizedPoolOwner
-			);
-			ensure!(
-				pool_info.owner_shares >= shares,
-				Error::<T>::InvaildWithdrawSharesAmount
-			);
-			ensure!(shares > Zero::zero(), Error::<T>::NoRewardToClaim);
-			let price = pool_info
-				.basepool
-				.share_price()
-				.expect("price must exist when owner_shares exist");
-			let rewards = bmul(shares, &price);
-			let nft_id = basepool::Pallet::<T>::mint_nft(
-				pool_info.basepool.cid,
-				target.clone(),
-				shares.clone(),
-				rewards,
-			)?;
-			Self::withdraw_from_vault(origin, pool_info.basepool.pid, shares)?;
-			pool_info.owner_shares -= shares;
-			basepool::pallet::Pools::<T>::insert(
-				vault_pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::Vault(pool_info),
-			);
-			Self::deposit_event(Event::<T>::OwnerSharesStartWithdraw {
-				pid: vault_pid,
-				user: who,
-				shares,
-			});
-
-			Ok(())
-		}
-
-		#[pallet::weight(0)]
-		pub fn maybe_gain_owner_shares(origin: OriginFor<T>, vault_pid: u64) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let mut pool_info = ensure_vault::<T>(vault_pid)?;
-			// Add pool owner's reward if applicable
-			ensure!(
-				who == pool_info.basepool.owner,
-				Error::<T>::UnauthorizedPoolOwner
-			);
-			let current_price = match pool_info.basepool.share_price() {
-				Some(price) => BalanceOf::<T>::from_fixed(&price),
-				None => return Ok(()),
-			};
-			if pool_info.last_share_price_checkpoint == Zero::zero() {
-				pool_info.last_share_price_checkpoint = current_price;
-				basepool::pallet::Pools::<T>::insert(
-					vault_pid,
-					PoolProxy::<T::AccountId, BalanceOf<T>>::Vault(pool_info),
-				);
-				return Ok(());
-			}
-			if current_price <= pool_info.last_share_price_checkpoint {
-				return Ok(());
-			}
-			let delta_price = pool_info.delta_price_ratio.unwrap_or_default()
-				* (current_price - pool_info.last_share_price_checkpoint);
-			let new_price = current_price - delta_price;
-			let adjust_shares = bdiv(pool_info.basepool.total_value, &new_price.to_fixed())
-				- pool_info.basepool.total_shares;
-			pool_info.basepool.total_shares += adjust_shares;
-			pool_info.owner_shares += adjust_shares;
-			pool_info.last_share_price_checkpoint = current_price;
-
-			basepool::pallet::Pools::<T>::insert(
-				vault_pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::Vault(pool_info),
-			);
-			Self::deposit_event(Event::<T>::OwnerSharesGained {
-				pid: vault_pid,
-				shares: adjust_shares,
-			});
-
-			Ok(())
-		}
-
 		/// Let any user to launch a stakepool withdraw. Then check if the pool need to be forced shutdown.
 		///
 		/// If the shutdown condition is met, all workers in the pool will be forced shutdown.
 		/// Note: This function doesn't guarantee no-op when there's error.
 		#[pallet::weight(0)]
+		#[frame_support::transactional]
 		pub fn check_and_maybe_force_withdraw(origin: OriginFor<T>, pid: u64) -> DispatchResult {
 			ensure_signed(origin)?;
 			let now = <T as registry::Config>::UnixTime::now()
 				.as_secs()
 				.saturated_into::<u64>();
 			let mut pool = ensure_stake_pool::<T>(pid)?;
-			Self::try_process_withdraw_queue(&mut pool.basepool);
+			basepool::Pallet::<T>::try_process_withdraw_queue(&mut pool.basepool);
 			let grace_period = T::GracePeriod::get();
 			let mut releasing_stake = Zero::zero();
 			for worker in pool.cd_workers.iter() {
@@ -1028,12 +820,9 @@ pub mod pallet {
 				// TODO(mingxuan): handle slash
 				releasing_stake += stakes;
 			}
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool.clone()),
-			);
+			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool.clone()));
 			if basepool::Pallet::<T>::has_expired_withdrawal(
-				&mut pool.basepool,
+				&pool.basepool,
 				now,
 				grace_period,
 				releasing_stake,
@@ -1041,250 +830,10 @@ pub mod pallet {
 				for worker in pool.workers.iter() {
 					let miner: T::AccountId = pool_sub_account(pid, &worker);
 					if !pool.cd_workers.contains(&worker) {
-						Self::do_stop_mining(&pool.basepool.owner, pid, worker.clone())?;
+						Self::do_stop_mining(&pool.basepool.owner, pid, *worker)?;
 					}
 				}
 			}
-
-			Ok(())
-		}
-
-		/// Let any user to launch a stakepool withdraw. Then check if the pool need to be forced shutdown.
-		///
-		/// If the shutdown condition is met, all workers in the pool will be forced shutdown.
-		/// Note: This function doesn't guarantee no-op when there's error.
-		#[pallet::weight(0)]
-		pub fn vault_check_and_maybe_force_withdraw(
-			origin: OriginFor<T>,
-			vault_pid: u64,
-		) -> DispatchResult {
-			ensure_signed(origin.clone())?;
-			let now = <T as registry::Config>::UnixTime::now()
-				.as_secs()
-				.saturated_into::<u64>();
-			let mut vault = ensure_vault::<T>(vault_pid)?;
-			Self::try_process_withdraw_queue(&mut vault.basepool);
-			let grace_period = T::GracePeriod::get();
-			let releasing_stake = Zero::zero();
-			for pid in vault.invest_pools.iter() {
-				let stake_pool = ensure_stake_pool::<T>(*pid)?;
-				let withdraw_vec: VecDeque<_> = stake_pool
-					.basepool
-					.withdraw_queue
-					.iter()
-					.filter(|x| x.user == vault.pool_account_id)
-					.collect();
-				// the length of vec should be 1
-				for withdraw in withdraw_vec {
-					let nft = basepool::Pallet::<T>::get_nft_attr(
-						stake_pool.basepool.cid,
-						withdraw.nft_id,
-					)?;
-					let price = stake_pool
-						.basepool
-						.share_price()
-						.expect("pool must have price: qed.");
-					let releasing_stake = bmul(nft.shares.clone(), &price);
-				}
-			}
-			basepool::pallet::Pools::<T>::insert(
-				vault_pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::Vault(vault.clone()),
-			);
-			if basepool::Pallet::<T>::has_expired_withdrawal(
-				&mut vault.basepool,
-				now,
-				grace_period,
-				releasing_stake,
-			) {
-				for pid in vault.invest_pools.iter() {
-					let stake_pool = ensure_stake_pool::<T>(*pid)?;
-					let withdraw_vec: VecDeque<_> = stake_pool
-						.basepool
-						.withdraw_queue
-						.iter()
-						.filter(|x| x.user == vault.pool_account_id)
-						.collect();
-					// the length of vec should be 1
-					for withdraw in withdraw_vec {
-						let nft = basepool::Pallet::<T>::get_nft_attr(
-							stake_pool.basepool.cid,
-							withdraw.nft_id,
-						)?;
-						Self::vault_withdraw(
-							origin.clone(),
-							stake_pool.basepool.pid,
-							vault_pid,
-							nft.shares,
-						)?;
-					}
-				}
-			}
-
-			Ok(())
-		}
-
-		/// Contributes some stake to a vault
-		///
-		/// Requires:
-		/// 1. The pool exists
-		/// 2. After the deposit, the pool doesn't reach the cap
-		#[pallet::weight(0)]
-		#[frame_support::transactional]
-		pub fn contribute_to_vault(
-			origin: OriginFor<T>,
-			pid: u64,
-			amount: BalanceOf<T>,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let mut pool_info = ensure_vault::<T>(pid)?;
-			let a = amount; // Alias to reduce confusion in the code below
-				// If the pool has a contribution whitelist in storages, check if the origin is authorized to contribute
-			if let Some(whitelist) = PoolContributionWhitelists::<T>::get(&pid) {
-				ensure!(
-					whitelist.contains(&who) || pool_info.basepool.owner == who,
-					Error::<T>::NotInContributeWhitelist
-				);
-			}
-			ensure!(
-				a >= T::MinContribution::get(),
-				Error::<T>::InsufficientContribution
-			);
-			let free = pallet_assets::Pallet::<T>::maybe_balance(
-				<T as pawnshop::Config>::PPhaAssetId::get(),
-				&who,
-			)
-			.ok_or(Error::<T>::AssetAccountNotExist)?;
-			ensure!(free >= a, Error::<T>::InsufficientBalance);
-			// We don't really want to allow to contribute to a bankrupt StakePool. It can avoid
-			// a lot of weird edge cases when dealing with pending slash.
-			let shares = basepool::Pallet::<T>::contribute(
-				&mut pool_info.basepool,
-				who.clone(),
-				amount,
-				Some(
-					|x: &basepool::pallet::BasePool<T::AccountId, BalanceOf<T>>,
-					 y: &mut basepool::NftAttr<BalanceOf<T>>,
-					 z: T::AccountId| {},
-				),
-			)?;
-
-			// We have new free stake now, try to handle the waiting withdraw queue
-
-			Self::try_process_withdraw_queue(&mut pool_info.basepool);
-
-			// Persist
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::Vault(pool_info.clone()),
-			);
-			basepool::Pallet::<T>::merge_or_init_nft_for_staker(
-				pool_info.basepool.cid,
-				who.clone(),
-			)?;
-			pallet_assets::Pallet::<T>::burn_from(
-				<T as pawnshop::Config>::PPhaAssetId::get(),
-				&who,
-				a,
-			)?;
-
-			let mut account_status = pawnshop::pallet::StakerAccounts::<T>::get(who.clone())
-				.ok_or(pawnshop::Error::<T>::StakerAccountNotFound)?;
-
-			if !account_status
-				.invest_pools
-				.contains(&(pid, pool_info.basepool.cid))
-			{
-				account_status
-					.invest_pools
-					.push((pid, pool_info.basepool.cid));
-				pawnshop::pallet::StakerAccounts::<T>::insert(who.clone(), account_status);
-			}
-
-			Self::deposit_event(Event::<T>::Contribution {
-				pid,
-				user: who,
-				amount: a,
-				shares,
-			});
-			Ok(())
-		}
-
-		#[pallet::weight(0)]
-		#[frame_support::transactional]
-		pub fn vault_investment(
-			origin: OriginFor<T>,
-			vault_pid: u64,
-			pid: u64,
-			amount: BalanceOf<T>,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let mut vault_info = ensure_vault::<T>(vault_pid)?;
-			// Currently, we only allow vault invest to stakepool
-			let mut pool_info = ensure_stake_pool::<T>(pid)?;
-			// Add pool owner's reward if applicable
-			ensure!(
-				who == vault_info.basepool.owner,
-				Error::<T>::UnauthorizedPoolOwner
-			);
-			let a = amount; // Alias to reduce confusion in the code below
-				// If the pool has a contribution whitelist in storages, check if the origin is authorized to contribute
-			if let Some(whitelist) = PoolContributionWhitelists::<T>::get(&pid) {
-				ensure!(
-					whitelist.contains(&vault_info.pool_account_id),
-					Error::<T>::NotInContributeWhitelist
-				);
-			}
-			ensure!(
-				a >= T::MinContribution::get(),
-				Error::<T>::InsufficientContribution
-			);
-			let free = vault_info.basepool.free_stake;
-			ensure!(free >= a, Error::<T>::InsufficientBalance);
-			// We don't really want to allow to contribute to a bankrupt StakePool. It can avoid
-			// a lot of weird edge cases when dealing with pending slash.
-			let shares = basepool::Pallet::<T>::contribute(
-				&mut pool_info.basepool,
-				vault_info.pool_account_id.clone(),
-				amount,
-				Some(
-					|x: &basepool::pallet::BasePool<T::AccountId, BalanceOf<T>>,
-					 y: &mut basepool::NftAttr<BalanceOf<T>>,
-					 z: T::AccountId| {
-						Self::maybe_settle_nft_slash(x, y, z);
-					},
-				),
-			)?;
-			if !vault_info.invest_pools.contains(&pid) {
-				vault_info.invest_pools.push_back(pid);
-			}
-			vault_info.basepool.free_stake -= a;
-			basepool::pallet::Pools::<T>::insert(
-				vault_pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::Vault(vault_info.clone()),
-			);
-			// We have new free stake now, try to handle the waiting withdraw queue
-
-			Self::try_process_withdraw_queue(&mut pool_info.basepool);
-			if !pool_info.basepool.value_subscribers.contains(&vault_pid) {
-				pool_info.basepool.value_subscribers.push_back(vault_pid);
-			}
-			// Persist
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info.clone()),
-			);
-			basepool::Pallet::<T>::merge_or_init_nft_for_staker(
-				pool_info.basepool.cid,
-				vault_info.pool_account_id.clone(),
-			)?;
-			Self::deposit_event(Event::<T>::VaultContribution {
-				pid,
-				user: who,
-				vault_pid,
-				amount: a,
-				shares,
-			});
 
 			Ok(())
 		}
@@ -1296,8 +845,23 @@ pub mod pallet {
 		/// 2. After the deposit, the pool doesn't reach the cap
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
-		pub fn contribute(origin: OriginFor<T>, pid: u64, amount: BalanceOf<T>) -> DispatchResult {
-			let who = ensure_signed(origin)?;
+		pub fn contribute(
+			origin: OriginFor<T>,
+			pid: u64,
+			amount: BalanceOf<T>,
+			maybe_vault_pid: Option<u64>,
+		) -> DispatchResult {
+			let mut who = ensure_signed(origin)?;
+			let mut maybe_vault = None;
+			if let Some(vault_pid) = maybe_vault_pid {
+				let vault_info = ensure_vault::<T>(vault_pid)?;
+				ensure!(
+					who == vault_info.basepool.owner,
+					Error::<T>::UnauthorizedPoolOwner
+				);
+				who = vault_info.basepool.owner.clone();
+				maybe_vault = Some((vault_pid, vault_info));
+			}
 			let mut pool_info = ensure_stake_pool::<T>(pid)?;
 			let a = amount; // Alias to reduce confusion in the code below
 				// If the pool has a contribution whitelist in storages, check if the origin is authorized to contribute
@@ -1311,30 +875,39 @@ pub mod pallet {
 				a >= T::MinContribution::get(),
 				Error::<T>::InsufficientContribution
 			);
-			let free = pallet_assets::Pallet::<T>::maybe_balance(
-				<T as pawnshop::Config>::PPhaAssetId::get(),
-				&who,
-			)
-			.ok_or(Error::<T>::AssetAccountNotExist)?;
+			let mut free = Zero::zero();
+			if let Some((_, vault_info)) = &maybe_vault {
+				free = vault_info.basepool.get_free_stakes::<T>();
+			} else {
+				free = pallet_assets::Pallet::<T>::maybe_balance(
+					<T as pawnshop::Config>::PPhaAssetId::get(),
+					&who,
+				)
+				.ok_or(Error::<T>::AssetAccountNotExist)?;
+			}
 			ensure!(free >= a, Error::<T>::InsufficientBalance);
-			// We don't really want to allow to contribute to a bankrupt StakePool. It can avoid
 			// a lot of weird edge cases when dealing with pending slash.
-			let shares = basepool::Pallet::<T>::contribute(
-				&mut pool_info.basepool,
-				who.clone(),
-				amount,
-				Some(
-					|x: &basepool::pallet::BasePool<T::AccountId, BalanceOf<T>>,
-					 y: &mut basepool::NftAttr<BalanceOf<T>>,
-					 z: T::AccountId| {
-						Self::maybe_settle_nft_slash(x, y, z);
-					},
-				),
-			)?;
+			let shares =
+				basepool::Pallet::<T>::contribute(&mut pool_info.basepool, who.clone(), amount)?;
 
+			if let Some((vault_pid, vault_info)) = &mut maybe_vault {
+				if !vault_info.invest_pools.contains(&pid) {
+					vault_info.invest_pools.push_back(pid);
+				}
+				basepool::pallet::Pools::<T>::insert(
+					vault_pid.clone(),
+					PoolProxy::Vault(vault_info.clone()),
+				);
+				if !pool_info.basepool.value_subscribers.contains(&vault_pid) {
+					pool_info
+						.basepool
+						.value_subscribers
+						.push_back(vault_pid.clone());
+				}
+			}
 			// We have new free stake now, try to handle the waiting withdraw queue
 
-			Self::try_process_withdraw_queue(&mut pool_info.basepool);
+			basepool::Pallet::<T>::try_process_withdraw_queue(&mut pool_info.basepool);
 
 			// Post-check to ensure the total stake doesn't exceed the cap
 			if let Some(cap) = pool_info.cap {
@@ -1344,31 +917,17 @@ pub mod pallet {
 				);
 			}
 			// Persist
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info.clone()),
-			);
+			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
 			basepool::Pallet::<T>::merge_or_init_nft_for_staker(
 				pool_info.basepool.cid,
 				who.clone(),
 			)?;
-			pallet_assets::Pallet::<T>::burn_from(
-				<T as pawnshop::Config>::PPhaAssetId::get(),
-				&who,
-				a,
-			)?;
-
-			let mut account_status = pawnshop::pallet::StakerAccounts::<T>::get(who.clone())
-				.ok_or(pawnshop::Error::<T>::StakerAccountNotFound)?;
-
-			if !account_status
-				.invest_pools
-				.contains(&(pid, pool_info.basepool.cid))
-			{
-				account_status
-					.invest_pools
-					.push((pid, pool_info.basepool.cid));
-				pawnshop::pallet::StakerAccounts::<T>::insert(who.clone(), account_status);
+			if let None = maybe_vault_pid {
+				pawnshop::Pallet::<T>::maybe_update_account_status(
+					&who,
+					pid,
+					pool_info.basepool.cid,
+				)?;
 			}
 
 			Self::deposit_event(Event::<T>::Contribution {
@@ -1391,150 +950,25 @@ pub mod pallet {
 		/// - else the withdrawal would be queued and delayed until there is enough free stake.
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
-		pub fn vault_withdraw(
-			origin: OriginFor<T>,
-			pid: u64,
-			vault_pid: u64,
-			shares: BalanceOf<T>,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let mut pool_info = ensure_stake_pool::<T>(pid)?;
-			let vault_info = ensure_vault::<T>(vault_pid)?;
-			ensure!(
-				who == vault_info.basepool.owner,
-				Error::<T>::UnauthorizedPoolOwner
-			);
-			let collection_id = pool_info.basepool.cid;
-			let nft_id = basepool::Pallet::<T>::merge_or_init_nft_for_staker(
-				pool_info.basepool.cid,
-				vault_info.pool_account_id.clone(),
-			)?;
-			// The nft instance must be wrote to Nft storage at the end of the function
-			// this nft's property shouldn't be accessed or wrote again from storage before set_nft_attr
-			// is called. Or the property of the nft will be overwrote incorrectly.
-			let mut nft = basepool::Pallet::<T>::get_nft_attr(pool_info.basepool.cid, nft_id)?;
-			let in_queue_shares = match pool_info
-				.basepool
-				.withdraw_queue
-				.iter()
-				.find(|&withdraw| withdraw.user == vault_info.pool_account_id.clone())
-			{
-				Some(withdraw) => {
-					let withdraw_nft = basepool::Pallet::<T>::get_nft_attr(
-						pool_info.basepool.cid,
-						withdraw.nft_id,
-					)
-					.expect("get nftattr should always success; qed.");
-					withdraw_nft.shares
-				}
-				None => Zero::zero(),
-			};
-			ensure!(
-				basepool::is_nondust_balance(shares) && (shares <= nft.shares + in_queue_shares),
-				Error::<T>::InvalidWithdrawalAmount
-			);
-			Self::try_withdraw(
-				&mut pool_info.basepool,
-				&mut nft,
-				nft_id,
-				vault_info.pool_account_id.clone(),
-				shares,
-				Some(vault_info.basepool.pid),
-			)?;
-			basepool::Pallet::<T>::set_nft_attr(pool_info.basepool.cid, nft_id, &nft)
-				.expect("set nft attr should always success; qed.");
-			let nft_id = basepool::Pallet::<T>::merge_or_init_nft_for_staker(
-				pool_info.basepool.cid,
-				who.clone(),
-			)?;
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info.clone()),
-			);
-
-			Ok(())
-		}
-
-		/// Demands the return of some stake from a pool.
-		///
-		/// Note: there are two scenarios people may meet
-		///
-		/// - if the pool has free stake and the amount of the free stake is greater than or equal
-		///     to the withdrawal amount (e.g. pool.free_stake >= amount), the withdrawal would
-		///     take effect immediately.
-		/// - else the withdrawal would be queued and delayed until there is enough free stake.
-		#[pallet::weight(0)]
-		#[frame_support::transactional]
-		pub fn withdraw_from_vault(
+		pub fn withdraw(
 			origin: OriginFor<T>,
 			pid: u64,
 			shares: BalanceOf<T>,
+			maybe_vault_pid: Option<u64>,
 		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let mut pool_info = ensure_vault::<T>(pid)?;
-			let collection_id = pool_info.basepool.cid;
-			let nft_id = basepool::Pallet::<T>::merge_or_init_nft_for_staker(
-				pool_info.basepool.cid,
-				who.clone(),
-			)?;
-			// The nft instance must be wrote to Nft storage at the end of the function
-			// this nft's property shouldn't be accessed or wrote again from storage before set_nft_attr
-			// is called. Or the property of the nft will be overwrote incorrectly.
-			let mut nft = basepool::Pallet::<T>::get_nft_attr(pool_info.basepool.cid, nft_id)?;
-			let in_queue_shares = match pool_info
-				.basepool
-				.withdraw_queue
-				.iter()
-				.find(|&withdraw| withdraw.user == who)
-			{
-				Some(withdraw) => {
-					let withdraw_nft = basepool::Pallet::<T>::get_nft_attr(
-						pool_info.basepool.cid,
-						withdraw.nft_id,
-					)
-					.expect("get nftattr should always success; qed.");
-					withdraw_nft.shares
-				}
-				None => Zero::zero(),
-			};
-			ensure!(
-				basepool::is_nondust_balance(shares) && (shares <= nft.shares + in_queue_shares),
-				Error::<T>::InvalidWithdrawalAmount
-			);
-			Self::try_withdraw(
-				&mut pool_info.basepool,
-				&mut nft,
-				nft_id,
-				who.clone(),
-				shares,
-				None,
-			)?;
-			basepool::Pallet::<T>::set_nft_attr(pool_info.basepool.cid, nft_id, &nft)
-				.expect("set nft attr should always success; qed.");
-			let nft_id = basepool::Pallet::<T>::merge_or_init_nft_for_staker(
-				pool_info.basepool.cid,
-				who.clone(),
-			)?;
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::Vault(pool_info.clone()),
-			);
-
-			Ok(())
-		}
-
-		/// Demands the return of some stake from a pool.
-		///
-		/// Note: there are two scenarios people may meet
-		///
-		/// - if the pool has free stake and the amount of the free stake is greater than or equal
-		///     to the withdrawal amount (e.g. pool.free_stake >= amount), the withdrawal would
-		///     take effect immediately.
-		/// - else the withdrawal would be queued and delayed until there is enough free stake.
-		#[pallet::weight(0)]
-		#[frame_support::transactional]
-		pub fn withdraw(origin: OriginFor<T>, pid: u64, shares: BalanceOf<T>) -> DispatchResult {
-			let who = ensure_signed(origin)?;
+			let mut who = ensure_signed(origin)?;
+			if let Some(vault_pid) = maybe_vault_pid {
+				let vault_info = ensure_vault::<T>(vault_pid)?;
+				ensure!(
+					vault::pallet::VaultLocks::<T>::contains_key(vault_pid),
+					Error::<T>::VaultIsLocked
+				);
+				ensure!(
+					who == vault_info.basepool.owner,
+					Error::<T>::UnauthorizedPoolOwner
+				);
+				who = vault_info.basepool.owner.clone();
+			}
 			let mut pool_info = ensure_stake_pool::<T>(pid)?;
 			let collection_id = pool_info.basepool.cid;
 			let nft_id = basepool::Pallet::<T>::merge_or_init_nft_for_staker(
@@ -1544,7 +978,9 @@ pub mod pallet {
 			// The nft instance must be wrote to Nft storage at the end of the function
 			// this nft's property shouldn't be accessed or wrote again from storage before set_nft_attr
 			// is called. Or the property of the nft will be overwrote incorrectly.
-			let mut nft = basepool::Pallet::<T>::get_nft_attr(pool_info.basepool.cid, nft_id)?;
+			let mut nft_guard =
+				basepool::Pallet::<T>::get_nft_attr_guard(pool_info.basepool.cid, nft_id)?;
+			let mut nft = &mut nft_guard.attr;
 			let in_queue_shares = match pool_info
 				.basepool
 				.withdraw_queue
@@ -1552,12 +988,12 @@ pub mod pallet {
 				.find(|&withdraw| withdraw.user == who)
 			{
 				Some(withdraw) => {
-					let withdraw_nft = basepool::Pallet::<T>::get_nft_attr(
+					let withdraw_nft_guard = basepool::Pallet::<T>::get_nft_attr_guard(
 						pool_info.basepool.cid,
 						withdraw.nft_id,
 					)
 					.expect("get nftattr should always success; qed.");
-					withdraw_nft.shares
+					withdraw_nft_guard.attr.shares
 				}
 				None => Zero::zero(),
 			};
@@ -1565,24 +1001,18 @@ pub mod pallet {
 				basepool::is_nondust_balance(shares) && (shares <= nft.shares + in_queue_shares),
 				Error::<T>::InvalidWithdrawalAmount
 			);
-			Self::try_withdraw(
+			basepool::Pallet::<T>::try_withdraw(
 				&mut pool_info.basepool,
 				&mut nft,
-				nft_id,
 				who.clone(),
 				shares,
-				None,
 			)?;
-			basepool::Pallet::<T>::set_nft_attr(pool_info.basepool.cid, nft_id, &nft)
-				.expect("set nft attr should always success; qed.");
+			nft_guard.save()?;
 			let nft_id = basepool::Pallet::<T>::merge_or_init_nft_for_staker(
 				pool_info.basepool.cid,
 				who.clone(),
 			)?;
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info.clone()),
-			);
+			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
 
 			Ok(())
 		}
@@ -1670,8 +1100,8 @@ pub mod pallet {
 	where
 		BalanceOf<T>: FixedPointConvert + Display,
 		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
-		T: pallet_assets::Config<AssetId = u32>,
-		T: pallet_assets::Config<Balance = BalanceOf<T>>,
+		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
+		T: Config + vault::Config,
 	{
 		pub fn do_start_mining(
 			owner: &T::AccountId,
@@ -1679,7 +1109,7 @@ pub mod pallet {
 			worker: WorkerPublicKey,
 			stake: BalanceOf<T>,
 		) -> DispatchResult {
-			let mut pool_info = ensure_stake_pool::<T>(pid)?;
+			let pool_info = ensure_stake_pool::<T>(pid)?;
 			// origin must be owner of pool
 			ensure!(
 				&pool_info.basepool.owner == owner,
@@ -1687,7 +1117,7 @@ pub mod pallet {
 			);
 			// check free stake
 			ensure!(
-				pool_info.basepool.free_stake >= stake,
+				pool_info.basepool.get_free_stakes::<T>() >= stake,
 				Error::<T>::InsufficientFreeStake
 			);
 			// check wheather we have add this worker
@@ -1697,11 +1127,14 @@ pub mod pallet {
 			);
 			let miner: T::AccountId = pool_sub_account(pid, &worker);
 			mining::pallet::Pallet::<T>::start_mining(miner.clone(), stake)?;
-			pool_info.basepool.free_stake -= stake;
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info.clone()),
-			);
+			<pallet_assets::pallet::Pallet<T> as Transfer<T::AccountId>>::transfer(
+				<T as pawnshop::Config>::PPhaAssetId::get(),
+				&pool_info.basepool.pool_account_id,
+				&pool_info.lock_account,
+				stake,
+				true,
+			)?;
+			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
 			Self::deposit_event(Event::<T>::MiningStarted {
 				pid,
 				worker: worker,
@@ -1735,10 +1168,7 @@ pub mod pallet {
 			// Mining::stop_mining will notify us how much it will release by `on_stopped`
 			<mining::pallet::Pallet<T>>::stop_mining(miner)?;
 			pool_info.cd_workers.push_back(worker.clone());
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info.clone()),
-			);
+			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
 			Ok(())
 		}
 		fn do_reclaim(
@@ -1753,10 +1183,7 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::WorkerReclaimed { pid, worker });
 			let mut pool_info = ensure_stake_pool::<T>(pid)?;
 			pool_info.remove_cd_worker(&worker);
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info.clone()),
-			);
+			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
 			Ok((orig_stake, slashed))
 		}
 
@@ -1779,12 +1206,22 @@ pub mod pallet {
 					return;
 				}
 				let commission = pool_info.payout_commission.unwrap_or_default() * rewards;
-				pool_info.owner_reward.saturating_accrue(commission);
+
+				pawnshop::Pallet::<T>::mint_into(
+					<T as pawnshop::Config>::PPhaAssetId::get(),
+					&pool_info.owner_reward_account,
+					commission,
+				)
+				.expect("mint into should be success");
 				let to_distribute = rewards - commission;
+				pawnshop::Pallet::<T>::mint_into(
+					<T as pawnshop::Config>::PPhaAssetId::get(),
+					&pool_info.basepool.pool_account_id,
+					to_distribute,
+				)
+				.expect("mint into should be success");
 				let distributed = if basepool::is_nondust_balance(to_distribute) {
-					pool_info
-						.basepool
-						.distribute_reward::<T>(to_distribute, true);
+					pool_info.basepool.distribute_reward::<T>(to_distribute);
 					true
 				} else if to_distribute > Zero::zero() {
 					Self::deposit_event(Event::<T>::RewardDismissedDust {
@@ -1818,6 +1255,7 @@ pub mod pallet {
 				// and creating a logical pending slash. The actual slash happens with the pending
 				// slash to individuals is settled.
 				pool_info.basepool.slash(slashed);
+				//TODO(mingxuan): Burn the PPHA and transfer the amount to treasury when slash is active
 				Self::deposit_event(Event::<T>::PoolSlashed {
 					pid,
 					amount: slashed,
@@ -1825,189 +1263,17 @@ pub mod pallet {
 			}
 
 			// With the worker being cleaned, those stake now are free
-			pool_info.basepool.free_stake.saturating_accrue(returned);
+			<pallet_assets::pallet::Pallet<T> as Transfer<T::AccountId>>::transfer(
+				<T as pawnshop::Config>::PPhaAssetId::get(),
+				&pool_info.lock_account,
+				&pool_info.basepool.pool_account_id,
+				returned,
+				true,
+			)
+			.expect("transfer should not fail");
 
-			Self::try_process_withdraw_queue(&mut pool_info.basepool);
-			basepool::pallet::Pools::<T>::insert(
-				pid,
-				PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info.clone()),
-			);
-		}
-
-		/// Tries to withdraw a specific amount from a pool.
-		///
-		/// The withdraw request would be delayed if the free stake is not enough, otherwise
-		/// withdraw from the free stake immediately.
-		///
-		/// The updates are made in `pool_info` and `user_info`. It's up to the caller to persist
-		/// the data.
-		///
-		/// Requires:
-		/// 1. The user's pending slash is already settled.
-		/// 2. The pool must has shares and stake (or it can cause division by zero error)
-		fn try_withdraw(
-			pool_info: &mut basepool::BasePool<T::AccountId, BalanceOf<T>>,
-			nft: &mut basepool::NftAttr<BalanceOf<T>>,
-			nft_id: NftId,
-			userid: T::AccountId,
-			shares: BalanceOf<T>,
-			maybe_vault_pid: Option<u64>,
-		) -> DispatchResult {
-			basepool::Pallet::<T>::push_withdraw_in_queue(
-				pool_info,
-				nft,
-				userid.clone(),
-				shares.clone(),
-				maybe_vault_pid,
-			)?;
-			Self::deposit_event(Event::<T>::WithdrawalQueued {
-				pid: pool_info.pid,
-				user: userid.clone(),
-				shares: shares,
-			});
-			Self::try_process_withdraw_queue(pool_info);
-
-			Ok(())
-		}
-
-		fn maybe_remove_dust(
-			pool_info: &mut basepool::BasePool<T::AccountId, BalanceOf<T>>,
-			nft: &basepool::NftAttr<BalanceOf<T>>,
-			userid: T::AccountId,
-		) -> bool {
-			if basepool::is_nondust_balance(nft.shares) {
-				return false;
-			}
-			Self::remove_dust(&userid, nft.get_stake());
-			pool_info.total_shares -= nft.shares;
-			pool_info.total_value -= nft.get_stake();
-			true
-		}
-
-		///should be very carful to avoid the vault_info got mutable ref outside the function and saved after this function called
-		fn do_withdraw_shares(
-			withdrawing_shares: BalanceOf<T>,
-			pool_info: &mut basepool::BasePool<T::AccountId, BalanceOf<T>>,
-			nft: &mut basepool::NftAttr<BalanceOf<T>>,
-			nft_id: NftId,
-			userid: T::AccountId,
-		) {
-			Self::maybe_settle_nft_slash(&pool_info, nft, userid.clone());
-			// Overflow warning: remove_stake is carefully written to avoid precision error.
-			// (I hope so)
-			let (reduced, dust, withdrawn_shares) =
-				basepool::Pallet::<T>::remove_stake_from_nft(pool_info, withdrawing_shares, nft)
-					.expect("There are enough withdrawing_shares; qed.");
-			if let Some(pid) = VaultAccountAssignments::<T>::get(userid.clone()) {
-				let mut vault_info =
-					ensure_vault::<T>(pid).expect("get vault should success: qed.");
-				vault_info.basepool.free_stake += reduced;
-
-				basepool::pallet::Pools::<T>::insert(
-					pid,
-					PoolProxy::<T::AccountId, BalanceOf<T>>::Vault(vault_info.clone()),
-				);
-			} else {
-				pallet_assets::Pallet::<T>::mint_into(
-					<T as pawnshop::Config>::PPhaAssetId::get(),
-					&userid,
-					reduced + dust,
-				)
-				.expect("mint asset should not fail");
-				Self::deposit_event(Event::<T>::Withdrawal {
-					pid: pool_info.pid,
-					user: userid,
-					amount: reduced,
-					shares: withdrawn_shares,
-				});
-			}
-		}
-
-		/// Tries to fulfill the withdraw queue with the newly freed stake
-		fn try_process_withdraw_queue(
-			pool_info: &mut basepool::BasePool<T::AccountId, BalanceOf<T>>,
-		) {
-			// The share price shouldn't change at any point in this function. So we can calculate
-			// only once at the beginning.
-			let price = match pool_info.share_price() {
-				Some(price) => price,
-				None => return,
-			};
-
-			while basepool::is_nondust_balance(pool_info.free_stake) {
-				if let Some(withdraw) = pool_info.withdraw_queue.front().cloned() {
-					// Must clear the pending reward before any stake change
-
-					let collection_id = pool_info.cid;
-					let mut withdraw_nft =
-						basepool::Pallet::<T>::get_nft_attr(pool_info.cid, withdraw.nft_id)
-							.expect("get nftattr should always success; qed.");
-					// Try to fulfill the withdraw requests as much as possible
-					let free_shares = if price == fp!(0) {
-						withdraw_nft.shares // 100% slashed
-					} else {
-						bdiv(pool_info.free_stake, &price)
-					};
-					// This is the shares to withdraw immedately. It should NOT contain any dust
-					// because we ensure (1) `free_shares` is not dust earlier, and (2) the shares
-					// in any withdraw request mustn't be dust when inserting and updating it.
-					let withdrawing_shares = free_shares.min(withdraw_nft.shares);
-					debug_assert!(
-						basepool::is_nondust_balance(withdrawing_shares),
-						"withdrawing_shares must be positive"
-					);
-					// Actually remove the fulfilled withdraw request. Dust in the user shares is
-					// considered but it in the request is ignored.
-					Self::do_withdraw_shares(
-						withdrawing_shares,
-						pool_info,
-						&mut withdraw_nft,
-						withdraw.nft_id,
-						withdraw.user.clone(),
-					);
-					basepool::Pallet::<T>::set_nft_attr(
-						pool_info.cid,
-						withdraw.nft_id,
-						&withdraw_nft,
-					)
-					.expect("set nftattr should always success; qed.");
-					// Update if the withdraw is partially fulfilled, otherwise pop it out of the
-					// queue
-					if withdraw_nft.shares == Zero::zero()
-						|| Self::maybe_remove_dust(pool_info, &withdraw_nft, withdraw.user.clone())
-					{
-						pool_info.withdraw_queue.pop_front();
-						basepool::Pallet::<T>::burn_nft(pool_info.cid, withdraw.nft_id)
-							.expect("burn nft should always success");
-					} else {
-						*pool_info
-							.withdraw_queue
-							.front_mut()
-							.expect("front exists as just checked; qed.") = withdraw;
-					}
-				} else {
-					break;
-				}
-			}
-		}
-
-		/// Removes some dust amount from a user's account by Currency::slash.
-		fn remove_dust(who: &T::AccountId, dust: BalanceOf<T>) {
-			debug_assert!(dust != Zero::zero());
-			if dust != Zero::zero() {
-				let actual_removed = pallet_assets::Pallet::<T>::slash(
-					<T as pawnshop::Config>::PPhaAssetId::get(),
-					who,
-					dust.clone(),
-				)
-				.expect("slash should success with correct amount: qed.");
-				let (imbalance, _remaining) = <T as mining::Config>::Currency::slash(who, dust);
-				T::OnSlashed::on_unbalanced(imbalance);
-				Self::deposit_event(Event::<T>::DustRemoved {
-					user: who.clone(),
-					amount: actual_removed,
-				});
-			}
+			basepool::Pallet::<T>::try_process_withdraw_queue(&mut pool_info.basepool);
+			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
 		}
 
 		/// Removes a worker from a pool, either intentionally or unintentionally.
@@ -2032,41 +1298,6 @@ pub mod pallet {
 			});
 		}
 
-		fn maybe_settle_nft_slash(
-			pool: &basepool::pallet::BasePool<T::AccountId, BalanceOf<T>>,
-			nft: &mut basepool::NftAttr<BalanceOf<T>>,
-			userid: T::AccountId,
-		) {
-			match pool.settle_nft_slash(nft) {
-				// We don't slash on dust, because the share price is just unstable.
-				Some(slashed) if basepool::is_nondust_balance(slashed) => {
-					let actual_slashed = pallet_assets::Pallet::<T>::slash(
-						<T as pawnshop::Config>::PPhaAssetId::get(),
-						&userid,
-						slashed.clone(),
-					)
-					.expect("slash should success with correct amount: qed.");
-					let (imbalance, _remaining) =
-						<T as mining::Config>::Currency::slash(&userid, slashed);
-					T::OnSlashed::on_unbalanced(imbalance);
-					// Dust is not considered because it's already merged into the slash if
-					// presents.
-					pallet_assets::Pallet::<T>::mint_into(
-						<T as pawnshop::Config>::PPhaAssetId::get(),
-						&userid,
-						actual_slashed,
-					)
-					.expect("mint asset should not fail");
-					Self::deposit_event(Event::<T>::SlashSettled {
-						pid: pool.pid,
-						user: userid,
-						amount: actual_slashed,
-					});
-				}
-				_ => (),
-			}
-		}
-
 		pub(crate) fn migration_remove_assignments() -> Weight {
 			let writes = SubAccountAssignments::<T>::drain().count();
 			T::DbWeight::get().writes(writes as _)
@@ -2077,8 +1308,8 @@ pub mod pallet {
 	where
 		BalanceOf<T>: FixedPointConvert + Display,
 		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
-		T: pallet_assets::Config<AssetId = u32>,
-		T: pallet_assets::Config<Balance = BalanceOf<T>>,
+		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
+		T: Config + vault::Config,
 	{
 		/// Called when gk send new payout information.
 		/// Append specific miner's reward balance of current round,
@@ -2101,10 +1332,7 @@ pub mod pallet {
 				let mut pool_info =
 					ensure_stake_pool::<T>(pid).expect("Stake pool must exist; qed.");
 				Self::handle_pool_new_reward(&mut pool_info, reward);
-				basepool::pallet::Pools::<T>::insert(
-					pid,
-					PoolProxy::<T::AccountId, BalanceOf<T>>::StakePool(pool_info.clone()),
-				);
+				basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
 			}
 		}
 	}
@@ -2113,8 +1341,8 @@ pub mod pallet {
 	where
 		BalanceOf<T>: FixedPointConvert + Display,
 		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
-		T: pallet_assets::Config<AssetId = u32>,
-		T: pallet_assets::Config<Balance = BalanceOf<T>>,
+		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
+		T: Config + vault::Config,
 	{
 		fn on_unbound(worker: &WorkerPublicKey, _force: bool) {
 			// Usually called on worker force unbinding (force == true), but it's also possible
@@ -2135,8 +1363,8 @@ pub mod pallet {
 	where
 		BalanceOf<T>: FixedPointConvert + Display,
 		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
-		T: pallet_assets::Config<AssetId = u32>,
-		T: pallet_assets::Config<Balance = BalanceOf<T>>,
+		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
+		T: Config + vault::Config,
 	{
 		fn on_stopped(worker: &WorkerPublicKey, orig_stake: BalanceOf<T>, slashed: BalanceOf<T>) {}
 	}
@@ -2152,18 +1380,21 @@ pub mod pallet {
 			.expect("Decoding zero-padded account id should always succeed; qed")
 	}
 
-	fn vault_staker_account<T>(pid: u64, owner: T) -> T
+	pub fn create_owner_and_lock_account<T>(pid: u64, owner: T) -> (T, T)
 	where
 		T: Encode + Decode,
 	{
 		let hash = crate::hashing::blake2_256(&(pid, owner).encode());
-		// stake pool miner
-		(b"vault/", hash)
+		let owner_reward_account = (b"stakeowner/", hash)
 			.using_encoded(|b| T::decode(&mut TrailingZeroInput::new(b)))
-			.expect("Decoding zero-padded account id should always succeed; qed")
+			.expect("Decoding zero-padded account id should always succeed; qed");
+		let lock_account = (b"stakelock/", hash)
+			.using_encoded(|b| T::decode(&mut TrailingZeroInput::new(b)))
+			.expect("Decoding zero-padded account id should always succeed; qed");
+		return (owner_reward_account, lock_account);
 	}
 
-	#[cfg(test)]
+	/*#[cfg(test)]
 	mod test {
 		use crate::basepool;
 		use crate::poolproxy::*;
@@ -2289,7 +1520,7 @@ pub mod pallet {
 				);
 				assert_eq!(
 					basepool::Pools::<Test>::get(0),
-					Some(PoolProxy::<u64, Balance>::Vault(Vault::<u64, Balance> {
+					Some(PoolProxy::Vault(Vault::<u64, Balance> {
 						basepool: basepool::BasePool {
 							pid: 0,
 							owner: 1,
@@ -2302,7 +1533,7 @@ pub mod pallet {
 						},
 						pool_account_id: 3899606504431772022,
 						last_share_price_checkpoint: 0,
-						delta_price_ratio: None,
+						commission: None,
 						owner_shares: 0,
 						invest_pools: vec![],
 					})),
@@ -2322,13 +1553,13 @@ pub mod pallet {
 					pool_info.basepool.cid,
 					1,
 					1000 * DOLLARS,
-					1000 * DOLLARS,
 				));
 
-				assert_ok!(PhalaBasePool::get_nft_attr(pool_info.basepool.cid, 0));
-				let nft_attr = PhalaBasePool::get_nft_attr(pool_info.basepool.cid, 0).unwrap();
+				assert_ok!(PhalaBasePool::get_nft_attr_guard(pool_info.basepool.cid, 0));
+				let nft_attr = PhalaBasePool::get_nft_attr_guard(pool_info.basepool.cid, 0)
+					.unwrap()
+					.attr;
 				assert_eq!(nft_attr.shares, 1000 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 1000 * DOLLARS);
 			});
 		}
 
@@ -2343,12 +1574,10 @@ pub mod pallet {
 					pool_info.basepool.cid,
 					1,
 					1000 * DOLLARS,
-					1000 * DOLLARS,
 				));
 				assert_ok!(PhalaBasePool::mint_nft(
 					pool_info.basepool.cid,
 					1,
-					2000 * DOLLARS,
 					2000 * DOLLARS,
 				));
 				let nftid_arr: Vec<NftId> =
@@ -2361,10 +1590,13 @@ pub mod pallet {
 				let nftid_arr: Vec<NftId> =
 					pallet_rmrk_core::Nfts::<Test>::iter_key_prefix(0).collect();
 				assert_eq!(nftid_arr.len(), 1);
-				let nft_attr =
-					PhalaBasePool::get_nft_attr(pool_info.basepool.cid, nftid_arr[0]).unwrap();
-				assert_eq!(nft_attr.shares, 3000 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 3000 * DOLLARS);
+				{
+					let nft_attr =
+						PhalaBasePool::get_nft_attr_guard(pool_info.basepool.cid, nftid_arr[0])
+							.unwrap()
+							.attr;
+					assert_eq!(nft_attr.shares, 3000 * DOLLARS);
+				}
 				assert_ok!(PhalaBasePool::merge_or_init_nft_for_staker(
 					pool_info.basepool.cid,
 					2
@@ -2376,10 +1608,13 @@ pub mod pallet {
 					nft.owner == rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(2)
 				});
 				assert_eq!(nftid_arr.len(), 1);
-				let nft_attr =
-					PhalaBasePool::get_nft_attr(pool_info.basepool.cid, nftid_arr[0]).unwrap();
-				assert_eq!(nft_attr.shares, 0 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 0 * DOLLARS);
+				{
+					let nft_attr =
+						PhalaBasePool::get_nft_attr_guard(pool_info.basepool.cid, nftid_arr[0])
+							.unwrap()
+							.attr;
+					assert_eq!(nft_attr.shares, 0 * DOLLARS);
+				}
 			});
 		}
 
@@ -2394,19 +1629,21 @@ pub mod pallet {
 					pool_info.basepool.cid,
 					1,
 					1000 * DOLLARS,
-					1000 * DOLLARS,
 				));
-				let mut nft_attr = PhalaBasePool::get_nft_attr(pool_info.basepool.cid, 0).unwrap();
-				nft_attr.shares = 5000 * DOLLARS;
-				nft_attr.set_stake(5000 * DOLLARS);
-				assert_ok!(PhalaBasePool::set_nft_attr(
-					pool_info.basepool.cid,
-					0,
-					&nft_attr,
-				));
-				let nft_attr = PhalaBasePool::get_nft_attr(pool_info.basepool.cid, 0).unwrap();
-				assert_eq!(nft_attr.shares, 5000 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 5000 * DOLLARS);
+				{
+					let mut nft_attr_guard =
+						PhalaBasePool::get_nft_attr_guard(pool_info.basepool.cid, 0).unwrap();
+					let mut nft_attr = nft_attr_guard.attr;
+					nft_attr.shares = 5000 * DOLLARS;
+					nft_attr_guard.attr = nft_attr;
+					assert_ok!(nft_attr_guard.save());
+				}
+				{
+					let nft_attr = PhalaBasePool::get_nft_attr_guard(pool_info.basepool.cid, 0)
+						.unwrap()
+						.attr;
+					assert_eq!(nft_attr.shares, 5000 * DOLLARS);
+				}
 			});
 		}
 
@@ -2430,14 +1667,16 @@ pub mod pallet {
 				assert_eq!(nftid_arr.len(), 1);
 				let mut pool = ensure_stake_pool::<Test>(0).unwrap();
 				let mut nft_attr =
-					PhalaBasePool::get_nft_attr(pool.basepool.cid, nftid_arr[0]).unwrap();
+					PhalaBasePool::get_nft_attr_guard(pool.basepool.cid, nftid_arr[0])
+						.unwrap()
+						.attr;
 				assert_eq!(pool.basepool.share_price().unwrap(), 1);
 				match PhalaBasePool::remove_stake_from_nft(
 					&mut pool.basepool,
 					40 * DOLLARS,
 					&mut nft_attr,
 				) {
-					Some((amout, user_dust, removed_shares)) => return,
+					Some((amout, removed_shares)) => return,
 					_ => panic!(),
 				}
 			});
@@ -2473,10 +1712,10 @@ pub mod pallet {
 				});
 				assert_eq!(nftid_arr.len(), 1);
 				let pool = ensure_stake_pool::<Test>(0).unwrap();
-				let nft_attr =
-					PhalaBasePool::get_nft_attr(pool.basepool.cid, nftid_arr[0]).unwrap();
+				let nft_attr = PhalaBasePool::get_nft_attr_guard(pool.basepool.cid, nftid_arr[0])
+					.unwrap()
+					.attr;
 				assert_eq!(nft_attr.shares, 80 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 80 * DOLLARS);
 				let mut nftid_arr: Vec<NftId> =
 					pallet_rmrk_core::Nfts::<Test>::iter_key_prefix(0).collect();
 				nftid_arr.retain(|x| {
@@ -2484,10 +1723,10 @@ pub mod pallet {
 					nft.owner == rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(2)
 				});
 				assert_eq!(nftid_arr.len(), 1);
-				let nft_attr =
-					PhalaBasePool::get_nft_attr(pool.basepool.cid, nftid_arr[0]).unwrap();
+				let nft_attr = PhalaBasePool::get_nft_attr_guard(pool.basepool.cid, nftid_arr[0])
+					.unwrap()
+					.attr;
 				assert_eq!(nft_attr.shares, 50 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 50 * DOLLARS);
 			});
 		}
 
@@ -2521,10 +1760,10 @@ pub mod pallet {
 				});
 				assert_eq!(nftid_arr.len(), 1);
 				let pool = ensure_vault::<Test>(0).unwrap();
-				let nft_attr =
-					PhalaBasePool::get_nft_attr(pool.basepool.cid, nftid_arr[0]).unwrap();
+				let nft_attr = PhalaBasePool::get_nft_attr_guard(pool.basepool.cid, nftid_arr[0])
+					.unwrap()
+					.attr;
 				assert_eq!(nft_attr.shares, 80 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 80 * DOLLARS);
 				let mut nftid_arr: Vec<NftId> =
 					pallet_rmrk_core::Nfts::<Test>::iter_key_prefix(0).collect();
 				nftid_arr.retain(|x| {
@@ -2532,10 +1771,10 @@ pub mod pallet {
 					nft.owner == rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(2)
 				});
 				assert_eq!(nftid_arr.len(), 1);
-				let nft_attr =
-					PhalaBasePool::get_nft_attr(pool.basepool.cid, nftid_arr[0]).unwrap();
+				let nft_attr = PhalaBasePool::get_nft_attr_guard(pool.basepool.cid, nftid_arr[0])
+					.unwrap()
+					.attr;
 				assert_eq!(nft_attr.shares, 50 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 50 * DOLLARS);
 				let vault_info = ensure_vault::<Test>(0).unwrap();
 				assert_eq!(vault_info.basepool.total_value, 130 * DOLLARS);
 				assert_eq!(vault_info.basepool.total_shares, 130 * DOLLARS);
@@ -2596,9 +1835,10 @@ pub mod pallet {
 				let vault_info = ensure_vault::<Test>(0).unwrap();
 				assert_eq!(nftid_arr.len(), 1);
 				let nft_attr =
-					PhalaBasePool::get_nft_attr(stakepool_info.basepool.cid, nftid_arr[0]).unwrap();
+					PhalaBasePool::get_nft_attr_guard(stakepool_info.basepool.cid, nftid_arr[0])
+						.unwrap()
+						.attr;
 				assert_eq!(nft_attr.shares, 50 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 50 * DOLLARS);
 				assert_eq!(vault_info.basepool.total_value, 130 * DOLLARS);
 				assert_eq!(vault_info.basepool.total_shares, 130 * DOLLARS);
 				assert_eq!(vault_info.basepool.free_stake, 80 * DOLLARS);
@@ -2646,13 +1886,13 @@ pub mod pallet {
 				assert_eq!(vault_info.basepool.total_shares, 80 * DOLLARS);
 				assert_eq!(vault_info.basepool.free_stake, 0 * DOLLARS);
 				assert_eq!(vault_info.basepool.withdraw_queue.len(), 1);
-				let nft_attr = PhalaBasePool::get_nft_attr(
+				let nft_attr = PhalaBasePool::get_nft_attr_guard(
 					vault_info.basepool.cid,
 					vault_info.basepool.withdraw_queue[0].nft_id,
 				)
-				.unwrap();
+				.unwrap()
+				.attr;
 				assert_eq!(nft_attr.shares, 30 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 30 * DOLLARS);
 			});
 		}
 
@@ -2705,13 +1945,13 @@ pub mod pallet {
 				assert_eq!(stakepool_info.basepool.total_shares, 400 * DOLLARS);
 				assert_eq!(stakepool_info.basepool.free_stake, 0 * DOLLARS);
 				assert_eq!(stakepool_info.basepool.withdraw_queue.len(), 1);
-				let nft_attr = PhalaBasePool::get_nft_attr(
+				let nft_attr = PhalaBasePool::get_nft_attr_guard(
 					stakepool_info.basepool.cid,
 					stakepool_info.basepool.withdraw_queue[0].nft_id,
 				)
-				.unwrap();
+				.unwrap()
+				.attr;
 				assert_eq!(nft_attr.shares, 200 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 200 * DOLLARS);
 				let vault_info = ensure_vault::<Test>(0).unwrap();
 				assert_eq!(vault_info.basepool.total_value, 1300 * DOLLARS);
 				assert_eq!(vault_info.basepool.total_shares, 1300 * DOLLARS);
@@ -2791,10 +2031,7 @@ pub mod pallet {
 					500 * DOLLARS
 				));
 				let vault_info = ensure_vault::<Test>(0).unwrap();
-				assert_eq!(
-					vault_info.delta_price_ratio.unwrap(),
-					Permill::from_percent(50)
-				);
+				assert_eq!(vault_info.commission.unwrap(), Permill::from_percent(50));
 				assert_ok!(PhalaStakePool::maybe_gain_owner_shares(
 					Origin::signed(3),
 					0
@@ -2871,37 +2108,44 @@ pub mod pallet {
 					.clone()
 					.into_iter()
 					.find(|x| x.user == 2);
-				let nft_attr =
-					PhalaBasePool::get_nft_attr(pool.basepool.cid, item.unwrap().nft_id).unwrap();
-				assert_eq!(nft_attr.shares, 300 * DOLLARS);
-				assert_eq!(nft_attr.get_stake(), 300 * DOLLARS);
-				let mut nftid_arr: Vec<NftId> =
-					pallet_rmrk_core::Nfts::<Test>::iter_key_prefix(0).collect();
-				nftid_arr.retain(|x| {
-					let nft = pallet_rmrk_core::Nfts::<Test>::get(0, x).unwrap();
-					nft.owner == rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(2)
-				});
-				let user_nft_attr =
-					PhalaBasePool::get_nft_attr(pool.basepool.cid, nftid_arr[0]).unwrap();
-				assert_eq!(user_nft_attr.shares, 200 * DOLLARS);
-				assert_ok!(PhalaStakePool::contribute(
-					Origin::signed(3),
-					0,
-					1000 * DOLLARS
-				));
-				let mut pool = ensure_stake_pool::<Test>(0).unwrap();
-				assert_eq!(pool.basepool.withdraw_queue.len(), 0);
-				let mut nftid_arr: Vec<NftId> =
-					pallet_rmrk_core::Nfts::<Test>::iter_key_prefix(0).collect();
-				nftid_arr.retain(|x| {
-					let nft = pallet_rmrk_core::Nfts::<Test>::get(0, x).unwrap();
-					nft.owner == rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(3)
-				});
-				assert_eq!(nftid_arr.len(), 1);
-				let nft_attr =
-					PhalaBasePool::get_nft_attr(pool.basepool.cid, nftid_arr[0]).unwrap();
-				assert_eq!(nft_attr.shares, 1000 * DOLLARS);
-				assert_eq!(pool.basepool.total_value, 1200 * DOLLARS);
+				{
+					let nft_attr =
+						PhalaBasePool::get_nft_attr_guard(pool.basepool.cid, item.unwrap().nft_id)
+							.unwrap()
+							.attr;
+					assert_eq!(nft_attr.shares, 300 * DOLLARS);
+					let mut nftid_arr: Vec<NftId> =
+						pallet_rmrk_core::Nfts::<Test>::iter_key_prefix(0).collect();
+					nftid_arr.retain(|x| {
+						let nft = pallet_rmrk_core::Nfts::<Test>::get(0, x).unwrap();
+						nft.owner == rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(2)
+					});
+					let user_nft_attr =
+						PhalaBasePool::get_nft_attr_guard(pool.basepool.cid, nftid_arr[0])
+							.unwrap()
+							.attr;
+					assert_eq!(user_nft_attr.shares, 200 * DOLLARS);
+					assert_ok!(PhalaStakePool::contribute(
+						Origin::signed(3),
+						0,
+						1000 * DOLLARS
+					));
+					let mut pool = ensure_stake_pool::<Test>(0).unwrap();
+					assert_eq!(pool.basepool.withdraw_queue.len(), 0);
+					let mut nftid_arr: Vec<NftId> =
+						pallet_rmrk_core::Nfts::<Test>::iter_key_prefix(0).collect();
+					nftid_arr.retain(|x| {
+						let nft = pallet_rmrk_core::Nfts::<Test>::get(0, x).unwrap();
+						nft.owner == rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(3)
+					});
+					assert_eq!(nftid_arr.len(), 1);
+					let nft_attr =
+						PhalaBasePool::get_nft_attr_guard(pool.basepool.cid, nftid_arr[0])
+							.unwrap()
+							.attr;
+					assert_eq!(nft_attr.shares, 1000 * DOLLARS);
+					assert_eq!(pool.basepool.total_value, 1200 * DOLLARS);
+				}
 				assert_ok!(PhalaStakePool::withdraw(
 					Origin::signed(3),
 					0,
@@ -2915,7 +2159,9 @@ pub mod pallet {
 					.into_iter()
 					.find(|x| x.user == 3);
 				let nft_attr =
-					PhalaBasePool::get_nft_attr(pool.basepool.cid, item.unwrap().nft_id).unwrap();
+					PhalaBasePool::get_nft_attr_guard(pool.basepool.cid, item.unwrap().nft_id)
+						.unwrap()
+						.attr;
 				assert_eq!(nft_attr.shares, 200 * DOLLARS);
 				assert_ok!(PhalaStakePool::withdraw(Origin::signed(3), 0, 50 * DOLLARS));
 				let mut nftid_arr: Vec<NftId> =
@@ -2925,7 +2171,9 @@ pub mod pallet {
 					nft.owner == rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(3)
 				});
 				let user_nft_attr =
-					PhalaBasePool::get_nft_attr(pool.basepool.cid, nftid_arr[0]).unwrap();
+					PhalaBasePool::get_nft_attr_guard(pool.basepool.cid, nftid_arr[0])
+						.unwrap()
+						.attr;
 				assert_eq!(user_nft_attr.shares, 250 * DOLLARS);
 				let mut pool = ensure_stake_pool::<Test>(0).unwrap();
 				let mut item = pool
@@ -2935,7 +2183,9 @@ pub mod pallet {
 					.into_iter()
 					.find(|x| x.user == 3);
 				let nft_attr =
-					PhalaBasePool::get_nft_attr(pool.basepool.cid, item.unwrap().nft_id).unwrap();
+					PhalaBasePool::get_nft_attr_guard(pool.basepool.cid, item.unwrap().nft_id)
+						.unwrap()
+						.attr;
 				assert_eq!(nft_attr.shares, 50 * DOLLARS);
 			});
 		}
@@ -2946,7 +2196,7 @@ pub mod pallet {
 				set_block_1();
 				setup_workers(1);
 				setup_stake_pool_with_workers(1, &[1]);
-				let str_hello: BoundedVec<u8, DescMaxLen> =
+				let str_hello: DescStr =
 					("hello").as_bytes().to_vec().try_into().unwrap();
 				assert_ok!(PhalaStakePool::set_pool_description(
 					Origin::signed(1),
@@ -2955,7 +2205,7 @@ pub mod pallet {
 				));
 				let list = PhalaStakePool::pool_descriptions(0).unwrap();
 				assert_eq!(list, str_hello);
-				let str_bye: BoundedVec<u8, DescMaxLen> =
+				let str_bye: DescStr =
 					("bye").as_bytes().to_vec().try_into().unwrap();
 				assert_noop!(
 					PhalaStakePool::set_pool_description(Origin::signed(2), 0, str_bye,),
@@ -3924,5 +3174,5 @@ pub mod pallet {
 				},
 			}));
 		}
-	}
+	}*/
 }

@@ -105,7 +105,7 @@ use rmrk_traits::{primitives::*, NftChild};
 pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
-pub use phala_pallets_v2::{pallet_fat, pallet_mining, pallet_mq, pallet_registry, pallet_stakepool, pallet_basepool, pallet_pawnshop,};
+pub use phala_pallets_v2::{pallet_fat, pallet_mining, pallet_mq, pallet_registry, pallet_stakepool, pallet_basepool, pallet_pawnshop, pallet_vault};
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
     xcmbridge, xtransfer,
@@ -273,6 +273,7 @@ construct_runtime! {
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 91,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 92,
         PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 93,
+        PhalaVault: pallet_vault::{Pallet, Call, Event<T>, Storage} = 94,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` was used in Khala, we avoid to use the index
@@ -1537,9 +1538,12 @@ impl pallet_stakepool::Config for Runtime {
     type GracePeriod = MiningGracePeriod;
     type MiningEnabledByDefault = MiningEnabledByDefault;
     type MaxPoolWorkers = MaxPoolWorkers;
-    type OnSlashed = Treasury;
     type MiningSwitchOrigin = EnsureRootOrHalfCouncil;
     type BackfillOrigin = EnsureRootOrHalfCouncil;
+}
+impl pallet_vault::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
 }
 impl pallet_fat::Config for Runtime {
     type Event = Event;
@@ -1564,6 +1568,7 @@ impl pallet_pawnshop::Config for Runtime {
 	type Currency = Balances;
 	type PPhaAssetId = PPhaAssetId;
 	type PawnShopAccountId = PawnShopGet;
+    type OnSlashed = Treasury;
 }
 
 impl pallet_basepool::Config for Runtime {
