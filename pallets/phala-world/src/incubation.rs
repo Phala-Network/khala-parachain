@@ -2,10 +2,11 @@
 
 pub use crate::pallet_pw_nft_sale;
 pub use crate::traits::{
-	primitives::*, CareerType, FoodInfo, PartInfo, RaceType, RarityType, ShellPartInfo, ShellParts,
+	primitives::*, property_value, CareerType, FoodInfo, PartInfo, RaceType, RarityType,
+	ShellPartInfo, ShellParts,
 };
 use alloc::vec;
-use codec::{alloc, Decode, Encode};
+use codec::{alloc, Decode};
 use frame_support::{
 	ensure,
 	pallet_prelude::Get,
@@ -479,53 +480,15 @@ pub mod pallet {
 				};
 				// Add shell part properties
 				let mut shell_part_properties = parts_properties.clone();
-				let slot_name_value: BoundedVec<u8, T::ValueLimit> = slot_name
-					.encode()
-					.try_into()
-					.expect("[slot_name] should not fail");
+				let slot_name_value = property_value(&slot_name);
 				// Append shell part properties
 				shell_part_properties.append(&mut vec![
-					(
-						"name",
-						part_info
-							.name
-							.encode()
-							.try_into()
-							.expect("[name] should not fail"),
-					),
+					("name", property_value(&part_info.name)),
 					("slot_name", slot_name_value.clone()),
-					(
-						"rarity",
-						part_info
-							.rarity
-							.encode()
-							.try_into()
-							.expect("[rarity] should not fail"),
-					),
-					(
-						"layer",
-						part_info
-							.layer
-							.encode()
-							.try_into()
-							.expect("[layer] should not fail"),
-					),
-					(
-						"x",
-						part_info
-							.x
-							.encode()
-							.try_into()
-							.expect("[x] should not fail"),
-					),
-					(
-						"y",
-						part_info
-							.y
-							.encode()
-							.try_into()
-							.expect("[y] should not fail"),
-					),
+					("rarity", property_value(&part_info.rarity)),
+					("layer", property_value(&part_info.layer)),
+					("x", property_value(&part_info.x)),
+					("y", property_value(&part_info.y)),
 				]);
 				let (_, shell_part_nft_id) = Self::do_mint_shell_part_nft(
 					owner.clone(),
@@ -546,47 +509,12 @@ pub mod pallet {
 							let mut sub_part_properties = parts_properties.clone();
 							// Append sub part properties
 							sub_part_properties.append(&mut vec![
-								(
-									"name",
-									sub_part_info
-										.name
-										.encode()
-										.try_into()
-										.expect("[name] should not fail"),
-								),
+								("name", property_value(&sub_part_info.name)),
 								("slot_name", slot_name_value.clone()),
-								(
-									"rarity",
-									sub_part_info
-										.rarity
-										.encode()
-										.try_into()
-										.expect("[rarity] should not fail"),
-								),
-								(
-									"layer",
-									sub_part_info
-										.layer
-										.encode()
-										.try_into()
-										.expect("[layer] should not fail"),
-								),
-								(
-									"x",
-									sub_part_info
-										.x
-										.encode()
-										.try_into()
-										.expect("[x] should not fail"),
-								),
-								(
-									"y",
-									sub_part_info
-										.y
-										.encode()
-										.try_into()
-										.expect("[y] should not fail"),
-								),
+								("rarity", property_value(&sub_part_info.rarity)),
+								("layer", property_value(&sub_part_info.layer)),
+								("x", property_value(&sub_part_info.x)),
+								("y", property_value(&sub_part_info.y)),
 							]);
 							Self::do_mint_shell_part_nft(
 								owner.clone(),
