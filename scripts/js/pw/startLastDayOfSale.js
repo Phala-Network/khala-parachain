@@ -12,14 +12,14 @@ const evePrivkey = process.env.EVE_PRIVKEY;
 const endpoint = process.env.ENDPOINT;
 
 
-// Start preorders origin of shells purchases
+// Start preorder origin of shells purchases
 async function userPreorderOriginOfShell(khalaApi, preordersInfo) {
     for (const preorder of preordersInfo) {
         const index = preordersInfo.indexOf(preorder);
         const account = preorder.account;
-        const race = recipient.race;
-        const career = recipient.career;
-        console.log(`[${index}]: Starting Preorder Origin of Shell account: ${account}, race: ${race}, career: ${career}...`);
+        const race = preorder.race;
+        const career = preorder.career;
+        console.log(`[${index}]: Starting Preorder Origin of Shell account: ${account.address}, race: ${race}, career: ${career}...`);
         await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.preorderOriginOfShell(race, career), account);
     }
     console.log(`Preorder Origin of Shell...DONE`);
@@ -28,14 +28,15 @@ async function userPreorderOriginOfShell(khalaApi, preordersInfo) {
 // Mint chosen preorders
 async function mintChosenPreorders(khalaApi, root, chosenPreorders) {
     console.log(`Minting chosen preorders...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.mintChosenPreorders(chosenPreorders), account);
+
+    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.mintChosenPreorders(chosenPreorders), root);
     console.log(`Minting chosen preorders...DONE`);
 }
 
 // Refund not chosen preorders
 async function refundNotChosenPreorders(khalaApi, root, notChosenPreorders) {
     console.log(`Refunding not chosen preorders...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.refundNotChosenPreorders(notChosenPreorders), account);
+    await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.refundNotChosenPreorders(notChosenPreorders), root);
     console.log(`Refunding not chosen preorders...DONE`);
 }
 
@@ -54,26 +55,24 @@ async function main() {
     const charlie = keyring.addFromUri(charliePrivkey);
     const david = keyring.addFromUri(davidPrivkey);
     const eve = keyring.addFromUri(evePrivkey);
-    const userAccountPreordersOriginOfShellInfo = [
+    const userAccountLastDayPreordersOriginOfShellInfo = [
         {'account': alice, 'race': 'AISpectre', 'career': 'Web3Monk'},
         {'account': ferdie, 'race': 'Pandroid', 'career': 'RoboWarrior'},
-        {'account': eve, 'race': 'XGene', 'career': 'TradeNegotiator'}
+        {'account': eve, 'race': 'XGene', 'career': 'TradeNegotiator'},
+        {'account': bob, 'race': 'Cyborg', 'career': 'HackerWizard'},
+        {'account': charlie, 'race': 'XGene', 'career': 'RoboWarrior'},
+        {'account': david, 'race': 'Cyborg', 'career': 'TradeNegotiator'}
     ]
 
-    const chosenPreorders = [0, 1];
-    const notChosenPreorders = [2];
+    const chosenPreorders = [2, 3, 4, 5];
+    const notChosenPreorders = [0, 1];
 
-    // Disable the Whitelist sale
-    await setStatusType(api, overlord, 'PurchasePrimeOriginOfShells', false);
-    // Increase available NFTs for sale since the whitelist sale is over
-    await api.tx.pwNftSale.updateRarityTypeCounts('Prime', 900, 50)
-        .signAndSend(overlord);
-    // Enable Preorder Process
-    await setStatusType(api, overlord, 'PreorderOriginOfShells', true);
-    // Preorder Prime Origin of Shell
-    await userPreorderOriginOfShell(api, userAccountPreordersOriginOfShellInfo);
-    // Disable the Preorders
+    // Disable the Preorders sale
     await setStatusType(api, overlord, 'PreorderOriginOfShells', false);
+    // Enable Preorder Process
+    await setStatusType(api, overlord, 'LastDayOfSale', true);
+    // Preorder Prime Origin of Shell
+    await userPreorderOriginOfShell(api, userAccountLastDayPreordersOriginOfShellInfo);
     // Mint chosen preorders
     await mintChosenPreorders(api, overlord, chosenPreorders);
     // Refund not chosen preorders

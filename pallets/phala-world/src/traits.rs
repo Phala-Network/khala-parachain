@@ -1,4 +1,5 @@
-use codec::{Decode, Encode};
+use alloc::collections::BTreeMap;
+use codec::{alloc, Decode, Encode};
 use frame_support::pallet_prelude::*;
 use primitives::*;
 use scale_info::TypeInfo;
@@ -112,4 +113,35 @@ pub struct FoodInfo<BoundedOriginOfShellsFed> {
 	pub era: EraId,
 	/// A BoundedVec of (CollectionId, NftId)
 	pub origin_of_shells_fed: BoundedOriginOfShellsFed,
+}
+
+/// Shell Parts info
+#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
+	pub shell_part: PartInfo<BoundedString>,
+	/// If Metadata is None then this is a BoundedVec of ShellSubPartInfo that compose the Part
+	pub sub_parts: Option<BoundedSubParts>,
+}
+
+#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct PartInfo<BoundedString> {
+	/// Name of the Part
+	pub name: BoundedString,
+	/// Shell part rarity typea
+	pub rarity: RarityType,
+	/// Metadata is None if the Part is composed of Sub-Parts
+	pub metadata: Option<BoundedString>,
+	/// Layer in the png file
+	pub layer: u32,
+	/// x coordinate
+	pub x: u32,
+	/// y coordinate
+	pub y: u32,
+}
+
+#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub struct ShellParts<BoundedString, BoundedParts> {
+	pub parts: BTreeMap<BoundedString, BoundedParts>,
 }

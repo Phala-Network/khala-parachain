@@ -33,8 +33,7 @@ async function addOriginOfShellsMetadata(khalaApi, overlord, originOfShellsMetad
 }
 
 // Start rare origin of shells purchases
-async function usersPurchaseRareOriginOfShells(khalaApi, root, recipientsInfo) {
-    let nonceRoot = await getNonce(khalaApi, root.address);
+async function usersPurchaseRareOriginOfShells(khalaApi, recipientsInfo) {
     console.log(`Starting Rare Origin of Shells purchases...`);
     for (const recipient of recipientsInfo) {
         const index = recipientsInfo.indexOf(recipient);
@@ -44,8 +43,6 @@ async function usersPurchaseRareOriginOfShells(khalaApi, root, recipientsInfo) {
         const career = recipient.career;
         const amount = recipient.amount;
         console.log(`[${index}]: Purchasing Rare Origin of Shell for owner: ${account.address}, rarity: ${rarity}, race: ${race}, career: ${career}, amount: ${amount}`);
-        await khalaApi.tx.balances.transfer(account.address, token(amount)).signAndSend(root, {nonce: nonceRoot++});
-        await waitTxAccepted(khalaApi, root.address, nonceRoot - 1);
         await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.buyRareOriginOfShell(rarity, race, career), account);
         console.log(`[${index}]: Rare Origin of Shells purchases...DONE`);
     }
@@ -78,7 +75,7 @@ async function main() {
     // Start Rare Origin of Shell purchases
     await setStatusType(api, overlord, 'PurchaseRareOriginOfShells', true);
     // Purchase Rare Origin of Shell
-    await usersPurchaseRareOriginOfShells(api, overlord, userAccountsRareOriginOfShellInfo);
+    await usersPurchaseRareOriginOfShells(api, userAccountsRareOriginOfShellInfo);
 }
 
 main().catch(console.error).finally(() => process.exit());
