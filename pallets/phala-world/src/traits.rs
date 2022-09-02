@@ -145,3 +145,10 @@ pub struct PartInfo<BoundedString> {
 pub struct ShellParts<BoundedString, BoundedParts> {
 	pub parts: BTreeMap<BoundedString, BoundedParts>,
 }
+
+pub fn property_value<V: Encode, ValueLimit: Get<u32>>(value: &V) -> BoundedVec<u8, ValueLimit> {
+	value
+		.encode()
+		.try_into()
+		.expect("assume value can fit into property; qed.")
+}

@@ -20,8 +20,8 @@ pub use pallet_rmrk_market;
 use rmrk_traits::{Nft, Property};
 
 pub use crate::traits::{
-	primitives::*, CareerType, NftSaleInfo, NftSaleType, OverlordMessage, PreorderInfo, Purpose,
-	RaceType, RarityType, StatusType,
+	primitives::*, property_value, CareerType, NftSaleInfo, NftSaleType, OverlordMessage,
+	PreorderInfo, Purpose, RaceType, RarityType, StatusType,
 };
 use rmrk_traits::primitives::*;
 
@@ -1457,31 +1457,10 @@ where
 		)?;
 
 		let properties = vec![
-			(
-				"rarity",
-				rarity_type
-					.encode()
-					.try_into()
-					.expect("[rarity] should not fail"),
-			),
-			(
-				"race",
-				race.encode().try_into().expect("[race] should not fail"),
-			),
-			(
-				"career",
-				career
-					.encode()
-					.try_into()
-					.expect("[career] should not fail"),
-			),
-			(
-				"generation",
-				generation
-					.encode()
-					.try_into()
-					.expect("[generation] should not fail"),
-			),
+			("rarity", property_value(&rarity_type)),
+			("race", property_value(&race)),
+			("career", property_value(&career)),
+			("generation", property_value(&generation)),
 		];
 		// Set Rarity Type, Race and Career properties for NFT
 		Self::set_nft_properties(origin_of_shell_collection_id, nft_id, properties)?;
