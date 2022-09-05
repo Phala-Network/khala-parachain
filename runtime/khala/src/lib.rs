@@ -1160,6 +1160,8 @@ parameter_types! {
     pub const TermDuration: BlockNumber = 24 * HOURS;
     pub const DesiredMembers: u32 = 5;
     pub const DesiredRunnersUp: u32 = 5;
+    pub const MaxVoters: u32 = 10 * 1000;
+    pub const MaxCandidates: u32 = 1000;
     pub const PhragmenElectionPalletId: LockIdentifier = *b"phrelect";
 }
 
@@ -1180,6 +1182,8 @@ impl pallet_elections_phragmen::Config for Runtime {
     type DesiredMembers = DesiredMembers;
     type DesiredRunnersUp = DesiredRunnersUp;
     type TermDuration = TermDuration;
+    type MaxVoters = MaxVoters;
+    type MaxCandidates = MaxCandidates;
     type PalletId = PhragmenElectionPalletId;
     type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
 }
@@ -1410,8 +1414,8 @@ impl pallet_session::Config for Runtime {
 
 parameter_types! {
     pub const PotId: PalletId = PalletId(*b"PotStake");
-    pub const MaxCandidates: u32 = 1000;
-    pub const MinCandidates: u32 = 5;
+    pub const MaxCollatorCandidates: u32 = 1000;
+    pub const MinCollatorCandidates: u32 = 5;
     pub const SessionLength: BlockNumber = 6 * HOURS;
     pub const MaxInvulnerables: u32 = 100;
 }
@@ -1421,8 +1425,8 @@ impl pallet_collator_selection::Config for Runtime {
     type Currency = Balances;
     type UpdateOrigin = EnsureRootOrHalfCouncil;
     type PotId = PotId;
-    type MaxCandidates = MaxCandidates;
-    type MinCandidates = MinCandidates;
+    type MaxCandidates = MaxCollatorCandidates;
+    type MinCandidates = MinCollatorCandidates;
     type MaxInvulnerables = MaxInvulnerables;
     // should be a multiple of session or things will get inconsistent
     type KickThreshold = Period;
