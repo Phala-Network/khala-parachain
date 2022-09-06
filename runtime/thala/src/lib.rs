@@ -67,10 +67,9 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_types, parameter_types,
     traits::{
-        tokens::nonfungibles::*, AsEnsureOriginWithArg, Contains, Currency, EitherOfDiverse,
-        EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem,
-        LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
-        ConstU32,
+        tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency,
+        EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
+        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -104,9 +103,10 @@ pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
 pub use phala_pallets::{pallet_fat, pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
+use phala_types::contract::{ContractClusterId, ContractId};
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
-    xcmbridge, xtransfer,
+    pbridge, xcmbridge, xtransfer,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -260,6 +260,7 @@ construct_runtime! {
         ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>} = 80,
         XcmBridge: xcmbridge::{Pallet, Event<T>, Storage} = 81,
         XTransfer: xtransfer::{Pallet, Call, Storage, Event<T>} = 82,
+        PBridge: pbridge::{Pallet, Call, Storage, Event<T>} = 83,
 
         // Phala
         PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
@@ -350,6 +351,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::AssetsRegistry { .. } |
             Call::Balances { .. }  |
             Call::ChainBridge { .. } |
+            Call::PBridge { .. } |
             Call::XTransfer { .. } |
             // Collator
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
@@ -1448,6 +1450,8 @@ parameter_types! {
     pub const ResourceIdGenerationSalt: Option<u128> = None;
     pub const ProposalLifetime: BlockNumber = 50400; // ~7 days
     pub const BridgeEventLimit: u32 = 1024;
+    pub PBridgeSelector: [u8; 4] = [1, 1, 1, 1];
+    pub PHA_CONTRACT_ID: ContractId = [0; 32].into();
 }
 
 impl chainbridge::Config for Runtime {
@@ -1475,10 +1479,34 @@ impl chainbridge::Config for Runtime {
     type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
 }
 
+impl pbridge::Config for Runtime {
+    type Event = Event;
+    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
+    type Currency = Balances;
+    type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
+    type TreasuryAccount = ThalaTreasuryAccount;
+    type FungibleAdapter = XTransferAdapter<
+        CurrencyTransactor,
+        FungiblesTransactor,
+        XTransfer,
+        assets_registry::NativeAssetFilter<ParachainInfo>,
+        assets_registry::ReserveAssetFilter<
+            ParachainInfo,
+            assets_registry::NativeAssetFilter<ParachainInfo>,
+        >,
+    >;
+    type AssetsRegistry = AssetsRegistry;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+    type ContractSelector = PBridgeSelector;
+    type NativeAssetContractId = PHA_CONTRACT_ID;
+}
+
 impl xtransfer::Config for Runtime {
     type Event = Event;
     type Bridge = (
         xcmbridge::BridgeTransactImpl<Runtime>,
+        pbridge::BridgeTransactImpl<Runtime>,
         chainbridge::BridgeTransactImpl<Runtime>,
     );
 }
@@ -1543,8 +1571,8 @@ impl pallet_stakepool::Config for Runtime {
 }
 impl pallet_fat::Config for Runtime {
     type Event = Event;
-    type InkCodeSizeLimit = ConstU32<{1024*1024*2}>;
-    type SidevmCodeSizeLimit = ConstU32<{1024*1024*8}>;
+    type InkCodeSizeLimit = ConstU32<{ 1024 * 1024 * 2 }>;
+    type SidevmCodeSizeLimit = ConstU32<{ 1024 * 1024 * 8 }>;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
