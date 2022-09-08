@@ -367,6 +367,7 @@ impl Contains<Call> for BaseCallFilter {
             // Phala
             Call::PhalaMq { .. } | Call::PhalaRegistry { .. } |
             Call::PhalaMining { .. } | Call::PhalaStakePool { .. } |
+            Call::PhalaFatContracts { ..} |
             // Phala World
             Call::RmrkMarket { .. } | Call::PWNftSale { .. } | Call::PWIncubation { .. }
         )
@@ -1450,8 +1451,8 @@ parameter_types! {
     pub const ResourceIdGenerationSalt: Option<u128> = None;
     pub const ProposalLifetime: BlockNumber = 50400; // ~7 days
     pub const BridgeEventLimit: u32 = 1024;
-    pub PBridgeSelector: [u8; 4] = [1, 1, 1, 1];
-    pub PHA_CONTRACT_ID: ContractId = [0; 32].into();
+    pub PBridgeSelector: [u8; 4] = [0xaa, 0x19, 0x9b, 0x7f];
+    pub PhaContractId: ContractId = [0; 32].into();
 }
 
 impl chainbridge::Config for Runtime {
@@ -1499,7 +1500,7 @@ impl pbridge::Config for Runtime {
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type ContractSelector = PBridgeSelector;
-    type NativeAssetContractId = PHA_CONTRACT_ID;
+    type NativeAssetContractId = PhaContractId;
 }
 
 impl xtransfer::Config for Runtime {
