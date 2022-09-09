@@ -9,7 +9,8 @@
         "port": 10333,
         "nodeKey": "807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
         "flags": [
-          "--rpc-cors=all"
+          "--rpc-cors=all",
+	  "--pruning=archive"
         ]
       },
       {
@@ -57,6 +58,8 @@
             "--rpc-external",
             "--rpc-cors=all",
             "--rpc-methods=Unsafe",
+	    "--pruning=archive",
+	    "-lsc_basic_authorship::basic_authorship=trace",
             "--",
             "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
             "--port=30334",
