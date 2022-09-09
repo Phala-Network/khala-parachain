@@ -20,8 +20,7 @@ async function createWhitelistMessage(khalaApi, type, overlord, account) {
 }
 
 // Start rare origin of shells purchases
-async function usersPurchaseWhitelistOriginOfShells(khalaApi, root, recipientsInfo) {
-    let nonceRoot = await getNonce(khalaApi, root.address);
+async function usersPurchaseWhitelistOriginOfShells(khalaApi, recipientsInfo) {
     console.log(`Starting Whitelist Origin of Shells purchases...`);
     for (const recipient of recipientsInfo) {
         const index = recipientsInfo.indexOf(recipient);
@@ -30,8 +29,6 @@ async function usersPurchaseWhitelistOriginOfShells(khalaApi, root, recipientsIn
         const race = recipient.race;
         const career = recipient.career;
         console.log(`[${index}]: Purchasing Prime Origin of Shell for owner: ${account.address}, whitelistMessage: ${whitelistMessage}, race: ${race}, career: ${career}`);
-        await khalaApi.tx.balances.transfer(account.address, token(501)).signAndSend(root, {nonce: nonceRoot++});
-        await waitTxAccepted(khalaApi, root.address, nonceRoot - 1);
         await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.buyPrimeOriginOfShell(whitelistMessage, race, career), account);
         console.log(`[${index}]: Prime Origin of Shells purchase...DONE`);
     }
@@ -77,7 +74,7 @@ async function main() {
     // Enable Whitelist purchases
     await setStatusType(api, overlord, 'PurchasePrimeOriginOfShells', true);
     // Purchase Prime Origin of Shell
-    await usersPurchaseWhitelistOriginOfShells(api, overlord, userAccountsWhitelistOriginOfShellInfo);
+    await usersPurchaseWhitelistOriginOfShells(api, userAccountsWhitelistOriginOfShellInfo);
 }
 
 main().catch(console.error).finally(() => process.exit());

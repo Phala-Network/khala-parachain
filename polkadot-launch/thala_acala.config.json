@@ -57,7 +57,6 @@
             "--rpc-external",
             "--rpc-cors=all",
             "--rpc-methods=Unsafe",
-            "--execution=native",
             "--",
             "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
             "--port=30334",
@@ -65,8 +64,7 @@
             "--pruning=archive",
             "--ws-external",
             "--rpc-external",
-            "--rpc-cors=all",
-            "--execution=native"
+            "--rpc-cors=all"
           ]
         },
         {
@@ -92,7 +90,6 @@
               "--rpc-external",
               "--rpc-cors=all",
               "--rpc-methods=Unsafe",
-              "--execution=native",
               "--",
               "--node-key=9ad8595d81d5851a5d5c920d3346881e262b2a720b5878714ee38c919514bcea",
               "--port=30334",
@@ -100,8 +97,7 @@
               "--pruning=archive",
               "--ws-external",
               "--rpc-external",
-              "--rpc-cors=all",
-              "--execution=native"
+              "--rpc-cors=all"
             ]
           },
           {

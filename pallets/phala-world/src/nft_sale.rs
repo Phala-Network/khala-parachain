@@ -12,7 +12,7 @@ use frame_system::{ensure_signed, pallet_prelude::*, Origin};
 
 use codec::Encode;
 use sp_core::{sr25519, H256};
-use sp_runtime::DispatchResult;
+use sp_runtime::{DispatchError, DispatchResult};
 use sp_std::prelude::*;
 
 pub use pallet_rmrk_core::types::*;
@@ -20,8 +20,8 @@ pub use pallet_rmrk_market;
 use rmrk_traits::{Nft, Property};
 
 pub use crate::traits::{
-	primitives::*, CareerType, NftSaleInfo, NftSaleType, OverlordMessage, PreorderInfo, Purpose,
-	RaceType, RarityType, StatusType,
+	primitives::*, property_value, CareerType, NftSaleInfo, NftSaleType, OverlordMessage,
+	PreorderInfo, Purpose, RaceType, RarityType, StatusType,
 };
 use rmrk_traits::primitives::*;
 
@@ -75,6 +75,24 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
+
+	/// Next available NFT ID
+	#[pallet::storage]
+	#[pallet::getter(fn next_nft_id)]
+	pub type NextNftId<T: Config> = StorageMap<_, Twox64Concat, CollectionId, NftId, ValueQuery>;
+
+	/// Next available Resource ID
+	#[pallet::storage]
+	#[pallet::getter(fn next_resource_id)]
+	pub type NextResourceId<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		CollectionId,
+		Twox64Concat,
+		NftId,
+		ResourceId,
+		ValueQuery,
+	>;
 
 	/// Preorder index that is the key to the Preorders StorageMap
 	#[pallet::storage]
@@ -289,6 +307,8 @@ pub mod pallet {
 		OriginOfShellPreordered {
 			owner: T::AccountId,
 			preorder_id: PreorderId,
+			race: RaceType,
+			career: CareerType,
 		},
 		/// Origin of Shell minted from the preorder
 		OriginOfShellMinted {
@@ -318,6 +338,7 @@ pub mod pallet {
 		ChosenPreorderMinted {
 			preorder_id: PreorderId,
 			owner: T::AccountId,
+			nft_id: NftId,
 		},
 		/// Not chosen preorder was refunded to owner
 		NotChosenPreorderRefunded {
@@ -387,6 +408,9 @@ pub mod pallet {
 		NoAvailableRaceGivewayLeft,
 		NoAvailableRaceReservedLeft,
 		WrongNftSaleType,
+		NoAvailableResourceId,
+		NoAvailableNftId,
+		ValueNotDetected,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -623,6 +647,8 @@ pub mod pallet {
 			Self::deposit_event(Event::OriginOfShellPreordered {
 				owner: sender,
 				preorder_id,
+				race,
+				career,
 			});
 
 			Ok(())
@@ -664,7 +690,7 @@ pub mod pallet {
 						origin_of_shell_price,
 					);
 					// Mint origin of shell
-					Self::do_mint_origin_of_shell_nft(
+					let nft_id = Self::do_mint_origin_of_shell_nft(
 						sender.clone(),
 						preorder_owner.clone(),
 						RarityType::Prime,
@@ -683,6 +709,7 @@ pub mod pallet {
 					Self::deposit_event(Event::ChosenPreorderMinted {
 						preorder_id,
 						owner: preorder_owner,
+						nft_id: nft_id,
 					});
 					index += 1;
 				} else {
@@ -1336,8 +1363,7 @@ where
 		);
 		// Get Spirits metadata
 		let metadata = SpiritsMetadata::<T>::get().ok_or(Error::<T>::SpiritsMetadataNotSet)?;
-		let collection = pallet_rmrk_core::Pallet::<T>::collections(spirit_collection_id).ok_or(pallet_rmrk_core::Error::<T>::CollectionUnknown)?;
-		let nft_id = collection.nfts_count + 1;
+		let next_spirit_nft_id = Self::get_next_nft_id(spirit_collection_id)?;
 		// Mint new Spirit and transfer to sender
 		// Note: Transferable is set to false bc we use the Uniques pallet freeze function as that
 		// will allow for Spirit recovery through Overlord account if account is lost and prevents
@@ -1345,8 +1371,8 @@ where
 		let (_, spirit_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
 			sender.clone(),
 			sender.clone(),
+			next_spirit_nft_id,
 			spirit_collection_id,
-			nft_id,
 			None,
 			None,
 			metadata,
@@ -1388,7 +1414,7 @@ where
 		price: BalanceOf<T>,
 		nft_sale_type: NftSaleType,
 		check_owned_origin_of_shell: bool,
-	) -> DispatchResult {
+	) -> Result<NftId, DispatchError> {
 		// Has Spirit Collection been set
 		let spirit_collection_id = Self::get_spirit_collection_id()?;
 		ensure!(
@@ -1408,6 +1434,8 @@ where
 		let metadata = Self::get_origin_of_shell_metadata(race)?;
 		// Check if race and career types have mints left
 		Self::has_race_type_left(rarity_type, race, nft_sale_type)?;
+		// Get expected next available NFT ID to mint
+		let next_nft_id = Self::get_next_nft_id(origin_of_shell_collection_id)?;
 		// Transfer the amount for the rare Origin of Shell NFT then mint the origin_of_shell
 		<T as pallet::Config>::Currency::transfer(
 			&sender,
@@ -1415,29 +1443,27 @@ where
 			price,
 			ExistenceRequirement::KeepAlive,
 		)?;
-		let collection = pallet_rmrk_core::Pallet::<T>::collections(origin_of_shell_collection_id).ok_or(pallet_rmrk_core::Error::<T>::CollectionUnknown)?;
-		let nft_id = collection.nfts_count + 1;
 		// Mint Origin of Shell and transfer Origin of Shell to new owner
 		let (_, nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
 			sender.clone(),
 			sender.clone(),
+			next_nft_id,
 			origin_of_shell_collection_id,
-			nft_id,
 			Some(overlord.clone()),
 			None,
 			metadata,
 			true,
 			None,
 		)?;
+
+		let properties = vec![
+			("rarity", property_value(&rarity_type)),
+			("race", property_value(&race)),
+			("career", property_value(&career)),
+			("generation", property_value(&generation)),
+		];
 		// Set Rarity Type, Race and Career properties for NFT
-		Self::set_nft_properties(
-			origin_of_shell_collection_id,
-			nft_id,
-			rarity_type,
-			race,
-			career,
-			generation,
-		)?;
+		Self::set_nft_properties(origin_of_shell_collection_id, nft_id, properties)?;
 		// Update storage
 		Self::decrement_race_type_left(rarity_type, race, nft_sale_type)?;
 		Self::increment_race_type(rarity_type, race)?;
@@ -1460,73 +1486,65 @@ where
 			generation_id: generation,
 		});
 
-		Ok(())
+		Ok(nft_id)
 	}
 
-	/// Set the properties for Origin of Shell or Shell NFT's rarity, race and career.
+	/// Get the property for PhalaWorld NFT.
 	///
 	/// Parameters:
-	/// - `collection_id`: Collection id of the Origin of Shell or Shell NFT
-	/// - `nft_id`: NFT id of the Origin of Shell or Shell NFT
-	/// - `rarity_type`: Origin of Shell or Shell rarity type for the NFT
-	/// - `race`: Race property to set for the Origin of Shell or Shell NFT
-	/// - `career`: Career property to set for the Origin of Shell or Shell NFT
+	/// - `collection_id`: Collection id of the PhalaWorld NFT
+	/// - `nft_id`: NFT id of the PhalaWorld NFT
+	/// - `key_str`: Key `&str` for the Key in Storage
+	pub(crate) fn get_nft_property(
+		collection_id: CollectionId,
+		nft_id: NftId,
+		key_str: &str,
+	) -> Option<BoundedVec<u8, T::ValueLimit>> {
+		let key = Self::to_boundedvec_key(key_str).expect("should not fail");
+		pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &key))
+	}
+
+	/// Set the properties for PhalaWorld NFT.
+	///
+	/// Parameters:
+	/// - `collection_id`: Collection id of the PhalaWorld NFT
+	/// - `nft_id`: NFT id of the PhalaWorld NFT
+	/// - `properties`: Properties vec of (key, value) to set
 	pub(crate) fn set_nft_properties(
 		collection_id: CollectionId,
 		nft_id: NftId,
-		rarity_type: RarityType,
-		race: RaceType,
-		career: CareerType,
-		generation: GenerationId,
+		properties: Vec<(&str, BoundedVec<u8, T::ValueLimit>)>,
 	) -> DispatchResult {
-		let rarity_type_key: BoundedVec<u8, T::KeyLimit> = Self::to_boundedvec_key("rarity")?;
-		let rarity_type_value = rarity_type
-			.encode()
-			.try_into()
-			.expect("[rarity] should not fail");
+		// Iterate through and set properties
+		for (key_str, value) in properties {
+			let key = Self::to_boundedvec_key(key_str)?;
+			pallet_rmrk_core::Pallet::<T>::do_set_property(
+				collection_id,
+				Some(nft_id),
+				key,
+				value,
+			)?;
+		}
 
-		let race_key: BoundedVec<u8, T::KeyLimit> = Self::to_boundedvec_key("race")?;
-		let race_value = race.encode().try_into().expect("[race] should not fail");
+		Ok(())
+	}
 
-		let career_key = Self::to_boundedvec_key("career")?;
-		let career_value = career
-			.encode()
-			.try_into()
-			.expect("[career] should not fail");
-		let generation_key = Self::to_boundedvec_key("generation")?;
-		let generation_value = generation
-			.encode()
-			.try_into()
-			.expect("[generation] should not fail");
-
-		// Set Rarity Type
-		pallet_rmrk_core::Pallet::<T>::do_set_property(
-			collection_id,
-			Some(nft_id),
-			rarity_type_key,
-			rarity_type_value,
-		)?;
-		// Set Race
-		pallet_rmrk_core::Pallet::<T>::do_set_property(
-			collection_id,
-			Some(nft_id),
-			race_key,
-			race_value,
-		)?;
-		// Set Career
-		pallet_rmrk_core::Pallet::<T>::do_set_property(
-			collection_id,
-			Some(nft_id),
-			career_key,
-			career_value,
-		)?;
-		// Set Generation
-		pallet_rmrk_core::Pallet::<T>::do_set_property(
-			collection_id,
-			Some(nft_id),
-			generation_key,
-			generation_value,
-		)?;
+	/// Remove the properties for a PhalaWorld NFT.
+	///
+	/// Parameters:
+	/// - `collection_id`: Collection id of the PhalaWorld NFT
+	/// - `nft_id`: NFT id of the PhalaWorld NFT
+	/// - `properties`: Properties vec of (key, value) to remove
+	pub(crate) fn remove_nft_properties(
+		collection_id: CollectionId,
+		nft_id: NftId,
+		properties: Vec<(&str, BoundedVec<u8, T::ValueLimit>)>,
+	) -> DispatchResult {
+		// Iterate through and remove properties
+		for (key_str, _) in properties {
+			let key = Self::to_boundedvec_key(key_str)?;
+			pallet_rmrk_core::Pallet::<T>::do_remove_property(collection_id, Some(nft_id), key)?;
+		}
 
 		Ok(())
 	}
@@ -1672,5 +1690,27 @@ where
 			None => Err(Error::<T>::OriginOfShellsMetadataNotSet),
 			Some(metadata) => Ok(metadata),
 		}
+	}
+
+	/// Helper function to get the next available NFT ID then increments `NextNftId` in Storage.
+	pub fn get_next_nft_id(collection_id: CollectionId) -> Result<NftId, Error<T>> {
+		NextNftId::<T>::try_mutate(collection_id, |id| {
+			let current_id = *id;
+			*id = id.checked_add(1).ok_or(Error::<T>::NoAvailableNftId)?;
+			Ok(current_id)
+		})
+	}
+
+	/// Helper function to get the next available Resource ID then increments `NextResourceId` in
+	/// Storage.
+	pub fn get_next_resource_id(
+		collection_id: CollectionId,
+		nft_id: NftId,
+	) -> Result<ResourceId, Error<T>> {
+		NextResourceId::<T>::try_mutate(collection_id, nft_id, |id| {
+			let current_id = *id;
+			*id = id.checked_add(1).ok_or(Error::<T>::NoAvailableResourceId)?;
+			Ok(current_id)
+		})
 	}
 }

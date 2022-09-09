@@ -8,6 +8,7 @@ mod tests;
 mod traits;
 
 pub mod incubation;
+pub mod migration;
 pub mod nft_sale;
 
 // Alias

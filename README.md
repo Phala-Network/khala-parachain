@@ -12,6 +12,14 @@ Khala parachain repo.
 
 `cargo build --profile testnet`
 
+### Build runtime only
+
+`cargo build --profile production -p khala-parachain-runtime`
+
+Enable `on-chain-release-build` would reduce ~100 KB
+
+`cargo build --profile production --features on-chain-release-build -p khala-parachain-runtime`
+
 ### Special note for macOS
 
 You have to install LLVM from Homebrew because Xcode bundled doesn't have WASM target

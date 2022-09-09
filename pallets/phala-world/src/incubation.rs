@@ -1,21 +1,23 @@
 //! Phala World Incubation Pallet
 
 pub use crate::pallet_pw_nft_sale;
-pub use crate::traits::{primitives::*, CareerType, FoodInfo, RaceType, RarityType};
-use codec::Decode;
+pub use crate::traits::{
+	primitives::*, property_value, CareerType, FoodInfo, PartInfo, RaceType, RarityType,
+	ShellPartInfo, ShellParts,
+};
+use alloc::vec;
+use codec::{alloc, Decode};
 use frame_support::{
 	ensure,
 	pallet_prelude::Get,
-	traits::{
-		tokens::nonfungibles::InspectEnumerable,
-		UnixTime,
-	},
+	traits::{tokens::nonfungibles::InspectEnumerable, UnixTime},
 	transactional, BoundedVec,
 };
-use frame_system::{ensure_signed, pallet_prelude::*};
+use frame_system::{ensure_signed, pallet_prelude::*, Origin};
 pub use pallet_rmrk_core::types::*;
 pub use pallet_rmrk_market;
-use rmrk_traits::{primitives::*, Nft, Property};
+use rmrk_traits::{primitives::*, Nft};
+use sp_runtime::DispatchError;
 use sp_std::vec::Vec;
 
 pub use self::pallet::*;
@@ -24,7 +26,16 @@ pub use self::pallet::*;
 pub mod pallet {
 	use super::*;
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
-	use frame_system::Origin;
+
+	pub type ShellPartInfoOf<T> = ShellPartInfo<
+		BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>,
+		BoundedVec<
+			PartInfo<BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>>,
+			<T as pallet_rmrk_core::Config>::PartsLimit,
+		>,
+	>;
+	pub type ShellPartsOf<T> =
+		ShellParts<BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>, ShellPartInfoOf<T>>;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -33,13 +44,13 @@ pub mod pallet {
 	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		/// Amount of food per Era
+		/// Amount of food per Era.
 		#[pallet::constant]
 		type FoodPerEra: Get<u32>;
-		/// Max food to feed your own Origin of Shell
+		/// Max food to feed your own Origin of Shell.
 		#[pallet::constant]
 		type MaxFoodFeedSelf: Get<u8>;
-		/// Duration of incubation process
+		/// Duration of incubation process.
 		#[pallet::constant]
 		type IncubationDurationSec: Get<u64>;
 	}
@@ -49,7 +60,7 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
-	/// Info on Origin of Shells that the Owner has fed
+	/// Info on Origin of Shells that the Owner has fed.
 	#[pallet::storage]
 	#[pallet::getter(fn food_by_owners)]
 	pub type FoodByOwners<T: Config> = StorageMap<
@@ -59,7 +70,7 @@ pub mod pallet {
 		FoodInfo<BoundedVec<(CollectionId, NftId), <T as Config>::FoodPerEra>>,
 	>;
 
-	/// Total food fed to an Origin of Shell per Era
+	/// Total food fed to an Origin of Shell per Era.
 	#[pallet::storage]
 	#[pallet::getter(fn origin_of_shell_food_stats)]
 	pub type OriginOfShellFoodStats<T: Config> = StorageDoubleMap<
@@ -72,38 +83,49 @@ pub mod pallet {
 		ValueQuery,
 	>;
 
-	/// Official hatch time for all Origin of Shells
+	/// Official hatch time for all Origin of Shells.
 	#[pallet::storage]
 	#[pallet::getter(fn official_hatch_time)]
 	pub type OfficialHatchTime<T: Config> = StorageValue<_, u64, ValueQuery>;
 
-	/// Expected hatch Timestamp for an Origin of Shell that started the incubation process
-	#[pallet::storage]
-	#[pallet::getter(fn hatch_times)]
-	pub type HatchTimes<T: Config> =
-		StorageDoubleMap<_, Blake2_128Concat, CollectionId, Blake2_128Concat, NftId, u64>;
-
-	/// A bool value to determine if accounts can start incubation of Origin of Shells
+	/// A bool value to determine if accounts can start incubation of Origin of Shells.
 	#[pallet::storage]
 	#[pallet::getter(fn can_start_incubation)]
 	pub type CanStartIncubation<T: Config> = StorageValue<_, bool, ValueQuery>;
 
-	/// Collection ID of the Shell NFT
+	/// A bool value to determine if an Origin of Shell has started the incubation process.
+	#[pallet::storage]
+	#[pallet::getter(fn has_origin_of_shell_started_incubation)]
+	pub type HasOriginOfShellStartedIncubation<T: Config> =
+		StorageMap<_, Twox64Concat, (CollectionId, NftId), bool, ValueQuery>;
+
+	/// Collection ID of the Shell NFT.
 	#[pallet::storage]
 	#[pallet::getter(fn shell_collection_id)]
 	pub type ShellCollectionId<T: Config> = StorageValue<_, CollectionId>;
+
+	/// Collection ID of the Shell Parts NFTs.
+	#[pallet::storage]
+	#[pallet::getter(fn shell_parts_collection_id)]
+	pub type ShellPartsCollectionId<T: Config> = StorageValue<_, CollectionId>;
+
+	/// Storage of an account's selected parts during the incubation process.
+	#[pallet::storage]
+	#[pallet::getter(fn origin_of_shells_chosen_parts)]
+	pub type OriginOfShellsChosenParts<T: Config> =
+		StorageMap<_, Twox64Concat, (CollectionId, NftId), ShellPartsOf<T>>;
 
 	// Pallets use events to inform users when important changes are made.
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// CanStartIncubation status changed and set official hatch time
+		/// CanStartIncubation status changed and set official hatch time.
 		CanStartIncubationStatusChanged {
 			status: bool,
 			start_time: u64,
 			official_hatch_time: u64,
 		},
-		/// Origin of Shell owner has initiated the incubation sequence
+		/// Origin of Shell owner has initiated the incubation sequence.
 		StartedIncubation {
 			collection_id: CollectionId,
 			nft_id: NftId,
@@ -111,22 +133,33 @@ pub mod pallet {
 			start_time: u64,
 			hatch_time: u64,
 		},
-		/// Origin of Shell received food from an account
+		/// Origin of Shell received food from an account.
 		OriginOfShellReceivedFood {
 			collection_id: CollectionId,
 			nft_id: NftId,
 			sender: T::AccountId,
+			era: EraId,
 		},
-		/// A top 10 fed origin_of_shell of the era has updated their incubation time
-		HatchTimeUpdated {
+		/// Origin of Shell updated chosen parts.
+		OriginOfShellChosenPartsUpdated {
 			collection_id: CollectionId,
 			nft_id: NftId,
-			old_hatch_time: u64,
-			new_hatch_time: u64,
+			old_chosen_parts: Option<ShellPartsOf<T>>,
+			new_chosen_parts: ShellPartsOf<T>,
 		},
-		/// Shell Collection ID is set
+		/// Shell Collection ID is set.
 		ShellCollectionIdSet { collection_id: CollectionId },
-		/// Shell has been awakened from an origin_of_shell being hatched and burned
+		/// Shell Parts Collection ID is set.
+		ShellPartsCollectionIdSet { collection_id: CollectionId },
+		/// Shell Part minted.
+		ShellPartMinted {
+			shell_parts_collection_id: CollectionId,
+			shell_part_nft_id: NftId,
+			parent_shell_collection_id: CollectionId,
+			parent_shell_nft_id: NftId,
+			owner: T::AccountId,
+		},
+		/// Shell has been awakened from an origin_of_shell being hatched and burned.
 		ShellAwakened {
 			shell_collection_id: CollectionId,
 			shell_nft_id: NftId,
@@ -147,12 +180,14 @@ pub mod pallet {
 		HatchingInProgress,
 		CannotHatchOriginOfShell,
 		CannotSendFoodToOriginOfShell,
-		MaxFoodFedLimitReached,
+		_Deprecated_MaxFoodFedLimitReached,
+		CannotSetOriginOfShellChosenParts,
 		AlreadySentFoodTwice,
-		NoFoodAvailable,
+		_Deprecated_NoFoodAvailable,
 		NotOwner,
+		NoPermission,
 		WrongCollectionId,
-		NoHatchTimeDetected,
+		_Deprecated_NoHatchTimeDetected,
 		ShellCollectionIdAlreadySet,
 		ShellCollectionIdNotSet,
 		RaceNotDetected,
@@ -160,6 +195,10 @@ pub mod pallet {
 		RarityTypeNotDetected,
 		GenerationNotDetected,
 		FoodInfoUpdateError,
+		ShellPartsCollectionIdAlreadySet,
+		ShellPartsCollectionIdNotSet,
+		ChosenPartsNotDetected,
+		MissingShellPartMetadata,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -204,14 +243,14 @@ pub mod pallet {
 			);
 			// Ensure incubation process hasn't been started already
 			ensure!(
-				!HatchTimes::<T>::contains_key(collection_id, nft_id),
+				!HasOriginOfShellStartedIncubation::<T>::get((collection_id, nft_id)),
 				Error::<T>::HatchingInProgress
 			);
 			// Get time to start hatching process
 			let start_time = T::Time::now().as_secs();
 			let hatch_time = OfficialHatchTime::<T>::get();
 			// Update Hatch Time storage
-			HatchTimes::<T>::insert(collection_id, nft_id, hatch_time);
+			HasOriginOfShellStartedIncubation::<T>::insert((collection_id, nft_id), true);
 
 			Self::deposit_event(Event::StartedIncubation {
 				owner: sender,
@@ -250,17 +289,17 @@ pub mod pallet {
 				Self::is_origin_of_shell_collection_id(collection_id),
 				Error::<T>::WrongCollectionId
 			);
-			// Ensure that Origin of Shell exists or is not past the hatch time
-			let hatch_time = Self::get_hatch_time(collection_id, nft_id)?;
+			// Ensure that Origin of Shell exists and is not past the hatch time
 			ensure!(
-				!Self::can_hatch(hatch_time),
+				HasOriginOfShellStartedIncubation::<T>::get((collection_id, nft_id))
+					&& !Self::can_hatch(),
 				Error::<T>::CannotSendFoodToOriginOfShell
 			);
 			// Check if account owns an Origin of Shell NFT
 			ensure!(
 				pallet_uniques::pallet::Pallet::<T>::owned_in_collection(&collection_id, &sender)
 					.count() > 0,
-				Error::<T>::CannotSendFoodToOriginOfShell
+				Error::<T>::NoPermission
 			);
 			// Get Current Era
 			let current_era = pallet_pw_nft_sale::Era::<T>::get();
@@ -312,6 +351,7 @@ pub mod pallet {
 				collection_id,
 				nft_id,
 				sender,
+				era: current_era,
 			});
 
 			Ok(())
@@ -319,20 +359,22 @@ pub mod pallet {
 
 		/// Hatch the origin_of_shell that is currently being hatched. This will trigger the end of
 		/// the incubation process and the origin_of_shell will be burned. After burning, the user
-		/// will receive the awakened Shell RMRK NFT
+		/// will receive the awakened Shell RMRK NFT and the nested NFT parts that renders the Shell
+		/// NFT.
 		///
 		/// Parameters:
-		/// - origin: The origin of the extrinsic incubation the origin_of_shell
-		/// - collection_id: The collection id of the Origin of Shell RMRK NFT
-		/// - nft_id: The NFT id of the Origin of Shell RMRK NFT
-		/// - metadata: File resource URI in decentralized storage
+		/// - `origin`: The origin of the extrinsic incubation the origin_of_shell
+		/// - `collection_id`: The collection id of the Origin of Shell RMRK NFT
+		/// - `nft_id`: The NFT id of the Origin of Shell RMRK NFT
+		/// - `default_shell_metadata`: File resource URI in decentralized storage for Shell NFT
+		///	parts that render the Shell NFT
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn hatch_origin_of_shell(
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
 			nft_id: NftId,
-			metadata: BoundedVec<u8, <T as pallet_uniques::Config>::StringLimit>,
+			default_shell_metadata: BoundedVec<u8, T::StringLimit>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			pallet_pw_nft_sale::pallet::Pallet::<T>::ensure_overlord(&sender)?;
@@ -349,37 +391,31 @@ pub mod pallet {
 			// Get owner of the Origin of Shell NFT
 			let (owner, _) =
 				pallet_rmrk_core::Pallet::<T>::lookup_root_owner(collection_id, nft_id)?;
-			// Check if HatchTimes is less than or equal to current Timestamp
-			// Ensure that Origin of Shell exists or is not past the hatch time
-			let hatch_time = Self::get_hatch_time(collection_id, nft_id)?;
+			// Check if the incubation has started and the official hatch time has been met
 			ensure!(
-				Self::can_hatch(hatch_time),
+				HasOriginOfShellStartedIncubation::<T>::get((collection_id, nft_id))
+					&& Self::can_hatch(),
 				Error::<T>::CannotHatchOriginOfShell
 			);
 			// Check if Shell Collection ID is set
 			let shell_collection_id = Self::get_shell_collection_id()?;
-			// Get race, key and Rarity Type before burning origin of shell NFT
-			let race_key = pallet_pw_nft_sale::pallet::Pallet::<T>::to_boundedvec_key("race")?;
-			let career_key = pallet_pw_nft_sale::pallet::Pallet::<T>::to_boundedvec_key("career")?;
-			let rarity_type_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("rarity")?;
-			let generation_key = pallet_pw_nft_sale::Pallet::<T>::to_boundedvec_key("generation")?;
+			// Check if Shell Parts Collection ID is set
+			let shell_parts_collection_id = Self::get_shell_parts_collection_id()?;
+			// Get race, career, generation and rarity before burning origin of shell NFT
 			let race =
-				pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &race_key))
+				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id, nft_id, "race")
 					.ok_or(Error::<T>::RaceNotDetected)?;
 			let career =
-				pallet_rmrk_core::Properties::<T>::get((collection_id, Some(nft_id), &career_key))
+				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id, nft_id, "career")
 					.ok_or(Error::<T>::CareerNotDetected)?;
-			let rarity_type_value = pallet_rmrk_core::Properties::<T>::get((
+			let rarity_type_value =
+				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id, nft_id, "rarity")
+					.ok_or(Error::<T>::RarityTypeNotDetected)?;
+			let generation = pallet_pw_nft_sale::Pallet::<T>::get_nft_property(
 				collection_id,
-				Some(nft_id),
-				&rarity_type_key,
-			))
-			.ok_or(Error::<T>::RarityTypeNotDetected)?;
-			let generation = pallet_rmrk_core::Properties::<T>::get((
-				collection_id,
-				Some(nft_id),
-				&generation_key,
-			))
+				nft_id,
+				"generation",
+			)
 			.ok_or(Error::<T>::GenerationNotDetected)?;
 			let race_type: RaceType =
 				Decode::decode(&mut race.as_slice()).expect("[race] should not fail");
@@ -389,6 +425,17 @@ pub mod pallet {
 				.expect("[rarity] should not fail");
 			let generation_id: GenerationId =
 				Decode::decode(&mut generation.as_slice()).expect("[generation] should not fail");
+			let parts_properties = vec![
+				("race", race),
+				("career", career),
+				("generation", generation),
+			];
+			let mut shell_properties = parts_properties.clone();
+			shell_properties.push(("rarity", rarity_type_value));
+
+			// Get next expected Shell NFT ID
+			let next_shell_nft_id =
+				pallet_pw_nft_sale::Pallet::<T>::get_next_nft_id(shell_collection_id)?;
 			// Burn Origin of Shell NFT then Mint Shell NFT
 			pallet_rmrk_core::Pallet::<T>::burn_nft(
 				Origin::<T>::Signed(owner.clone()).into(),
@@ -397,37 +444,20 @@ pub mod pallet {
 				1,
 			)?;
 			// Remove Properties from Uniques pallet
-			pallet_rmrk_core::Pallet::<T>::do_remove_property(
+			pallet_pw_nft_sale::Pallet::<T>::remove_nft_properties(
 				collection_id,
-				Some(nft_id),
-				race_key,
+				nft_id,
+				shell_properties.clone(),
 			)?;
-			pallet_rmrk_core::Pallet::<T>::do_remove_property(
-				collection_id,
-				Some(nft_id),
-				career_key,
-			)?;
-			pallet_rmrk_core::Pallet::<T>::do_remove_property(
-				collection_id,
-				Some(nft_id),
-				rarity_type_key,
-			)?;
-			pallet_rmrk_core::Pallet::<T>::do_remove_property(
-				collection_id,
-				Some(nft_id),
-				generation_key,
-			)?;
-			let collection = pallet_rmrk_core::Pallet::<T>::collections(shell_collection_id).ok_or(pallet_rmrk_core::Error::<T>::CollectionUnknown)?;
-			let nft_id = collection.nfts_count + 1;
 			// Mint Shell NFT to Overlord to add properties and resource before sending to owner
 			let (_, shell_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
 				owner.clone(),
 				owner.clone(),
-				nft_id,
+				next_shell_nft_id,
 				shell_collection_id,
 				None,
 				None,
-				metadata,
+				default_shell_metadata,
 				true,
 				None,
 			)?;
@@ -435,11 +465,71 @@ pub mod pallet {
 			pallet_pw_nft_sale::Pallet::<T>::set_nft_properties(
 				shell_collection_id,
 				shell_nft_id,
-				rarity_type,
-				race_type,
-				career_type,
-				generation_id,
+				shell_properties,
 			)?;
+
+			// Iterate through the chosen parts
+			let chosen_parts = OriginOfShellsChosenParts::<T>::take((collection_id, nft_id))
+				.ok_or(Error::<T>::ChosenPartsNotDetected)?;
+			for (slot_name, chosen_part) in chosen_parts.parts {
+				let part_info = chosen_part.shell_part;
+				let sub_parts = chosen_part.sub_parts;
+				let metadata = match part_info.metadata {
+					Some(metadata) => metadata,
+					None => Default::default(),
+				};
+				// Add shell part properties
+				let mut shell_part_properties = parts_properties.clone();
+				let slot_name_value = property_value(&slot_name);
+				// Append shell part properties
+				shell_part_properties.append(&mut vec![
+					("name", property_value(&part_info.name)),
+					("slot_name", slot_name_value.clone()),
+					("rarity", property_value(&part_info.rarity)),
+					("layer", property_value(&part_info.layer)),
+					("x", property_value(&part_info.x)),
+					("y", property_value(&part_info.y)),
+				]);
+				let (_, shell_part_nft_id) = Self::do_mint_shell_part_nft(
+					owner.clone(),
+					shell_part_properties,
+					metadata,
+					shell_parts_collection_id,
+					shell_collection_id,
+					shell_nft_id,
+					true,
+				)?;
+				match sub_parts {
+					Some(sub_parts) => {
+						for sub_part_info in sub_parts {
+							let sub_part_metadata = sub_part_info
+								.metadata
+								.ok_or(Error::<T>::MissingShellPartMetadata)?;
+							// Add shell subpart properties
+							let mut sub_part_properties = parts_properties.clone();
+							// Append sub part properties
+							sub_part_properties.append(&mut vec![
+								("name", property_value(&sub_part_info.name)),
+								("slot_name", slot_name_value.clone()),
+								("rarity", property_value(&sub_part_info.rarity)),
+								("layer", property_value(&sub_part_info.layer)),
+								("x", property_value(&sub_part_info.x)),
+								("y", property_value(&sub_part_info.y)),
+							]);
+							Self::do_mint_shell_part_nft(
+								owner.clone(),
+								sub_part_properties,
+								sub_part_metadata,
+								shell_parts_collection_id,
+								shell_parts_collection_id,
+								shell_part_nft_id,
+								false,
+							)?;
+						}
+					}
+					None => (),
+				}
+			}
 
 			Self::deposit_event(Event::ShellAwakened {
 				shell_collection_id,
@@ -456,47 +546,8 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// This is an admin function to update origin_of_shells incubation times based on being in
-		/// the top 10 of fed origin_of_shells within that era
-		///
-		/// Parameters:
-		/// - origin: The origin of the extrinsic updating the origin_of_shells incubation times
-		/// - `origin_of_shells`: Vec of a tuple of Origin of Shells and the time to reduce their
-		///   hatch times by
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		#[transactional]
-		pub fn update_incubation_time(
-			origin: OriginFor<T>,
-			origin_of_shells: Vec<((CollectionId, NftId), u64)>,
-		) -> DispatchResult {
-			// Ensure GovernanceOrigin makes call
-			let sender = ensure_signed(origin)?;
-			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
-			// Iterate through Origin of Shells
-			for ((collection_id, nft_id), reduced_time) in origin_of_shells {
-				// Ensure that the collection is an Origin of Shell Collection
-				ensure!(
-					Self::is_origin_of_shell_collection_id(collection_id),
-					Error::<T>::WrongCollectionId
-				);
-				// Update Hatch Time
-				let old_hatch_time = Self::get_hatch_time(collection_id, nft_id)?;
-				let new_hatch_time = old_hatch_time.saturating_sub(reduced_time);
-				HatchTimes::<T>::insert(collection_id, nft_id, new_hatch_time);
-
-				Self::deposit_event(Event::HatchTimeUpdated {
-					collection_id,
-					nft_id,
-					old_hatch_time,
-					new_hatch_time,
-				});
-			}
-
-			Ok(())
-		}
-
 		/// Privileged function to enable incubation phase for accounts to start the incubation
-		/// process for their Origin of Shells
+		/// process for their Origin of Shells.
 		///
 		/// Parameters:
 		/// `origin`: Expected to be the `Overlord` account
@@ -540,7 +591,7 @@ pub mod pallet {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
 			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
-			// If Spirit Collection ID is greater than 0 then the collection ID was already set
+			// If Spirit Collection ID is not None then the collection ID was already set
 			ensure!(
 				ShellCollectionId::<T>::get().is_none(),
 				Error::<T>::ShellCollectionIdAlreadySet
@@ -548,6 +599,73 @@ pub mod pallet {
 			<ShellCollectionId<T>>::put(collection_id);
 
 			Self::deposit_event(Event::ShellCollectionIdSet { collection_id });
+
+			Ok(Pays::No.into())
+		}
+
+		/// Privileged function to set the collection id for the Shell Parts collection.
+		///
+		/// Parameters:
+		/// - `origin` - Expected Overlord admin account to set the Shell Parts Collection ID
+		/// - `collection_id` - Collection ID of the Shell Parts Collection
+		#[pallet::weight(0)]
+		pub fn set_shell_parts_collection_id(
+			origin: OriginFor<T>,
+			collection_id: CollectionId,
+		) -> DispatchResultWithPostInfo {
+			// Ensure Overlord account makes call
+			let sender = ensure_signed(origin)?;
+			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
+			// Shell Parts Collection ID is None or else the collection ID was already set
+			ensure!(
+				ShellPartsCollectionId::<T>::get().is_none(),
+				Error::<T>::ShellPartsCollectionIdAlreadySet
+			);
+			<ShellPartsCollectionId<T>>::put(collection_id);
+
+			Self::deposit_event(Event::ShellPartsCollectionIdSet { collection_id });
+
+			Ok(Pays::No.into())
+		}
+
+		/// Privileged function to set the parts chosen by an account for a specific Origin of Shell.
+		///
+		/// Parameters:
+		/// - `origin` - Expected Overlord admin account to set the chosen part to the Origin of Shell
+		/// - `collection_id` - Collection ID of Origin of Shell
+		/// - `nft_id` - NFT ID of the Origin of Shell
+		/// - `chosen_parts` - Shell parts to be stored in Storage
+		#[pallet::weight(0)]
+		pub fn set_origin_of_shell_chosen_parts(
+			origin: OriginFor<T>,
+			collection_id: CollectionId,
+			nft_id: NftId,
+			chosen_parts: ShellPartsOf<T>,
+		) -> DispatchResultWithPostInfo {
+			// Ensure Overlord account makes call
+			let sender = ensure_signed(origin)?;
+			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
+			// Ensure that the collection is an Origin of Shell Collection
+			ensure!(
+				Self::is_origin_of_shell_collection_id(collection_id),
+				Error::<T>::WrongCollectionId
+			);
+			// Ensure the incubation process has started before setting chosen parts
+			ensure!(
+				HasOriginOfShellStartedIncubation::<T>::get((collection_id, nft_id)),
+				Error::<T>::CannotSetOriginOfShellChosenParts
+			);
+
+			let old_chosen_parts = OriginOfShellsChosenParts::<T>::get((collection_id, nft_id));
+
+			OriginOfShellsChosenParts::<T>::insert((collection_id, nft_id), chosen_parts.clone());
+
+			Self::deposit_event(Event::OriginOfShellChosenPartsUpdated {
+				collection_id,
+				nft_id,
+				old_chosen_parts,
+				new_chosen_parts: chosen_parts,
+			});
 
 			Ok(Pays::No.into())
 		}
@@ -587,33 +705,30 @@ where
 		}
 	}
 
-	/// Helper function to get hatch time has been assigned for an Origin of Shell.
-	///
-	/// Parameters:
-	/// `collection_id`: Collection ID of the Origin of Shell
-	/// `nft_id`: NFT ID of the Origin of Shell
-	fn get_hatch_time(collection_id: CollectionId, nft_id: NftId) -> Result<u64, Error<T>> {
-		HatchTimes::<T>::get(collection_id, nft_id).ok_or(Error::<T>::NoHatchTimeDetected)
-	}
-
 	/// Helper function to check if the Origin of Shell can hatch
-	///
-	/// Parameters:
-	/// `collection_id`: Collection ID of the Origin of Shell
-	/// `nft_id`: NFT ID of the Origin of Shell
-	fn can_hatch(hatch_time: u64) -> bool {
+	fn can_hatch() -> bool {
 		let now = T::Time::now().as_secs();
-		now > hatch_time
+		now > OfficialHatchTime::<T>::get()
 	}
 
-	/// Helper function to get collection id spirit collection
+	/// Helper function to get collection id Shell collection
 	fn get_shell_collection_id() -> Result<CollectionId, Error<T>> {
 		let shell_collection_id =
 			ShellCollectionId::<T>::get().ok_or(Error::<T>::ShellCollectionIdNotSet)?;
 		Ok(shell_collection_id)
 	}
 
+	/// Helper function to get collection id Shell Parts collection
+	fn get_shell_parts_collection_id() -> Result<CollectionId, Error<T>> {
+		let shell_parts_collection_id =
+			ShellPartsCollectionId::<T>::get().ok_or(Error::<T>::ShellPartsCollectionIdNotSet)?;
+		Ok(shell_parts_collection_id)
+	}
+
 	/// Helper function to get new FoodOf<T> struct
+	///
+	/// Parameters:
+	/// - `era`: The current Era of Phala World
 	fn get_new_food_info(
 		era: EraId,
 	) -> FoodInfo<BoundedVec<(CollectionId, NftId), <T as Config>::FoodPerEra>> {
@@ -621,5 +736,59 @@ where
 			era,
 			origin_of_shells_fed: Default::default(),
 		}
+	}
+
+	/// Helper function to mint a Top level Shell part. These are transferable Shell part NFTs.
+	///
+	/// Parameters:
+	/// - `owner`: Root owner of the Shell part
+	/// - `properties`: Vec of properties to be set
+	/// - `metadata`: Metadata URI that will point to decentralized storage of the media
+	/// file
+	/// - `shell_parts_collection_id`: The Shell parts collection ID
+	/// - `parent_collection_id`: Collection of the Shell NFT that owns the Shell Part
+	/// - `parent_nft_id`: NFT ID of the Shell NFT that owns the Shell Part
+	/// - `transferable`: If Part is transferable
+	fn do_mint_shell_part_nft(
+		owner: T::AccountId,
+		properties: Vec<(&str, BoundedVec<u8, T::ValueLimit>)>,
+		metadata: BoundedVec<u8, T::StringLimit>,
+		shell_parts_collection_id: CollectionId,
+		parent_collection_id: CollectionId,
+		parent_nft_id: NftId,
+		transferable: bool,
+	) -> Result<(CollectionId, NftId), DispatchError> {
+		// If metadata is None then metadata will be default
+		// Get expected next available NFT ID to mint
+		let next_nft_id =
+			pallet_pw_nft_sale::Pallet::<T>::get_next_nft_id(shell_parts_collection_id)?;
+		// Mint Shell Part NFT directly to the Shell NFT
+		let (_, shell_part_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint_directly_to_nft(
+			owner.clone(),
+			(parent_collection_id, parent_nft_id),
+			next_nft_id,
+			shell_parts_collection_id,
+			None,
+			None,
+			metadata,
+			transferable,
+			None,
+		)?;
+		// Set Shell Part properties
+		pallet_pw_nft_sale::Pallet::<T>::set_nft_properties(
+			shell_parts_collection_id,
+			shell_part_nft_id,
+			properties.clone(),
+		)?;
+
+		Self::deposit_event(Event::ShellPartMinted {
+			shell_parts_collection_id,
+			shell_part_nft_id,
+			parent_shell_collection_id: parent_collection_id,
+			parent_shell_nft_id: parent_nft_id,
+			owner,
+		});
+
+		Ok((shell_parts_collection_id, shell_part_nft_id))
 	}
 }
