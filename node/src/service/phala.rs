@@ -16,6 +16,7 @@ pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as No
 use sc_executor::WasmExecutor;
 
 use sc_network::NetworkService;
+use sc_network_common::service::NetworkBlock;
 use sc_service::{
     Configuration, PruningMode, TFullBackend, TFullClient, TaskManager,
 };

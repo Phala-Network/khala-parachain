@@ -2,6 +2,13 @@
 use super::*;
 #[allow(unused_imports)]
 use frame_support::traits::OnRuntimeUpgrade;
+pub struct PhalaWorldMigrations;
+
+impl OnRuntimeUpgrade for PhalaWorldMigrations {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        pallet_phala_world::migration::phala_world_migration::migrate::<Runtime>()
+    }
+}
 
 // Note to "late-migration":
 //
@@ -18,4 +25,3 @@ use frame_support::traits::OnRuntimeUpgrade;
 // The final decision is to just skip the pre_upgrade checks. We have carefully checked all the
 // pre_upgrade checks and confirmed that only the prefix checks are skipped. All the other checks
 // are still performed in an offline try-runtime test.
-

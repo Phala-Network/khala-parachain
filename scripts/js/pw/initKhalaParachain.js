@@ -101,7 +101,7 @@ async function initPhalaWorld(khalaApi, overlord) {
         });
         // collection 1: origin of shells
         const unsub4 = await khalaApi.tx.pwNftSale.pwCreateCollection(
-            'Phala World Origin of Shells Collection',
+            'PhalaWorld Origin of Shells Collection',
             null,
             'PWOAS'
         ).signAndSend(overlord, {nonce: nonceOverlord++}, (result) => {
@@ -125,9 +125,11 @@ async function initPhalaWorld(khalaApi, overlord) {
                 resolve();
             }
         });
+        console.log("Create Spirits and Origin of Shell Collections...Done");
+        console.log("Create Shell and Shell Parts Collections...");
         // collection 2: shells
         const unsub6 = await khalaApi.tx.pwNftSale.pwCreateCollection(
-            'Phala World Shells Collection',
+            'PhalaWorld Shells Collection',
             null,
             'PWSHL'
         ).signAndSend(overlord, {nonce: nonceOverlord++}, (result) => {
@@ -139,7 +141,7 @@ async function initPhalaWorld(khalaApi, overlord) {
                 resolve();
             }
         });
-        // set the origin of shell collection id
+        // set the shell collection id
         const unsub7 = await khalaApi.tx.pwIncubation.setShellCollectionId(
             2
         ).signAndSend(overlord, {nonce: nonceOverlord++}, (result) => {
@@ -151,16 +153,42 @@ async function initPhalaWorld(khalaApi, overlord) {
                 resolve();
             }
         });
-        console.log("Create Spirits and Origin of Shell Collections...Done");
+        // collection 3: shell parts
+        const unsub8 = await khalaApi.tx.pwNftSale.pwCreateCollection(
+            'PhalaWorld Shell Parts Collection',
+            null,
+            'PWPRT'
+        ).signAndSend(overlord, {nonce: nonceOverlord++}, (result) => {
+            if (result.status.isInBlock) {
+                console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
+            } else if (result.status.isFinalized) {
+                console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
+                unsub8();
+                resolve();
+            }
+        });
+        // set the shell parts collection id
+        const unsub9 = await khalaApi.tx.pwIncubation.setShellPartsCollectionId(
+            3
+        ).signAndSend(overlord, {nonce: nonceOverlord++}, (result) => {
+            if (result.status.isInBlock) {
+                console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
+            } else if (result.status.isFinalized) {
+                console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
+                unsub9();
+                resolve();
+            }
+        });
+        console.log("Create Shell and Shell Parts Collections...Done");
         console.log("Initialize Origin of Shell NFT sale inventory...");
         // set the initial inventory numbers that will be used until the preorder phase
-        const unsub8 = await khalaApi.tx.pwNftSale.initRarityTypeCounts()
+        const unsub10 = await khalaApi.tx.pwNftSale.initRarityTypeCounts()
             .signAndSend(overlord, {nonce: nonceOverlord++}, (result) => {
                 if (result.status.isInBlock) {
                     console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
                 } else if (result.status.isFinalized) {
                     console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
-                    unsub8();
+                    unsub10();
                     resolve();
                 }
             });
