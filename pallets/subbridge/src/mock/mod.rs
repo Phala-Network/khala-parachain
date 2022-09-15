@@ -124,6 +124,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 	ext
 }
 
+#[allow(dead_code)]
 pub fn take_events() -> Vec<para::Event> {
 	use para::Runtime;
 

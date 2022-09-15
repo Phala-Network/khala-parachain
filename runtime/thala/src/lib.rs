@@ -86,7 +86,7 @@ use frame_system::{
 
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use xcm::latest::prelude::*;
+use xcm::latest::{prelude::*, Weight as XCMWeight,};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
@@ -808,8 +808,8 @@ impl pallet_sudo::Config for Runtime {
 }
 
 parameter_types! {
-    pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
-    pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
+    pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
+    pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
@@ -960,7 +960,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<Origin>,
 );
 parameter_types! {
-    pub UnitWeightCost: Weight = 200_000_000;
+    pub UnitWeightCost: XCMWeight = 200_000_000;
     pub const MaxInstructions: u32 = 100;
     pub ThalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
     pub CheckingAccount: AccountId = PalletId(*b"checking").into_account_truncating();
@@ -1024,7 +1024,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
 
 parameter_types! {
     pub NativeExecutionPrice: u128 = pha_per_second();
-    pub WeightPerSecond: u64 = WEIGHT_PER_SECOND;
+    pub WeightPerSecond: XCMWeight = WEIGHT_PER_SECOND.ref_time();
 }
 
 pub struct XcmConfig;
@@ -1060,7 +1060,7 @@ impl Config for XcmConfig {
     type SubscriptionService = PolkadotXcm;
 }
 parameter_types! {
-    pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
+    pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
 }
 
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;

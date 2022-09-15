@@ -4,7 +4,6 @@ use crate as assets_registry;
 use frame_support::{
 	ord_parameter_types, parameter_types,
 	traits::{ConstU128, ConstU32, GenesisBuild},
-	weights::Weight,
 };
 use frame_system::{self as system};
 use sp_core::H256;
@@ -38,7 +37,6 @@ frame_support::construct_runtime!(
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: Weight = 1024;
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 	pub const MaxLocks: u32 = 100;

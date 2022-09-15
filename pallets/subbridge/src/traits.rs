@@ -1,9 +1,8 @@
 use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
-	weights::Weight,
 };
 use sp_std::vec::Vec;
-use xcm::latest::{MultiAsset, MultiLocation};
+use xcm::latest::{MultiAsset, MultiLocation, Weight as XCMWeight};
 
 pub trait BridgeChecker {
 	/// Return true if the asset can be send to destination
@@ -20,7 +19,7 @@ pub trait BridgeTransact: Sized {
 		sender: [u8; 32],
 		asset: MultiAsset,
 		dest: MultiLocation,
-		max_weight: Option<Weight>,
+		max_weight: Option<XCMWeight>,
 	) -> DispatchResult;
 
 	fn transfer_nonfungible(
@@ -28,7 +27,7 @@ pub trait BridgeTransact: Sized {
 		sender: [u8; 32],
 		asset: MultiAsset,
 		dest: MultiLocation,
-		max_weight: Option<Weight>,
+		max_weight: Option<XCMWeight>,
 	) -> DispatchResult;
 
 	fn transfer_generic(
@@ -36,7 +35,7 @@ pub trait BridgeTransact: Sized {
 		sender: [u8; 32],
 		data: &Vec<u8>,
 		dest: MultiLocation,
-		max_weight: Option<Weight>,
+		max_weight: Option<XCMWeight>,
 	) -> DispatchResult;
 }
 
@@ -51,7 +50,7 @@ impl BridgeTransact for Tuple {
 		sender: [u8; 32],
 		asset: MultiAsset,
 		dest: MultiLocation,
-		max_weight: Option<Weight>,
+		max_weight: Option<XCMWeight>,
 	) -> DispatchResult {
 		let mut last_error = None;
 		for_tuples!( #(
@@ -70,7 +69,7 @@ impl BridgeTransact for Tuple {
 		sender: [u8; 32],
 		asset: MultiAsset,
 		dest: MultiLocation,
-		max_weight: Option<Weight>,
+		max_weight: Option<XCMWeight>,
 	) -> DispatchResult {
 		let mut last_error = None;
 		for_tuples!( #(
@@ -89,7 +88,7 @@ impl BridgeTransact for Tuple {
 		sender: [u8; 32],
 		data: &Vec<u8>,
 		dest: MultiLocation,
-		max_weight: Option<Weight>,
+		max_weight: Option<XCMWeight>,
 	) -> DispatchResult {
 		let mut last_error = None;
 		for_tuples!( #(

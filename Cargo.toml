@@ -38,7 +38,6 @@ members = [
 	"crates/phala-pallet-common",
 	"crates/prpc",
 	"crates/phala-trie-storage",
-	"substrate/frame/utility",
 	"pallets/assets-registry",
 	"pallets/phala",
 	"pallets/phala/mq-runtime-api",

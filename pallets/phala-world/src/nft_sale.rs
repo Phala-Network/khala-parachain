@@ -425,7 +425,7 @@ pub mod pallet {
 		///
 		/// Parameters:
 		/// - origin: The origin of the extrinsic.
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn claim_spirit(origin: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
@@ -454,7 +454,7 @@ pub mod pallet {
 		///
 		/// Parameters:
 		/// - origin: The origin of the extrinsic.
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn redeem_spirit(
 			origin: OriginFor<T>,
@@ -487,7 +487,7 @@ pub mod pallet {
 		/// - race: The race of the origin_of_shell chosen by the user.
 		/// - career: The career of the origin_of_shell chosen by the user or auto-generated based
 		///   on metadata
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn buy_rare_origin_of_shell(
 			origin: OriginFor<T>,
@@ -532,7 +532,7 @@ pub mod pallet {
 		/// - signature: The signature of the account that is claiming the spirit.
 		/// - race: The race that the user has chosen (limited # of races)
 		/// - career: The career that the user has chosen (unlimited careers)
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn buy_prime_origin_of_shell(
 			origin: OriginFor<T>,
@@ -586,7 +586,7 @@ pub mod pallet {
 		/// - origin: The origin of the extrinsic preordering the origin_of_shell
 		/// - race: The race that the user has chosen (limited # of races)
 		/// - career: The career that the user has chosen (limited # of careers)
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn preorder_origin_of_shell(
 			origin: OriginFor<T>,
@@ -660,7 +660,7 @@ pub mod pallet {
 		/// Parameters:
 		/// `origin`: Expected to come from Overlord admin account
 		/// `preorders`: Vec of Preorder IDs that were `Chosen`
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn mint_chosen_preorders(
 			origin: OriginFor<T>,
@@ -728,7 +728,7 @@ pub mod pallet {
 		/// Parameters:
 		/// `origin`: Expected to come from Overlord admin account
 		/// `preorders`: Preorder ids of the not chosen preorders
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn refund_not_chosen_preorders(
 			origin: OriginFor<T>,
@@ -785,7 +785,7 @@ pub mod pallet {
 		/// - `career`: The career of the origin_of_shell chosen by the user or auto-generated based
 		///   on metadata
 		/// - `nft_sale_type`: Either a `NftSaleType::Giveaway` or `NftSaleType::Reserved`
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn mint_gift_origin_of_shell(
 			origin: OriginFor<T>,
@@ -1040,7 +1040,7 @@ pub mod pallet {
 		/// - `metadata`: Metadata pertaining to the collection
 		/// - `max`: Optional max u32 for the size of the collection
 		/// - `symbol`: BoundedString of the collection's symbol i.e 'OVRLD'
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn pw_create_collection(
 			origin: OriginFor<T>,
