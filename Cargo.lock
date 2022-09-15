@@ -4220,7 +4220,7 @@ dependencies = [
  "libp2p-core",
  "libp2p-swarm",
  "log",
- "lru",
+ "lru 0.7.8",
  "prost 0.10.4",
  "prost-build",
  "prost-codec",
@@ -4694,6 +4694,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lru"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "936d98d2ddd79c18641c6709e7bb09981449694e402d1a0f0f657ea8d61f4a51"
+dependencies = [
+ "hashbrown 0.12.3",
+]
+
+[[package]]
 name = "lru-cache"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4816,10 +4825,11 @@ dependencies = [
 
 [[package]]
 name = "memory-lru"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/memory-lru#b6760297e13c1e0cd912573f9b8c5995c13a9494"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce95ae042940bad7e312857b929ee3d11b8f799a80cb7b9c7ec5125516906395"
 dependencies = [
- "lru",
+ "lru 0.8.0",
 ]
 
 [[package]]
@@ -6448,7 +6458,7 @@ dependencies = [
  "ethereum-types",
  "hashbrown 0.12.3",
  "impl-trait-for-tuples",
- "lru",
+ "lru 0.7.8",
  "parity-util-mem-derive",
  "parking_lot 0.12.1",
  "primitive-types",
@@ -6937,7 +6947,7 @@ dependencies = [
  "derive_more",
  "fatality",
  "futures",
- "lru",
+ "lru 0.7.8",
  "parity-scale-codec",
  "polkadot-erasure-coding",
  "polkadot-node-network-protocol",
@@ -6959,7 +6969,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.29#9407
 dependencies = [
  "fatality",
  "futures",
- "lru",
+ "lru 0.7.8",
  "parity-scale-codec",
  "polkadot-erasure-coding",
  "polkadot-node-network-protocol",
@@ -7081,7 +7091,7 @@ dependencies = [
  "derive_more",
  "fatality",
  "futures",
- "lru",
+ "lru 0.7.8",
  "parity-scale-codec",
  "polkadot-erasure-coding",
  "polkadot-node-network-protocol",
@@ -7182,7 +7192,7 @@ dependencies = [
  "futures",
  "futures-timer",
  "kvdb",
- "lru",
+ "lru 0.7.8",
  "merlin",
  "parity-scale-codec",
  "polkadot-node-jaeger",
@@ -7313,7 +7323,7 @@ dependencies = [
  "fatality",
  "futures",
  "kvdb",
- "lru",
+ "lru 0.7.8",
  "parity-scale-codec",
  "polkadot-node-primitives",
  "polkadot-node-subsystem",
@@ -7548,7 +7558,7 @@ dependencies = [
  "futures",
  "itertools",
  "kvdb",
- "lru",
+ "lru 0.7.8",
  "parity-db",
  "parity-scale-codec",
  "parity-util-mem",
@@ -7578,7 +7588,7 @@ dependencies = [
  "async-trait",
  "futures",
  "futures-timer",
- "lru",
+ "lru 0.7.8",
  "orchestra",
  "parity-util-mem",
  "parking_lot 0.12.1",
@@ -7903,7 +7913,7 @@ dependencies = [
  "kusama-runtime",
  "kvdb",
  "kvdb-rocksdb",
- "lru",
+ "lru 0.7.8",
  "pallet-babe",
  "pallet-im-online",
  "pallet-staking",
@@ -9381,7 +9391,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29#3f70bcedf020d072e2f611a2448f2af46a4ae9b4"
 dependencies = [
  "lazy_static",
- "lru",
+ "lru 0.7.8",
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "sc-executor-common",
@@ -9569,7 +9579,7 @@ dependencies = [
  "linked-hash-map",
  "linked_hash_set",
  "log",
- "lru",
+ "lru 0.7.8",
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "pin-project",
@@ -9630,7 +9640,7 @@ dependencies = [
  "futures-timer",
  "libp2p",
  "log",
- "lru",
+ "lru 0.7.8",
  "sc-network-common",
  "sc-peerset",
  "sp-runtime",
@@ -9669,7 +9679,7 @@ dependencies = [
  "hex",
  "libp2p",
  "log",
- "lru",
+ "lru 0.7.8",
  "parity-scale-codec",
  "prost 0.10.4",
  "prost-build",
@@ -10618,7 +10628,7 @@ source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29#3f
 dependencies = [
  "futures",
  "log",
- "lru",
+ "lru 0.7.8",
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "sp-api",
@@ -11177,7 +11187,7 @@ dependencies = [
  "hash-db",
  "hashbrown 0.12.3",
  "lazy_static",
- "lru",
+ "lru 0.7.8",
  "memory-db",
  "nohash-hasher",
  "parity-scale-codec",
@@ -12091,7 +12101,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.3",
  "rand 0.8.5",
  "static_assertions",
