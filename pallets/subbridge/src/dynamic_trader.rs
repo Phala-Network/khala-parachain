@@ -1,8 +1,5 @@
 use assets_registry::GetAssetRegistryInfo;
-use frame_support::{
-	traits::Get,
-	weights::{constants::WEIGHT_PER_SECOND},
-};
+use frame_support::traits::Get;
 use sp_std::{marker::PhantomData, result::Result, vec::Vec};
 use xcm::latest::{prelude::*, AssetId, Weight as XCMWeight};
 use xcm_builder::TakeRevenue;
@@ -84,7 +81,7 @@ where
 		// If we have deducted some fee from payment assets
 		if let Some((id, units_per_second)) = &self.2 {
 			let weight = weight.min(self.0);
-			let amount = units_per_second * (weight as u128) / (WEIGHT_PER_SECOND.ref_time() as u128);
+			let amount = units_per_second * (weight as u128) / (WeightPerSecond::get() as u128);
 			self.0 -= weight;
 			self.1 = self.1.saturating_sub(amount);
 			if amount > 0 {
