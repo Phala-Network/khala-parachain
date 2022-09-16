@@ -1,6 +1,4 @@
-use frame_support::{
-	dispatch::{DispatchError, DispatchResult},
-};
+use frame_support::dispatch::{DispatchError, DispatchResult};
 use sp_std::vec::Vec;
 use xcm::latest::{MultiAsset, MultiLocation, Weight as XCMWeight};
 

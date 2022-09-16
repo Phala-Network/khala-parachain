@@ -14,7 +14,9 @@ pub mod pallet {
 	use scale_info::TypeInfo;
 	use sp_runtime::DispatchError;
 	use sp_std::{prelude::*, vec};
-	use xcm::latest::{prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation, Weight as XCMWeight};
+	use xcm::latest::{
+		prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation, Weight as XCMWeight,
+	};
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 	/// The logging target.

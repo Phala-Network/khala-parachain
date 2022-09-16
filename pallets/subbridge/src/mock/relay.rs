@@ -1,8 +1,4 @@
-use frame_support::{
-	construct_runtime, parameter_types,
-	traits::Everything,
-	weights::IdentityFee,
-};
+use frame_support::{construct_runtime, parameter_types, traits::Everything, weights::IdentityFee};
 use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
