@@ -6,12 +6,11 @@ pub mod pallet {
 	use assets_registry::AccountId32Conversion;
 	use frame_support::{
 		dispatch::DispatchResult, pallet_prelude::*, traits::StorageVersion, transactional,
-		weights::Weight,
 	};
 	use frame_system::pallet_prelude::*;
 	use phala_pallet_common::WrapSlice;
 	use sp_std::{boxed::Box, convert::From, vec::Vec};
-	use xcm::latest::{prelude::*, MultiAsset, MultiLocation};
+	use xcm::latest::{prelude::*, MultiAsset, MultiLocation, Weight as XCMWeight};
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
 
@@ -68,7 +67,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			asset: Box<MultiAsset>,
 			dest: Box<MultiLocation>,
-			dest_weight: Option<Weight>,
+			dest_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::do_transfer(sender, *asset, *dest, dest_weight)?;
@@ -81,7 +80,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			data: Box<Vec<u8>>,
 			dest: Box<MultiLocation>,
-			dest_weight: Option<Weight>,
+			dest_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::do_transfer_generic(sender, data.to_vec(), *dest, dest_weight)?;
@@ -97,7 +96,7 @@ pub mod pallet {
 			sender: T::AccountId,
 			what: MultiAsset,
 			dest: MultiLocation,
-			dest_weight: Option<Weight>,
+			dest_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			let bridge = T::Bridge::new();
 			match (&what.fun, &what.id) {
@@ -118,7 +117,7 @@ pub mod pallet {
 			sender: T::AccountId,
 			data: Vec<u8>,
 			dest: MultiLocation,
-			dest_weight: Option<Weight>,
+			dest_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			let bridge = T::Bridge::new();
 			bridge.transfer_generic(sender.into(), &data, dest, dest_weight)?;

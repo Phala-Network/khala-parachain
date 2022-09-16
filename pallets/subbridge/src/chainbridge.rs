@@ -28,7 +28,9 @@ pub mod pallet {
 		convert::{From, Into, TryInto},
 		prelude::*,
 	};
-	use xcm::latest::{prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation};
+	use xcm::latest::{
+		prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation, Weight as XCMWeight,
+	};
 	use xcm_executor::traits::TransactAsset;
 
 	const LOG_TARGET: &str = "runtime::chainbridge";
@@ -316,7 +318,7 @@ pub mod pallet {
 		fn on_initialize(_n: T::BlockNumber) -> Weight {
 			// Clear all bridge transfer data
 			BridgeEvents::<T>::kill();
-			0
+			Weight::zero()
 		}
 	}
 
@@ -405,7 +407,7 @@ pub mod pallet {
 		/// # </weight>
 		#[pallet::weight({
 			let dispatch_info = call.get_dispatch_info();
-			(dispatch_info.weight + 195_000_000, dispatch_info.class, Pays::Yes)
+			(dispatch_info.weight.saturating_add(Weight::from_ref_time(195_000_000)), dispatch_info.class, Pays::Yes)
 		})]
 		#[transactional]
 		pub fn acknowledge_proposal(
@@ -459,7 +461,7 @@ pub mod pallet {
 		/// # </weight>
 		#[pallet::weight({
 			let dispatch_info = prop.get_dispatch_info();
-			(dispatch_info.weight + 195_000_000, dispatch_info.class, Pays::Yes)
+			(dispatch_info.weight.saturating_add(Weight::from_ref_time(195_000_000)), dispatch_info.class, Pays::Yes)
 		})]
 		#[transactional]
 		pub fn eval_vote_state(
@@ -925,7 +927,7 @@ pub mod pallet {
 			sender: [u8; 32],
 			asset: MultiAsset,
 			dest: MultiLocation,
-			_max_weight: Option<Weight>,
+			_max_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			// Check if we can deposit asset into dest.
 			ensure!(
@@ -1052,7 +1054,7 @@ pub mod pallet {
 			_sender: [u8; 32],
 			_asset: MultiAsset,
 			_dest: MultiLocation,
-			_max_weight: Option<Weight>,
+			_max_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			Err(Error::<T>::Unimplemented.into())
 		}
@@ -1064,7 +1066,7 @@ pub mod pallet {
 			_sender: [u8; 32],
 			_data: &Vec<u8>,
 			_dest: MultiLocation,
-			_max_weight: Option<Weight>,
+			_max_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			Err(Error::<T>::Unimplemented.into())
 		}

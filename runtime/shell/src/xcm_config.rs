@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use super::{AccountId, Call, Event, Origin, ParachainInfo, Runtime};
-use frame_support::{match_types, parameter_types, weights::Weight};
+use frame_support::{match_types, parameter_types};
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AllowUnpaidExecutionFrom, FixedWeightBounds, LocationInverter, ParentAsSuperuser,
@@ -22,9 +22,9 @@ use xcm_builder::{
 };
 
 parameter_types! {
-    pub const RococoLocation: MultiLocation = MultiLocation::parent();
-    pub const RococoNetwork: NetworkId = NetworkId::Polkadot;
-    pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+	pub const RococoLocation: MultiLocation = MultiLocation::parent();
+	pub const RococoNetwork: NetworkId = NetworkId::Polkadot;
+	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -41,13 +41,13 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 match_types! {
-    pub type JustTheParent: impl Contains<MultiLocation> = { MultiLocation { parents:1, interior: Here } };
+	pub type JustTheParent: impl Contains<MultiLocation> = { MultiLocation { parents:1, interior: Here } };
 }
 
 parameter_types! {
-    // One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
-    pub UnitWeightCost: Weight = 1_000_000_000;
-    pub const MaxInstructions: u32 = 100;
+	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
+	pub UnitWeightCost: u64 = 1_000_000_000;
+	pub const MaxInstructions: u32 = 100;
 }
 
 pub struct XcmConfig;

@@ -22,7 +22,7 @@ use sp_runtime::{
 
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use polkadot_parachain::primitives::Sibling;
-use xcm::latest::prelude::*;
+use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
 	EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, LocationInverter, NativeAsset,
@@ -144,8 +144,8 @@ impl pallet_assets::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
-	pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
+	pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
+	pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
 }
 
 impl pallet_parachain_info::Config for Runtime {}
@@ -197,7 +197,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 parameter_types! {
 	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
-	pub UnitWeightCost: Weight = 1;
+	pub UnitWeightCost: XCMWeight = 1;
 	pub const MaxInstructions: u32 = 100;
 	pub ParaTreasuryAccount: AccountId = PalletId(*b"py/trsry").into_account_truncating();
 	pub ParaCheckingAccount: AccountId = PalletId(*b"py/check").into_account_truncating();
@@ -287,7 +287,7 @@ impl Config for XcmConfig {
 	type SubscriptionService = ();
 }
 parameter_types! {
-	pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
+	pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
 	pub const BridgeEventLimit: u32 = 1024;
 }
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
