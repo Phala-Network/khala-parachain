@@ -1,6 +1,6 @@
 [package]
 name = "khala-node"
-version = "0.1.18-dev"
+version = "0.1.18"
 license = "Apache-2.0"
 homepage = "https://phala.network/"
 repository = "https://github.com/Phala-Network/khala-parachain"
@@ -21,7 +21,7 @@ clap = { version = "3.2", features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "3.0" }
 futures = "0.3.24"
 hex-literal = "0.3.4"
-log = "0.4.8"
+log = "0.4.17"
 thiserror = "1.0"
 serde = { version = "1.0.144", features = ["derive"] }
 serde_json = { version = "1.0" }

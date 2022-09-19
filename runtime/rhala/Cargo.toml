@@ -1,6 +1,6 @@
 [package]
 name = "rhala-parachain-runtime"
-version = "0.1.18-dev"
+version = "0.1.18"
 authors = ["Phala Network"]
 edition = "2021"
 
