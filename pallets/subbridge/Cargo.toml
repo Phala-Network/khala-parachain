@@ -108,3 +108,4 @@ std = [
 	"assets-registry/std",
 	"phala-pallet-common/std",
 ]
+try-runtime = ["frame-support/try-runtime"]
