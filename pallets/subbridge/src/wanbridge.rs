@@ -2,7 +2,6 @@ pub use self::pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use crate::helper::WrapSlice;
 	use crate::traits::*;
 	use assets_registry::{
 		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, NativeAssetChecker,
@@ -17,6 +16,7 @@ pub mod pallet {
 		PalletId, Parameter,
 	};
 	use frame_system::{self as system, pallet_prelude::*};
+	use phala_pallet_common::WrapSlice;
 	use scale_info::TypeInfo;
 	pub use sp_core::U256;
 	use sp_runtime::traits::{AccountIdConversion, Dispatchable};
@@ -27,6 +27,7 @@ pub mod pallet {
 	};
 	use xcm::latest::{
 		prelude::*, AssetId as XcmAssetId, Fungibility::Fungible, MultiAsset, MultiLocation,
+		Weight as XCMWeight,
 	};
 	use xcm_executor::traits::TransactAsset;
 
@@ -566,7 +567,7 @@ pub mod pallet {
 			sender: [u8; 32],
 			asset: MultiAsset,
 			dest: MultiLocation,
-			_max_weight: Option<Weight>,
+			_max_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			// Check if we can deposit asset into dest.
 			ensure!(
@@ -676,7 +677,7 @@ pub mod pallet {
 			_sender: [u8; 32],
 			_asset: MultiAsset,
 			_dest: MultiLocation,
-			_max_weight: Option<Weight>,
+			_max_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			Err(Error::<T>::Unimplemented.into())
 		}
@@ -687,7 +688,7 @@ pub mod pallet {
 			_sender: [u8; 32],
 			_data: &Vec<u8>,
 			_dest: MultiLocation,
-			_max_weight: Option<Weight>,
+			_max_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			Err(Error::<T>::Unimplemented.into())
 		}

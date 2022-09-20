@@ -152,6 +152,7 @@ parameter_types! {
 impl pallet_parachain_info::Config for Runtime {}
 
 parameter_types! {
+	pub const ResourceIdGenerationSalt: Option<u128> = Some(5);
 	pub const TestChainBridgeChainId: u8 = 5;
 	pub const TestWanBridgeChainId: u128 = 5;
 	pub const WanBridgeNativeTokenPair: u32 = 0;
