@@ -259,6 +259,36 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Renounce as a storeman and add the given account as new storeman
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn renounce_storeman(
+			origin: OriginFor<T>,
+			account: T::AccountId,
+			smg_id: [u8; 32],
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			// Ensure sender is storeman
+			ensure!(StoreMans::<T>::get(&who), Error::<T>::StoremanNotExisted);
+			ensure!(
+				!StoreMans::<T>::get(&account),
+				Error::<T>::StoremanAlreadyExisted
+			);
+
+			// Remove current storeman
+			StoreMans::<T>::insert(&who, false);
+			SmgIds::<T>::remove(&who);
+			Self::deposit_event(Event::StoreManRemoved { account: who });
+
+			// Add new storeman
+			StoreMans::<T>::insert(&account, true);
+			SmgIds::<T>::insert(&account, smg_id);
+			Self::deposit_event(Event::StoreManAdded { account, smg_id });
+
+			Ok(())
+		}
+
 		/// Triggered by a initial transfer on source chain, executed by wanbridge storeman group when proposal was resolved.
 		#[pallet::weight(195_000_000)]
 		#[transactional]
