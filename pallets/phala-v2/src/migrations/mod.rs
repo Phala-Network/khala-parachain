@@ -98,7 +98,7 @@ pub mod v6 {
 		T: pallet_assets::Config<Balance = BalanceOf<T>>,
 	{
 		if get_versions::<T>() == unified_versions::<T>(5) {
-			let mut weight: Weight = 0;
+			let mut weight: Weight = Weight::zero();
 			log::info!("Ᵽ migrating phala-pallets to v6");
 			weight += stakepoolv2::Pallet::<T>::migration_remove_assignments();
 			log::info!("Ᵽ pallets migrated to v6");

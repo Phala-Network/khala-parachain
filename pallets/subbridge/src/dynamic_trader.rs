@@ -1,10 +1,7 @@
 use assets_registry::GetAssetRegistryInfo;
-use frame_support::{
-	traits::Get,
-	weights::{constants::WEIGHT_PER_SECOND, Weight},
-};
+use frame_support::traits::Get;
 use sp_std::{marker::PhantomData, result::Result, vec::Vec};
-use xcm::latest::{prelude::*, AssetId};
+use xcm::latest::{prelude::*, AssetId, Weight as XCMWeight};
 use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, Assets};
 
@@ -14,7 +11,7 @@ pub struct DynamicWeightTrader<
 	FungibleAssetsInfo: GetAssetRegistryInfo<FungibleAssetId>,
 	R: TakeRevenue,
 >(
-	Weight,
+	XCMWeight,
 	u128,
 	Option<(AssetId, u128)>,
 	PhantomData<(WeightPerSecond, FungibleAssetId, FungibleAssetsInfo, R)>,
@@ -30,7 +27,7 @@ where
 		Self(0, 0, None, PhantomData)
 	}
 
-	fn buy_weight(&mut self, weight: Weight, payment: Assets) -> Result<Assets, XcmError> {
+	fn buy_weight(&mut self, weight: XCMWeight, payment: Assets) -> Result<Assets, XcmError> {
 		log::trace!(
 			target: "xtranfer::weight",
 			"DynamicWeightTrader::buy_weight weight: {:?}, payment: {:?}",
@@ -78,13 +75,13 @@ where
 		Err(last_error.unwrap_or(XcmError::AssetNotFound))
 	}
 
-	fn refund_weight(&mut self, weight: Weight) -> Option<MultiAsset> {
+	fn refund_weight(&mut self, weight: XCMWeight) -> Option<MultiAsset> {
 		log::trace!(target: "xtranfer::weight", "DynamicWeightTrader::refund_weight weight: {:?}", weight);
 
 		// If we have deducted some fee from payment assets
 		if let Some((id, units_per_second)) = &self.2 {
 			let weight = weight.min(self.0);
-			let amount = units_per_second * (weight as u128) / (WEIGHT_PER_SECOND as u128);
+			let amount = units_per_second * (weight as u128) / (WeightPerSecond::get() as u128);
 			self.0 -= weight;
 			self.1 = self.1.saturating_sub(amount);
 			if amount > 0 {

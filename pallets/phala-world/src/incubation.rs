@@ -218,7 +218,7 @@ pub mod pallet {
 		/// - origin: The origin of the extrinsic starting the incubation process
 		/// - collection_id: The collection id of the Origin of Shell RMRK NFT
 		/// - nft_id: The NFT id of the Origin of Shell RMRK NFT
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn start_incubation(
 			origin: OriginFor<T>,
@@ -271,7 +271,7 @@ pub mod pallet {
 		/// - origin: The origin of the extrinsic feeding the origin_of_shell
 		/// - collection_id: The collection id of the Origin of Shell RMRK NFT
 		/// - nft_id: The NFT id of the Origin of Shell RMRK NFT
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn feed_origin_of_shell(
 			origin: OriginFor<T>,
@@ -368,7 +368,7 @@ pub mod pallet {
 		/// - `nft_id`: The NFT id of the Origin of Shell RMRK NFT
 		/// - `default_shell_metadata`: File resource URI in decentralized storage for Shell NFT
 		///	parts that render the Shell NFT
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn hatch_origin_of_shell(
 			origin: OriginFor<T>,

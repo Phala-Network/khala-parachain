@@ -38,7 +38,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           default: true
-          toolchain: nightly-2022-07-11
+          toolchain: nightly-2022-09-08
           target: wasm32-unknown-unknown
       - name: Cargo test
         uses: actions-rs/cargo@v1
