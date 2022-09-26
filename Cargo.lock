@@ -5934,7 +5934,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-core"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#237b0b86f1151be37eee880826ed82629663447c"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#b6ee87a4a883d81a06ebf076010be103081a2c84"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5952,7 +5952,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-equip"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#237b0b86f1151be37eee880826ed82629663447c"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#b6ee87a4a883d81a06ebf076010be103081a2c84"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5971,7 +5971,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-market"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#237b0b86f1151be37eee880826ed82629663447c"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#b6ee87a4a883d81a06ebf076010be103081a2c84"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5990,7 +5990,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-rpc"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#237b0b86f1151be37eee880826ed82629663447c"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#b6ee87a4a883d81a06ebf076010be103081a2c84"
 dependencies = [
  "jsonrpsee",
  "pallet-rmrk-rpc-runtime-api",
@@ -6007,7 +6007,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-rpc-runtime-api"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#237b0b86f1151be37eee880826ed82629663447c"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#b6ee87a4a883d81a06ebf076010be103081a2c84"
 dependencies = [
  "parity-scale-codec",
  "rmrk-traits",
@@ -8778,7 +8778,7 @@ dependencies = [
 [[package]]
 name = "rmrk-traits"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#237b0b86f1151be37eee880826ed82629663447c"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.28#b6ee87a4a883d81a06ebf076010be103081a2c84"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -12109,7 +12109,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.3",
  "rand 0.8.5",
  "static_assertions",

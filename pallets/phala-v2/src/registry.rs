@@ -8,7 +8,7 @@ pub mod pallet {
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
-		traits::{Currency, StorageVersion, UnixTime},
+		traits::{StorageVersion, UnixTime},
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
@@ -29,7 +29,7 @@ pub mod pallet {
 		},
 		ClusterPublicKey, ContractPublicKey, EcdhPublicKey, MasterPublicKey,
 		VersionedWorkerEndpoints, WorkerEndpointPayload, WorkerIdentity, WorkerPublicKey,
-		WorkerRegistrationInfo,
+		WorkerRegistrationInfo, wrap_content_to_sign, SignedContentType,
 	};
 
 	bind_topic!(RegistryEvent, b"^phala/registry/event");
@@ -58,11 +58,8 @@ pub mod pallet {
 	}
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + crate::PhalaConfig {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
-		/// The currency in which fees are paid and contract balances are held.
-		type Currency: Currency<Self::AccountId>;
 
 		type UnixTime: UnixTime;
 		type AttestationValidator: AttestationValidator;
@@ -495,9 +492,10 @@ pub mod pallet {
 			let sig = sp_core::sr25519::Signature::try_from(signature.as_slice())
 				.or(Err(Error::<T>::MalformedSignature))?;
 			let encoded_data = endpoint_payload.encode();
+			let data_to_sign = wrap_content_to_sign(&encoded_data, SignedContentType::MasterKeyRotation);
 
 			ensure!(
-				sp_io::crypto::sr25519_verify(&sig, &encoded_data, &endpoint_payload.pubkey),
+				sp_io::crypto::sr25519_verify(&sig, &data_to_sign, &endpoint_payload.pubkey),
 				Error::<T>::InvalidSignature
 			);
 
@@ -646,6 +644,7 @@ pub mod pallet {
 			let sig = sp_core::sr25519::Signature::try_from(raw_sig.as_slice())
 				.or(Err(Error::<T>::MalformedSignature))?;
 			let data = message.data_be_signed();
+			let data = wrap_content_to_sign(&data, SignedContentType::MqMessage);
 			ensure!(
 				sp_io::crypto::sr25519_verify(&sig, &data, pubkey),
 				Error::<T>::InvalidSignature
