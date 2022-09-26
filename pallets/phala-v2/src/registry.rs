@@ -8,7 +8,7 @@ pub mod pallet {
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
-		traits::{Currency, StorageVersion, UnixTime},
+		traits::{StorageVersion, UnixTime},
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
@@ -29,7 +29,7 @@ pub mod pallet {
 		},
 		ClusterPublicKey, ContractPublicKey, EcdhPublicKey, MasterPublicKey,
 		VersionedWorkerEndpoints, WorkerEndpointPayload, WorkerIdentity, WorkerPublicKey,
-		WorkerRegistrationInfo,
+		WorkerRegistrationInfo, wrap_content_to_sign, SignedContentType,
 	};
 
 	bind_topic!(RegistryEvent, b"^phala/registry/event");
@@ -58,11 +58,8 @@ pub mod pallet {
 	}
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + crate::PhalaConfig{
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
-		/// The currency in which fees are paid and contract balances are held.
-		type Currency: Currency<Self::AccountId>;
 
 		type UnixTime: UnixTime;
 		type AttestationValidator: AttestationValidator;
@@ -235,7 +232,7 @@ pub mod pallet {
 		/// Sets [`BenchmarkDuration`]
 		///
 		/// Can only be called by `GovernanceOrigin`.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(10_000u64) + T::DbWeight::get().writes(1u64))]
 		pub fn force_set_benchmark_duration(origin: OriginFor<T>, value: u32) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 			BenchmarkDuration::<T>::put(value);
@@ -245,7 +242,7 @@ pub mod pallet {
 		/// Force register a worker with the given pubkey with sudo permission
 		///
 		/// For test only.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(10_000u64) + T::DbWeight::get().writes(1u64))]
 		pub fn force_register_worker(
 			origin: OriginFor<T>,
 			pubkey: WorkerPublicKey,
@@ -278,7 +275,7 @@ pub mod pallet {
 		/// Force register a topic pubkey
 		///
 		/// For test only.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(10_000u64) + T::DbWeight::get().writes(1u64))]
 		pub fn force_register_topic_pubkey(
 			origin: OriginFor<T>,
 			topic: Vec<u8>,
@@ -292,7 +289,7 @@ pub mod pallet {
 		/// Register a gatekeeper.
 		///
 		/// Can only be called by `GovernanceOrigin`.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(10_000u64) + T::DbWeight::get().writes(1u64))]
 		pub fn register_gatekeeper(
 			origin: OriginFor<T>,
 			gatekeeper: WorkerPublicKey,
@@ -337,7 +334,7 @@ pub mod pallet {
 		/// Unregister a gatekeeper
 		///
 		/// At least one gatekeeper should be available
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(10_000u64) + T::DbWeight::get().writes(1u64))]
 		pub fn unregister_gatekeeper(
 			origin: OriginFor<T>,
 			gatekeeper: WorkerPublicKey,
@@ -365,7 +362,7 @@ pub mod pallet {
 		}
 
 		/// Rotate the master key
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(10_000u64) + T::DbWeight::get().writes(1u64))]
 		pub fn rotate_master_key(origin: OriginFor<T>) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
@@ -495,9 +492,10 @@ pub mod pallet {
 			let sig = sp_core::sr25519::Signature::try_from(signature.as_slice())
 				.or(Err(Error::<T>::MalformedSignature))?;
 			let encoded_data = endpoint_payload.encode();
+			let data_to_sign = wrap_content_to_sign(&encoded_data, SignedContentType::MasterKeyRotation);
 
 			ensure!(
-				sp_io::crypto::sr25519_verify(&sig, &encoded_data, &endpoint_payload.pubkey),
+				sp_io::crypto::sr25519_verify(&sig, &data_to_sign, &endpoint_payload.pubkey),
 				Error::<T>::InvalidSignature
 			);
 
@@ -646,6 +644,7 @@ pub mod pallet {
 			let sig = sp_core::sr25519::Signature::try_from(raw_sig.as_slice())
 				.or(Err(Error::<T>::MalformedSignature))?;
 			let data = message.data_be_signed();
+			let data = wrap_content_to_sign(&data, SignedContentType::MqMessage);
 			ensure!(
 				sp_io::crypto::sr25519_verify(&sig, &data, pubkey),
 				Error::<T>::InvalidSignature

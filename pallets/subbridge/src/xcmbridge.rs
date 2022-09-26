@@ -10,12 +10,13 @@ pub mod pallet {
 		pallet_prelude::*,
 		traits::{Currency, StorageVersion},
 		transactional,
-		weights::Weight,
 	};
 	use scale_info::TypeInfo;
 	use sp_runtime::DispatchError;
 	use sp_std::{prelude::*, vec};
-	use xcm::latest::{prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation};
+	use xcm::latest::{
+		prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation, Weight as XCMWeight,
+	};
 	use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 	/// The logging target.
@@ -113,7 +114,7 @@ pub mod pallet {
 		origin: MultiLocation,
 		dest_location: MultiLocation,
 		beneficiary: MultiLocation,
-		dest_weight: Weight,
+		dest_weight: XCMWeight,
 		_marker: PhantomData<T>,
 	}
 
@@ -344,7 +345,7 @@ pub mod pallet {
 			sender: [u8; 32],
 			asset: MultiAsset,
 			dest: MultiLocation,
-			max_weight: Option<Weight>,
+			max_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			log::trace!(
 				target: LOG_TARGET,
@@ -405,7 +406,7 @@ pub mod pallet {
 			_sender: [u8; 32],
 			_asset: MultiAsset,
 			_dest: MultiLocation,
-			_max_weight: Option<Weight>,
+			_max_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			Err(Error::<T>::Unimplemented.into())
 		}
@@ -417,7 +418,7 @@ pub mod pallet {
 			_sender: [u8; 32],
 			_data: &Vec<u8>,
 			_dest: MultiLocation,
-			_max_weight: Option<Weight>,
+			_max_weight: Option<XCMWeight>,
 		) -> DispatchResult {
 			Err(Error::<T>::Unimplemented.into())
 		}

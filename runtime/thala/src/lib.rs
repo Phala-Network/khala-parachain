@@ -88,7 +88,7 @@ use frame_system::{
 
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use xcm::latest::prelude::*;
+use xcm::latest::{prelude::*, Weight as XCMWeight,};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
@@ -150,7 +150,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("thala"),
     impl_name: create_runtime_str!("thala"),
     authoring_version: 1,
-    spec_version: 1177,
+    spec_version: 1180,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 4,
@@ -440,6 +440,10 @@ impl frame_system::Config for Runtime {
     type SS58Prefix = SS58Prefix;
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+}
+
+impl phala_pallets_v2::PhalaConfig for Runtime {
+	type Currency = Balances;
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
@@ -813,8 +817,8 @@ impl pallet_sudo::Config for Runtime {
 }
 
 parameter_types! {
-    pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
-    pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
+    pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
+    pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
@@ -965,7 +969,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<Origin>,
 );
 parameter_types! {
-    pub UnitWeightCost: Weight = 200_000_000;
+    pub UnitWeightCost: XCMWeight = 200_000_000;
     pub const MaxInstructions: u32 = 100;
     pub ThalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
     pub CheckingAccount: AccountId = PalletId(*b"checking").into_account_truncating();
@@ -1029,7 +1033,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
 
 parameter_types! {
     pub NativeExecutionPrice: u128 = pha_per_second();
-    pub WeightPerSecond: u64 = WEIGHT_PER_SECOND;
+    pub WeightPerSecond: XCMWeight = WEIGHT_PER_SECOND.ref_time();
 }
 
 pub struct XcmConfig;
@@ -1065,7 +1069,7 @@ impl Config for XcmConfig {
     type SubscriptionService = PolkadotXcm;
 }
 parameter_types! {
-    pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
+    pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
 }
 
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
@@ -1512,7 +1516,6 @@ parameter_types! {
 
 impl pallet_registry::Config for Runtime {
     type Event = Event;
-    type Currency = Balances;
     type AttestationValidator = pallet_registry::IasValidator;
     type UnixTime = Timestamp;
     type VerifyPRuntime = VerifyPRuntime;
@@ -1527,7 +1530,6 @@ impl pallet_mining::Config for Runtime {
     type Event = Event;
     type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
     type MinInitP = MinInitP;
-    type Currency = Balances;
     type Randomness = RandomnessCollectiveFlip;
     type OnReward = PhalaStakePool;
     type OnUnbound = PhalaStakePool;
@@ -1537,7 +1539,6 @@ impl pallet_mining::Config for Runtime {
 }
 impl pallet_stakepool::Config for Runtime {
     type Event = Event;
-    type Currency = Balances;
     type MinContribution = MinContribution;
     type GracePeriod = MiningGracePeriod;
     type MiningEnabledByDefault = MiningEnabledByDefault;
@@ -1547,7 +1548,6 @@ impl pallet_stakepool::Config for Runtime {
 }
 impl pallet_vault::Config for Runtime {
     type Event = Event;
-    type Currency = Balances;
 }
 impl pallet_fat::Config for Runtime {
     type Event = Event;
@@ -1569,7 +1569,6 @@ impl Get<AccountId32> for PawnShopGet {
 
 impl pallet_pawnshop::Config for Runtime {
 	type Event = Event;
-	type Currency = Balances;
 	type PPhaAssetId = PPhaAssetId;
 	type PawnShopAccountId = PawnShopGet;
     type OnSlashed = Treasury;
@@ -1577,7 +1576,6 @@ impl pallet_pawnshop::Config for Runtime {
 
 impl pallet_basepool::Config for Runtime {
 	type Event = Event;
-	type Currency = Balances;
 }
 
 impl Decode for Runtime {
@@ -1858,20 +1856,24 @@ impl_runtime_apis! {
     }
 
     #[cfg(feature = "try-runtime")]
-    impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade() -> (Weight, Weight) {
-            log::info!("try-runtime::on_runtime_upgrade thala.");
-            // NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
-            // have a backtrace here. If any of the pre/post migration checks fail, we shall stop
-            // right here and right now.
-            let weight = Executive::try_runtime_upgrade().unwrap();
-            (weight, RuntimeBlockWeights::get().max_block)
-        }
+	impl frame_try_runtime::TryRuntime<Block> for Runtime {
+		fn on_runtime_upgrade() -> (Weight, Weight) {
+			log::info!("try-runtime::on_runtime_upgrade statemine.");
+			let weight = Executive::try_runtime_upgrade().unwrap();
+			(weight, RuntimeBlockWeights::get().max_block)
+		}
 
-        fn execute_block_no_check(block: Block) -> Weight {
-            Executive::execute_block_no_check(block)
-        }
-    }
+		fn execute_block(block: Block, state_root_check: bool, select: frame_try_runtime::TryStateSelect) -> Weight {
+			log::info!(
+				target: "runtime::statemine", "try-runtime: executing block #{} ({:?}) / root checks: {:?} / sanity-checks: {:?}",
+				block.header.number,
+				block.header.hash(),
+				state_root_check,
+				select,
+			);
+			Executive::try_execute_block(block, state_root_check, select).expect("try_execute_block failed")
+		}
+	}
 
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {

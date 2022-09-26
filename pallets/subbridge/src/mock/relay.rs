@@ -1,8 +1,4 @@
-use frame_support::{
-	construct_runtime, parameter_types,
-	traits::Everything,
-	weights::{IdentityFee, Weight},
-};
+use frame_support::{construct_runtime, parameter_types, traits::Everything, weights::IdentityFee};
 use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
@@ -10,7 +6,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
 use cumulus_primitives_core::ParaId;
 use frame_support::traits::ConstU32;
 use polkadot_runtime_parachains::{configuration, origin, shared, ump};
-use xcm::latest::prelude::*;
+use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative,
 	ChildParachainConvertsVia, CurrencyAdapter as XcmCurrencyAdapter, FixedWeightBounds,
@@ -81,7 +77,7 @@ parameter_types! {
 	pub const KsmLocation: MultiLocation = Here.into();
 	pub const KusamaNetwork: NetworkId = NetworkId::Kusama;
 	pub Ancestry: MultiLocation = Here.into();
-	pub UnitWeightCost: Weight = 1;
+	pub UnitWeightCost: XCMWeight = 1;
 }
 
 pub type SovereignAccountOf = (
@@ -99,7 +95,7 @@ type LocalOriginConverter = (
 );
 
 parameter_types! {
-	pub const BaseXcmWeight: Weight = 10;
+	pub const BaseXcmWeight: XCMWeight = 10;
 	pub const MaxInstructions: u32 = 100;
 }
 

@@ -1,15 +1,14 @@
 use crate::{
 	attestation::{Attestation, AttestationValidator, Error as AttestationError, IasFields},
-	basepool, mining, mq, ott, pawnshop, registry, stakepoolv2, vault,
+	basepool, mining, mq, pawnshop, registry, stakepoolv2, vault,
 };
 
 use frame_support::{
 	ord_parameter_types,
-	pallet_prelude::{ConstU32, Decode, Encode},
+	pallet_prelude::ConstU32,
 	parameter_types,
 	traits::{
-		AsEnsureOriginWithArg, ConstU128, ConstU64, EnsureOneOf, EqualPrivilegeOnly, GenesisBuild,
-		OnFinalize, OnInitialize, SortedMembers,
+		AsEnsureOriginWithArg, ConstU128, ConstU64, EqualPrivilegeOnly, GenesisBuild, SortedMembers,
 	},
 };
 use frame_support_test::TestRandomness;
@@ -20,8 +19,6 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
-
-use frame_support::dispatch::Input;
 
 use frame_system::EnsureRoot;
 pub(crate) type Balance = u128;
@@ -53,9 +50,12 @@ frame_support::construct_runtime!(
 		PhalaVault: vault::{Pallet, Event<T>},
 		PhalaPawnshop: pawnshop::{Pallet, Event<T>},
 		PhalaBasePool: basepool::{Pallet, Event<T>},
-		PhalaOneshotTransfer: ott::{Pallet, Event<T>},
 	}
 );
+
+impl crate::PhalaConfig for Test {
+	type Currency = Balances;
+}
 
 parameter_types! {
 	pub const ExistentialDeposit: Balance = 2;
@@ -163,7 +163,6 @@ impl mq::CallMatcher<Test> for MqCallMatcher {
 
 impl registry::Config for Test {
 	type Event = Event;
-	type Currency = Balances;
 	type AttestationValidator = MockValidator;
 	type UnixTime = Timestamp;
 	type VerifyPRuntime = VerifyPRuntime;
@@ -224,7 +223,6 @@ impl mining::Config for Test {
 	type Event = Event;
 	type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
 	type MinInitP = MinInitP;
-	type Currency = Balances;
 	type Randomness = TestRandomness<Self>;
 	type OnReward = PhalaStakePool;
 	type OnUnbound = PhalaStakePool;
@@ -239,9 +237,8 @@ parameter_types! {
 
 impl pawnshop::Config for Test {
 	type Event = Event;
-	type Currency = Balances;
 	type PPhaAssetId = PPhaAssetId;
-	type PawnShopAccountId = ConstU32<1>;
+	type PawnShopAccountId = ConstU64<1234>;
 	type OnSlashed = ();
 }
 
@@ -336,7 +333,6 @@ impl pallet_assets::Config for Test {
 
 impl stakepoolv2::Config for Test {
 	type Event = Event;
-	type Currency = Balances;
 	type MinContribution = MinContribution;
 	type GracePeriod = MiningGracePeriod;
 	type MiningEnabledByDefault = MiningEnabledByDefault;
@@ -347,29 +343,10 @@ impl stakepoolv2::Config for Test {
 
 impl vault::Config for Test {
 	type Event = Event;
-	type Currency = Balances;
 }
 
 impl basepool::Config for Test {
 	type Event = Event;
-	type Currency = Balances;
-}
-
-impl ott::Config for Test {
-	type Event = Event;
-	type Currency = Balances;
-}
-
-impl Decode for Test {
-	fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
-		Ok(Self)
-	}
-}
-
-impl Encode for Test {
-	fn size_hint(&self) -> usize {
-		0
-	}
 }
 
 pub struct MockValidator;
@@ -508,20 +485,4 @@ pub fn elapse_seconds(sec: u64) {
 pub fn elapse_cool_down() {
 	let now = Timestamp::get();
 	Timestamp::set_timestamp(now + PhalaMining::cool_down_period() * 1000);
-}
-
-pub fn teleport_to_block(n: u64) {
-	let now = System::block_number();
-	PhalaStakePool::on_finalize(now);
-	PhalaMining::on_finalize(now);
-	PhalaRegistry::on_finalize(now);
-	PhalaMq::on_finalize(now);
-	System::on_finalize(now);
-	System::set_block_number(n);
-	System::on_initialize(System::block_number());
-	PhalaMq::on_initialize(System::block_number());
-	PhalaRegistry::on_initialize(System::block_number());
-	PhalaMining::on_initialize(System::block_number());
-	PhalaStakePool::on_initialize(System::block_number());
-	PhalaBasePool::on_initialize(System::block_number());
 }

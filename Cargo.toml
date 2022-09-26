@@ -38,7 +38,6 @@ members = [
 	"crates/phala-pallet-common",
 	"crates/prpc",
 	"crates/phala-trie-storage",
-	"substrate/frame/utility",
 	"pallets/assets-registry",
 	"pallets/phala",
 	"pallets/phala-v2",
@@ -55,6 +54,3 @@ members = [
 
 [patch."https://github.com/paritytech/polkadot"]
 polkadot-service = { path = "polkadot/node/service" }
-
-[patch.crates-io]
-memory-lru = { git = "https://github.com/paritytech/memory-lru" } # TODO: REMOVE after it releases new version
