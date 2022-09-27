@@ -129,7 +129,7 @@ pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
 pub struct PartInfo<BoundedString> {
 	/// Name of the Part
 	pub name: BoundedString,
-	/// Shell part rarity typea
+	/// Shell part rarity type
 	pub rarity: RarityType,
 	/// Metadata is None if the Part is composed of Sub-Parts
 	pub metadata: Option<BoundedString>,
@@ -139,6 +139,8 @@ pub struct PartInfo<BoundedString> {
 	pub x: u32,
 	/// y coordinate
 	pub y: u32,
+	/// Tradeable
+	pub tradeable: bool,
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]

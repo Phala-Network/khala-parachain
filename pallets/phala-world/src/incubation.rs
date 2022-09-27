@@ -481,6 +481,8 @@ pub mod pallet {
 				// Add shell part properties
 				let mut shell_part_properties = parts_properties.clone();
 				let slot_name_value = property_value(&slot_name);
+				// Check if part is tradeable
+				let is_tradeable = part_info.tradeable;
 				// Append shell part properties
 				shell_part_properties.append(&mut vec![
 					("name", property_value(&part_info.name)),
@@ -497,7 +499,7 @@ pub mod pallet {
 					shell_parts_collection_id,
 					shell_collection_id,
 					shell_nft_id,
-					true,
+					is_tradeable,
 				)?;
 				match sub_parts {
 					Some(sub_parts) => {

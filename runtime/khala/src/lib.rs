@@ -85,7 +85,7 @@ use frame_system::{
 
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use xcm::latest::{prelude::*, Weight as XCMWeight,};
+use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
@@ -338,6 +338,7 @@ impl Contains<Call> for BaseCallFilter {
                 | pallet_rmrk_core::Call::accept_resource { .. }
                 | pallet_rmrk_core::Call::remove_resource { .. }
                 | pallet_rmrk_core::Call::accept_resource_removal { .. }
+                | pallet_rmrk_core::Call::send { .. }
                 | pallet_rmrk_core::Call::__Ignore { .. } => true,
                 _ => false,
             };
@@ -1801,24 +1802,24 @@ impl_runtime_apis! {
     }
 
     #[cfg(feature = "try-runtime")]
-	impl frame_try_runtime::TryRuntime<Block> for Runtime {
-		fn on_runtime_upgrade() -> (Weight, Weight) {
-			log::info!("try-runtime::on_runtime_upgrade statemine.");
-			let weight = Executive::try_runtime_upgrade().unwrap();
-			(weight, RuntimeBlockWeights::get().max_block)
-		}
+    impl frame_try_runtime::TryRuntime<Block> for Runtime {
+        fn on_runtime_upgrade() -> (Weight, Weight) {
+            log::info!("try-runtime::on_runtime_upgrade statemine.");
+            let weight = Executive::try_runtime_upgrade().unwrap();
+            (weight, RuntimeBlockWeights::get().max_block)
+        }
 
-		fn execute_block(block: Block, state_root_check: bool, select: frame_try_runtime::TryStateSelect) -> Weight {
-			log::info!(
-				target: "runtime::statemine", "try-runtime: executing block #{} ({:?}) / root checks: {:?} / sanity-checks: {:?}",
-				block.header.number,
-				block.header.hash(),
-				state_root_check,
-				select,
-			);
-			Executive::try_execute_block(block, state_root_check, select).expect("try_execute_block failed")
-		}
-	}
+        fn execute_block(block: Block, state_root_check: bool, select: frame_try_runtime::TryStateSelect) -> Weight {
+            log::info!(
+                target: "runtime::statemine", "try-runtime: executing block #{} ({:?}) / root checks: {:?} / sanity-checks: {:?}",
+                block.header.number,
+                block.header.hash(),
+                state_root_check,
+                select,
+            );
+            Executive::try_execute_block(block, state_root_check, select).expect("try_execute_block failed")
+        }
+    }
 
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {

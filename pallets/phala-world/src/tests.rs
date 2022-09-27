@@ -14,7 +14,9 @@ use crate::traits::{
 	primitives::*, CareerType, NftSaleType, OverlordMessage, PartInfo, Purpose, RaceType,
 	RarityType, ShellPartInfo, ShellParts, StatusType,
 };
-use mock::{Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
+use mock::{
+	Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, RmrkMarket, Test,
+};
 
 /// Turns a string into a BoundedVec
 fn stb(s: &str) -> BoundedVec<u8, StringLimit> {
@@ -32,7 +34,7 @@ fn mint_collection(account: AccountId32) {
 	assert_ok!(RmrkCore::create_collection(
 		Origin::signed(account),
 		bvec![0u8; 20],
-		Some(5),
+		Some(10),
 		bvec![0u8; 15],
 	));
 }
@@ -184,6 +186,7 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 			layer: 0,
 			x: 0,
 			y: 0,
+			tradeable: true,
 		},
 		sub_parts: Some(bvec![
 			PartInfo {
@@ -193,6 +196,7 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 				layer: 0,
 				x: 0,
 				y: 0,
+				tradeable: false,
 			},
 			PartInfo {
 				name: stb("jacket"),
@@ -201,6 +205,7 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 				layer: 0,
 				x: 0,
 				y: 0,
+				tradeable: false,
 			},
 			PartInfo {
 				name: stb("jacket-hat"),
@@ -209,6 +214,7 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 				layer: 0,
 				x: 0,
 				y: 0,
+				tradeable: false,
 			},
 		]),
 	};
@@ -220,6 +226,7 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 			layer: 0,
 			x: 0,
 			y: 0,
+			tradeable: true,
 		},
 		sub_parts: None,
 	};
@@ -231,6 +238,7 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 			layer: 0,
 			x: 0,
 			y: 0,
+			tradeable: true,
 		},
 		sub_parts: Some(bvec![
 			PartInfo {
@@ -240,6 +248,7 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 				layer: 0,
 				x: 0,
 				y: 0,
+				tradeable: false,
 			},
 			PartInfo {
 				name: stb("shoes"),
@@ -248,8 +257,21 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 				layer: 0,
 				x: 0,
 				y: 0,
+				tradeable: false,
 			},
 		]),
+	};
+	let shell_part_info4 = ShellPartInfo {
+		shell_part: PartInfo {
+			name: stb("head"),
+			rarity: RarityType::Prime,
+			metadata: Some(stb("ar://head-uri")),
+			layer: 0,
+			x: 0,
+			y: 0,
+			tradeable: false,
+		},
+		sub_parts: None,
 	};
 	match shell_part_type {
 		1 => {
@@ -263,6 +285,7 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 			shell_part_info.insert(stb("jacket"), shell_part_info1);
 			shell_part_info.insert(stb("t_shirt"), shell_part_info2);
 			shell_part_info.insert(stb("shoes"), shell_part_info3);
+			shell_part_info.insert(stb("head"), shell_part_info4);
 		}
 	}
 	let shell_parts_of: ShellPartsOf<Test> = ShellParts {
@@ -1610,7 +1633,7 @@ fn can_hatch_origin_of_shell() {
 				new_chosen_parts: new_chosen_parts.clone(),
 			},
 		));
-		let basic_part = get_shell_part(2);
+		let basic_part = get_shell_part(4);
 		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
 			Origin::signed(OVERLORD),
 			1u32,
@@ -1660,9 +1683,37 @@ fn can_hatch_origin_of_shell() {
 			),
 			pallet_uniques::Error::<Test>::Frozen
 		);
-		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
+		let nft_parts = pallet_rmrk_core::Nfts::<Test>::iter_prefix_values(3u32);
+		// Print out NFT parts minted for debugging
+		// for part in nft_parts {
+		// 	println!("{:?}", part);
+		// }
+		// ALICE moves transferable nested NFT part from Shell NFT to account
+		assert_ok!(RmrkCore::send(
+			Origin::signed(ALICE),
+			3u32,
+			1u32,
+			rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(ALICE)
+		));
+		// ALICE lists NFT part in marketplace
+		assert_ok!(RmrkMarket::list(
+			Origin::signed(ALICE),
+			3u32,
+			1u32,
+			10u128,
+			None,
+		));
+		// CHARLIE buys NFT part from ALICE
+		assert_ok!(RmrkMarket::buy(
+			Origin::signed(CHARLIE),
+			3u32,
+			1u32,
+			Some(10u128)
+		));
+
+		assert_eq!(Balances::total_balance(&ALICE), 20_000_000 * PHA);
 		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
-		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
+		assert_eq!(Balances::total_balance(&CHARLIE), 149_980 * PHA);
 		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
 	});
 }
