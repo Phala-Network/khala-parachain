@@ -1695,6 +1695,16 @@ fn can_hatch_origin_of_shell() {
 			1u32,
 			rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(ALICE)
 		));
+		// ALICE fails to move transferable to wallet
+		assert_noop!(
+			RmrkCore::send(
+				Origin::signed(ALICE),
+				3u32,
+				0u32,
+				rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(ALICE)
+			),
+			pallet_rmrk_core::Error::<Test>::NonTransferable
+		);
 		// ALICE lists NFT part in marketplace
 		assert_ok!(RmrkMarket::list(
 			Origin::signed(ALICE),
