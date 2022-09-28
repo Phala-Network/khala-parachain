@@ -55,7 +55,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto},
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill, AccountId32, FixedU128,
+    ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill, AccountId32,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 #[cfg(feature = "std")]
@@ -269,7 +269,7 @@ construct_runtime! {
         PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
         PhalaPawnshop: pallet_pawnshop::{Pallet, Event<T>, Storage} = 89,
-		PhalaBasePool: pallet_basepool::{Pallet, Event<T>, Storage} = 90,
+        PhalaBasePool: pallet_basepool::{Pallet, Event<T>, Storage} = 90,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 91,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 92,
         PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 93,
@@ -1516,6 +1516,7 @@ parameter_types! {
 
 impl pallet_registry::Config for Runtime {
     type Event = Event;
+    type Currency = Balances;
     type AttestationValidator = pallet_registry::IasValidator;
     type UnixTime = Timestamp;
     type VerifyPRuntime = VerifyPRuntime;

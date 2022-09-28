@@ -163,6 +163,7 @@ impl mq::CallMatcher<Test> for MqCallMatcher {
 
 impl registry::Config for Test {
 	type Event = Event;
+	type Currency = Balances;
 	type AttestationValidator = MockValidator;
 	type UnixTime = Timestamp;
 	type VerifyPRuntime = VerifyPRuntime;
