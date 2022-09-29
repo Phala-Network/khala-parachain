@@ -268,8 +268,8 @@ construct_runtime! {
         PhalaRegistry: pallet_registry::{Pallet, Call, Event<T>, Storage, Config<T>} = 86,
         PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
         PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
-        PhalaPawnshop: pallet_pawnshop::{Pallet, Event<T>, Storage} = 89,
-        PhalaBasePool: pallet_basepool::{Pallet, Event<T>, Storage} = 90,
+        PhalaPawnshop: pallet_pawnshop::{Pallet, Call, Event<T>, Storage} = 89,
+		PhalaBasePool: pallet_basepool::{Pallet, Event<T>, Storage} = 90,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 91,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 92,
         PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 93,
@@ -369,7 +369,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Lottery { .. } | Call::Tips { .. } |
             // Phala
             Call::PhalaMq { .. } | Call::PhalaRegistry { .. } |
-            Call::PhalaMining { .. } | Call::PhalaStakePool { .. } |
+            Call::PhalaMining { .. } | Call::PhalaStakePool { .. } | Call::PhalaPawnshop { .. } | Call::PhalaVault { .. } |
             // Phala World
             Call::RmrkMarket { .. } | Call::PWNftSale { .. } | Call::PWIncubation { .. }
         )
