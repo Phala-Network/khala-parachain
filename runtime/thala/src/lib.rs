@@ -55,7 +55,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto},
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill, AccountId32, FixedU128,
+    ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill, AccountId32,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 #[cfg(feature = "std")]
@@ -150,7 +150,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("thala"),
     impl_name: create_runtime_str!("thala"),
     authoring_version: 1,
-    spec_version: 1180,
+    spec_version: 1186,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 4,
@@ -1516,6 +1516,7 @@ parameter_types! {
 
 impl pallet_registry::Config for Runtime {
     type Event = Event;
+    type Currency = Balances;
     type AttestationValidator = pallet_registry::IasValidator;
     type UnixTime = Timestamp;
     type VerifyPRuntime = VerifyPRuntime;
