@@ -145,7 +145,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 1186,
+    spec_version: 1181,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 4,
@@ -192,7 +192,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    migrations::PhalaWorldMigrations,
+    migrations::SdnRegistryTest,
 >;
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
