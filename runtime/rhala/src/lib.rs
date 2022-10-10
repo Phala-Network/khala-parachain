@@ -364,7 +364,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::PhalaMq { .. } | Call::PhalaRegistry { .. } |
             Call::PhalaMining { .. } | Call::PhalaStakePool { .. } |
             // Phala World
-            Call::RmrkMarket { .. } | Call::PWNftSale { .. } | Call::PWIncubation { .. }
+            Call::PWNftSale { .. } | Call::PWIncubation { .. }
         )
     }
 }
@@ -893,7 +893,7 @@ parameter_types! {
     pub const IterLimit: u32 = 1_000;
     pub const FoodPerEra: u32 = 5;
     pub const MaxFoodFeedSelf: u8 = 2;
-    pub const IncubationDurationSec: u64 = 1_209_600;
+    pub const IncubationDurationSec: u64 = 691_200; // 8 days
 }
 impl pallet_pw_nft_sale::Config for Runtime {
     type Event = Event;
