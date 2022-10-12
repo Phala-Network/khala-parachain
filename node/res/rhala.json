@@ -2,7 +2,9 @@
   "name": "Khala",
   "id": "khala",
   "chainType": "Live",
-  "bootNodes": [],
+  "bootNodes": [
+    "/dns4/rhala-api.phala.network/tcp/30333/ws/p2p/12D3KooWSoGMSFRgCn8RqoGwNCEnHRoFqEG5uf7CdGJw6zp6EJpa"
+  ],
   "telemetryEndpoints": null,
   "protocolId": "khala",
   "properties": {
