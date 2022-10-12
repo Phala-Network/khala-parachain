@@ -1,9 +1,26 @@
 const BN = require('bn.js');
 const sleep = require('p-sleep');
+const { getSpiritCollectionId, getOriginOfShellCollectionId, getShellCollectionId, getShellPartsCollectionId } = require('./fetch');
 
 const bnUnit = new BN(1e12);
 function token(n) {
     return new BN(n).mul(bnUnit);
+}
+
+async function getCollectionType(khalaApi, collectionType) {
+    let collectionId = -1;
+    if (collectionType === "spirit") {
+        collectionId = await getSpiritCollectionId(khalaApi);
+    } else if (collectionType === "originOfShell") {
+        collectionId =await getOriginOfShellCollectionId(khalaApi);
+    } else if (collectionType === "shell") {
+        collectionId = await getShellCollectionId(khalaApi);
+    } else if (collectionType === "shellParts") {
+        collectionId = await getShellPartsCollectionId(khalaApi);
+    } else {
+        return collectionId;
+    }
+    return collectionId;
 }
 
 async function checkUntil(async_fn, timeout) {
@@ -74,6 +91,7 @@ function waitExtrinsicFinished(khalaApi, extrinsic, account) {
 module.exports = {
     getNonce,
     checkUntil,
+    getCollectionType,
     waitTxAccepted,
     waitExtrinsicFinished,
     token

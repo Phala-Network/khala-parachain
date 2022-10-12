@@ -1,4 +1,7 @@
-require('dotenv').config();
+
+async function getCollectionsCount(khalaApi) {
+    return (await khalaApi.query.rmrkCore.collectionIndex());
+}
 
 // export async function getBalance(khalaApi, account)
 
@@ -18,9 +21,17 @@ require('dotenv').config();
 
 // export async function getLastDayOfSaleStatus(khalaApi)
 
-// export async function getSpiritCollectionId(khalaApi)
+async function getSpiritCollectionId(khalaApi) {
+    console.log(`Querying Spirit Collection ID...`)
+    let collectionId = await khalaApi.query.pwNftSale.spiritCollectionId();
+    return collectionId;
+}
 
-// export async function getOriginOfShellCollectionId(khalaApi)
+async function getOriginOfShellCollectionId(khalaApi) {
+    console.log(`Querying Origin of Shell Collection ID...`)
+    let collectionId = await khalaApi.query.pwNftSale.originOfShellCollectionId();
+    return collectionId;
+}
 
 // export async function getIsOriginOfShellsInventorySet(khalaApi)
 
@@ -46,8 +57,24 @@ require('dotenv').config();
 
 // export async function getHsOriginOfShellStartedIncubationStatus(khalaApi, collectionId, nftId)
 
-// export async function getShellcollectionId(khalaApi)
+async function getShellCollectionId(khalaApi) {
+    console.log(`Querying Shell Collection ID...`)
+    let collectionId = await khalaApi.query.pwIncubation.shellCollectionId();
+    return collectionId;
+}
 
-// export async function getShellPartsCollectionId(khalaApi)
+async function getShellPartsCollectionId(khalaApi) {
+    console.log(`Querying Shell Parts Collection ID...`)
+    let collectionId = await khalaApi.query.pwIncubation.shellPartsCollectionId();
+    return collectionId;
+}
 
 // export async function getOriginOfShellsChosenParts(khalaApi, collectionId, nftId)
+
+module.exports = {
+    getCollectionsCount,
+    getSpiritCollectionId,
+    getOriginOfShellCollectionId,
+    getShellCollectionId,
+    getShellPartsCollectionId
+}
