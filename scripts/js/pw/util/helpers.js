@@ -1,7 +1,6 @@
 const BN = require('bn.js');
 const sleep = require('p-sleep');
 const { getSpiritCollectionId, getOriginOfShellCollectionId, getShellCollectionId, getShellPartsCollectionId } = require('./fetch');
-
 const bnUnit = new BN(1e12);
 function token(n) {
     return new BN(n).mul(bnUnit);
@@ -48,49 +47,53 @@ async function waitTxAccepted(khalaApi, account, nonce) {
     });
 }
 
+function extractTxResult(events, expectPallet, expectFunction) {
+    let success = false;
+    events.forEach(({event: {data, func, section}}) => {
+        if (func === 'ExtrinsicSuccess') {
+            success = true;
+        }
+    });
+    return success;
+}
+
+function extractPwNftSaleTxResult(events, expectFunction) {
+    return extractTxResult(events, 'pwNftSale', expectFunction);
+}
+
 function waitExtrinsicFinished(khalaApi, extrinsic, account) {
     return new Promise(async (resolve, reject) => {
-        const unsub = await extrinsic.signAndSend(account, (result) => {
-            if (result.status.isInBlock) {
-                console.log(`Transaction included at blockHash ${result.status.asInBlock}`);
-            } else if (result.status.isFinalized) {
-                console.log(`Transaction finalized at blockHash ${result.status.asFinalized}`);
-            }
-
-            if (result.status.isInBlock || result.status.isFinalized) {
-                const failures = result.events.filter(({event}) => {
-                    return khalaApi.events.system?.ExtrinsicFailed?.is(event)
-                })
-                const errors = failures.map(
-                    ({
-                         event: {
-                             data: [error],
-                         },
-                     }) => {
-                        if (error?.isModule?.valueOf()) {
-                            // https://polkadot.js.org/docs/api/cookbook/tx#how-do-i-get-the-decoded-enum-for-an-extrinsicfailed-event
-                            const decoded = khalaApi.registry.findMetaError(error.asModule)
-                            const {docs, method, section} = decoded
-                            return new Error(`Extrinsic Failed: ${section}.${method}: ${docs.join(' ')}`)
+        try {
+            await extrinsic.signAndSend(account, ({events, status}) => {
+                if(!status.isInBlock && !status.isFinalized) return;
+                for (const {event} of events) {
+                    if (khalaApi.events.system.ExtrinsicSuccess.is(event)) {
+                        resolve(true);
+                    } else if (khalaApi.events.system.ExtrinsicFailed.is(event)) {
+                        const {data: [error]} = event;
+                        if (error.isModule) {
+                            const decoded = khalaApi.registry.findMetaError(error.asModule);
+                            const {method, section} = decoded;
+                            console.log(`\tError: ${section}.${method}`);
+                            reject(false);
                         } else {
-                            return new Error(error?.toString() ?? String.toString.call(error))
+                            console.log(`\tError: ${error.toString()}`);
+                            reject(false);
                         }
                     }
-                )
-                if (errors.length > 0) {
-                    reject(errors[0])
-                } else {
-                    resolve()
                 }
-                unsub();
-            }
-        });
-    })
+            });
+        } catch (e) {
+            reject(false);
+        }
+    });
 }
 
 module.exports = {
     getNonce,
     checkUntil,
+    extractTxResult,
+    extractPwNftSaleTxResult,
     getCollectionType,
     waitTxAccepted,
     waitExtrinsicFinished,

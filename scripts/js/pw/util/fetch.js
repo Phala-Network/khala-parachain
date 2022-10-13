@@ -1,6 +1,6 @@
 
 async function getCollectionsCount(khalaApi) {
-    return (await khalaApi.query.rmrkCore.collectionIndex());
+    return (await khalaApi.query.rmrkCore.collectionIndex()).toNumber();
 }
 
 // export async function getBalance(khalaApi, account)
@@ -22,13 +22,13 @@ async function getCollectionsCount(khalaApi) {
 // export async function getLastDayOfSaleStatus(khalaApi)
 
 async function getSpiritCollectionId(khalaApi) {
-    console.log(`Querying Spirit Collection ID...`)
+    console.log(`\tQuerying Spirit Collection ID...`)
     let collectionId = await khalaApi.query.pwNftSale.spiritCollectionId();
     return collectionId;
 }
 
 async function getOriginOfShellCollectionId(khalaApi) {
-    console.log(`Querying Origin of Shell Collection ID...`)
+    console.log(`\tQuerying Origin of Shell Collection ID...`)
     let collectionId = await khalaApi.query.pwNftSale.originOfShellCollectionId();
     return collectionId;
 }
@@ -58,13 +58,13 @@ async function getOriginOfShellCollectionId(khalaApi) {
 // export async function getHsOriginOfShellStartedIncubationStatus(khalaApi, collectionId, nftId)
 
 async function getShellCollectionId(khalaApi) {
-    console.log(`Querying Shell Collection ID...`)
+    console.log(`\tQuerying Shell Collection ID...`)
     let collectionId = await khalaApi.query.pwIncubation.shellCollectionId();
     return collectionId;
 }
 
 async function getShellPartsCollectionId(khalaApi) {
-    console.log(`Querying Shell Parts Collection ID...`)
+    console.log(`\tQuerying Shell Parts Collection ID...`)
     let collectionId = await khalaApi.query.pwIncubation.shellPartsCollectionId();
     return collectionId;
 }
