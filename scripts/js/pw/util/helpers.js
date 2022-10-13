@@ -89,6 +89,12 @@ function waitExtrinsicFinished(khalaApi, extrinsic, account) {
     });
 }
 
+// Create Whitelist for account and sign with Overlord
+async function createWhitelistMessage(khalaApi, type, overlord, account) {
+    const whitelistMessage = khalaApi.createType(type, {'account': account.address, 'purpose': 'BuyPrimeOriginOfShells'});
+    return overlord.sign(whitelistMessage.toU8a());
+}
+
 module.exports = {
     getNonce,
     checkUntil,
@@ -97,5 +103,6 @@ module.exports = {
     getCollectionType,
     waitTxAccepted,
     waitExtrinsicFinished,
-    token
+    token,
+    createWhitelistMessage
 }

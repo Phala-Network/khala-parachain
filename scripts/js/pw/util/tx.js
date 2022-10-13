@@ -208,6 +208,64 @@ async function usersPurchaseRareOriginOfShells(khalaApi, recipientsInfo) {
     }
 }
 
+// Users Purchase Whitelist Origin of Shells
+async function usersPurchaseWhitelistOriginOfShells(khalaApi, recipientsInfo) {
+    for (const recipient of recipientsInfo) {
+        const account = recipient.account;
+        const whitelistMessage = recipient.whitelistMessage;
+        const race = recipient.race;
+        const career = recipient.career;
+        let result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.buyPrimeOriginOfShell(whitelistMessage, race, career), account);
+        expect(
+            result,
+            `Error: Purchasing Prime Origin of Shell for owner: ${account.address}, whitelistMessage: ${whitelistMessage}, race: ${race}, career: ${career}`
+        ).to.be.true
+    }
+}
+
+// Update RarityType Count for Prime Origin Of Shells
+async function updateRarityTypeCounts(khalaApi, overlord, rarityType, forSaleCount, giveawayCount) {
+    let tx = khalaApi.tx.pwNftSale.updateRarityTypeCounts(rarityType, forSaleCount, giveawayCount);
+    let result = await waitExtrinsicFinished(khalaApi, tx, overlord);
+    expect(
+        result,
+        `Error: Could not update RarityType ${rarityType} inventory counts`
+    ).to.be.true
+}
+
+
+// Users Preorder Origin of Shells
+async function userPreorderOriginOfShell(khalaApi, preordersInfo) {
+    for (const preorder of preordersInfo) {
+        const account = preorder.account;
+        const race = preorder.race;
+        const career = preorder.career;
+        const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.preorderOriginOfShell(race, career), account);
+        expect(
+            result,
+            `Error: Starting Preorder Origin of Shell account: ${account}, race: ${race}, career: ${career}...`
+        ).to.be.true;
+    }
+}
+
+// Mint chosen preorders
+async function mintChosenPreorders(khalaApi, overlord, chosenPreorders) {
+    let result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.mintChosenPreorders(chosenPreorders), overlord);
+    expect(
+        result,
+        `Error: Mint Chosen Preorders ${chosenPreorders} Failed`
+    ).to.be.true;
+}
+
+// Refund not chosen preorders
+async function refundNotChosenPreorders(khalaApi, overlord, notChosenPreorders) {
+    let result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.refundNotChosenPreorders(notChosenPreorders), overlord);
+    expect(
+        result,
+        `Error: Refunding Not Chosen Preorders ${notChosenPreorders} Failed`
+    ).to.be.true;
+}
+
 module.exports = {
     pwCreateCollection,
     setStatusType,
@@ -219,5 +277,10 @@ module.exports = {
     addSpiritMetadata,
     usersClaimSpirits,
     addOriginOfShellsMetadata,
-    usersPurchaseRareOriginOfShells
+    usersPurchaseRareOriginOfShells,
+    usersPurchaseWhitelistOriginOfShells,
+    updateRarityTypeCounts,
+    userPreorderOriginOfShell,
+    mintChosenPreorders,
+    refundNotChosenPreorders
 }
