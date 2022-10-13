@@ -182,6 +182,32 @@ async function usersClaimSpirits(khalaApi, recipients) {
     }
 }
 
+// Add Origin of Shells Metadata
+async function addOriginOfShellsMetadata(khalaApi, overlord, originOfShellsMetadataArr) {
+    const tx = khalaApi.tx.pwNftSale.setOriginOfShellsMetadata(originOfShellsMetadataArr);
+    const result = await waitExtrinsicFinished(khalaApi, tx, overlord);
+    expect(
+        result,
+        `Error: could not set Origin of Shells metadata[${originOfShellsMetadataArr}]`
+    ).to.be.true;
+}
+
+// Simulate Rare Origin of Shells Purchases
+async function usersPurchaseRareOriginOfShells(khalaApi, recipientsInfo) {
+    for (const recipient of recipientsInfo) {
+        const account = recipient.account;
+        const rarity = recipient.rarity;
+        const race = recipient.race;
+        const career = recipient.career;
+        const amount = recipient.amount;
+        let result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.buyRareOriginOfShell(rarity, race, career), account);
+        expect(
+            result,
+            `Error: Failed Purchasing Rare Origin of Shell for owner: ${account.address}, rarity: ${rarity}, race: ${race}, career: ${career}, amount: ${amount}`
+        ).to.be.true;
+    }
+}
+
 module.exports = {
     pwCreateCollection,
     setStatusType,
@@ -191,5 +217,7 @@ module.exports = {
     initializeRarityTypeCounts,
     setStatusType,
     addSpiritMetadata,
-    usersClaimSpirits
+    usersClaimSpirits,
+    addOriginOfShellsMetadata,
+    usersPurchaseRareOriginOfShells
 }
