@@ -16,7 +16,8 @@
   },
   "scripts": {
     "initPhalaWorld": "node ./initKhalaParachain.js",
-    "testInitPhalaWorld": "mocha --timeout 9999999 './test/initKhalaParachain.js'"
+    "testInitPhalaWorld": "mocha --timeout 9999999 './test/initKhalaParachain.js'",
+    "testStartSpiritClaimProcess": "mocha --timeout 9999999 './test/startSpiritClaimProcess.js'"
   },
   "dependencies": {
     "@phala/typedefs": "^0.2.29",

@@ -151,21 +151,35 @@ async function initializeRarityTypeCounts(khalaApi, overlord) {
 
 // Set StatusType for
 async function setStatusType(khalaApi, overlord, statusType, status) {
-    let nonceOverlord = await getNonce(khalaApi, overlord.address);
-    return new Promise(async (resolve) => {
-        console.log(`Setting ${statusType} to ${status}...`);
-        const unsub = await khalaApi.tx.pwNftSale.setStatusType(status, statusType
-        ).signAndSend(overlord, {nonce: nonceOverlord++}, ({ events, status }, result) => {
-            if (status.isInBlock) {
-                console.log(`\tTransaction included at blockHash ${status.asInBlock}`);
-            } else if (status.isFinalized) {
-                console.log(`\tTransaction finalized at blockHash ${status.asFinalized}`);
-                unsub();
-                resolve();
-            }
-        });
-        await waitTxAccepted(khalaApi, overlord.address, nonceOverlord - 1);
-    });
+    const tx = khalaApi.tx.pwNftSale.setStatusType(status, statusType);
+    const result = await waitExtrinsicFinished(khalaApi, tx, overlord);
+    expect(
+        result,
+        `Error: could not set PhalaWorld StatusType[${statusType}]`
+    ).to.be.true;
+}
+
+// Add Metadata for Spirit NFTs
+async function addSpiritMetadata(khalaApi, overlord, metadata) {
+    const tx = khalaApi.tx.pwNftSale.setSpiritsMetadata(metadata);
+    const result = await waitExtrinsicFinished(khalaApi, tx, overlord);
+    expect(
+        result,
+        `Error: could not set Spirit metadata[${metadata}]`
+    ).to.be.true;
+}
+
+// Start Claiming Spirits
+async function usersClaimSpirits(khalaApi, recipients) {
+    for (const recipient of recipients) {
+        const index = recipients.indexOf(recipient);
+        console.log(`\t[${index}]: Claiming Spirit for ${recipient.address}`);
+        let result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwNftSale.claimSpirit(), recipient);
+        expect(
+            result,
+            `Error: account[${recipient.address}] failed to claim spirit`
+        ).to.be.true;
+    }
 }
 
 module.exports = {
@@ -174,5 +188,8 @@ module.exports = {
     transferPha,
     setOverlordAccount,
     initializePhalaWorldClock,
-    initializeRarityTypeCounts
+    initializeRarityTypeCounts,
+    setStatusType,
+    addSpiritMetadata,
+    usersClaimSpirits
 }
