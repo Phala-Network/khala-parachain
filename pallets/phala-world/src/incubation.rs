@@ -488,7 +488,7 @@ pub mod pallet {
 					("name", property_value(&part_info.name)),
 					("slot_name", slot_name_value.clone()),
 					("rarity", property_value(&part_info.rarity)),
-					("race", property_value(&part_info.rarity)),
+					("race", property_value(&part_info.race)),
 					("career", property_value(&part_info.career)),
 					("sizes", property_value(&part_info.sizes)),
 					("style", property_value(&part_info.style)),
@@ -518,7 +518,7 @@ pub mod pallet {
 								("name", property_value(&sub_part_info.name)),
 								("slot_name", slot_name_value.clone()),
 								("rarity", property_value(&sub_part_info.rarity)),
-								("race", property_value(&sub_part_info.rarity)),
+								("race", property_value(&sub_part_info.race)),
 								("career", property_value(&sub_part_info.career)),
 								("sizes", property_value(&sub_part_info.sizes)),
 								("style", property_value(&sub_part_info.style)),
@@ -719,6 +719,7 @@ where
 	fn can_hatch() -> bool {
 		let now = T::Time::now().as_secs();
 		now > OfficialHatchTime::<T>::get()
+		// true
 	}
 
 	/// Helper function to get collection id Shell collection

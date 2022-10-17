@@ -157,12 +157,6 @@ pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
 
 pub struct SizesMaxLen;
 
-impl Get<u32> for SizesMaxLen {
-	fn get() -> u32 {
-		4
-	}
-}
-
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct PartInfo<BoundedString> {
@@ -175,7 +169,7 @@ pub struct PartInfo<BoundedString> {
 	/// Restriction for Shell Career, None is no restriction.
 	pub career: Option<CareerType>,
 	/// Restriction for shell Sizes, None is no restriction.
-	pub sizes: Option<BoundedVec<PartSizeType, SizesMaxLen>>,
+	pub sizes: Option<BoundedVec<PartSizeType, ConstU32<4>>>,
 	/// Style Code for Part
 	pub style: Option<BoundedString>,
 	/// Metadata is None if the Part is composed of Sub-Parts
