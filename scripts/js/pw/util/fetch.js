@@ -9,7 +9,9 @@ async function getCollectionsCount(khalaApi) {
 
 // export async function getZeroDay(khalaApi)
 
-// export async function getEra(khalaApi)
+async function getEra(khalaApi) {
+    return (await khalaApi.query.pwNftSale.era()).toNumber();
+}
 
 // export async function getClaimSpiritStatus(khalaApi)
 
@@ -31,6 +33,19 @@ async function getOriginOfShellCollectionId(khalaApi) {
     console.log(`\tQuerying Origin of Shell Collection ID...`)
     let collectionId = await khalaApi.query.pwNftSale.originOfShellCollectionId();
     return collectionId;
+}
+
+async function getOwnedOriginOfShells(khalaApi, account, collectionId) {
+    let nfts = [];
+    const originOfShells = await khalaApi.query.uniques.account.entries(account.address, collectionId);
+    originOfShells
+        .map(([key, _value]) =>
+            [key.args[0].toString(), key.args[1].toNumber(), key.args[2].toNumber()]
+        ).forEach(([acct, colId, nftId]) => {
+        nfts.push(nftId);
+        console.log(`\tAdding [${acct}, ${colId}, ${nftId}]`);
+    });
+    return nfts;
 }
 
 // export async function getIsOriginOfShellsInventorySet(khalaApi)
@@ -76,5 +91,7 @@ module.exports = {
     getSpiritCollectionId,
     getOriginOfShellCollectionId,
     getShellCollectionId,
-    getShellPartsCollectionId
+    getShellPartsCollectionId,
+    getEra,
+    getOwnedOriginOfShells
 }

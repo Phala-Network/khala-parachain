@@ -95,6 +95,23 @@ async function createWhitelistMessage(khalaApi, type, overlord, account) {
     return overlord.sign(whitelistMessage.toU8a());
 }
 
+async function getTopNFed(khalaApi, era, sliceNSize) {
+    const originOfShellFoodStats = await khalaApi.query.pwIncubation.originOfShellFoodStats.entries(era);
+    const sortedOriginOfShellStats = originOfShellFoodStats
+        .map(([key, value]) => {
+                const eraId = key.args[0].toNumber()
+                const collectionIdNftId = key.args[1].toHuman()
+                const numTimesFed = value.toNumber()
+                return {
+                    eraId: eraId,
+                    collectionIdNftId: collectionIdNftId,
+                    numTimesFed: numTimesFed
+                }
+            }
+        ).sort((a, b) => b.numTimesFed - a.numTimesFed);
+    return sortedOriginOfShellStats.slice(0, sliceNSize);
+}
+
 module.exports = {
     getNonce,
     checkUntil,
@@ -104,5 +121,6 @@ module.exports = {
     waitTxAccepted,
     waitExtrinsicFinished,
     token,
-    createWhitelistMessage
+    createWhitelistMessage,
+    getTopNFed
 }

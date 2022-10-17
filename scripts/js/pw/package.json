@@ -21,7 +21,8 @@
     "testStartRareOriginOfShellPurchase": "mocha --timeout 9999999 './test/startRareOriginOfShellPurchase.js'",
     "testStartWhitelistOriginShellPurchase": "mocha --timeout 9999999 './test/startWhitelistOriginShellPurchase.js'",
     "testStartOriginShellPreorderProcess": "mocha --timeout 9999999 './test/startOriginShellPreorderProcess.js'",
-    "testStartLastDayOfSale": "mocha --timeout 9999999 './test/status/startLastDayOfSale.js'"
+    "testStartLastDayOfSale": "mocha --timeout 9999999 './test/startLastDayOfSale.js'",
+    "testStartIncubationProcess": "mocha --timeout 9999999 './test/startIncubationProcess.js'"
   },
   "dependencies": {
     "@phala/typedefs": "^0.2.29",

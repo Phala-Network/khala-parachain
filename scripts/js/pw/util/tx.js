@@ -1,6 +1,6 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
-const { getCollectionsCount } = require('./fetch');
+const { getCollectionsCount, getOriginOfShellCollectionId, getOwnedOriginOfShells } = require('./fetch');
 const { token, extractTxResult, waitExtrinsicFinished, getNonce, getCollectionType, waitTxAccepted } = require('./helpers');
 
 chai.use(chaiAsPromised);
@@ -266,6 +266,82 @@ async function refundNotChosenPreorders(khalaApi, overlord, notChosenPreorders) 
     ).to.be.true;
 }
 
+// Set Incubation Process Status
+async function setIncubationProcessStatus(khalaApi, overlord, status) {
+    const tx = khalaApi.tx.pwIncubation.setCanStartIncubationStatus(status);
+    const result = await waitExtrinsicFinished(khalaApi, tx, overlord);
+    expect(
+        result,
+        `Error: could not set PhalaWorld StatusType[${status}]`
+    ).to.be.true;
+}
+
+async function initializeAccountsIncubationProcess(khalaApi, addresses) {
+    for (const accountId of addresses) {
+        const originOfShellCollectionId = await getOriginOfShellCollectionId(khalaApi);
+        let nonceOwner = await getNonce(khalaApi, accountId.address);
+        expect(
+            originOfShellCollectionId.isSome,
+            `Error: Origin of Shell Collection ID Not Set`
+        ).to.be.true;
+        let nfts = await getOwnedOriginOfShells(khalaApi, accountId, originOfShellCollectionId.unwrap().toNumber());
+
+        for (const nft of nfts) {
+            console.log(`\t${accountId.address} starting incubation for NFT ID: ${nft}...`);
+            await khalaApi.tx.pwIncubation.startIncubation(originOfShellCollectionId.unwrap(), nft).signAndSend(accountId, {nonce: nonceOwner++});
+        }
+        await waitTxAccepted(khalaApi, accountId.address, nonceOwner - 1);
+    }
+}
+
+// Simulate feeding Origin of Shells from array of accounts with which NFT they want to feed
+async function simulateFeeding(khalaApi, accountFeedSimulation) {
+    const originOfShellCollectionId = await getOriginOfShellCollectionId(khalaApi);
+    expect(
+        originOfShellCollectionId.isSome,
+        `Error: Origin of Shell Collection ID Not Set`
+    ).to.be.true;
+    for (const accountFeedInfo of accountFeedSimulation) {
+        const account = accountFeedInfo.account;
+        const nftId = accountFeedInfo.feedTo;
+        console.log(`\t${account.address} feeding [${originOfShellCollectionId.unwrap()}, ${nftId}]`);
+        const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.pwIncubation.feedOriginOfShell(originOfShellCollectionId.unwrap(), nftId), account);
+        expect(
+            result,
+            `Error: could not feed [${originOfShellCollectionId.unwrap()}, ${nftId}]`
+        ).to.be.true;
+    }
+}
+
+// Set the ChosenPart for an account
+async function setOriginOfShellChosenParts(khalaApi, overlord, collectionId, nftId, chosenParts) {
+    const tx = khalaApi.tx.pwIncubation.setOriginOfShellChosenParts(collectionId, nftId, chosenParts);
+    const result = await waitExtrinsicFinished(khalaApi, tx, overlord);
+    expect(
+        result,
+        `Error: could not set Origin of Shell Chosen Parts [${chosenParts}]`
+    ).to.be.true;
+}
+
+async function hatchOriginOfShell(khalaApi, overlord, originOfShellsOwners) {
+    const defaultMetadata = "";
+    let nonceOverlord = await getNonce(khalaApi, overlord.address);
+    for (const accountId of originOfShellsOwners) {
+        const originOfShellCollectionId = await getOriginOfShellCollectionId();
+        expect(
+            originOfShellCollectionId.isSome,
+            `Error: Origin of Shell Collection ID Not Set`
+        ).to.be.true;
+        let nfts = await getOwnedOriginOfShells(khalaApi, accountId, originOfShellCollectionId.unwrap().toNumber());
+
+        for (const nft of nfts) {
+            console.log(`\t${accountId.address} hatching Origin of Shell for NFT ID: ${nft}...`);
+            await khalaApi.tx.pwIncubation.hatchOriginOfShell(originOfShellCollectionId.unwrap(), nft, defaultMetadata).signAndSend(overlord, {nonce: nonceOverlord++});
+        }
+        await waitTxAccepted(khalaApi, overlord.address, nonceOverlord - 1);
+    }
+}
+
 module.exports = {
     pwCreateCollection,
     setStatusType,
@@ -282,5 +358,10 @@ module.exports = {
     updateRarityTypeCounts,
     userPreorderOriginOfShell,
     mintChosenPreorders,
-    refundNotChosenPreorders
+    refundNotChosenPreorders,
+    setIncubationProcessStatus,
+    initializeAccountsIncubationProcess,
+    simulateFeeding,
+    setOriginOfShellChosenParts,
+    hatchOriginOfShell
 }
