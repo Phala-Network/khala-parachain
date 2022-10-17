@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 
 use crate::mock::*;
 use codec::Encode;
+use frame_support::bounded_vec;
 use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::Currency};
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use sp_runtime::BoundedVec;
@@ -12,7 +13,7 @@ use sp_runtime::BoundedVec;
 use crate::incubation::{ShellPartInfoOf, ShellPartsOf};
 use crate::traits::{
 	primitives::*, CareerType, NftSaleType, OverlordMessage, PartInfo, Purpose, RaceType,
-	RarityType, ShellPartInfo, ShellParts, StatusType,
+	RarityType, PartRarityType, PartSizeType, ShellPartInfo, ShellParts, StatusType
 };
 use mock::{
 	Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, RmrkMarket, Test,
@@ -181,7 +182,11 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 	let shell_part_info1: ShellPartInfoOf<Test> = ShellPartInfo {
 		shell_part: PartInfo {
 			name: stb("jacket"),
-			rarity: RarityType::Magic,
+			rarity: PartRarityType::Normal,
+			race: Some(RaceType::Cyborg),
+			career: Some(CareerType::HackerWizard),
+			sizes: Some(bounded_vec![PartSizeType::MA]),
+			style: Some(stb("Sg01")),
 			metadata: None,
 			layer: 0,
 			x: 0,
@@ -191,7 +196,11 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 		sub_parts: Some(bvec![
 			PartInfo {
 				name: stb("jacket-details"),
-				rarity: RarityType::Legendary,
+				rarity: PartRarityType::Legend,
+				race: None,
+				career: Some(CareerType::HackerWizard),
+				sizes: Some(bounded_vec![PartSizeType::MA]),
+				style: Some(stb("Sg01")),
 				metadata: Some(stb("ar://jacket-details-uri")),
 				layer: 0,
 				x: 0,
@@ -200,7 +209,11 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 			},
 			PartInfo {
 				name: stb("jacket"),
-				rarity: RarityType::Prime,
+				rarity: PartRarityType::Epic,
+				race: None,
+				career: Some(CareerType::HackerWizard),
+				sizes: Some(bounded_vec![PartSizeType::MA]),
+				style: Some(stb("Sg01")),
 				metadata: Some(stb("ar://jacket-uri")),
 				layer: 0,
 				x: 0,
@@ -209,7 +222,11 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 			},
 			PartInfo {
 				name: stb("jacket-hat"),
-				rarity: RarityType::Magic,
+				rarity: PartRarityType::Epic,
+				race: None,
+				career: Some(CareerType::HackerWizard),
+				sizes: Some(bounded_vec![PartSizeType::MA]),
+				style: Some(stb("Sg01")),
 				metadata: Some(stb("ar://jacket-hat-uri")),
 				layer: 0,
 				x: 0,
@@ -221,7 +238,11 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 	let shell_part_info2 = ShellPartInfo {
 		shell_part: PartInfo {
 			name: stb("t_shirt"),
-			rarity: RarityType::Prime,
+			rarity: PartRarityType::Normal,
+			race: None,
+			career: Some(CareerType::HackerWizard),
+			sizes: Some(bounded_vec![PartSizeType::MA]),
+			style: Some(stb("Sg01")),
 			metadata: Some(stb("ar://t-shirt-uri")),
 			layer: 0,
 			x: 0,
@@ -233,7 +254,11 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 	let shell_part_info3 = ShellPartInfo {
 		shell_part: PartInfo {
 			name: stb("shoes"),
-			rarity: RarityType::Prime,
+			rarity: PartRarityType::Rare,
+			race: None,
+			career: Some(CareerType::HackerWizard),
+			sizes: Some(bounded_vec![PartSizeType::MA]),
+			style: Some(stb("Sg01")),
 			metadata: None,
 			layer: 0,
 			x: 0,
@@ -243,7 +268,11 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 		sub_parts: Some(bvec![
 			PartInfo {
 				name: stb("shoes-details"),
-				rarity: RarityType::Magic,
+				rarity: PartRarityType::Epic,
+				race: None,
+				career: Some(CareerType::HackerWizard),
+				sizes: Some(bounded_vec![PartSizeType::MA]),
+				style: Some(stb("Sg01")),
 				metadata: Some(stb("ar://shoes-details-uri")),
 				layer: 0,
 				x: 0,
@@ -252,7 +281,11 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 			},
 			PartInfo {
 				name: stb("shoes"),
-				rarity: RarityType::Prime,
+				rarity: PartRarityType::Normal,
+				race: None,
+				career: Some(CareerType::HackerWizard),
+				sizes: Some(bounded_vec![PartSizeType::MA]),
+				style: Some(stb("Sg01")),
 				metadata: Some(stb("ar://shoes-uri")),
 				layer: 0,
 				x: 0,
@@ -264,7 +297,11 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 	let shell_part_info4 = ShellPartInfo {
 		shell_part: PartInfo {
 			name: stb("head"),
-			rarity: RarityType::Prime,
+			rarity: PartRarityType::Normal,
+			race: Some(RaceType::Cyborg),
+			career: Some(CareerType::HackerWizard),
+			sizes: Some(bounded_vec![PartSizeType::MA]),
+			style: Some(stb("Sg01")),
 			metadata: Some(stb("ar://head-uri")),
 			layer: 0,
 			x: 0,

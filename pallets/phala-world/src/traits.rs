@@ -48,6 +48,36 @@ pub enum RarityType {
 	Legendary,
 }
 
+/// Shell Part Rarity Types of Normal, Rare, Epic, Legend
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum PartRarityType {
+	Normal,
+	Rare,
+	Epic,
+	Legend,
+}
+
+/// Shell Part Sizes. For each race:
+/// Cyborg have two sizes: MA, MB
+/// X-Gene have three sizes: XA, XB, XC
+/// Pandroid have four sizes: PA, PB, PC, PD
+/// Ai Spectre only got one size: AA
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum PartSizeType {
+	MA,
+	MB,
+	XA,
+	XB,
+	XC,
+	PA,
+	PB,
+	PC,
+	PD,
+	AA,
+}
+
 /// Race types
 #[derive(Encode, Decode, Debug, Clone, Copy, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -120,8 +150,17 @@ pub struct FoodInfo<BoundedOriginOfShellsFed> {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
 	pub shell_part: PartInfo<BoundedString>,
+	// pub shell_part: BoundedPartInfo,
 	/// If Metadata is None then this is a BoundedVec of ShellSubPartInfo that compose the Part
 	pub sub_parts: Option<BoundedSubParts>,
+}
+
+pub struct SizesMaxLen;
+
+impl Get<u32> for SizesMaxLen {
+	fn get() -> u32 {
+		4
+	}
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -130,7 +169,15 @@ pub struct PartInfo<BoundedString> {
 	/// Name of the Part
 	pub name: BoundedString,
 	/// Shell part rarity type
-	pub rarity: RarityType,
+	pub rarity: PartRarityType,
+	/// Restrictiion for Shell Race, None is no restriction.
+	pub race: Option<RaceType>,
+	/// Restriction for Shell Career, None is no restriction.
+	pub career: Option<CareerType>,
+	/// Restriction for shell Sizes, None is no restriction.
+	pub sizes: Option<BoundedVec<PartSizeType, SizesMaxLen>>,
+	/// Style Code for Part
+	pub style: Option<BoundedString>,
 	/// Metadata is None if the Part is composed of Sub-Parts
 	pub metadata: Option<BoundedString>,
 	/// Layer in the png file
