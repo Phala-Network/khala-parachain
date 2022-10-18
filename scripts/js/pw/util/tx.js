@@ -327,7 +327,7 @@ async function hatchOriginOfShell(khalaApi, overlord, originOfShellsOwners) {
     const defaultMetadata = "";
     let nonceOverlord = await getNonce(khalaApi, overlord.address);
     for (const accountId of originOfShellsOwners) {
-        const originOfShellCollectionId = await getOriginOfShellCollectionId();
+        const originOfShellCollectionId = await getOriginOfShellCollectionId(khalaApi);
         expect(
             originOfShellCollectionId.isSome,
             `Error: Origin of Shell Collection ID Not Set`
