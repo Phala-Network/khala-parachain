@@ -5,23 +5,37 @@ async function getCollectionsCount(khalaApi) {
 
 // export async function getBalance(khalaApi, account)
 
-// export async function getOverlord(khalaApi)
+async function getOverlord(khalaApi) {
+    return (await khalaApi.query.pwNftSale.overlord())
+}
 
-// export async function getZeroDay(khalaApi)
+async function getZeroDay(khalaApi) {
+    return (await khalaApi.query.pwNftSale.zeroDay())
+}
 
 async function getEra(khalaApi) {
     return (await khalaApi.query.pwNftSale.era()).toNumber();
 }
 
-// export async function getClaimSpiritStatus(khalaApi)
+async function getClaimSpiritStatus(khalaApi) {
+    return (await khalaApi.query.pwNftSale.canClaimSpirits());
+}
 
-// export async function getPurchaseRareOriginOfShellsStatus(khalaApi)
+async function getPurchaseRareOriginOfShellsStatus(khalaApi) {
+    return (await khalaApi.query.pwNftSale.canPurchaseRareOriginOfShells());
+}
 
-// export async function getPurchasePrimeOriginOfShellsStatus(khalaApi)
+async function getPurchasePrimeOriginOfShellsStatus(khalaApi) {
+    return (await khalaApi.query.pwNftSale.canPurchasePrimeOriginOfShells());
+}
 
-// export async function getPreorderOriginOfShellsStatus(khalaApi)
+async function getPreorderOriginOfShellsStatus(khalaApi) {
+    return (await khalaApi.query.pwNftSale.canPreorderOriginOfShells());
+}
 
-// export async function getLastDayOfSaleStatus(khalaApi)
+async function getLastDayOfSaleStatus(khalaApi) {
+    return (await khalaApi.query.pwNftSale.lastDayOfSale());
+}
 
 async function getSpiritCollectionId(khalaApi) {
     console.log(`\tQuerying Spirit Collection ID...`)
@@ -29,7 +43,7 @@ async function getSpiritCollectionId(khalaApi) {
     return collectionId;
 }
 
-async function getOriginOfShellCollectionId(khalaApi) {
+async function getOriginOfShellCollectionId(khalaApi) {Ï
     console.log(`\tQuerying Origin of Shell Collection ID...`)
     let collectionId = await khalaApi.query.pwNftSale.originOfShellCollectionId();
     return collectionId;
@@ -48,29 +62,63 @@ async function getOwnedOriginOfShells(khalaApi, account, collectionId) {
     return nfts;
 }
 
-// export async function getIsOriginOfShellsInventorySet(khalaApi)
+async function getIsOriginOfShellsInventorySet(khalaApi) {
+    return (await khalaApi.query.pwNftSale.isOriginOfShellsInventorySet());
+}
 
-// export async function getSpiritsMetadata(khalaApi)
+async function getSpiritsMetadata(khalaApi) {
+    return (await khalaApi.query.pwNftSale.spiritsMetadata());
+}
 
-// export async function getOriginOfShellsMetadata(khalaApi, raceType)
+async function getOriginOfShellsMetadata(khalaApi, raceType) {
+    return (await khalaApi.query.pwNftSale.originOfShellsMetadata(raceType));
+}
 
-// export async function getNextNftId(khalaApi, collectionId)
+async function getNextNftId(khalaApi, collectionId) {
+    return (await khalaApi.query.pwNftSale.nextNftId(collectionId)).toNumber();
+}
 
-// export async function getPreorderIndex(khalaApi)
+async function getNextResourceId(khalaApi, collectionId, nftId) {
+    return (await khalaApi.query.pwNftSale.nextResourceId(collectionId, nftId)).toNumber();
+}
 
-// export async function getPreorder(khalaApi, preorderId)
+async function getPreorderIndex(khalaApi) {
+    return (await khalaApi.query.pwNftSale.preorderIndex()).toNumber();
+}
 
-// export async function getOriginOfShellsInventory(khalaApi, rarityType)
+async function getPreorder(khalaApi, preorderId) {
+    return (await khalaApi.query.pwNftSale.preorders(preorderId));
+}
 
-// export async function getFoodByOwners(khalaApi, account)
+async function getOwnerHasPreorder(khalaApi, account) {
+    return (await khalaApi.query.pwNftSale.ownerHasPreorder(account));
+}
 
-// export async function getOriginOfShellFoodStats(khalaApi, eraId, collectionId, nftId)
+// Returns type NftSaleInfo for a RarityType and RaceType
+async function getOriginOfShellsInventory(khalaApi, rarityType, raceType) {
+    return (await khalaApi.query.pwNftSale.originOfShellsInventory(rarityType, raceType));
+}
 
-// export async function getOfficialHatchTime(khalaApi)
+// Returns the latest FoodInfo for an Account
+async function getFoodByOwners(khalaApi, account) {
+    return (await khalaApi.query.pwIncubation.foodByOwners(account));
+}
 
-// export async function getCanStartIncubationStatus(khalaApi)
+async function getOriginOfShellFoodStats(khalaApi, eraId, collectionId, nftId) {
+    return (await khalaApi.query.pwIncubation.originOfShellsFoodStats(eraId, (collectionId, nftId))).toNumber();
+}
 
-// export async function getHsOriginOfShellStartedIncubationStatus(khalaApi, collectionId, nftId)
+async function getOfficialHatchTime(khalaApi) {
+    return (await khalaApi.query.pwIncubation.officialHatchTime()).toNumber();
+}
+
+async function getCanStartIncubationStatus(khalaApi) {
+    return (await khalaApi.query.pwIncubation.canStartIncubation());
+}
+
+async function getHasOriginOfShellStartedIncubationStatus(khalaApi, collectionId, nftId) {
+    return (await khalaApi.query.pwIncubation.hasOriginOfShellStartedIncubation((collectionId, nftId)));
+}
 
 async function getShellCollectionId(khalaApi) {
     console.log(`\tQuerying Shell Collection ID...`)
@@ -84,7 +132,9 @@ async function getShellPartsCollectionId(khalaApi) {
     return collectionId;
 }
 
-// export async function getOriginOfShellsChosenParts(khalaApi, collectionId, nftId)
+async function getOriginOfShellsChosenParts(khalaApi, collectionId, nftId) {
+    return (await khalaApi.query.pwIncubation.originOfShellsChosenParts((collectionId, nftId)));
+}
 
 module.exports = {
     getCollectionsCount,
@@ -93,5 +143,27 @@ module.exports = {
     getShellCollectionId,
     getShellPartsCollectionId,
     getEra,
-    getOwnedOriginOfShells
+    getOwnedOriginOfShells,
+    getOverlord,
+    getZeroDay,
+    getClaimSpiritStatus,
+    getPurchaseRareOriginOfShellsStatus,
+    getPurchasePrimeOriginOfShellsStatus,
+    getPreorderOriginOfShellsStatus,
+    getLastDayOfSaleStatus,
+    getIsOriginOfShellsInventorySet,
+    getSpiritsMetadata,
+    getOriginOfShellsMetadata,
+    getNextNftId,
+    getNextResourceId,
+    getPreorderIndex,
+    getPreorder,
+    getOwnerHasPreorder,
+    getOriginOfShellsInventory,
+    getFoodByOwners,
+    getOriginOfShellFoodStats,
+    getOfficialHatchTime,
+    getCanStartIncubationStatus,
+    getHasOriginOfShellStartedIncubationStatus,
+    getOriginOfShellsChosenParts
 }
