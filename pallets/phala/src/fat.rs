@@ -47,7 +47,7 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type InkCodeSizeLimit: Get<u32>;
 		type SidevmCodeSizeLimit: Get<u32>;
 	}
@@ -125,10 +125,6 @@ pub mod pallet {
 			contract: ContractId,
 			cluster: ContractClusterId,
 			deployer: H256,
-		},
-		ClusterSetLogReceiver {
-			cluster: ContractClusterId,
-			log_handler: ContractId,
 		},
 		ClusterDestroyed {
 			cluster: ContractClusterId,
@@ -302,32 +298,6 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
-		pub fn cluster_set_log_handler(
-			origin: OriginFor<T>,
-			cluster: ContractClusterId,
-			log_handler: ContractId,
-		) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			let cluster_info = Clusters::<T>::get(&cluster).ok_or(Error::<T>::ClusterNotFound)?;
-			ensure!(
-				origin == cluster_info.owner,
-				Error::<T>::ClusterPermissionDenied
-			);
-
-			Self::push_message(
-				ClusterOperation::<T::AccountId, T::BlockNumber>::SetLogReceiver {
-					cluster,
-					log_handler,
-				},
-			);
-			Self::deposit_event(Event::ClusterSetLogReceiver {
-				cluster,
-				log_handler,
-			});
-			Ok(())
-		}
-
-		#[pallet::weight(0)]
 		pub fn cluster_destroy(origin: OriginFor<T>, cluster: ContractClusterId) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -422,6 +392,12 @@ pub mod pallet {
 				}
 			}
 			Ok(())
+		}
+
+		pub fn get_system_contract(contract: &ContractId) -> Option<ContractId> {
+			let contract_info = Contracts::<T>::get(&contract)?;
+			let cluster_info = Clusters::<T>::get(&contract_info.cluster_id)?;
+			Some(cluster_info.system_contract)
 		}
 	}
 

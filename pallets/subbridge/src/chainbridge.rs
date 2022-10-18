@@ -12,7 +12,7 @@ pub mod pallet {
 		pallet_prelude::*,
 		traits::{tokens::fungibles::Inspect, Currency, StorageVersion},
 		transactional,
-		weights::GetDispatchInfo,
+		dispatch::GetDispatchInfo,
 		PalletId, Parameter,
 	};
 	use frame_system::{self as system, pallet_prelude::*};
@@ -125,12 +125,12 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_assets::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Origin used to administer the pallet
-		type BridgeCommitteeOrigin: EnsureOrigin<Self::Origin>;
+		type BridgeCommitteeOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// Proposed dispatchable call
 		type Proposal: Parameter
-			+ Dispatchable<Origin = Self::Origin>
+			+ Dispatchable<RuntimeOrigin = Self::RuntimeOrigin>
 			+ EncodeLike
 			+ GetDispatchInfo;
 		/// The identifier for this chain.
@@ -1074,20 +1074,20 @@ pub mod pallet {
 
 	/// Simple ensure origin for the bridge account
 	pub struct EnsureBridge<T>(sp_std::marker::PhantomData<T>);
-	impl<T: Config> EnsureOrigin<T::Origin> for EnsureBridge<T> {
+	impl<T: Config> EnsureOrigin<T::RuntimeOrigin> for EnsureBridge<T> {
 		type Success = T::AccountId;
-		fn try_origin(o: T::Origin) -> Result<Self::Success, T::Origin> {
+		fn try_origin(o: T::RuntimeOrigin) -> Result<Self::Success, T::RuntimeOrigin> {
 			let bridge_account = MODULE_ID.into_account_truncating();
 			o.into().and_then(|o| match o {
 				system::RawOrigin::Signed(who) if who == bridge_account => Ok(bridge_account),
-				r => Err(T::Origin::from(r)),
+				r => Err(T::RuntimeOrigin::from(r)),
 			})
 		}
 
 		#[cfg(feature = "runtime-benchmarks")]
-		fn successful_origin() -> T::Origin {
+		fn successful_origin() -> T::RuntimeOrigin {
 			let bridge_account = MODULE_ID.into_account_truncating();
-			T::Origin::from(system::RawOrigin::Signed(bridge_account))
+			T::RuntimeOrigin::from(system::RawOrigin::Signed(bridge_account))
 		}
 	}
 
@@ -1097,7 +1097,9 @@ pub mod pallet {
 		use crate::chainbridge::Error as ChainbridgeError;
 		use crate::chainbridge::Event as ChainbridgeEvent;
 		use crate::mock::para::*;
-		use crate::mock::para::{Call, Event, Runtime};
+		use crate::mock::para::{
+			RuntimeCall as Call, RuntimeEvent as Event, RuntimeOrigin as Origin, Runtime,
+		};
 		use crate::mock::{
 			para_assert_events, para_expect_event, para_ext, ParaA, ParaChainBridge as ChainBridge,
 			ParaResourceIdGenSalt, TestNet, ALICE, ENDOWED_BALANCE, RELAYER_A, RELAYER_B,

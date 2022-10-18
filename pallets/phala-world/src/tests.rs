@@ -14,7 +14,9 @@ use crate::traits::{
 	primitives::*, CareerType, NftSaleType, OverlordMessage, PartInfo, Purpose, RaceType,
 	RarityType, ShellPartInfo, ShellParts, StatusType,
 };
-use mock::{Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, Test};
+use mock::{
+	RuntimeEvent as MockEvent, ExtBuilder, RuntimeOrigin as Origin, PWIncubation, PWNftSale, RmrkCore, Test
+};
 
 /// Turns a string into a BoundedVec
 fn stb(s: &str) -> BoundedVec<u8, StringLimit> {

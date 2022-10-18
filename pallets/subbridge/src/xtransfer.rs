@@ -21,7 +21,7 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type Bridge: BridgeTransact;
 	}
 
@@ -167,7 +167,7 @@ pub mod pallet {
 	mod test {
 		use crate::chainbridge::Error as ChainbridgeError;
 		use crate::chainbridge::Event as ChainbridgeEvent;
-		use crate::mock::para::Origin;
+		use crate::mock::para::RuntimeOrigin as ParaOrigin;
 		use crate::mock::para::Runtime;
 		use crate::mock::{
 			para, para_expect_event, ParaA, ParaAssets as Assets,
@@ -203,7 +203,7 @@ pub mod pallet {
 				// To parachains via Xcm(according to the dest)
 				assert_noop!(
 					XTransfer::transfer(
-						Origin::signed(ALICE),
+						ParaOrigin::signed(ALICE),
 						Box::new(
 							(
 								Concrete(unregistered_asset_location.clone()),
@@ -233,7 +233,7 @@ pub mod pallet {
 				// To solo chains via Chainbridge(according to the dest)
 				assert_noop!(
 					XTransfer::transfer(
-						Origin::signed(ALICE),
+						ParaOrigin::signed(ALICE),
 						Box::new((Concrete(unregistered_asset_location), Fungible(100u128)).into()),
 						Box::new(MultiLocation::new(
 							0,
@@ -259,7 +259,7 @@ pub mod pallet {
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
-					para::Origin::root(),
+					ParaOrigin::root(),
 					registered_asset_location.clone().into(),
 					0,
 					AssetProperties {
@@ -272,7 +272,7 @@ pub mod pallet {
 				// To solochains via Chainbridge(according to the dest)
 				assert_noop!(
 					XTransfer::transfer(
-						Origin::signed(ALICE),
+						ParaOrigin::signed(ALICE),
 						Box::new((Concrete(registered_asset_location), Fungible(100u128)).into()),
 						Box::new(MultiLocation::new(
 							0,
@@ -298,7 +298,7 @@ pub mod pallet {
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
-					para::Origin::root(),
+					ParaOrigin::root(),
 					registered_asset_location.clone().into(),
 					0,
 					AssetProperties {
@@ -310,7 +310,7 @@ pub mod pallet {
 
 				// Enable Chainbridge bridge for the asset
 				assert_ok!(AssetsRegistry::force_enable_chainbridge(
-					para::Origin::root(),
+					ParaOrigin::root(),
 					0, // asset id
 					0, // chain id
 					true,
@@ -320,7 +320,7 @@ pub mod pallet {
 				// To solochains via Chainbridge(according to the dest)
 				assert_noop!(
 					XTransfer::transfer(
-						Origin::signed(ALICE),
+						ParaOrigin::signed(ALICE),
 						Box::new((Concrete(registered_asset_location), Fungible(100u128)).into()),
 						Box::new(MultiLocation::new(
 							0,
@@ -346,7 +346,7 @@ pub mod pallet {
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
-					para::Origin::root(),
+					ParaOrigin::root(),
 					registered_asset_location.clone().into(),
 					0,
 					AssetProperties {
@@ -359,7 +359,7 @@ pub mod pallet {
 				// To solochains via Chainbridge(according to the dest)
 				assert_noop!(
 					XTransfer::transfer(
-						Origin::signed(ALICE),
+						ParaOrigin::signed(ALICE),
 						Box::new((Concrete(registered_asset_location), Fungible(100u128)).into()),
 						Box::new(MultiLocation::new(
 							0,
@@ -386,12 +386,12 @@ pub mod pallet {
 
 			ParaA::execute_with(|| {
 				// Set bridge fee and whitelist chain for the dest chain
-				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), 0));
-				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 0));
+				assert_ok!(ChainBridge::whitelist_chain(ParaOrigin::root(), 0));
+				assert_ok!(ChainBridge::update_fee(ParaOrigin::root(), 2, 0));
 
 				// To solochains via Chainbridge(according to the dest)
 				assert_ok!(XTransfer::transfer(
-					Origin::signed(ALICE),
+					ParaOrigin::signed(ALICE),
 					Box::new((Concrete(pha_location.clone()), Fungible(100u128)).into()),
 					Box::new(MultiLocation::new(
 						0,
@@ -438,7 +438,7 @@ pub mod pallet {
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
-					para::Origin::root(),
+					ParaOrigin::root(),
 					registered_asset_location.clone().into(),
 					0,
 					AssetProperties {
@@ -449,14 +449,14 @@ pub mod pallet {
 				));
 				// Set execution price of asset, price is 2 * NativeExecutionPrice * 10^(12 - 12)
 				assert_ok!(AssetsRegistry::force_set_price(
-					Origin::root(),
+					ParaOrigin::root(),
 					0,
 					para::NativeExecutionPrice::get() * 2,
 				));
 
 				// Enable Chainbridge bridge for the asset
 				assert_ok!(AssetsRegistry::force_enable_chainbridge(
-					para::Origin::root(),
+					ParaOrigin::root(),
 					0, // asset id
 					0, // chain id
 					true,
@@ -465,7 +465,7 @@ pub mod pallet {
 
 				// Mint some token to ALICE
 				assert_ok!(Assets::mint(
-					Origin::signed(ASSETS_REGISTRY_ID.into_account_truncating()),
+					ParaOrigin::signed(ASSETS_REGISTRY_ID.into_account_truncating()),
 					0,
 					ALICE,
 					ENDOWED_BALANCE
@@ -473,12 +473,12 @@ pub mod pallet {
 				assert_eq!(Assets::balance(0, &ALICE), ENDOWED_BALANCE);
 
 				// Set bridge fee and whitelist chain for the dest chain
-				assert_ok!(ChainBridge::whitelist_chain(Origin::root(), 0));
-				assert_ok!(ChainBridge::update_fee(Origin::root(), 2, 0));
+				assert_ok!(ChainBridge::whitelist_chain(ParaOrigin::root(), 0));
+				assert_ok!(ChainBridge::update_fee(ParaOrigin::root(), 2, 0));
 
 				// To solochains via Chainbridge(according to the dest)
 				assert_ok!(XTransfer::transfer(
-					Origin::signed(ALICE),
+					ParaOrigin::signed(ALICE),
 					Box::new(
 						(
 							Concrete(registered_asset_location.clone()),
@@ -519,7 +519,7 @@ pub mod pallet {
 			ParaB::execute_with(|| {
 				// ParaB register the native asset of paraA, e.g. PHA here.
 				assert_ok!(AssetsRegistry::force_register_asset(
-					para::Origin::root(),
+					ParaOrigin::root(),
 					pha_location.clone().into(),
 					0,
 					AssetProperties {
@@ -533,7 +533,7 @@ pub mod pallet {
 			ParaA::execute_with(|| {
 				// To solochains via Chainbridge(according to the dest)
 				assert_ok!(XTransfer::transfer(
-					Origin::signed(ALICE),
+					ParaOrigin::signed(ALICE),
 					Box::new((Concrete(pha_local_location.clone()), Fungible(100u128)).into()),
 					Box::new(MultiLocation::new(
 						1,
@@ -568,7 +568,7 @@ pub mod pallet {
 			ParaB::execute_with(|| {
 				// ParaB register the native asset of paraA
 				assert_ok!(AssetsRegistry::force_register_asset(
-					para::Origin::root(),
+					ParaOrigin::root(),
 					para_a_location.clone().into(),
 					0,
 					AssetProperties {
@@ -578,7 +578,7 @@ pub mod pallet {
 					},
 				));
 				// ParaB set price of the native asset of paraA
-				assert_ok!(AssetsRegistry::force_set_price(para::Origin::root(), 0, 1,));
+				assert_ok!(AssetsRegistry::force_set_price(ParaOrigin::root(), 0, 1,));
 			});
 
 			ParaA::execute_with(|| {
@@ -612,7 +612,7 @@ pub mod pallet {
 			ParaB::execute_with(|| {
 				// ParaB send back ParaA's native asset
 				assert_ok!(XTransfer::transfer(
-					Origin::signed(BOB),
+					ParaOrigin::signed(BOB),
 					Box::new((Concrete(para_a_location.clone()), Fungible(5u128)).into()),
 					Box::new(MultiLocation::new(
 						1,
