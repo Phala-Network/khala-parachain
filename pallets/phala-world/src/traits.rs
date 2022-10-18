@@ -150,12 +150,9 @@ pub struct FoodInfo<BoundedOriginOfShellsFed> {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct ShellPartInfo<BoundedString, BoundedSubParts> {
 	pub shell_part: PartInfo<BoundedString>,
-	// pub shell_part: BoundedPartInfo,
 	/// If Metadata is None then this is a BoundedVec of ShellSubPartInfo that compose the Part
 	pub sub_parts: Option<BoundedSubParts>,
 }
-
-pub struct SizesMaxLen;
 
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
