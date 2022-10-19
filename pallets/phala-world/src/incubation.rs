@@ -425,12 +425,10 @@ pub mod pallet {
 				.expect("[rarity] should not fail");
 			let generation_id: GenerationId =
 				Decode::decode(&mut generation.as_slice()).expect("[generation] should not fail");
-			let parts_properties = vec![
-				("race", race),
-				("career", career),
-				("generation", generation),
-			];
+			let parts_properties = vec![("generation", generation)];
 			let mut shell_properties = parts_properties.clone();
+			shell_properties.push(("race", race));
+			shell_properties.push(("career", career));
 			shell_properties.push(("rarity", rarity_type_value));
 
 			// Get next expected Shell NFT ID
