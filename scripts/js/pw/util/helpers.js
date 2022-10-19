@@ -1,6 +1,6 @@
 const BN = require('bn.js');
 const sleep = require('p-sleep');
-const { getSpiritCollectionId, getOriginOfShellCollectionId, getShellCollectionId, getShellPartsCollectionId } = require('./fetch');
+const { getSpiritCollectionId, getOriginOfShellCollectionId, getShellCollectionId, getShellPartsCollectionId, getNftInfo } = require('./fetch');
 const bnUnit = new BN(1e12);
 function token(n) {
     return new BN(n).mul(bnUnit);
@@ -112,6 +112,19 @@ async function getTopNFed(khalaApi, era, sliceNSize) {
     return sortedOriginOfShellStats.slice(0, sliceNSize);
 }
 
+async function getNonTransferableNft(khalaApi, collectionId, nfts) {
+    for (const nft in nfts) {
+        let nftInfo = await getNftInfo(khalaApi, collectionId, nft);
+        if (nftInfo.isSome) {
+            let nftInfoUnwrap = nftInfo.unwrap();
+            if (nftInfoUnwrap.transferable) {
+                return nft;
+            }
+        }
+    }
+    return -1;
+}
+
 module.exports = {
     getNonce,
     checkUntil,
@@ -122,5 +135,6 @@ module.exports = {
     waitExtrinsicFinished,
     token,
     createWhitelistMessage,
-    getTopNFed
+    getTopNFed,
+    getNonTransferableNft
 }

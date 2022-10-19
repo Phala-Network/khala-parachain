@@ -23,7 +23,8 @@
     "testStartOriginShellPreorderProcess": "mocha --timeout 9999999 './test/startOriginShellPreorderProcess.js'",
     "testStartLastDayOfSale": "mocha --timeout 9999999 './test/startLastDayOfSale.js'",
     "testStartIncubationProcess": "mocha --timeout 9999999 './test/startIncubationProcess.js'",
-    "testStartHatchingOriginOfShells": "mocha --timeout 9999999 './test/startHatchingOriginOfShells.js'"
+    "testStartHatchingOriginOfShells": "mocha --timeout 9999999 './test/startHatchingOriginOfShells.js'",
+    "testSimulateNftMarketSales": "mocha --timeout 9999999 './test/simulateNftMarketSales.js'"
   },
   "dependencies": {
     "@phala/typedefs": "^0.2.29",

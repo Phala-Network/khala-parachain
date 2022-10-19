@@ -345,45 +345,89 @@ async function hatchOriginOfShell(khalaApi, overlord, originOfShellsOwners) {
 // List NFT for sale. When a NFT is listed, the NFT sets the Lock StorageValue for the NFT to true. This will prevent the
 // NFT from being transferred or modified during the time the Lock is enabled.
 async function listNft(khalaApi, owner, collectionId, nftId, amount, maybeExpires) {
-    console.log(`\tListing Shell NFT ID [${collectionId}, ${nftId}] for sale...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.list(collectionId, nftId, amount, maybeExpires), owner);
+    console.log(`\tListing NFT ID [${collectionId}, ${nftId}] for sale...`);
+    const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.list(collectionId, nftId, amount, maybeExpires), owner);
+    expect(
+        result,
+        `Error: could not list NFT ID [${collectionId}, ${nftId}]`
+    ).to.be.true;
 }
 
 // Buy NFT for sale. The buyer can set an Option<maybeAmount> to ensure that the buyer is buying at the expected price
 // of the listed NFT. Once the purchase passes permissions checks, the NFT is unlocked, money is transferred to the old
 // owner, the NFT is sent to the buyer & an event is emitted named TokenSold {owner, buyer, collection_id, nft_id, price}
 async function buyNft(khalaApi, buyer, collectionId, nftId, maybeAmount) {
-    console.log(`\tBuying Shell NFT ID [${collectionId}, ${nftId}]...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.buy(collectionId, nftId, maybeAmount), buyer);
+    console.log(`\tBuying NFT ID [${collectionId}, ${nftId}]...`);
+    const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.buy(collectionId, nftId, maybeAmount), buyer);
+    expect(
+        result,
+        `Error: could not buy NFT ID [${collectionId}, ${nftId}]`
+    ).to.be.true;
 }
 
 // Unlist NFT for sale. The owner can unlist the NFT listed in the market. This will set the Lock to false & remove the
 // listed NFT from ListedNfts storage.
 async function unlistNft(khalaApi, owner, collectionId, nftId) {
-    console.log(`\tUnlisting Shell NFT ID [${collectionId}, ${nftId}]...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.unlist(collectionId, nftId), owner);
+    console.log(`\tUnlisting NFT ID [${collectionId}, ${nftId}]...`);
+    const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.unlist(collectionId, nftId), owner);
+    expect(
+        result,
+        `Error: could not unlist NFT ID [${collectionId}, ${nftId}]`
+    ).to.be.true;
 }
 
 // Make Offer for NFT. The Offerer will make an offer on a NFT at a set amount with an optional BlockNumber defined for
 // when the offer expires. When the owner sees this offer in Offers storage then the owner can accept the offer.
 async function makeOfferOnNft(khalaApi, offerer, collectionId, nftId, amount, maybeExpires) {
-    console.log(`\tMake offer on Shell NFT ID [${collectionId}, ${nftId}]...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.makeOffer(collectionId, nftId, amount, maybeExpires), offerer);
+    console.log(`\tMake offer on NFT ID [${collectionId}, ${nftId}]...`);
+    const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.makeOffer(collectionId, nftId, amount, maybeExpires), offerer);
+    expect(
+        result,
+        `Error: could not make offer on NFT ID [${collectionId}, ${nftId}]`
+    ).to.be.true;
 }
 
 // Accept Offer for NFT. The owner can accept an active offer in storage for a NFT. This will remove the offer from storage,
 // unreserve the offer from the offerer then transfer the funs to the current owner, then the NFT is sent to the offerer.
 // This triggers an event OfferAccepted {owner, buyer, collection_id, nft_id}
 async function acceptOfferOnNft(khalaApi, owner, collectionId, nftId, offerer) {
-    console.log(`\tAccept offer on Shell NFT ID [${collectionId}, ${nftId}]...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.acceptOffer(collectionId, nftId, offerer), owner);
+    console.log(`\tAccept offer on NFT ID [${collectionId}, ${nftId}]...`);
+    const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.acceptOffer(collectionId, nftId, offerer), owner);
+    expect(
+        result,
+        `Error: could not accept offer on NFT ID [${collectionId}, ${nftId}]`
+    ).to.be.true;
 }
 
 // Withdraw Offer for NFT. The offerer can withdraw an offer on a NFT which will remove the offer from the Offers in
 // storage and the offer will no longer be able to be accepted.
 async function withdrawOfferOnNft(khalaApi, offerer, collectionId, nftId) {
-    console.log(`\tWithdraw offer on Shell NFT ID [${collectionId}, ${nftId}]...`);
-    await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.withdrawOffer(collectionId, nftId), offerer);
+    console.log(`\tWithdraw offer on NFT ID [${collectionId}, ${nftId}]...`);
+    const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.withdrawOffer(collectionId, nftId), offerer);
+    expect(
+        result,
+        `Error: could not withdraw offer on NFT ID [${collectionId}, ${nftId}]`
+    ).to.be.true;
+}
+
+// Send NFT to new account Owner
+async function sendNftToOwner(khalaApi, owner, collectionId, nftId, newOwner) {
+    console.log(`\tSending NFT ID [${collectionId}, ${nftId}]...`);
+    const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkCore.send(collectionId, nftId, newOwner.address), owner);
+    expect(
+        result,
+        `Error: could not send NFT ID [${collectionId}, ${nftId}]`
+    ).to.be.true;
+}
+
+// Fail to send
+async function failToSendNonTransferableNft(khalaApi, owner, collectionId, nftId, newOwner) {
+    console.log(`\tExpected to fail sending NFT ID [${collectionId}, ${nftId}]...`);
+    const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkCore.send(collectionId, nftId, newOwner.address), owner);
+    expect(
+        result,
+        `Error: Expected failure, but NFT ID [${collectionId}, ${nftId}] successfully sent`
+    ).to.be.false;
 }
 
 module.exports = {
@@ -413,5 +457,7 @@ module.exports = {
     unlistNft,
     makeOfferOnNft,
     acceptOfferOnNft,
-    withdrawOfferOnNft
+    withdrawOfferOnNft,
+    sendNftToOwner,
+    failToSendNonTransferableNft
 }

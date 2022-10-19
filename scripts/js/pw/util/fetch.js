@@ -136,6 +136,23 @@ async function getOriginOfShellsChosenParts(khalaApi, collectionId, nftId) {
     return (await khalaApi.query.pwIncubation.originOfShellsChosenParts((collectionId, nftId)));
 }
 
+async function getOwnedNftsInCollection(khalaApi, account, collectionId) {
+    let nfts = [];
+    const originOfShells = await khalaApi.query.uniques.account.entries(account.address, collectionId);
+    originOfShells
+        .map(([key, _value]) =>
+            [key.args[0].toString(), key.args[1].toNumber(), key.args[2].toNumber()]
+        ).forEach(([acct, colId, nftId]) => {
+        nfts.push(nftId);
+        console.log(`\tDetected owner:[${acct}] (collection_id, nft_id):[${colId}, ${nftId}]`);
+    });
+    return nfts;
+}
+
+async function getNftInfo(khalaApi, collectionId, nftId) {
+    return (await khalaApi.query.rmrkCore.nfts(collectionId, nftId));
+}
+
 module.exports = {
     getCollectionsCount,
     getSpiritCollectionId,
@@ -165,5 +182,7 @@ module.exports = {
     getOfficialHatchTime,
     getCanStartIncubationStatus,
     getHasOriginOfShellStartedIncubationStatus,
-    getOriginOfShellsChosenParts
+    getOriginOfShellsChosenParts,
+    getOwnedNftsInCollection,
+    getNftInfo
 }
