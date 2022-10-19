@@ -30,13 +30,13 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_assets::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		type Currency: Currency<Self::AccountId>;
 
 		/// Required origin for sending XCM messages. If successful, then it resolves to `MultiLocation`
 		/// which exists as an interior location within this chain's XCM context.
-		type SendXcmOrigin: EnsureOrigin<Self::Origin, Success = MultiLocation>;
+		type SendXcmOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = MultiLocation>;
 
 		/// The type used to actually dispatch an XCM to its destination.
 		type XcmRouter: SendXcm;
@@ -44,13 +44,13 @@ pub mod pallet {
 		/// Required origin for executing XCM messages, including the teleport functionality. If successful,
 		/// then it resolves to `MultiLocation` which exists as an interior location within this chain's XCM
 		/// context.
-		type ExecuteXcmOrigin: EnsureOrigin<Self::Origin, Success = MultiLocation>;
+		type ExecuteXcmOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = MultiLocation>;
 
 		/// Something to execute an XCM message.
-		type XcmExecutor: ExecuteXcm<Self::Call>;
+		type XcmExecutor: ExecuteXcm<Self::RuntimeCall>;
 
 		/// Means of measuring the weight consumed by an XCM message locally.
-		type Weigher: WeightBounds<Self::Call>;
+		type Weigher: WeightBounds<Self::RuntimeCall>;
 
 		/// Means of inverting a location.
 		type LocationInverter: InvertLocation;
@@ -170,15 +170,15 @@ pub mod pallet {
 
 	/// Xcm message handler, generate a session that can execute xcm message and track its execution result
 	pub trait MessageHandler<T: Config> {
-		fn message(&self) -> Result<Xcm<T::Call>, DispatchError>;
-		fn execute(&self, message: &mut Xcm<T::Call>) -> DispatchResult;
+		fn message(&self) -> Result<Xcm<T::RuntimeCall>, DispatchError>;
+		fn execute(&self, message: &mut Xcm<T::RuntimeCall>) -> DispatchResult;
 	}
 
 	impl<T: Config> MessageHandler<T> for XCMSession<T>
 	where
 		T::AccountId: Into<[u8; 32]> + From<[u8; 32]>,
 	{
-		fn execute(&self, message: &mut Xcm<T::Call>) -> DispatchResult {
+		fn execute(&self, message: &mut Xcm<T::RuntimeCall>) -> DispatchResult {
 			let weight =
 				T::Weigher::weight(message).map_err(|()| Error::<T>::UnweighableMessage)?;
 			T::XcmExecutor::execute_xcm_in_credit(
@@ -192,7 +192,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		fn message(&self) -> Result<Xcm<T::Call>, DispatchError> {
+		fn message(&self) -> Result<Xcm<T::RuntimeCall>, DispatchError> {
 			// If self.asset.id == self.fee.id, self.asset must contains self.fee
 			let (withdraw_asset, max_assets) = if self.asset.contains(&self.fee) {
 				// The assets to pay the fee is the same as the main assets. Only one withdraw is required.
@@ -457,7 +457,7 @@ pub mod pallet {
 			ParaB::execute_with(|| {
 				// ParaB register the native asset of paraA
 				assert_ok!(AssetsRegistry::force_register_asset(
-					para::Origin::root(),
+					para::RuntimeOrigin::root(),
 					para_a_location.clone().into(),
 					0,
 					AssetProperties {
@@ -467,7 +467,7 @@ pub mod pallet {
 					},
 				));
 				// ParaB set price of the native asset of paraA
-				assert_ok!(AssetsRegistry::force_set_price(para::Origin::root(), 0, 1,));
+				assert_ok!(AssetsRegistry::force_set_price(para::RuntimeOrigin::root(), 0, 1,));
 			});
 
 			ParaA::execute_with(|| {
@@ -510,7 +510,7 @@ pub mod pallet {
 			ParaB::execute_with(|| {
 				// ParaB register the native asset of paraA
 				assert_ok!(AssetsRegistry::force_register_asset(
-					para::Origin::root(),
+					para::RuntimeOrigin::root(),
 					para_a_location.clone().into(),
 					0,
 					AssetProperties {
@@ -520,7 +520,7 @@ pub mod pallet {
 					},
 				));
 				// ParaB set price of the native asset of paraA
-				assert_ok!(AssetsRegistry::force_set_price(para::Origin::root(), 0, 1,));
+				assert_ok!(AssetsRegistry::force_set_price(para::RuntimeOrigin::root(), 0, 1,));
 			});
 
 			ParaA::execute_with(|| {
