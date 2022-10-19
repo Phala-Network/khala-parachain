@@ -787,8 +787,8 @@ parameter_types! {
     pub const VotingBondFactor: Balance = deposit(0, 32);
     /// Daily council elections
     pub const TermDuration: BlockNumber = 24 * HOURS;
-    pub const DesiredMembers: u32 = 5;
-    pub const DesiredRunnersUp: u32 = 5;
+    pub const DesiredMembers: u32 = 8;
+    pub const DesiredRunnersUp: u32 = 8;
     pub const MaxVoters: u32 = 10 * 1000;
     pub const MaxCandidates: u32 = 1000;
     pub const PhragmenElectionPalletId: LockIdentifier = *b"phrelect";
