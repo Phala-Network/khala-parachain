@@ -4,8 +4,7 @@ extern crate alloc;
 pub mod contract;
 
 use alloc::borrow::Cow;
-use alloc::str::FromStr;
-use alloc::string::ParseError;
+use alloc::string::String;
 use alloc::vec::Vec;
 use codec::{Decode, Encode};
 use core::fmt::Debug;
@@ -16,7 +15,6 @@ use sp_core::H256;
 
 pub mod messaging {
     use alloc::collections::btree_map::BTreeMap;
-    use alloc::string::String;
     use alloc::vec::Vec;
     use codec::{Decode, Encode};
     use core::fmt::Debug;
@@ -34,192 +32,6 @@ pub mod messaging {
     #[derive(Encode, Decode, Debug, TypeInfo)]
     pub enum CommandPayload<T> {
         Plain(T),
-    }
-
-    // TODO.kevin:
-    //    We should create a crate for each contract just like developing apps.
-    //    Then the following types should be put in their own crates.
-    // Messages: Lottery
-
-    bind_topic!(Lottery, b"^phala/BridgeTransfer");
-    #[derive(Encode, Decode, Clone, Debug, TypeInfo)]
-    pub enum Lottery {
-        SignedTx {
-            round_id: u32,
-            token_id: Vec<u8>,
-            tx: Vec<u8>,
-        },
-        BtcAddresses {
-            address_set: Vec<Vec<u8>>,
-        },
-    }
-
-    #[derive(Encode, Decode, Debug, Clone, TypeInfo)]
-    pub enum LotteryPalletCommand {
-        NewRound {
-            round_id: u32,
-            total_count: u32,
-            winner_count: u32,
-        },
-        OpenBox {
-            round_id: u32,
-            token_id: u32,
-            btc_address: Vec<u8>,
-        },
-    }
-
-    #[derive(Encode, Decode, Debug, TypeInfo)]
-    pub enum LotteryUserCommand {
-        SubmitUtxo {
-            round_id: u32,
-            address: String,
-            utxo: (Txid, u32, u64),
-        },
-        SetAdmin {
-            new_admin: String,
-        },
-    }
-
-    #[derive(Encode, Decode, Debug, TypeInfo)]
-    pub enum LotteryCommand {
-        UserCommand(LotteryUserCommand),
-        PalletCommand(LotteryPalletCommand),
-    }
-
-    impl LotteryCommand {
-        pub fn open_box(round_id: u32, token_id: u32, btc_address: Vec<u8>) -> Self {
-            Self::PalletCommand(LotteryPalletCommand::OpenBox {
-                round_id,
-                token_id,
-                btc_address,
-            })
-        }
-
-        pub fn new_round(round_id: u32, total_count: u32, winner_count: u32) -> Self {
-            Self::PalletCommand(LotteryPalletCommand::NewRound {
-                round_id,
-                total_count,
-                winner_count,
-            })
-        }
-    }
-
-    pub type Txid = [u8; 32];
-
-    // Messages for Balances
-
-    #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
-    pub enum BalancesCommand<AccountId, Balance> {
-        Transfer { dest: AccountId, value: Balance },
-        TransferToChain { dest: AccountId, value: Balance },
-        TransferToTee { who: AccountId, amount: Balance },
-    }
-
-    impl<AccountId, Balance> BalancesCommand<AccountId, Balance> {
-        pub fn transfer(dest: AccountId, value: Balance) -> Self {
-            Self::Transfer { dest, value }
-        }
-
-        pub fn transfer_to_chain(dest: AccountId, value: Balance) -> Self {
-            Self::TransferToChain { dest, value }
-        }
-    }
-
-    bind_topic!(BalancesTransfer<AccountId, Balance>, b"^phala/balances/transfer");
-    #[derive(Encode, Decode, TypeInfo)]
-    pub struct BalancesTransfer<AccountId, Balance> {
-        pub dest: AccountId,
-        pub amount: Balance,
-    }
-
-    // Messages for Assets
-
-    #[derive(Encode, Decode, Debug, TypeInfo)]
-    pub enum AssetCommand<AccountId, Balance> {
-        Issue {
-            symbol: String,
-            total: Balance,
-        },
-        Destroy {
-            id: AssetId,
-        },
-        Transfer {
-            id: AssetId,
-            dest: AccountId,
-            value: Balance,
-            index: u64,
-        },
-    }
-
-    pub type AssetId = u32;
-
-    // Messages for Web3Analytics
-
-    #[derive(Encode, Decode, Debug, TypeInfo)]
-    pub enum Web3AnalyticsCommand {
-        SetConfiguration { skip_stat: bool },
-    }
-
-    // Messages for Kitties
-
-    #[derive(Encode, Decode, Debug, TypeInfo)]
-    pub enum KittiesCommand<AccountId, Hash> {
-        /// Pack the kitties into the corresponding blind boxes
-        Pack {},
-        /// Transfer the box to another account, need to judge if the sender is the owner
-        Transfer { dest: String, blind_box_id: String },
-        /// Open the specific blind box to get the kitty
-        Open { blind_box_id: String },
-        /// Created a new blind box
-        Created(AccountId, Hash),
-    }
-
-    bind_topic!(KittyTransfer<AccountId>, b"^phala/kitties/transfer");
-    #[derive(Debug, Clone, Encode, Decode, PartialEq, TypeInfo)]
-    pub struct KittyTransfer<AccountId> {
-        pub dest: AccountId,
-        pub kitty_id: Vec<u8>,
-    }
-
-    // Messages for Geo Location
-    #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
-    pub struct Geocoding {
-        pub latitude: i32,
-        pub longitude: i32,
-        pub region_name: String,
-    }
-
-    #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
-    pub enum GeolocationCommand {
-        UpdateGeolocation { geocoding: Option<Geocoding> },
-    }
-
-    impl GeolocationCommand {
-        pub fn update_geolocation(geocoding: Option<Geocoding>) -> Self {
-            Self::UpdateGeolocation { geocoding }
-        }
-    }
-
-    // Bind on-chain GuessNumberCommand message to the GUESS_NUMBER contract
-    #[derive(Debug, Clone, Encode, Decode)]
-    pub enum GuessNumberCommand {
-        /// Refresh the random number
-        NextRandom,
-        /// Set the contract owner
-        SetOwner { owner: AccountId },
-    }
-
-    #[derive(Debug, Clone, Encode, Decode)]
-    pub enum BtcPriceBotCommand {
-        /// Set the contract owner
-        SetOwner { owner: AccountId },
-        /// Set the [authentication token of telegram bot](https://core.telegram.org/bots/api#authorizing-your-bot)
-        /// and the identifier to target chat <https://core.telegram.org/bots/api#sendmessage>
-        SetupBot { token: String, chat_id: String },
-        /// Let the Tg bot to report the current BTC price
-        ReportBtcPrice,
-        /// Update the price stored inside the contract.
-        UpdateBtcPrice { price: String },
     }
 
     /// A fixed point number with 64 integer bits and 64 fractional bits.
@@ -295,14 +107,15 @@ pub mod messaging {
     }
 
     bind_topic!(PRuntimeManagementEvent, b"phala/pruntime/management");
-    #[derive(Encode, Decode, Debug, TypeInfo)]
+    #[derive(Encode, Decode, Debug, TypeInfo, Clone, PartialEq, Eq)]
     pub enum PRuntimeManagementEvent {
-        RetirePRuntime(Condition),
+        RetirePRuntime(RetireCondition),
+        SetConsensusVersion(u32),
     }
 
     #[cfg_attr(feature = "enable_serde", derive(Serialize, Deserialize))]
-    #[derive(Encode, Decode, Debug, TypeInfo, Clone)]
-    pub enum Condition {
+    #[derive(Encode, Decode, Debug, TypeInfo, Clone, PartialEq, Eq)]
+    pub enum RetireCondition {
         /// pRuntimes of version less than given version will be retired.
         VersionLessThan(u32, u32, u32),
         /// pRuntimes of version equal to given version will be retired.
@@ -729,26 +542,9 @@ pub struct WorkerRegistrationInfo<AccountId> {
     pub operator: Option<AccountId>,
 }
 
-#[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, TypeInfo, Hash)]
-pub enum EndpointType {
-    I2P = 0,
-    Http,
-}
-
-impl FromStr for EndpointType {
-    type Err = ParseError;
-    fn from_str(endpoint_type: &str) -> Result<Self, Self::Err> {
-        match endpoint_type {
-            "i2p" => Ok(EndpointType::I2P),
-            "http" => Ok(EndpointType::Http),
-            _ => Ok(EndpointType::I2P), // default to I2P
-        }
-    }
-}
-
 #[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, TypeInfo)]
 pub enum VersionedWorkerEndpoints {
-    V1(Vec<worker_endpoint_v1::EndpointInfo>),
+    V1(Vec<String>),
 }
 
 #[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, TypeInfo)]
@@ -756,24 +552,6 @@ pub struct WorkerEndpointPayload {
     pub pubkey: WorkerPublicKey,
     pub versioned_endpoints: VersionedWorkerEndpoints,
     pub signing_time: u64,
-}
-
-pub mod worker_endpoint_v1 {
-    use alloc::vec::Vec;
-    use codec::{Decode, Encode};
-    use core::fmt::Debug;
-    use scale_info::TypeInfo;
-
-    #[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, TypeInfo)]
-    pub enum WorkerEndpoint {
-        I2P(Vec<u8>),
-        Http(Vec<u8>),
-    }
-
-    #[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, TypeInfo)]
-    pub struct EndpointInfo {
-        pub endpoint: WorkerEndpoint,
-    }
 }
 
 #[derive(Encode, Decode, Debug, Default, TypeInfo)]

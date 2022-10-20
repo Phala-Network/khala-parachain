@@ -43,7 +43,7 @@ pub mod pallet {
 		frame_system::Config + pallet_rmrk_core::Config + pallet_pw_nft_sale::Config
 	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Amount of food per Era.
 		#[pallet::constant]
 		type FoodPerEra: Get<u32>;

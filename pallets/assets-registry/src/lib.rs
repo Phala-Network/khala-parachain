@@ -266,8 +266,8 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_assets::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		type RegistryCommitteeOrigin: EnsureOrigin<Self::Origin>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		type RegistryCommitteeOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		type Currency: Currency<Self::AccountId>;
 		#[pallet::constant]
 		type MinBalance: Get<<Self as pallet_assets::Config>::Balance>;
@@ -814,7 +814,8 @@ pub mod pallet {
 	mod tests {
 		use crate as assets_registry;
 		use assets_registry::{
-			mock::*, AccountId32Conversion, AssetProperties, ExtractReserveLocation,
+			mock::{RuntimeOrigin as Origin, RuntimeEvent as Event, *},
+			AccountId32Conversion, AssetProperties, ExtractReserveLocation,
 			GetAssetRegistryInfo, IntoResourceId, ASSETS_REGISTRY_ID,
 		};
 		use frame_support::{assert_noop, assert_ok};

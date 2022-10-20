@@ -125,7 +125,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 }
 
 #[allow(dead_code)]
-pub fn take_events() -> Vec<para::Event> {
+pub fn take_events() -> Vec<para::RuntimeEvent> {
 	use para::Runtime;
 
 	let evt = frame_system::Pallet::<Runtime>::events()
@@ -137,7 +137,7 @@ pub fn take_events() -> Vec<para::Event> {
 	evt
 }
 
-pub fn para_last_event() -> para::Event {
+pub fn para_last_event() -> para::RuntimeEvent {
 	use para::Runtime;
 
 	frame_system::Pallet::<Runtime>::events()
@@ -146,16 +146,16 @@ pub fn para_last_event() -> para::Event {
 		.expect("Event expected")
 }
 
-pub fn para_expect_event<E: Into<para::Event>>(e: E) {
+pub fn para_expect_event<E: Into<para::RuntimeEvent>>(e: E) {
 	assert_eq!(para_last_event(), e.into());
 }
 
 // Checks events against the latest. A contiguous set of events must be provided. They must
 // include the most recent event, but do not have to include every past event.
-pub fn para_assert_events(mut expected: Vec<para::Event>) {
-	use para::{Event, Runtime};
+pub fn para_assert_events(mut expected: Vec<para::RuntimeEvent>) {
+	use para::Runtime;
 
-	let mut actual: Vec<Event> = frame_system::Pallet::<Runtime>::events()
+	let mut actual: Vec<para::RuntimeEvent> = frame_system::Pallet::<Runtime>::events()
 		.iter()
 		.map(|e| e.event.clone())
 		.collect();
