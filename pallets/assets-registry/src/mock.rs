@@ -45,8 +45,8 @@ parameter_types! {
 
 impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
-	type Origin = Origin;
-	type Call = Call;
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeCall = RuntimeCall;
 	type Index = u64;
 	type BlockNumber = u64;
 	type Hash = H256;
@@ -54,7 +54,7 @@ impl frame_system::Config for Test {
 	type AccountId = AccountId32;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = ();
 	type Version = ();
@@ -81,7 +81,7 @@ ord_parameter_types! {
 impl pallet_balances::Config for Test {
 	type Balance = Balance;
 	type DustRemoval = ();
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
@@ -99,7 +99,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Test {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type AssetId = u32;
 	type Currency = Balances;
@@ -120,7 +120,7 @@ parameter_types! {
 	pub ResourceIdGenerationSalt: Option<u128> = Some(3);
 }
 impl assets_registry::Config for Test {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type RegistryCommitteeOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type Currency = Balances;
 	type MinBalance = ExistentialDeposit;
@@ -173,8 +173,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 // Checks events against the latest. A contiguous set of events must be provided. They must
 // include the most recent event, but do not have to include every past event.
-pub fn assert_events(mut expected: Vec<Event>) {
-	let mut actual: Vec<Event> = system::Pallet::<Test>::events()
+pub fn assert_events(mut expected: Vec<RuntimeEvent>) {
+	let mut actual: Vec<RuntimeEvent> = system::Pallet::<Test>::events()
 		.iter()
 		.map(|e| e.event.clone())
 		.collect();

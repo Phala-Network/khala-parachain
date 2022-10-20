@@ -53,27 +53,25 @@ pub fn parachain_build_import_queue(
         _,
         _,
         _,
-        _,
     >(cumulus_client_consensus_aura::ImportQueueParams {
         block_import: client.clone(),
         client,
         create_inherent_data_providers: move |_, _| async move {
-            let time = sp_timestamp::InherentDataProvider::from_system_time();
+            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
             let slot =
                 sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-                    *time,
+                    *timestamp,
                     slot_duration,
                 );
 
-            Ok((time, slot))
+            Ok((slot, timestamp))
         },
         registry: config.prometheus_registry(),
-        can_author_with: sp_consensus::AlwaysCanAuthor,
         spawner: &task_manager.spawn_essential_handle(),
         telemetry,
     })
-    .map_err(Into::into)
+        .map_err(Into::into)
 }
 
 /// Start a parachain node.
@@ -142,7 +140,7 @@ pub async fn start_parachain_node(
                                 )
                             })?;
 
-                            Ok((timestamp, slot, parachain_inherent))
+                            Ok((slot, timestamp, parachain_inherent))
                         }
                     },
                     block_import: client.clone(),

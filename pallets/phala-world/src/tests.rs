@@ -16,7 +16,7 @@ use crate::traits::{
 	RarityType, PartRarityType, PartSizeType, ShellPartInfo, ShellParts, StatusType
 };
 use mock::{
-	Event as MockEvent, ExtBuilder, Origin, PWIncubation, PWNftSale, RmrkCore, RmrkMarket, Test,
+	RuntimeEvent as MockEvent, ExtBuilder, RuntimeOrigin as Origin, PWIncubation, PWNftSale, RmrkCore, RmrkMarket, Test
 };
 
 /// Turns a string into a BoundedVec

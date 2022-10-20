@@ -25,11 +25,12 @@ pub mod pallet {
 	use phala_types::{
 		messaging::{
 			self, bind_topic, ContractClusterId, ContractId, DecodedMessage, GatekeeperChange,
-			GatekeeperLaunch, MessageOrigin, SignedMessage, SystemEvent, WorkerEvent,
+			GatekeeperLaunch, MessageOrigin, PRuntimeManagementEvent, SignedMessage, SystemEvent,
+			WorkerEvent,
 		},
-		ClusterPublicKey, ContractPublicKey, EcdhPublicKey, MasterPublicKey,
-		VersionedWorkerEndpoints, WorkerEndpointPayload, WorkerIdentity, WorkerPublicKey,
-		WorkerRegistrationInfo, wrap_content_to_sign, SignedContentType,
+		wrap_content_to_sign, ClusterPublicKey, ContractPublicKey, EcdhPublicKey, MasterPublicKey,
+		SignedContentType, VersionedWorkerEndpoints, WorkerEndpointPayload, WorkerIdentity,
+		WorkerPublicKey, WorkerRegistrationInfo,
 	};
 
 	bind_topic!(RegistryEvent, b"^phala/registry/event");
@@ -59,7 +60,7 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The currency in which fees are paid and contract balances are held.
 		type Currency: Currency<Self::AccountId>;
@@ -80,7 +81,7 @@ pub mod pallet {
 		type VerifyRelaychainGenesisBlockHash: Get<bool>;
 
 		/// Origin used to govern the pallet
-		type GovernanceOrigin: EnsureOrigin<Self::Origin>;
+		type GovernanceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(5);
@@ -168,9 +169,11 @@ pub mod pallet {
 		},
 		WorkerAdded {
 			pubkey: WorkerPublicKey,
+			confidence_level: u8,
 		},
 		WorkerUpdated {
 			pubkey: WorkerPublicKey,
+			confidence_level: u8,
 		},
 		MasterKeyRotated {
 			rotation_id: u64,
@@ -180,6 +183,11 @@ pub mod pallet {
 			rotation_lock: Option<u64>,
 			gatekeeper_rotation_id: u64,
 		},
+		InitialScoreSet {
+			pubkey: WorkerPublicKey,
+			init_score: u32,
+		},
+		PRuntimeManagement(PRuntimeManagementEvent),
 	}
 
 	#[pallet::error]
@@ -270,7 +278,10 @@ pub mod pallet {
 					confidence_level: worker_info.confidence_level,
 				}),
 			));
-			Self::deposit_event(Event::<T>::WorkerAdded { pubkey });
+			Self::deposit_event(Event::<T>::WorkerAdded { 
+				pubkey,
+				confidence_level: worker_info.confidence_level,
+			});
 
 			Ok(())
 		}
@@ -449,7 +460,10 @@ pub mod pallet {
 								confidence_level: fields.confidence_level,
 							}),
 						));
-						Self::deposit_event(Event::<T>::WorkerUpdated { pubkey });
+						Self::deposit_event(Event::<T>::WorkerUpdated { 
+							pubkey,
+							confidence_level: fields.confidence_level, 
+						});
 					}
 					None => {
 						// Case 2 - New worker register
@@ -469,7 +483,10 @@ pub mod pallet {
 								confidence_level: fields.confidence_level,
 							}),
 						));
-						Self::deposit_event(Event::<T>::WorkerAdded { pubkey });
+						Self::deposit_event(Event::<T>::WorkerAdded { 
+							pubkey,
+							confidence_level: fields.confidence_level,  
+						});
 					}
 				}
 			});
@@ -495,7 +512,8 @@ pub mod pallet {
 			let sig = sp_core::sr25519::Signature::try_from(signature.as_slice())
 				.or(Err(Error::<T>::MalformedSignature))?;
 			let encoded_data = endpoint_payload.encode();
-			let data_to_sign = wrap_content_to_sign(&encoded_data, SignedContentType::MasterKeyRotation);
+			let data_to_sign =
+				wrap_content_to_sign(&encoded_data, SignedContentType::EndpointInfo);
 
 			ensure!(
 				sp_io::crypto::sr25519_verify(&sig, &data_to_sign, &endpoint_payload.pubkey),
@@ -611,6 +629,37 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		/// Retire running pruntimes with given condition.
+		///
+		/// Can only be called by `GovernanceOrigin`.
+		#[pallet::weight(0)]
+		pub fn retire_pruntime(
+			origin: OriginFor<T>,
+			condition: messaging::RetireCondition,
+		) -> DispatchResult {
+			T::GovernanceOrigin::ensure_origin(origin)?;
+			let event = PRuntimeManagementEvent::RetirePRuntime(condition);
+			Self::push_message(event.clone());
+			Self::deposit_event(Event::<T>::PRuntimeManagement(event));
+			Ok(())
+		}
+
+		/// Set the consensus version used by pruntime. PRuntimes would switch some code path according
+		/// the current consensus version.
+		///
+		/// Can only be called by `GovernanceOrigin`.
+		#[pallet::weight(0)]
+		pub fn set_pruntime_consensus_version(
+			origin: OriginFor<T>,
+			version: u32,
+		) -> DispatchResult {
+			T::GovernanceOrigin::ensure_origin(origin)?;
+			let event = PRuntimeManagementEvent::SetConsensusVersion(version);
+			Self::push_message(event.clone());
+			Self::deposit_event(Event::<T>::PRuntimeManagement(event));
+			Ok(())
+		}
 	}
 
 	// TODO.kevin: Move it to mq
@@ -688,6 +737,10 @@ pub mod pallet {
 						*worker_pubkey,
 						WorkerEvent::BenchScore(score),
 					));
+					Self::deposit_event(Event::<T>::InitialScoreSet{
+						pubkey: *worker_pubkey,
+						init_score: score,
+					});
 				}
 				RegistryEvent::MasterPubkey { master_pubkey } => {
 					let gatekeepers = Gatekeeper::<T>::get();
@@ -896,7 +949,7 @@ pub mod pallet {
 		use super::*;
 		use crate::mock::{
 			ecdh_pubkey, elapse_seconds, new_test_ext, set_block_1,
-			setup_relaychain_genesis_allowlist, worker_pubkey, Origin, Test,
+			setup_relaychain_genesis_allowlist, worker_pubkey, RuntimeOrigin as Origin, Test,
 		};
 		// Pallets
 		use crate::mock::PhalaRegistry;
