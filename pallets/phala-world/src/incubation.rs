@@ -717,7 +717,6 @@ where
 	fn can_hatch() -> bool {
 		let now = T::Time::now().as_secs();
 		now > OfficialHatchTime::<T>::get()
-		// true
 	}
 
 	/// Helper function to get collection id Shell collection
