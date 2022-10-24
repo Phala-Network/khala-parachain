@@ -43,7 +43,7 @@ async function getSpiritCollectionId(khalaApi) {
     return collectionId;
 }
 
-async function getOriginOfShellCollectionId(khalaApi) {Ï
+async function getOriginOfShellCollectionId(khalaApi) {
     console.log(`\tQuerying Origin of Shell Collection ID...`)
     let collectionId = await khalaApi.query.pwNftSale.originOfShellCollectionId();
     return collectionId;

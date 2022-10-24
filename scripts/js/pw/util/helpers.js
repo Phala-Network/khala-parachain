@@ -11,7 +11,7 @@ async function getCollectionType(khalaApi, collectionType) {
     if (collectionType === "spirit") {
         collectionId = await getSpiritCollectionId(khalaApi);
     } else if (collectionType === "originOfShell") {
-        collectionId =await getOriginOfShellCollectionId(khalaApi);
+        collectionId = await getOriginOfShellCollectionId(khalaApi);
     } else if (collectionType === "shell") {
         collectionId = await getShellCollectionId(khalaApi);
     } else if (collectionType === "shellParts") {
