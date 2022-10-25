@@ -425,12 +425,10 @@ pub mod pallet {
 				.expect("[rarity] should not fail");
 			let generation_id: GenerationId =
 				Decode::decode(&mut generation.as_slice()).expect("[generation] should not fail");
-			let parts_properties = vec![
-				("race", race),
-				("career", career),
-				("generation", generation),
-			];
+			let parts_properties = vec![("generation", generation)];
 			let mut shell_properties = parts_properties.clone();
+			shell_properties.push(("race", race));
+			shell_properties.push(("career", career));
 			shell_properties.push(("rarity", rarity_type_value));
 
 			// Get next expected Shell NFT ID
@@ -481,11 +479,17 @@ pub mod pallet {
 				// Add shell part properties
 				let mut shell_part_properties = parts_properties.clone();
 				let slot_name_value = property_value(&slot_name);
+				// Check if part is tradeable
+				let is_tradeable = part_info.tradeable;
 				// Append shell part properties
 				shell_part_properties.append(&mut vec![
 					("name", property_value(&part_info.name)),
 					("slot_name", slot_name_value.clone()),
 					("rarity", property_value(&part_info.rarity)),
+					("race", property_value(&part_info.race)),
+					("career", property_value(&part_info.career)),
+					("sizes", property_value(&part_info.sizes)),
+					("style", property_value(&part_info.style)),
 					("layer", property_value(&part_info.layer)),
 					("x", property_value(&part_info.x)),
 					("y", property_value(&part_info.y)),
@@ -497,7 +501,7 @@ pub mod pallet {
 					shell_parts_collection_id,
 					shell_collection_id,
 					shell_nft_id,
-					true,
+					is_tradeable,
 				)?;
 				match sub_parts {
 					Some(sub_parts) => {
@@ -512,6 +516,10 @@ pub mod pallet {
 								("name", property_value(&sub_part_info.name)),
 								("slot_name", slot_name_value.clone()),
 								("rarity", property_value(&sub_part_info.rarity)),
+								("race", property_value(&sub_part_info.race)),
+								("career", property_value(&sub_part_info.career)),
+								("sizes", property_value(&sub_part_info.sizes)),
+								("style", property_value(&sub_part_info.style)),
 								("layer", property_value(&sub_part_info.layer)),
 								("x", property_value(&sub_part_info.x)),
 								("y", property_value(&sub_part_info.y)),
@@ -523,7 +531,7 @@ pub mod pallet {
 								shell_parts_collection_id,
 								shell_parts_collection_id,
 								shell_part_nft_id,
-								false,
+								sub_part_info.tradeable,
 							)?;
 						}
 					}
