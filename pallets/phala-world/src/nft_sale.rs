@@ -182,9 +182,13 @@ pub mod pallet {
 	pub type OriginOfShellsMetadata<T: Config> =
 		StorageMap<_, Twox64Concat, RaceType, BoundedVec<u8, T::StringLimit>>;
 
-	/// Overlord Admin account of Phala World
+	/// Overlord Admin account of PhalaWorld
 	#[pallet::storage]
 	pub(super) type Overlord<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	/// Payee Multi-Sig account for payables in PhalaWorld
+	#[pallet::storage]
+	pub type Payee<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
@@ -366,6 +370,11 @@ pub mod pallet {
 		OriginOfShellsMetadataSet {
 			origin_of_shells_metadata: Vec<(RaceType, BoundedVec<u8, T::StringLimit>)>,
 		},
+		/// Payee changed to new account
+		PayeeChanged {
+			old_payee: Option<T::AccountId>,
+			new_payee: T::AccountId,
+		},
 	}
 
 	// Errors inform users that something went wrong.
@@ -411,6 +420,7 @@ pub mod pallet {
 		NoAvailableResourceId,
 		NoAvailableNftId,
 		ValueNotDetected,
+		PayeeNotSet,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -1106,6 +1116,30 @@ pub mod pallet {
 
 			Ok(Pays::No.into())
 		}
+
+		/// Privileged function set the Payee account of PhalaWorld
+		///
+		/// Parameters:
+		/// - origin: Expected to be called by `Overlord`
+		/// - new_payee: T::AccountId to
+		#[pallet::weight(0)]
+		pub fn set_payee(
+			origin: OriginFor<T>,
+			new_payee: T::AccountId,
+		) -> DispatchResultWithPostInfo {
+			// Ensure Overlord account makes call
+			let sender = ensure_signed(origin.clone())?;
+			Self::ensure_overlord(&sender)?;
+			let old_payee = <Payee<T>>::get();
+
+			Payee::<T>::put(&new_payee);
+			Self::deposit_event(Event::PayeeChanged {
+				old_payee,
+				new_payee,
+			});
+
+			Ok(Pays::No.into())
+		}
 	}
 }
 
@@ -1434,12 +1468,13 @@ where
 		let metadata = Self::get_origin_of_shell_metadata(race)?;
 		// Check if race and career types have mints left
 		Self::has_race_type_left(rarity_type, race, nft_sale_type)?;
+		let payee = Self::payee()?;
 		// Get expected next available NFT ID to mint
 		let next_nft_id = Self::get_next_nft_id(origin_of_shell_collection_id)?;
 		// Transfer the amount for the rare Origin of Shell NFT then mint the origin_of_shell
 		<T as pallet::Config>::Currency::transfer(
 			&sender,
-			&overlord,
+			&payee,
 			price,
 			ExistenceRequirement::KeepAlive,
 		)?;
@@ -1449,7 +1484,7 @@ where
 			sender.clone(),
 			next_nft_id,
 			origin_of_shell_collection_id,
-			Some(overlord.clone()),
+			Some(payee),
 			None,
 			metadata,
 			true,
@@ -1712,5 +1747,10 @@ where
 			*id = id.checked_add(1).ok_or(Error::<T>::NoAvailableResourceId)?;
 			Ok(current_id)
 		})
+	}
+
+	/// Helper function to get the Payee account for payables
+	pub fn payee() -> Result<T::AccountId, Error<T>> {
+		Payee::<T>::get().ok_or(Error::<T>::PayeeNotSet)
 	}
 }

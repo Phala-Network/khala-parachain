@@ -12,11 +12,12 @@ use sp_runtime::BoundedVec;
 
 use crate::incubation::{ShellPartInfoOf, ShellPartsOf};
 use crate::traits::{
-	primitives::*, CareerType, NftSaleType, OverlordMessage, PartInfo, Purpose, RaceType,
-	RarityType, PartRarityType, PartSizeType, ShellPartInfo, ShellParts, StatusType
+	primitives::*, CareerType, NftSaleType, OverlordMessage, PartInfo, PartRarityType,
+	PartSizeType, Purpose, RaceType, RarityType, ShellPartInfo, ShellParts, StatusType,
 };
 use mock::{
-	RuntimeEvent as MockEvent, ExtBuilder, RuntimeOrigin as Origin, PWIncubation, PWNftSale, RmrkCore, RmrkMarket, Test
+	ExtBuilder, PWIncubation, PWNftSale, RmrkCore, RmrkMarket, RuntimeEvent as MockEvent,
+	RuntimeOrigin as Origin, Test,
 };
 
 /// Turns a string into a BoundedVec
@@ -59,6 +60,8 @@ fn mint_spirit(account: AccountId32, spirit_signature: Option<sr25519::Signature
 fn setup_config(enable_status_type: StatusType) {
 	// Set Overlord account
 	assert_ok!(PWNftSale::set_overlord(Origin::root(), OVERLORD));
+	// Set Payee account
+	assert_ok!(PWNftSale::set_payee(Origin::signed(OVERLORD), PAYEE));
 	let spirit_collection_id = RmrkCore::collection_index();
 	// Mint Spirits Collection
 	mint_collection(OVERLORD);
@@ -843,7 +846,8 @@ fn mint_preorder_origin_of_shell_works() {
 		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
 		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
 		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
-		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
+		assert_eq!(Balances::total_balance(&PAYEE), 30 * PHA);
 	});
 }
 
@@ -1014,7 +1018,8 @@ fn last_day_preorder_origin_of_shell_works() {
 		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
 		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
 		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
-		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
+		assert_eq!(Balances::total_balance(&PAYEE), 30 * PHA);
 	});
 }
 
@@ -1137,7 +1142,8 @@ fn mint_gift_origin_of_shell_works() {
 		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
 		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
 		assert_eq!(Balances::total_balance(&CHARLIE), 150_000 * PHA);
-		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_024 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
+		assert_eq!(Balances::total_balance(&PAYEE), 20 * PHA);
 	});
 }
 
@@ -1216,7 +1222,8 @@ fn can_initiate_incubation_process() {
 		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
 		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
 		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
-		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
+		assert_eq!(Balances::total_balance(&PAYEE), 30 * PHA);
 		// ALICE cannot start incubation process before it is enabled
 		assert_noop!(
 			PWIncubation::start_incubation(Origin::signed(ALICE), 1u32, 2u32),
@@ -1352,7 +1359,8 @@ fn can_send_food_to_origin_of_shell() {
 		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
 		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
 		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
-		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
+		assert_eq!(Balances::total_balance(&PAYEE), 30 * PHA);
 		assert_ok!(PWIncubation::set_can_start_incubation_status(
 			Origin::signed(OVERLORD),
 			true
@@ -1548,7 +1556,8 @@ fn can_hatch_origin_of_shell() {
 		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
 		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
 		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
-		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
+		assert_eq!(Balances::total_balance(&PAYEE), 30 * PHA);
 		assert_ok!(PWIncubation::set_can_start_incubation_status(
 			Origin::signed(OVERLORD),
 			true
@@ -1761,7 +1770,8 @@ fn can_hatch_origin_of_shell() {
 		assert_eq!(Balances::total_balance(&ALICE), 20_000_000 * PHA);
 		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
 		assert_eq!(Balances::total_balance(&CHARLIE), 149_980 * PHA);
-		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_034 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
+		assert_eq!(Balances::total_balance(&PAYEE), 30 * PHA);
 	});
 }
 
@@ -1865,7 +1875,8 @@ fn can_add_origin_of_shell_chosen_parts() {
 		assert_eq!(Balances::total_balance(&ALICE), 19_000_000 * PHA);
 		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
 		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
-		assert_eq!(Balances::total_balance(&OVERLORD), 2_814_308_024 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
+		assert_eq!(Balances::total_balance(&PAYEE), 1_000_020 * PHA);
 		assert_ok!(PWIncubation::set_can_start_incubation_status(
 			Origin::signed(OVERLORD),
 			true

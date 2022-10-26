@@ -447,13 +447,14 @@ pub mod pallet {
 				nft_id,
 				shell_properties.clone(),
 			)?;
+			let payee = pallet_pw_nft_sale::Pallet::<T>::payee()?;
 			// Mint Shell NFT to Overlord to add properties and resource before sending to owner
 			let (_, shell_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
 				owner.clone(),
 				owner.clone(),
 				next_shell_nft_id,
 				shell_collection_id,
-				None,
+				Some(payee),
 				None,
 				default_shell_metadata,
 				true,
@@ -770,13 +771,14 @@ where
 		// Get expected next available NFT ID to mint
 		let next_nft_id =
 			pallet_pw_nft_sale::Pallet::<T>::get_next_nft_id(shell_parts_collection_id)?;
+		let payee = pallet_pw_nft_sale::Pallet::<T>::payee()?;
 		// Mint Shell Part NFT directly to the Shell NFT
 		let (_, shell_part_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint_directly_to_nft(
 			owner.clone(),
 			(parent_collection_id, parent_nft_id),
 			next_nft_id,
 			shell_parts_collection_id,
-			None,
+			Some(payee),
 			None,
 			metadata,
 			transferable,
