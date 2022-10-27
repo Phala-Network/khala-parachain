@@ -1,11 +1,11 @@
 const expect = require('chai');
-const { getApiConnection, getAccount, alicePrivkey, bobPrivkey, charliePrivkey, davidPrivkey, evePrivkey, ferdiePrivkey, overlordPrivkey } = require('../khala/khalaApi');
-const { transferPha, setOverlordAccount, pwCreateCollection, initializePhalaWorldClock, initializeRarityTypeCounts } = require('../util/tx');
+const { getApiConnection, getAccount, alicePrivkey, bobPrivkey, charliePrivkey, davidPrivkey, evePrivkey, ferdiePrivkey, overlordPrivkey, payeePrivkey } = require('../khala/khalaApi');
+const { transferPha, setOverlordAccount, setPayeeAccount, pwCreateCollection, initializePhalaWorldClock, initializeRarityTypeCounts } = require('../util/tx');
 const { token } = require("../pwUtils");
 
 describe("Initialize Khala Parachain", () => {
     let api;
-    let alice, bob, charlie, david, eve, ferdie, overlord;
+    let alice, bob, charlie, david, eve, ferdie, overlord, payee;
 
     before(async () => {
         api = await getApiConnection();
@@ -28,6 +28,12 @@ describe("Initialize Khala Parachain", () => {
         alice = await getAccount(alicePrivkey);
         overlord = await getAccount(overlordPrivkey);
         await setOverlordAccount(api, alice, overlord);
+    });
+    // Set Payee account
+    it(`Set Payee Account`, async () => {
+        payee = await getAccount(payeePrivkey);
+        overlord = await getAccount(overlordPrivkey);
+        await setPayeeAccount(api, overlord, payee);
     });
     // Initialize PhalaWorld
     it(`Initialize PhalaWorld Clock`, async () => {
