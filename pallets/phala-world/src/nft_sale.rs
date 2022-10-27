@@ -12,7 +12,7 @@ use frame_system::{ensure_signed, pallet_prelude::*, Origin};
 
 use codec::Encode;
 use sp_core::{sr25519, H256};
-use sp_runtime::{DispatchError, DispatchResult};
+use sp_runtime::{DispatchError, DispatchResult, Percent, Permill};
 use sp_std::prelude::*;
 
 pub use pallet_rmrk_core::types::*;
@@ -1485,7 +1485,7 @@ where
 			next_nft_id,
 			origin_of_shell_collection_id,
 			Some(payee),
-			None,
+			Some(Permill::from_percent(1)),
 			metadata,
 			true,
 			None,
