@@ -17,7 +17,7 @@ use frame_system::{ensure_signed, pallet_prelude::*, Origin};
 pub use pallet_rmrk_core::types::*;
 pub use pallet_rmrk_market;
 use rmrk_traits::{primitives::*, Nft};
-use sp_runtime::{DispatchError, Percent, Permill};
+use sp_runtime::{DispatchError, Permill};
 use sp_std::vec::Vec;
 
 pub use self::pallet::*;
