@@ -70,7 +70,7 @@ async function main() {
     ];
 
     // Add Metadata for Origin of Shell Races
-    const originOfShellsMetadataArr = [['Cyborg', 'ar://BS-NUyJWDKJ-CwTYLWZz6TpG0CbWVKUAXvdPQu-KimI'], ['AISpectre', 'ar://KR3ZIIcc_Q6_47sibLOJ5YoFwJZqT6C7aJkkUYbUWbU'], ['Pandroid', 'ar://BS-NUyJWDKJ-CwTYLWZz6TpG0CbWVKUAXvdPQu-KimI'], ['XGene', 'ar://IzOXT_pER7487_RBpzGNOKNBGnDouN1mOcPXojE_Das']];
+    const originOfShellsMetadataArr = [['Cyborg', 'ar://BS-NUyJWDKJ-CwTYLWZz6TpG0CbWVKUAXvdPQu-KimI'], ['AISpectre', 'ar://KR3ZIIcc_Q6_47sibLOJ5YoFwJZqT6C7aJkkUYbUWbU'], ['Pandroid', 'ar://AbMW_AEHo6WqoQdRJjOzRvZSR3QfYs_dvg7y6SlbilI'], ['XGene', 'ar://IzOXT_pER7487_RBpzGNOKNBGnDouN1mOcPXojE_Das']];
     await addOriginOfShellsMetadata(api, overlord, originOfShellsMetadataArr);
     // Start Rare Origin of Shell purchases
     await setStatusType(api, overlord, 'PurchaseRareOriginOfShells', true);
