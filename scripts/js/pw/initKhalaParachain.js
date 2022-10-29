@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
 const { token, waitTxAccepted, getNonce } = require('./pwUtils');
+const { setPayeeAccount } = require('./util/tx');
 
 const alicePrivkey = process.env.ROOT_PRIVKEY;
 const bobPrivkey = process.env.USER_PRIVKEY;
@@ -9,6 +10,7 @@ const ferdiePrivkey = process.env.FERDIE_PRIVKEY;
 const charliePrivkey = process.env.CHARLIE_PRIVKEY;
 const davidPrivkey = process.env.DAVID_PRIVKEY;
 const evePrivkey = process.env.EVE_PRIVKEY;
+const payeePrivkey = process.env.PAYEE_PRIVKEY;
 const endpoint = process.env.ENDPOINT;
 
 // Transfer balance to an account
@@ -212,12 +214,17 @@ async function main() {
     const charlie = keyring.addFromUri(charliePrivkey);
     const david = keyring.addFromUri(davidPrivkey);
     const eve = keyring.addFromUri(evePrivkey);
+    const payee = keyring.addFromUri(payeePrivkey);
     const userAccounts = [overlord, bob, charlie, david, eve, ferdie];
 
     // Send PHA to Account from Alice
     await transferPha(api, alice, userAccounts, token(20_000));
+
     // Set Overlord account
     await setOverlordAccount(api, alice, overlord);
+
+    // Set the payee account
+    await setPayeeAccount(api, overlord, payee);
 
     // Initialize Phala World
     await initPhalaWorld(api, overlord);
