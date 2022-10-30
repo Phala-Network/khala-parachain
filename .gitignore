@@ -72,6 +72,7 @@ CMakeLists.txt
 
 # Other local files
 /scripts/js/session_key.json
+.env.local
 
 # Trash
 **/*.log
