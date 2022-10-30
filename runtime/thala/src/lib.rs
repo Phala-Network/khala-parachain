@@ -103,7 +103,9 @@ use rmrk_traits::{primitives::*, NftChild};
 pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
-pub use phala_pallets::{pallet_fat, pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
+pub use phala_pallets::{
+    pallet_fat, pallet_mining, pallet_mq, pallet_registry, pallet_stakepool, pallet_fat_tokenomic
+};
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
     xcmbridge, xtransfer,
@@ -148,7 +150,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("thala"),
     impl_name: create_runtime_str!("thala"),
     authoring_version: 1,
-    spec_version: 1190,
+    spec_version: 1191,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 5,
@@ -269,6 +271,7 @@ construct_runtime! {
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
         PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 91,
+        PhalaFatTokenomic: pallet_fat_tokenomic::{Pallet, Call, Event<T>, Storage} = 92,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` was used in Khala, we avoid to use the index
@@ -365,6 +368,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             // Phala
             RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
             RuntimeCall::PhalaMining { .. } | RuntimeCall::PhalaStakePool { .. } |
+            RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World
             RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. }
         )
@@ -1545,6 +1549,11 @@ impl pallet_fat::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type InkCodeSizeLimit = ConstU32<{1024*1024*2}>;
     type SidevmCodeSizeLimit = ConstU32<{1024*1024*8}>;
+}
+
+impl pallet_fat_tokenomic::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
