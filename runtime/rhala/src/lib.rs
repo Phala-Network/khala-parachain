@@ -566,6 +566,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
                     | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker { .. })
                     | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::create { .. })
                     | RuntimeCall::PhalaRegistry(pallet_registry::Call::register_worker { .. })
+                    | RuntimeCall::PhalaRegistry(pallet_registry::Call::register_worker_v2 { .. })
                     | RuntimeCall::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })
             ),
         }
@@ -1492,15 +1493,17 @@ parameter_types! {
     pub const MinInitP: u32 = 50;
     pub const MiningEnabledByDefault: bool = true;
     pub const MaxPoolWorkers: u32 = 200;
-    pub const VerifyPRuntime: bool = false;
-    pub const VerifyRelaychainGenesisBlockHash: bool = false;
+    pub const NoneAttestationEnabled: bool = true;
+	pub const VerifyPRuntime: bool = false;
+	pub const VerifyRelaychainGenesisBlockHash: bool = false;
 }
 
 impl pallet_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type AttestationValidator = pallet_registry::IasValidator;
     type UnixTime = Timestamp;
+    type LegacyAttestationValidator = pallet_registry::IasValidator;
+    type NoneAttestationEnabled = NoneAttestationEnabled;
     type VerifyPRuntime = VerifyPRuntime;
     type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
     type GovernanceOrigin = EnsureRootOrHalfCouncil;
