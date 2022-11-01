@@ -1499,9 +1499,9 @@ parameter_types! {
     pub const MinInitP: u32 = 50;
     pub const MiningEnabledByDefault: bool = false;
     pub const MaxPoolWorkers: u32 = 200;
-    pub const NoneAttestationEnabled: bool = true;
-	pub const VerifyPRuntime: bool = false;
-	pub const VerifyRelaychainGenesisBlockHash: bool = false;
+    pub const NoneAttestationEnabled: bool = false;
+    pub const VerifyPRuntime: bool = true;
+    pub const VerifyRelaychainGenesisBlockHash: bool = true;
 }
 
 impl pallet_registry::Config for Runtime {
