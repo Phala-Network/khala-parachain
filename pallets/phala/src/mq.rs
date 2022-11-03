@@ -26,7 +26,7 @@ pub mod pallet {
 		type CallMatcher: CallMatcher<Self>;
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(5);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(7);
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -272,6 +272,9 @@ pub mod pallet {
 			let command = CommandPayload::Plain(InkCommand::InkMessage {
 				nonce: Default::default(),
 				message,
+				transfer: 0,
+				gas_limit: u64::MAX,
+				storage_deposit_limit: None,
 			});
 			Self::push_message_to(topic, command);
 		}
