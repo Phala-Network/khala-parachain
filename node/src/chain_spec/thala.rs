@@ -212,7 +212,7 @@ fn genesis(
                 benchmark_duration: 50,
             },
         ),
-        phala_mining: Default::default(),
+        phala_computation: Default::default(),
         polkadot_xcm: thala_parachain_runtime::PolkadotXcmConfig {
             safe_xcm_version: Some(2),
         },
