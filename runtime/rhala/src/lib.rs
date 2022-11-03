@@ -56,6 +56,7 @@ use sp_runtime::{
     traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto},
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
+    AccountId32,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 #[cfg(feature = "std")]
@@ -67,7 +68,7 @@ use static_assertions::const_assert;
 pub use frame_support::{
     construct_runtime, match_types, parameter_types,
     traits::{
-        tokens::nonfungibles::*, AsEnsureOriginWithArg, Contains, Currency, EitherOfDiverse,
+        tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency, EitherOfDiverse,
         EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem,
         LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
     },
@@ -75,6 +76,7 @@ pub use frame_support::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         ConstantMultiplier, IdentityFee, Weight,
     },
+    pallet_prelude::Get,
     dispatch::DispatchClass,
     BoundedVec, PalletId, RuntimeDebug, StorageValue,
 };
@@ -103,7 +105,10 @@ use rmrk_traits::{primitives::*, NftChild};
 pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
-pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
+pub use phala_pallets::{
+    pallet_basepool, pallet_computation, pallet_fat, pallet_mq, pallet_pawnshop, pallet_registry,
+    pallet_stakepool, pallet_stakepoolv2, pallet_vault, puppets, pallet_fat_tokenomic,
+};
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
     xcmbridge, xtransfer,
@@ -263,10 +268,16 @@ construct_runtime! {
         // Phala
         PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
         PhalaRegistry: pallet_registry::{Pallet, Call, Event<T>, Storage, Config<T>} = 86,
-        PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
-        PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
+        PhalaComputation: pallet_computation::{Pallet, Call, Event<T>, Storage, Config} = 87,
+        PhalaStakePool: pallet_stakepool::{Pallet, Event<T>, Storage} = 88,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
+        PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 91,
+        PhalaFatTokenomic: pallet_fat_tokenomic::{Pallet, Call, Event<T>, Storage} = 92,
+        PhalaStakePoolv2: pallet_stakepoolv2::{Pallet, Call, Event<T>, Storage} = 93,
+        PhalaVault: pallet_vault::{Pallet, Call, Event<T>, Storage} = 94,
+        PhalaPawnshop: pallet_pawnshop::{Pallet, Call, Event<T>, Storage} = 95,
+        PhalaBasePool: pallet_basepool::{Pallet, Event<T>, Storage} = 96,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` has been removed, the index should be kept
@@ -362,7 +373,10 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::Lottery { .. } | RuntimeCall::Tips { .. } |
             // Phala
             RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
-            RuntimeCall::PhalaMining { .. } | RuntimeCall::PhalaStakePool { .. } |
+            RuntimeCall::PhalaComputation { .. } |
+            RuntimeCall::PhalaStakePoolv2 { .. } |
+            RuntimeCall::PhalaPawnshop { .. } | RuntimeCall::PhalaVault { .. } |
+            RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World
             RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. }
         )
@@ -558,13 +572,13 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
             ProxyType::StakePoolManager => matches!(
                 c,
                 RuntimeCall::Utility { .. }
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::add_worker { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::remove_worker { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::start_mining { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::stop_mining { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::restart_mining { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::create { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stakepoolv2::Call::add_worker { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stakepoolv2::Call::remove_worker { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stakepoolv2::Call::start_computing { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stakepoolv2::Call::stop_computing { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stakepoolv2::Call::restart_computing { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stakepoolv2::Call::reclaim_pool_worker { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stakepoolv2::Call::create { .. })
                     | RuntimeCall::PhalaRegistry(pallet_registry::Call::register_worker { .. })
                     | RuntimeCall::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })
             ),
@@ -1486,21 +1500,23 @@ impl pallet_mq::CallMatcher<Runtime> for MqCallMatcher {
 
 parameter_types! {
     pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
-    pub const MinMiningStaking: Balance = 1 * DOLLARS;
-    pub const MinContribution: Balance = 1 * CENTS;
-    pub const MiningGracePeriod: u64 = 1 * 3600;
-    pub const MinInitP: u32 = 50;
-    pub const MiningEnabledByDefault: bool = true;
-    pub const MaxPoolWorkers: u32 = 200;
-    pub const VerifyPRuntime: bool = false;
-    pub const VerifyRelaychainGenesisBlockHash: bool = false;
+    pub const MinWorkingStaking: Balance = 1 * DOLLARS;
+	pub const MinContribution: Balance = 1 * CENTS;
+	pub const WorkingGracePeriod: u64 = 7 * 24 * 3600;
+	pub const MinInitP: u32 = 50;
+	pub const ComputingEnabledByDefault: bool = false;
+	pub const MaxPoolWorkers: u32 = 200;
+	pub const NoneAttestationEnabled: bool = true;
+	pub const VerifyPRuntime: bool = false;
+	pub const VerifyRelaychainGenesisBlockHash: bool = false;
 }
 
 impl pallet_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type AttestationValidator = pallet_registry::IasValidator;
     type UnixTime = Timestamp;
+    type LegacyAttestationValidator = pallet_registry::IasValidator;
+    type NoneAttestationEnabled = NoneAttestationEnabled;
     type VerifyPRuntime = VerifyPRuntime;
     type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
     type GovernanceOrigin = EnsureRootOrHalfCouncil;
@@ -1509,28 +1525,67 @@ impl pallet_mq::Config for Runtime {
     type QueueNotifyConfig = msg_routing::MessageRouteConfig;
     type CallMatcher = MqCallMatcher;
 }
-impl pallet_mining::Config for Runtime {
+impl pallet_computation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
     type MinInitP = MinInitP;
-    type Currency = Balances;
     type Randomness = RandomnessCollectiveFlip;
-    type OnReward = PhalaStakePool;
-    type OnUnbound = PhalaStakePool;
-    type OnStopped = PhalaStakePool;
+    type OnReward = PhalaStakePoolv2;
+    type OnUnbound = PhalaStakePoolv2;
+    type OnStopped = PhalaStakePoolv2;
     type OnTreasurySettled = Treasury;
     type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
+}
+impl pallet_stakepoolv2::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MinContribution = MinContribution;
+    type GracePeriod = WorkingGracePeriod;
+    type ComputingEnabledByDefault = ComputingEnabledByDefault;
+    type MaxPoolWorkers = MaxPoolWorkers;
+    type ComputingSwitchOrigin = EnsureRootOrHalfCouncil;
+    type BackfillOrigin = EnsureRootOrHalfCouncil;
 }
 impl pallet_stakepool::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type MinContribution = MinContribution;
-    type GracePeriod = MiningGracePeriod;
-    type MiningEnabledByDefault = MiningEnabledByDefault;
-    type MaxPoolWorkers = MaxPoolWorkers;
+}
+impl pallet_vault::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+}
+
+parameter_types! {
+    pub const PPhaAssetId: u32 = 1;
+}
+
+pub struct PawnShopGet;
+
+impl Get<AccountId32> for PawnShopGet {
+    fn get() -> AccountId32 {
+        AccountId32::new([1; 32])
+    }
+}
+
+impl pallet_pawnshop::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type PPhaAssetId = PPhaAssetId;
+    type PawnShopAccountId = PawnShopGet;
     type OnSlashed = Treasury;
-    type MiningSwitchOrigin = EnsureRootOrHalfCouncil;
-    type BackfillOrigin = EnsureRootOrHalfCouncil;
+}
+impl pallet_basepool::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+}
+
+impl phala_pallets::PhalaConfig for Runtime {
+    type Currency = Balances;
+}
+impl pallet_fat::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type InkCodeSizeLimit = ConstU32<{1024*1024*2}>;
+    type SidevmCodeSizeLimit = ConstU32<{1024*1024*8}>;
+}
+impl pallet_fat_tokenomic::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
