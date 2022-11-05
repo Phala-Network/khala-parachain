@@ -2,6 +2,7 @@ use alloc::collections::BTreeMap;
 use codec::{alloc, Decode, Encode};
 use frame_support::pallet_prelude::*;
 use primitives::*;
+use rmrk_traits::primitives::{CollectionId, NftId};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_runtime::RuntimeDebug;
@@ -136,13 +137,15 @@ pub struct NftSaleInfo {
 	pub race_reserved_count: u32,
 }
 
-/// Incubation Food info
-#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
-pub struct FoodInfo<BoundedOriginOfShellsFed> {
+/// Incubation Account Owner Food info  
+#[derive(Encode, Decode, Debug, Clone, TypeInfo)]
+pub struct FoodInfo {
 	/// Era that an account last fed food to another Origin of Shell.
 	pub era: EraId,
-	/// A BoundedVec of (CollectionId, NftId)
-	pub origin_of_shells_fed: BoundedOriginOfShellsFed,
+	/// A BoundedVec of (CollectionId, NftId).
+	pub origin_of_shells_fed: BTreeMap<(CollectionId, NftId), u8>,
+	/// Number of food left.
+	pub food_left: u32,
 }
 
 /// Shell Parts info

@@ -19,6 +19,7 @@ pub use pallet_rmrk_market;
 use rmrk_traits::{primitives::*, Nft};
 use sp_runtime::{DispatchError, Permill};
 use sp_std::vec::Vec;
+use std::collections::BTreeMap;
 
 pub use self::pallet::*;
 
@@ -60,15 +61,11 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
-	/// Info on Origin of Shells that the Owner has fed.
+	/// Info on Origin of Shells that the Owner has fed and the number of food left to feed other
+	/// Origin of Shells.
 	#[pallet::storage]
 	#[pallet::getter(fn food_by_owners)]
-	pub type FoodByOwners<T: Config> = StorageMap<
-		_,
-		Twox64Concat,
-		T::AccountId,
-		FoodInfo<BoundedVec<(CollectionId, NftId), <T as Config>::FoodPerEra>>,
-	>;
+	pub type FoodByOwners<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, FoodInfo>;
 
 	/// Total food fed to an Origin of Shell per Era.
 	#[pallet::storage]
@@ -199,6 +196,7 @@ pub mod pallet {
 		ShellPartsCollectionIdNotSet,
 		ChosenPartsNotDetected,
 		MissingShellPartMetadata,
+		NoFoodLeftToFeedOriginOfShell,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -263,14 +261,16 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Feed another origin_of_shell to the current origin_of_shell being incubated. This will
-		/// reduce the time left to incubation if the origin_of_shell is in the top 10 of
-		/// origin_of_shells fed that era.
+		/// Sender tried to feed another Origin of Shell. This function will allocate a new daily
+		/// daily ration of food if the sender has not sent food to another Origin of Shell within
+		/// the current Era. If the sender has already sent food, the sender's FoodInfo will be
+		/// mutated to update the food left and the origin of shells the sender has fed during the
+		/// current Era.
 		///
 		/// Parameters:
-		/// - origin: The origin of the extrinsic feeding the origin_of_shell
-		/// - collection_id: The collection id of the Origin of Shell RMRK NFT
-		/// - nft_id: The NFT id of the Origin of Shell RMRK NFT
+		/// - origin: The origin of the extrinsic feeding the target Origin of Shell.
+		/// - collection_id: The collection id of the Origin of Shell.
+		/// - nft_id: The NFT id of the Origin of Shell.
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn feed_origin_of_shell(
@@ -296,11 +296,10 @@ pub mod pallet {
 				Error::<T>::CannotSendFoodToOriginOfShell
 			);
 			// Check if account owns an Origin of Shell NFT
-			ensure!(
+			let origin_of_shells_owned: u32 =
 				pallet_uniques::pallet::Pallet::<T>::owned_in_collection(&collection_id, &sender)
-					.count() > 0,
-				Error::<T>::NoPermission
-			);
+					.count() as u32;
+			ensure!(origin_of_shells_owned > 0, Error::<T>::NoPermission);
 			// Get Current Era
 			let current_era = pallet_pw_nft_sale::Era::<T>::get();
 			// Get number of times fed this era
@@ -311,30 +310,40 @@ pub mod pallet {
 			// feeding
 			FoodByOwners::<T>::try_mutate(&sender, |food_info| -> DispatchResult {
 				let mut new_food_info = match food_info {
-					None => Self::get_new_food_info(current_era),
+					None => Self::get_new_food_info(current_era, origin_of_shells_owned),
 					Some(food_info) if current_era > food_info.era => {
-						Self::get_new_food_info(current_era)
+						let mut new_food_info =
+							Self::get_new_food_info(current_era, origin_of_shells_owned);
+						new_food_info
+							.origin_of_shells_fed
+							.insert((collection_id, nft_id), 1u8);
+						new_food_info
 					}
-					Some(food_info) => {
-						// Ensure sender hasn't fed the Origin of Shell 2 times
+					Some(food_info) => food_info.clone(),
+				};
+				// Check if sender has food left to feed
+				let food_left = new_food_info.food_left;
+				ensure!(food_left > 0, Error::<T>::NoFoodLeftToFeedOriginOfShell);
+				// Ensure sender hasn't fed the Origin of Shell 2 times
+				let new_num_of_times_fed = match new_food_info
+					.origin_of_shells_fed
+					.get(&(collection_id, nft_id))
+				{
+					Some(num_times_fed) => {
 						ensure!(
-							food_info
-								.origin_of_shells_fed
-								.iter()
-								.filter(|&nft| *nft == (collection_id, nft_id))
-								.count() < T::MaxFoodFeedSelf::get().into(),
+							*num_times_fed < T::MaxFoodFeedSelf::get(),
 							Error::<T>::AlreadySentFoodTwice
 						);
-						food_info.clone()
+						let new_num_times_fed = *num_times_fed + 1u8;
+						new_num_times_fed
 					}
+					None => 1u8,
 				};
-				ensure!(
-					new_food_info
-						.origin_of_shells_fed
-						.try_push((collection_id, nft_id))
-						.is_ok(),
-					Error::<T>::FoodInfoUpdateError
-				);
+				new_food_info
+					.origin_of_shells_fed
+					.insert((collection_id, nft_id), new_num_of_times_fed);
+				new_food_info.food_left = food_left - 1u32;
+
 				*food_info = Some(new_food_info);
 
 				Ok(())
@@ -734,18 +743,25 @@ where
 		Ok(shell_parts_collection_id)
 	}
 
-	/// Helper function to get new FoodOf<T> struct
+	/// Helper function to get new FoodInfoOf<T> struct
 	///
 	/// Parameters:
-	/// - `era`: The current Era of Phala World
-	fn get_new_food_info(
-		era: EraId,
-	) -> FoodInfo<BoundedVec<(CollectionId, NftId), <T as Config>::FoodPerEra>> {
+	/// - `era`: The current Era of PhalaWorld to get new food info for the AccountId.
+	/// - `multiply_food_by`: Number of owned Origin of Shell NFTs that will help calculate the
+	/// product of `multiply_food_by` * `T::FoodPerEra`.
+	fn get_new_food_info(era: EraId, multiply_food_by: u32) -> FoodInfo {
+		let food_left = multiply_food_by * T::FoodPerEra::get();
 		FoodInfo {
 			era,
-			origin_of_shells_fed: Default::default(),
+			origin_of_shells_fed: BTreeMap::new(),
+			food_left,
 		}
 	}
+
+	/// Helper function to decrement the amount of food left.
+	///
+	/// Parameters:
+	/// `
 
 	/// Helper function to mint a Top level Shell part. These are transferable Shell part NFTs.
 	///
