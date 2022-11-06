@@ -5,7 +5,7 @@ pub use crate::traits::{
 	primitives::*, property_value, CareerType, FoodInfo, PartInfo, RaceType, RarityType,
 	ShellPartInfo, ShellParts,
 };
-use alloc::vec;
+use alloc::{collections::BTreeMap, vec};
 use codec::{alloc, Decode};
 use frame_support::{
 	ensure,
@@ -19,7 +19,6 @@ pub use pallet_rmrk_market;
 use rmrk_traits::{primitives::*, Nft};
 use sp_runtime::{DispatchError, Permill};
 use sp_std::vec::Vec;
-use std::collections::BTreeMap;
 
 pub use self::pallet::*;
 

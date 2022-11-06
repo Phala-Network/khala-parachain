@@ -1,7 +1,8 @@
 #![cfg(test)]
+extern crate alloc;
 
 use super::*;
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use crate::mock::*;
 use codec::Encode;
