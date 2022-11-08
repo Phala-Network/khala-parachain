@@ -44,7 +44,8 @@ pub mod pallet {
 	/// Mapping the sender's address on the source chain to the history of tasks related to him
 	#[pallet::storage]
 	#[pallet::getter(fn account_tasks)]
-	pub type AccountTasks<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, Vec<TaskId>>;
+	pub type AccountTasks<T: Config> =
+		StorageMap<_, Twox64Concat, Vec<u8>, Vec<TaskId>, ValueQuery>;
 
 	/// Queue that contains all unfinished tasks belongs to the worker,
 	/// Worker should read this storage to get the unfinished task and contines the task execution
@@ -52,7 +53,8 @@ pub mod pallet {
 	/// worker_account => task_queue
 	#[pallet::storage]
 	#[pallet::getter(fn pending_tasks)]
-	pub type PendingTasks<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, VecDeque<TaskId>>;
+	pub type PendingTasks<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, VecDeque<TaskId>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -73,7 +75,10 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {
+	impl<T: Config> Pallet<T>
+	where
+		T::AccountId: Into<[u8; 32]> + From<[u8; 32]>,
+	{
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_set_executor(origin: OriginFor<T>, executor: T::AccountId) -> DispatchResult {
@@ -89,11 +94,22 @@ pub mod pallet {
 			// Check origin, must be the executor
 			Self::ensure_executor(origin)?;
 
-			// Create new record to `tasks` if task does not exist,
-			// Also save to corresponding worker and sender task queue.
-
-			// Else replace with new task data after verification passed.
-			ensure!(Self::verify_task(&task), Error::<T>::TaskInvalid);
+			if let Some(old_task) = Tasks::<T>::get(&task.id) {
+				ensure!(Self::verify_task(&old_task, &task), Error::<T>::TaskInvalid);
+				if old_task.encode() == task.encode() {
+					return Ok(());
+				}
+			} else {
+				// Save to corresponding worker and sender task queue.
+				let mut account_task_queue = AccountTasks::<T>::get(&task.sender);
+				account_task_queue.push(task.id.clone());
+				AccountTasks::<T>::insert(&task.sender, &account_task_queue);
+				let worker_account: T::AccountId = task.worker.into();
+				let mut worker_task_queue = PendingTasks::<T>::get(&worker_account);
+				worker_task_queue.push_back(task.id.clone());
+				PendingTasks::<T>::insert(&worker_account, &worker_task_queue);
+			}
+			Tasks::<T>::insert(&task.id, &task);
 
 			Self::deposit_event(Event::TaskUpdated {
 				task: task.encode(),
@@ -112,21 +128,28 @@ pub mod pallet {
 			Ok(())
 		}
 
-		fn verify_task(task: &Task) -> bool {
-			// TODO.wf
-			false
+		fn verify_task(old_task: &Task, task: &Task) -> bool {
+			(
+				old_task.id,
+				&old_task.sender,
+				&old_task.worker,
+				&old_task.recipient,
+			)
+				.encode() == (task.id, &task.sender, &task.worker, &task.recipient).encode()
 		}
 	}
 
 	#[cfg(test)]
 	mod tests {
 		use crate as pallet_index;
-		use crate::{Event as PalletIndexEvent, Executor};
+		use crate::{AccountTasks, Event as PalletIndexEvent, Executor, PendingTasks};
+		use codec::Encode;
 		use frame_support::{assert_noop, assert_ok, sp_runtime::traits::BadOrigin};
 		use pallet_index::mock::{
 			assert_events, new_test_ext, PalletIndex, RuntimeEvent as Event,
 			RuntimeOrigin as Origin, Test, ALICE, BOB,
 		};
+		use pallet_index::types::{Task, TaskStatus};
 
 		#[test]
 		fn test_set_executor_should_work() {
@@ -135,6 +158,41 @@ pub mod pallet {
 				assert_eq!(Executor::<Test>::get(), Some(BOB.clone()));
 				assert_events(vec![Event::PalletIndex(PalletIndexEvent::ExecutorSet {
 					executor: BOB,
+				})]);
+			});
+		}
+
+		#[test]
+		fn test_updata_task_should_work() {
+			new_test_ext().execute_with(|| {
+				let mut task = Task {
+					id: [1; 32],
+					worker: [2; 32],
+					status: TaskStatus::Initialized,
+					edges: vec![],
+					sender: vec![3],
+					recipient: vec![4],
+				};
+				assert_ok!(PalletIndex::force_set_executor(Origin::root(), BOB.clone()));
+				assert_ok!(PalletIndex::update_task(
+					Origin::signed(BOB.into()),
+					task.clone()
+				));
+				assert_eq!(AccountTasks::<Test>::get(&task.sender), vec![task.id]);
+				let worker_account: <Test as frame_system::Config>::AccountId = task.worker.into();
+				assert_eq!(PendingTasks::<Test>::get(&worker_account)[0], task.id);
+				assert_events(vec![Event::PalletIndex(PalletIndexEvent::TaskUpdated {
+					task: task.encode(),
+				})]);
+
+				// Update task
+				task.status = TaskStatus::Completed;
+				assert_ok!(PalletIndex::update_task(
+					Origin::signed(BOB.into()),
+					task.clone()
+				));
+				assert_events(vec![Event::PalletIndex(PalletIndexEvent::TaskUpdated {
+					task: task.encode(),
 				})]);
 			});
 		}

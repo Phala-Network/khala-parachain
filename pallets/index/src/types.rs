@@ -5,13 +5,13 @@ use codec::{Decode, Encode};
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
 pub struct SourceEdge {
 	/// asset/chain
-	to: Vec<u8>,
+	pub to: Vec<u8>,
 	/// Capacity of the edge
-	cap: u128,
+	pub cap: u128,
 	/// Flow of the edge
-	flow: u128,
+	pub flow: u128,
 	/// Price impact after executing the edge
-	impact: u128,
+	pub impact: u128,
 }
 
 /// Definition of SINK edge
@@ -19,13 +19,13 @@ pub struct SourceEdge {
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
 pub struct SinkEdge {
 	/// asset/chain
-	from: Vec<u8>,
+	pub from: Vec<u8>,
 	/// Capacity of the edge
-	cap: u128,
+	pub cap: u128,
 	/// Flow of the edge
-	flow: u128,
+	pub flow: u128,
 	/// Price impact after executing the edge
-	impact: u128,
+	pub impact: u128,
 }
 
 /// Definition of swap operation edge
@@ -33,23 +33,23 @@ pub struct SinkEdge {
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
 pub struct SwapEdge {
 	/// asset/chain
-	from: Vec<u8>,
+	pub from: Vec<u8>,
 	/// asset/chain
-	to: Vec<u8>,
+	pub to: Vec<u8>,
 	/// Chain name
-	chain: Vec<u8>,
+	pub chain: Vec<u8>,
 	/// Dex name
-	dex: Vec<u8>,
+	pub dex: Vec<u8>,
 	/// Capacity of the edge
-	cap: u128,
+	pub cap: u128,
 	/// Flow of the edge
-	flow: u128,
+	pub flow: u128,
 	/// Price impact after executing the edge
-	impact: u128,
+	pub impact: u128,
 	/// Original relayer account balance of spend asset
-	b0: Option<u128>,
+	pub b0: Option<u128>,
 	/// Original relayer account balance of received asset
-	b1: Option<u128>,
+	pub b1: Option<u128>,
 }
 
 /// Definition of bridge operation edge
@@ -74,7 +74,7 @@ pub struct BridgeEdge {
 
 #[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
-enum EdgeStatus {
+pub enum EdgeStatus {
 	/// Haven't started executing this edge yet, which is the default status.
 	Inactive,
 	/// Transaction has been sent with transaction hash returned.
@@ -100,20 +100,20 @@ pub enum EdgeMeta {
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
 pub struct Edge {
 	/// Content of the edge
-	edge: EdgeMeta,
+	pub edge: EdgeMeta,
 	/// Status of the edge, updated by executor
-	status: EdgeStatus,
+	pub status: EdgeStatus,
 	/// Distributed relayer account for this edge
-	relayer: Option<Vec<u8>>,
+	pub relayer: Option<Vec<u8>>,
 	/// Public key of the relayer
-	key: Option<[u8; 32]>,
+	pub key: Option<[u8; 32]>,
 	/// Nonce of the relayer on source chain of edge
-	nonce: Option<u128>,
+	pub nonce: Option<u128>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
-enum TaskStatus {
+pub enum TaskStatus {
 	/// Task initial confirmed by user on source chain.
 	Initialized,
 	/// Task is being executing with step index.
@@ -130,15 +130,15 @@ pub type TaskId = [u8; 32];
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
 pub struct Task {
 	// Task id
-	task_id: TaskId,
+	pub id: TaskId,
 	// Allocated worker account public key to execute the task
-	worker: [u8; 32],
+	pub worker: [u8; 32],
 	// Task status
-	status: TaskStatus,
+	pub status: TaskStatus,
 	/// All edges to included in the task
-	edges: Vec<Edge>,
+	pub edges: Vec<Edge>,
 	/// Sender address on source chain
-	sender: Vec<u8>,
+	pub sender: Vec<u8>,
 	/// Recipient address on dest chain
-	recipient: Vec<u8>,
+	pub recipient: Vec<u8>,
 }
