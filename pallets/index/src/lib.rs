@@ -8,16 +8,13 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use crate::types::{Task, TaskId};
 	use codec::{Decode, Encode};
 	use frame_support::{
-		dispatch::DispatchResult,
-		pallet_prelude::*,
-		traits::StorageVersion,
-		transactional,
+		dispatch::DispatchResult, pallet_prelude::*, traits::StorageVersion, transactional,
 	};
 	use frame_system::pallet_prelude::*;
 	use sp_std::{collections::vec_deque::VecDeque, vec, vec::Vec};
-	use crate::types::{TaskId, Task};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -42,14 +39,12 @@ pub mod pallet {
 	/// Mapping tak_id to the full task data
 	#[pallet::storage]
 	#[pallet::getter(fn tasks)]
-	pub type Tasks<T: Config> =
-		StorageMap<_, Twox64Concat, TaskId, Task>;
+	pub type Tasks<T: Config> = StorageMap<_, Twox64Concat, TaskId, Task>;
 
 	/// Mapping the sender's address on the source chain to the history of tasks related to him
 	#[pallet::storage]
 	#[pallet::getter(fn account_tasks)]
-	pub type AccountTasks<T: Config> =
-		StorageMap<_, Twox64Concat, Vec<u8>, Vec<TaskId>>;
+	pub type AccountTasks<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, Vec<TaskId>>;
 
 	/// Queue that contains all unfinished tasks belongs to the worker,
 	/// Worker should read this storage to get the unfinished task and contines the task execution
@@ -63,9 +58,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Executor is set.
-		ExecutorSet {
-			executor: T::AccountId,
-		},
+		ExecutorSet { executor: T::AccountId },
 		/// Task has been updated.
 		TaskUpdated {
 			/// Encoded task
@@ -80,14 +73,10 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T>
-	{
+	impl<T: Config> Pallet<T> {
 		#[pallet::weight(195_000_000)]
 		#[transactional]
-		pub fn force_set_executor(
-			origin: OriginFor<T>,
-			executor: T::AccountId,
-		) -> DispatchResult {
+		pub fn force_set_executor(origin: OriginFor<T>, executor: T::AccountId) -> DispatchResult {
 			T::CommitteeOrigin::ensure_origin(origin)?;
 			Executor::<T>::set(Some(executor.clone()));
 			Self::deposit_event(Event::ExecutorSet { executor });
@@ -96,10 +85,7 @@ pub mod pallet {
 
 		#[pallet::weight(195_000_000)]
 		#[transactional]
-		pub fn update_task(
-			origin: OriginFor<T>,
-			task: Task,
-		) -> DispatchResult {
+		pub fn update_task(origin: OriginFor<T>, task: Task) -> DispatchResult {
 			// Check origin, must be the executor
 			Self::ensure_executor(origin)?;
 
@@ -109,16 +95,20 @@ pub mod pallet {
 			// Else replace with new task data after verification passed.
 			ensure!(Self::verify_task(&task), Error::<T>::TaskInvalid);
 
-			Self::deposit_event(Event::TaskUpdated { task: task.encode() });
+			Self::deposit_event(Event::TaskUpdated {
+				task: task.encode(),
+			});
 			Ok(())
 		}
 	}
 
-	impl<T: Config> Pallet<T>
-	{
+	impl<T: Config> Pallet<T> {
 		fn ensure_executor(origin: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-			ensure!(Executor::<T>::get() == Some(sender), Error::<T>::ExecutorMismatch);
+			ensure!(
+				Executor::<T>::get() == Some(sender),
+				Error::<T>::ExecutorMismatch
+			);
 			Ok(())
 		}
 
@@ -128,10 +118,25 @@ pub mod pallet {
 		}
 	}
 
-
 	#[cfg(test)]
 	mod tests {
 		use crate as pallet_index;
+		use crate::{Event as PalletIndexEvent, Executor};
+		use frame_support::{assert_noop, assert_ok, sp_runtime::traits::BadOrigin};
+		use pallet_index::mock::{
+			assert_events, new_test_ext, PalletIndex, RuntimeEvent as Event,
+			RuntimeOrigin as Origin, Test, ALICE, BOB,
+		};
 
+		#[test]
+		fn test_set_executor_should_work() {
+			new_test_ext().execute_with(|| {
+				assert_ok!(PalletIndex::force_set_executor(Origin::root(), BOB.clone()));
+				assert_eq!(Executor::<Test>::get(), Some(BOB.clone()));
+				assert_events(vec![Event::PalletIndex(PalletIndexEvent::ExecutorSet {
+					executor: BOB,
+				})]);
+			});
+		}
 	}
 }
