@@ -58,6 +58,47 @@ fn mint_spirit(account: AccountId32, spirit_signature: Option<sr25519::Signature
 	}
 }
 
+fn feed_origin_of_shell(
+	sender: AccountId32,
+	collection_id: u32,
+	nft_id: u32,
+	era: u64,
+	should_pass: bool,
+	error: Option<pallet_pw_incubation::Error<Test>>,
+) {
+	match should_pass {
+		true => {
+			assert_ok!(PWIncubation::feed_origin_of_shell(
+				Origin::signed(sender.clone()),
+				collection_id,
+				nft_id
+			));
+			System::assert_last_event(MockEvent::PWIncubation(
+				crate::pallet_pw_incubation::Event::OriginOfShellReceivedFood {
+					collection_id,
+					nft_id,
+					sender,
+					era,
+				},
+			));
+		}
+		false => {
+			let exp_error = match error {
+				Some(error) => error,
+				None => pallet_pw_incubation::Error::<Test>::NoPermission,
+			};
+			assert_noop!(
+				PWIncubation::feed_origin_of_shell(
+					Origin::signed(sender.clone()),
+					collection_id,
+					nft_id
+				),
+				exp_error
+			);
+		}
+	}
+}
+
 fn setup_config(enable_status_type: StatusType) {
 	// Set Overlord account
 	assert_ok!(PWNftSale::set_overlord(Origin::root(), OVERLORD));
@@ -1401,36 +1442,31 @@ fn can_send_food_to_origin_of_shell() {
 				hatch_time: official_hatch_time,
 			},
 		));
+		assert_ok!(PWIncubation::start_incubation(
+			Origin::signed(CHARLIE),
+			1u32,
+			1u32
+		));
+		let charlie_now = INIT_TIMESTAMP_SECONDS;
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::StartedIncubation {
+				collection_id: 1u32,
+				nft_id: 1u32,
+				owner: CHARLIE,
+				start_time: charlie_now,
+				hatch_time: official_hatch_time,
+			},
+		));
 		// CHARLIE feeds ALICE's Origin of Shell Twice and fails on the third
-		assert_ok!(PWIncubation::feed_origin_of_shell(
-			Origin::signed(CHARLIE),
+		feed_origin_of_shell(CHARLIE, 1u32, 2u32, 0u64, true, None);
+		feed_origin_of_shell(CHARLIE, 1u32, 2u32, 0u64, true, None);
+		feed_origin_of_shell(
+			CHARLIE,
 			1u32,
-			2u32
-		));
-		System::assert_last_event(MockEvent::PWIncubation(
-			crate::pallet_pw_incubation::Event::OriginOfShellReceivedFood {
-				collection_id: 1u32,
-				nft_id: 2u32,
-				sender: CHARLIE,
-				era: 0,
-			},
-		));
-		assert_ok!(PWIncubation::feed_origin_of_shell(
-			Origin::signed(CHARLIE),
-			1u32,
-			2u32
-		));
-		System::assert_last_event(MockEvent::PWIncubation(
-			crate::pallet_pw_incubation::Event::OriginOfShellReceivedFood {
-				collection_id: 1u32,
-				nft_id: 2u32,
-				sender: CHARLIE,
-				era: 0,
-			},
-		));
-		assert_noop!(
-			PWIncubation::feed_origin_of_shell(Origin::signed(CHARLIE), 1u32, 2u32),
-			pallet_pw_incubation::Error::<Test>::AlreadySentFoodTwice
+			2u32,
+			0u64,
+			false,
+			Some(pallet_pw_incubation::Error::<Test>::AlreadySentFoodTwice),
 		);
 		// CHARLIE can feed now that a new Era has started
 		fast_forward_to(7);
@@ -1449,23 +1485,27 @@ fn can_send_food_to_origin_of_shell() {
 				hatch_time: official_hatch_time,
 			},
 		));
-		assert_ok!(PWIncubation::feed_origin_of_shell(
-			Origin::signed(CHARLIE),
+		feed_origin_of_shell(CHARLIE, 1u32, 0u32, 1u64, true, None);
+		feed_origin_of_shell(CHARLIE, 1u32, 0u32, 1u64, true, None);
+		feed_origin_of_shell(CHARLIE, 1u32, 2u32, 1u64, true, None);
+		feed_origin_of_shell(CHARLIE, 1u32, 2u32, 1u64, true, None);
+		feed_origin_of_shell(CHARLIE, 1u32, 1u32, 1u64, true, None);
+		feed_origin_of_shell(
+			CHARLIE,
 			1u32,
-			0u32
-		));
-		System::assert_last_event(MockEvent::PWIncubation(
-			crate::pallet_pw_incubation::Event::OriginOfShellReceivedFood {
-				collection_id: 1u32,
-				nft_id: 0u32,
-				sender: CHARLIE,
-				era: 1,
-			},
-		));
+			1u32,
+			1u64,
+			false,
+			Some(pallet_pw_incubation::Error::<Test>::NoFoodLeftToFeedOriginOfShell),
+		);
 		// OVERLORD cannot send food bc they do not own an Origin of Shell
-		assert_noop!(
-			PWIncubation::feed_origin_of_shell(Origin::signed(OVERLORD), 1u32, 0u32),
-			pallet_pw_incubation::Error::<Test>::NoPermission
+		feed_origin_of_shell(
+			OVERLORD,
+			1u32,
+			0u32,
+			1u64,
+			false,
+			Some(pallet_pw_incubation::Error::<Test>::NoPermission),
 		);
 	});
 }

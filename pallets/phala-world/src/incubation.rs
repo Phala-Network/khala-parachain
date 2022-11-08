@@ -311,12 +311,7 @@ pub mod pallet {
 				let mut new_food_info = match food_info {
 					None => Self::get_new_food_info(current_era, origin_of_shells_owned),
 					Some(food_info) if current_era > food_info.era => {
-						let mut new_food_info =
-							Self::get_new_food_info(current_era, origin_of_shells_owned);
-						new_food_info
-							.origin_of_shells_fed
-							.insert((collection_id, nft_id), 1u8);
-						new_food_info
+						Self::get_new_food_info(current_era, origin_of_shells_owned)
 					}
 					Some(food_info) => food_info.clone(),
 				};
@@ -342,7 +337,6 @@ pub mod pallet {
 					.origin_of_shells_fed
 					.insert((collection_id, nft_id), new_num_of_times_fed);
 				new_food_info.food_left = food_left - 1u32;
-
 				*food_info = Some(new_food_info);
 
 				Ok(())
@@ -756,11 +750,6 @@ where
 			food_left,
 		}
 	}
-
-	/// Helper function to decrement the amount of food left.
-	///
-	/// Parameters:
-	/// `
 
 	/// Helper function to mint a Top level Shell part. These are transferable Shell part NFTs.
 	///
