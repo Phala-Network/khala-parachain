@@ -190,6 +190,10 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Payee<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
+	/// Signer account of PhalaWorld
+	#[pallet::storage]
+	pub type Signer<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(_n: T::BlockNumber) {
@@ -375,6 +379,11 @@ pub mod pallet {
 			old_payee: Option<T::AccountId>,
 			new_payee: T::AccountId,
 		},
+		/// Signer changed to new account
+		SignerChanged {
+			old_signer: Option<T::AccountId>,
+			new_signer: T::AccountId,
+		},
 	}
 
 	// Errors inform users that something went wrong.
@@ -421,6 +430,7 @@ pub mod pallet {
 		NoAvailableNftId,
 		ValueNotDetected,
 		PayeeNotSet,
+		SignerNotSet,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -476,9 +486,10 @@ pub mod pallet {
 				Error::<T>::SpiritClaimNotAvailable
 			);
 			let overlord = Self::overlord()?;
+			let signer = Self::signer()?;
 			// verify the claim ticket
 			ensure!(
-				Self::verify_claim(&overlord, &sender, signature, Purpose::RedeemSpirit),
+				Self::verify_claim(&signer, &sender, signature, Purpose::RedeemSpirit),
 				Error::<T>::InvalidSpiritClaim
 			);
 			// Mint Spirit NFT
@@ -558,15 +569,12 @@ pub mod pallet {
 			);
 
 			let overlord = Self::overlord()?;
+			let signer = Self::signer()?;
 			// Check if valid message purpose is 'BuyPrimeOriginOfShells' and verify whitelist
 			// account
 			ensure!(
-				Self::verify_claim(
-					&overlord,
-					&sender,
-					signature,
-					Purpose::BuyPrimeOriginOfShells
-				) || is_last_day_of_sale,
+				Self::verify_claim(&signer, &sender, signature, Purpose::BuyPrimeOriginOfShells)
+					|| is_last_day_of_sale,
 				Error::<T>::WhitelistVerificationFailed
 			);
 			// Get Prime Origin of Shell price
@@ -1117,11 +1125,11 @@ pub mod pallet {
 			Ok(Pays::No.into())
 		}
 
-		/// Privileged function set the Payee account of PhalaWorld
+		/// Privileged function set the Payee account of PhalaWorld.
 		///
 		/// Parameters:
-		/// - origin: Expected to be called by `Overlord`
-		/// - new_payee: T::AccountId to
+		/// - origin: Expected to be called by `Overlord`.
+		/// - new_payee: T::AccountId of the Payee account.
 		#[pallet::weight(0)]
 		pub fn set_payee(
 			origin: OriginFor<T>,
@@ -1140,6 +1148,30 @@ pub mod pallet {
 
 			Ok(Pays::No.into())
 		}
+
+		/// Privileged function set the Signer account of PhalaWorld.
+		///
+		/// Parameters:
+		/// - origin: Expected to be called by `Overlord`.
+		/// - new_signer: T::AccountId of the Signer.
+		#[pallet::weight(0)]
+		pub fn set_signer(
+			origin: OriginFor<T>,
+			new_signer: T::AccountId,
+		) -> DispatchResultWithPostInfo {
+			// Ensure Overlord account makes call
+			let sender = ensure_signed(origin.clone())?;
+			Self::ensure_overlord(&sender)?;
+			let old_signer = <Signer<T>>::get();
+
+			Signer::<T>::put(&new_signer);
+			Self::deposit_event(Event::SignerChanged {
+				old_signer,
+				new_signer,
+			});
+
+			Ok(Pays::No.into())
+		}
 	}
 }
 
@@ -1147,18 +1179,18 @@ impl<T: Config> Pallet<T>
 where
 	T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
 {
-	/// Verify the sender making the claim is the Account signed by the Overlord admin account and
+	/// Verify the sender making the claim is the Account signed by the Signer admin account and
 	/// verify the purpose of the `OverlordMessage` which will be either `RedeemSpirit` or
 	/// `BuyPrimeOriginOfShells`
 	///
 	/// Parameters:
-	/// - `overlord`: Overlord admin account
+	/// - `signer`: Signer account
 	/// - `sender`: Sender that redeemed the claim
 	/// - `signature`: sr25519::Signature of the expected account making the claim
 	/// - `message`: OverlordMessage that contains the account and purpose
 	/// - `purpose`: Expected Purpose
 	pub fn verify_claim(
-		overlord: &T::AccountId,
+		signer: &T::AccountId,
 		sender: &T::AccountId,
 		signature: sr25519::Signature,
 		purpose: Purpose,
@@ -1168,7 +1200,7 @@ where
 			purpose,
 		};
 		let encoded_message = Encode::encode(&message);
-		let encode_overlord = T::AccountId::encode(overlord);
+		let encode_overlord = T::AccountId::encode(signer);
 		let h256_overlord = H256::from_slice(&encode_overlord);
 		let overlord_key = sr25519::Public::from_h256(h256_overlord);
 		// verify claim
@@ -1752,5 +1784,10 @@ where
 	/// Helper function to get the Payee account for payables
 	pub fn payee() -> Result<T::AccountId, Error<T>> {
 		Payee::<T>::get().ok_or(Error::<T>::PayeeNotSet)
+	}
+
+	/// Helper function to get the Signer account for verifying OverlordMessage.
+	pub fn signer() -> Result<T::AccountId, Error<T>> {
+		Signer::<T>::get().ok_or(Error::<T>::SignerNotSet)
 	}
 }

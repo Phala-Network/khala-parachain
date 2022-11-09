@@ -53,6 +53,17 @@ async function setPayeeAccount(khalaApi, overlord, newPayee) {
     ).to.be.true;
 }
 
+// Set Signer Account with Overlord
+async function setSignerAccount(khalaApi, overlord, newSigner) {
+    const tx = khalaApi.tx.pwNftSale.setSigner(newSigner.address);
+    const result = await waitExtrinsicFinished(khalaApi, tx, overlord);
+    //const result = extractTxResult(events);
+    expect(
+        result,
+        `Error: could not set new signer[${newSigner.address}]`
+    ).to.be.true;
+}
+
 // Initialize PhalaWorld Clock
 async function initializePhalaWorldClock(khalaApi, overlord) {
     const tx = khalaApi.tx.pwNftSale.initializeWorldClock();
@@ -471,5 +482,6 @@ module.exports = {
     withdrawOfferOnNft,
     sendNftToOwner,
     failToSendNonTransferableNft,
-    setPayeeAccount
+    setPayeeAccount,
+    setSignerAccount
 }

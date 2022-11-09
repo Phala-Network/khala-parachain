@@ -1,5 +1,5 @@
 const expect = require('chai');
-const { getApiConnection, getAccount, alicePrivkey, bobPrivkey, charliePrivkey, davidPrivkey, evePrivkey, ferdiePrivkey, overlordPrivkey, payeePrivkey } = require('../khala/khalaApi');
+const { getApiConnection, getAccount, alicePrivkey, bobPrivkey, charliePrivkey, davidPrivkey, evePrivkey, ferdiePrivkey, overlordPrivkey, payeePrivkey, signerPrivkey } = require('../khala/khalaApi');
 const { transferPha, setOverlordAccount, setPayeeAccount, pwCreateCollection, initializePhalaWorldClock, initializeRarityTypeCounts } = require('../util/tx');
 const { token } = require("../pwUtils");
 
@@ -34,6 +34,12 @@ describe("Initialize Khala Parachain", () => {
         payee = await getAccount(payeePrivkey);
         overlord = await getAccount(overlordPrivkey);
         await setPayeeAccount(api, overlord, payee);
+    });
+    // Set Signer account
+    it(`Set Signer Account`, async () => {
+        signer = await getAccount(signerPrivkey);
+        overlord = await getAccount(overlordPrivkey);
+        await setPayeeAccount(api, overlord, signer);
     });
     // Initialize PhalaWorld
     it(`Initialize PhalaWorld Clock`, async () => {
