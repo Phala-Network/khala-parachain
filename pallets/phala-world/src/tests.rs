@@ -43,14 +43,14 @@ fn mint_collection(account: AccountId32) {
 }
 
 fn mint_spirit(account: AccountId32, spirit_signature: Option<sr25519::Signature>) {
-	let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
+	let signer_pair = sr25519::Pair::from_seed(b"76543090042813308004281330800428");
 	if let Some(_spirit_signature) = spirit_signature {
 		let message = OverlordMessage {
 			account: account.clone(),
 			purpose: Purpose::RedeemSpirit,
 		};
 		let enc_msg = Encode::encode(&message);
-		let signature = overlord_pair.sign(&enc_msg);
+		let signature = signer_pair.sign(&enc_msg);
 		assert_ok!(PWNftSale::redeem_spirit(Origin::signed(account), signature));
 	} else {
 		// Mint Spirit NFT
@@ -104,6 +104,8 @@ fn setup_config(enable_status_type: StatusType) {
 	assert_ok!(PWNftSale::set_overlord(Origin::root(), OVERLORD));
 	// Set Payee account
 	assert_ok!(PWNftSale::set_payee(Origin::signed(OVERLORD), PAYEE));
+	// Set Signer account
+	assert_ok!(PWNftSale::set_signer(Origin::signed(OVERLORD), SIGNER));
 	let spirit_collection_id = RmrkCore::collection_index();
 	// Mint Spirits Collection
 	mint_collection(OVERLORD);
@@ -379,20 +381,20 @@ fn get_shell_part(shell_part_type: u8) -> ShellPartsOf<Test> {
 #[test]
 fn nft_id_increment_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
-		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
+		let signer_pair = sr25519::Pair::from_seed(b"76543090042813308004281330800428");
 		// Set Overlord and configuration then enable spirits to be claimed
 		setup_config(StatusType::ClaimSpirits);
 		let message = OverlordMessage {
 			account: BOB,
 			purpose: Purpose::RedeemSpirit,
 		};
-		// Sign BOB's Public Key and Metadata encoding with OVERLORD account
+		// Sign BOB's Public Key and Metadata encoding with SIGNER account
 		let claim = Encode::encode(&message);
-		let overlord_signature = overlord_pair.sign(&claim);
+		let signer_signature = signer_pair.sign(&claim);
 		// Dispatch a redeem_spirit from BOB's account
 		assert_ok!(PWNftSale::redeem_spirit(
 			Origin::signed(BOB),
-			overlord_signature
+			signer_signature
 		));
 		// Check if event triggered and BOB has Spirit NFT ID 0
 		System::assert_last_event(MockEvent::PWNftSale(
@@ -418,8 +420,8 @@ fn nft_id_increment_works() {
 #[test]
 fn claimed_spirit_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
-		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
-		// let overlord_pub = overlord_pair.public();
+		let signer_pair = sr25519::Pair::from_seed(b"76543090042813308004281330800428");
+		//let overlord_pub = signer_pair.public().to_vec();
 		// Set Overlord and configuration then enable spirits to be claimed
 		setup_config(StatusType::ClaimSpirits);
 		let message = OverlordMessage {
@@ -428,11 +430,11 @@ fn claimed_spirit_works() {
 		};
 		// Sign BOB's Public Key and Metadata encoding with OVERLORD account
 		let claim = Encode::encode(&message);
-		let overlord_signature = overlord_pair.sign(&claim);
+		let signer_signature = signer_pair.sign(&claim);
 		// Dispatch a redeem_spirit from BOB's account
 		assert_ok!(PWNftSale::redeem_spirit(
 			Origin::signed(BOB),
-			overlord_signature
+			signer_signature
 		));
 		// ALICE should be able to claim since she has minimum amount of PHA
 		assert_ok!(PWNftSale::claim_spirit(Origin::signed(ALICE)));
@@ -517,16 +519,16 @@ fn auto_increment_era_works() {
 #[test]
 fn purchase_rare_origin_of_shell_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
-		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
+		let signer_pair = sr25519::Pair::from_seed(b"76543090042813308004281330800428");
 		// Set Overlord and configuration then enable purchase of rare origin of shells
 		setup_config(StatusType::PurchaseRareOriginOfShells);
 		let bob_claim = Encode::encode(&BOB);
-		let bob_overlord_signature = overlord_pair.sign(&bob_claim);
+		let bob_signer_signature = signer_pair.sign(&bob_claim);
 		let charlie_claim = Encode::encode(&CHARLIE);
-		let charlie_overlord_signature = overlord_pair.sign(&charlie_claim);
+		let charlie_signer_signature = signer_pair.sign(&charlie_claim);
 		mint_spirit(ALICE, None);
-		mint_spirit(BOB, Some(bob_overlord_signature));
-		mint_spirit(CHARLIE, Some(charlie_overlord_signature));
+		mint_spirit(BOB, Some(bob_signer_signature));
+		mint_spirit(CHARLIE, Some(charlie_signer_signature));
 		// ALICE purchases Legendary Origin of Shell
 		assert_ok!(PWNftSale::buy_rare_origin_of_shell(
 			Origin::signed(ALICE),
@@ -614,7 +616,7 @@ fn purchase_rare_origin_of_shell_works() {
 #[test]
 fn purchase_prime_origin_of_shell_works() {
 	ExtBuilder::default().build(OVERLORD).execute_with(|| {
-		let overlord_pair = sr25519::Pair::from_seed(b"28133080042813308004281330800428");
+		let signer_pair = sr25519::Pair::from_seed(b"76543090042813308004281330800428");
 		// let overlord_pub = overlord_pair.public();
 		// Set Overlord and configuration then enable spirits to be claimed
 		setup_config(StatusType::PurchasePrimeOriginOfShells);
@@ -630,13 +632,13 @@ fn purchase_prime_origin_of_shell_works() {
 		// Sign BOB's Public Key and Metadata encoding with OVERLORD account
 		let claim = Encode::encode(&bob_message);
 		let fake_claim = Encode::encode(&bob_spirit_msg);
-		let bob_overlord_signature = overlord_pair.sign(&claim);
-		let fake_signature = overlord_pair.sign(&fake_claim);
+		let bob_signer_signature = signer_pair.sign(&claim);
+		let fake_signature = signer_pair.sign(&fake_claim);
 		// BOB cannot purchase another Origin of Shell without Spirit NFT
 		assert_noop!(
 			PWNftSale::buy_prime_origin_of_shell(
 				Origin::signed(BOB),
-				bob_overlord_signature.clone(),
+				bob_signer_signature.clone(),
 				RaceType::AISpectre,
 				CareerType::HackerWizard,
 			),
@@ -657,7 +659,7 @@ fn purchase_prime_origin_of_shell_works() {
 		// BOB purchases a Prime NFT
 		assert_ok!(PWNftSale::buy_prime_origin_of_shell(
 			Origin::signed(BOB),
-			bob_overlord_signature.clone(),
+			bob_signer_signature.clone(),
 			RaceType::AISpectre,
 			CareerType::HackerWizard,
 		));
@@ -677,7 +679,7 @@ fn purchase_prime_origin_of_shell_works() {
 		assert_noop!(
 			PWNftSale::buy_prime_origin_of_shell(
 				Origin::signed(BOB),
-				bob_overlord_signature,
+				bob_signer_signature,
 				RaceType::AISpectre,
 				CareerType::HackerWizard,
 			),

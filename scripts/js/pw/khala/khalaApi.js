@@ -9,6 +9,7 @@ const charliePrivkey = process.env.CHARLIE_PRIVKEY;
 const davidPrivkey = process.env.DAVID_PRIVKEY;
 const evePrivkey = process.env.EVE_PRIVKEY;
 const payeePrivkey = process.env.PAYEE_PRIVKEY;
+const signerPrivkey = process.env.SIGNER_PRIVKEY;
 const endpoint = process.env.ENDPOINT;
 
 async function getAccount(accountUri) {
@@ -45,5 +46,6 @@ module.exports = {
     evePrivkey,
     ferdiePrivkey,
     overlordPrivkey,
-    payeePrivkey
+    payeePrivkey,
+    signerPrivkey
 }
