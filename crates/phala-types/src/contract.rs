@@ -245,12 +245,12 @@ pub enum ContractQueryError {
 
 impl From<ContractQueryError> for prpc::server::Error {
     fn from(err: ContractQueryError) -> Self {
-        Self::ContractQueryError(alloc::format!("{:?}", err))
+        Self::ContractQueryError(alloc::format!("{err:?}"))
     }
 }
 
 pub fn command_topic(id: ContractId) -> Vec<u8> {
-    format!("phala/contract/{}/command", hex::encode(&id))
+    format!("phala/contract/{}/command", hex::encode(id))
         .as_bytes()
         .to_vec()
 }

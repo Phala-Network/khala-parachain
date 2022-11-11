@@ -1,5 +1,5 @@
 use crate::{
-	attestation::{Attestation, AttestationValidator, Error as AttestationError, IasFields},
+	attestation_legacy::{Attestation, AttestationValidator, Error as AttestationError, IasFields},
 	mining, mq, ott, registry, stakepool,
 };
 
@@ -48,12 +48,13 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 20;
 	pub const MinimumPeriod: u64 = 1;
 	pub const ExpectedBlockTimeSec: u32 = 12;
-	pub const MinMiningStaking: Balance = 1 * DOLLARS;
-	pub const MinContribution: Balance = 1 * CENTS;
+	pub const MinMiningStaking: Balance = DOLLARS;
+	pub const MinContribution: Balance = CENTS;
 	pub const MiningGracePeriod: u64 = 7 * 24 * 3600;
 	pub const MinInitP: u32 = 1;
 	pub const MiningEnabledByDefault: bool = true;
 	pub const MaxPoolWorkers: u32 = 10;
+	pub const NoneAttestationEnabled: bool = true;
 	pub const VerifyPRuntime: bool = false;
 	pub const VerifyRelaychainGenesisBlockHash: bool = true;
 }
@@ -124,8 +125,9 @@ impl mq::CallMatcher<Test> for MqCallMatcher {
 impl registry::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type AttestationValidator = MockValidator;
+	type LegacyAttestationValidator = MockValidator;
 	type UnixTime = Timestamp;
+	type NoneAttestationEnabled = NoneAttestationEnabled;
 	type VerifyPRuntime = VerifyPRuntime;
 	type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
 	type GovernanceOrigin = frame_system::EnsureRoot<Self::AccountId>;
@@ -202,8 +204,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	.assimilate_storage(&mut t)
 	.unwrap();
 	crate::registry::GenesisConfig::<Test> {
-		workers: vec![(zero_pubkey.clone(), zero_ecdh_pubkey, None)],
-		gatekeepers: vec![(zero_pubkey.clone())],
+		workers: vec![(zero_pubkey, zero_ecdh_pubkey, None)],
+		gatekeepers: vec![zero_pubkey],
 		benchmark_duration: 0u32,
 	}
 	.assimilate_storage(&mut t)
@@ -222,14 +224,14 @@ pub fn take_events() -> Vec<RuntimeEvent> {
 		.into_iter()
 		.map(|evt| evt.event)
 		.collect::<Vec<_>>();
-	println!("event(): {:?}", evt);
+	println!("event(): {evt:?}");
 	System::reset_events();
 	evt
 }
 
 pub fn take_messages() -> Vec<Message> {
 	let messages = PhalaMq::messages();
-	println!("messages(): {:?}", messages);
+	println!("messages(): {messages:?}");
 	mq::OutboundMessages::<Test>::kill();
 	messages
 }
@@ -265,7 +267,7 @@ pub fn setup_workers(n: u8) {
 		let worker = worker_pubkey(i);
 		assert_ok!(PhalaRegistry::force_register_worker(
 			RuntimeOrigin::root(),
-			worker.clone(),
+			worker,
 			ecdh_pubkey(1),
 			Some(1)
 		));
@@ -281,7 +283,7 @@ pub fn setup_workers_linked_operators(n: u8) {
 		let worker = worker_pubkey(i);
 		assert_ok!(PhalaRegistry::force_register_worker(
 			RuntimeOrigin::root(),
-			worker.clone(),
+			worker,
 			ecdh_pubkey(1),
 			Some(i as _)
 		));
