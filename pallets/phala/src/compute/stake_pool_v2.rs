@@ -9,21 +9,26 @@ pub mod pallet {
 	#[cfg(feature = "std")]
 	use std::format;
 
-	use crate::balance_convert::FixedPointConvert;
-	use crate::basepool;
+	use crate::balance_convert::{mul, FixedPointConvert};
+	use crate::base_pool;
 	use crate::computation;
-	use crate::pawnshop;
-	use crate::poolproxy::{ensure_stake_pool, ensure_vault, PoolProxy, StakePool};
+	use crate::pawn_shop;
+	use crate::pool_proxy::{ensure_stake_pool, ensure_vault, PoolProxy, StakePool};
 	use crate::registry;
+	use crate::stake_pool;
 	use crate::vault;
 
 	use fixed::types::U64F64 as FixedPoint;
 
-	use crate::BalanceOf;
+	use crate::{BalanceOf, PhalaConfig};
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
-		traits::{tokens::fungibles::Transfer, StorageVersion, UnixTime},
+		storage::migration,
+		traits::{
+			tokens::fungibles::Transfer, Currency, ExistenceRequirement::KeepAlive, LockIdentifier,
+			LockableCurrency, StorageVersion, UnixTime,
+		},
 	};
 	use frame_system::{pallet_prelude::*, Origin};
 
@@ -37,12 +42,6 @@ pub mod pallet {
 
 	pub use rmrk_traits::primitives::{CollectionId, NftId};
 
-	const MAX_WHITELIST_LEN: u32 = 100;
-
-	type DescMaxLen = ConstU32<4400>;
-
-	pub type DescStr = BoundedVec<u8, DescMaxLen>;
-
 	#[pallet::config]
 	pub trait Config:
 		frame_system::Config
@@ -50,10 +49,11 @@ pub mod pallet {
 		+ registry::Config
 		+ computation::Config
 		+ pallet_rmrk_core::Config
-		+ basepool::Config
+		+ base_pool::Config
 		+ pallet_assets::Config
 		+ pallet_democracy::Config
-		+ pawnshop::Config
+		+ pawn_shop::Config
+		+ stake_pool::Config
 	{
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
@@ -80,6 +80,11 @@ pub mod pallet {
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(7);
+
+	const STAKING_ID: LockIdentifier = *b"phala/sp";
+	const VESTING_ID: LockIdentifier = *b"vesting ";
+	const DEMOCRAC_ID: LockIdentifier = *b"democrac";
+	const PHRELECT_ID: LockIdentifier = *b"phrelect";
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -113,16 +118,13 @@ pub mod pallet {
 	pub type SubAccountPreimages<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, (u64, WorkerPublicKey)>;
 
-	/// Mapping for pools that specify certain stakers to contribute stakes
+	#[pallet::type_value]
+	pub fn StakepoolIterateStartPosByDefault<T: Config>() -> Option<u64> {
+		None
+	}
 	#[pallet::storage]
-	#[pallet::getter(fn pool_whitelist)]
-	pub type PoolContributionWhitelists<T: Config> =
-		StorageMap<_, Twox64Concat, u64, Vec<T::AccountId>>;
-
-	/// Mapping for pools that store their descriptions set by owner
-	#[pallet::storage]
-	#[pallet::getter(fn pool_descriptions)]
-	pub type PoolDescriptions<T: Config> = StorageMap<_, Twox64Concat, u64, DescStr>;
+	pub type StakepoolIterateStartPos<T> =
+		StorageValue<_, Option<u64>, ValueQuery, StakepoolIterateStartPosByDefault<T>>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -131,7 +133,11 @@ pub mod pallet {
 		///
 		/// Affected states:
 		/// - a new entry in [`Pools`] with the pid
-		PoolCreated { owner: T::AccountId, pid: u64 },
+		PoolCreated {
+			owner: T::AccountId,
+			pid: u64,
+			cid: CollectionId,
+		},
 
 		/// The commission of a pool is updated
 		///
@@ -247,22 +253,6 @@ pub mod pallet {
 			shares: BalanceOf<T>,
 		},
 
-		/// A pool contribution whitelist is added
-		///
-		/// - lazy operated when the first staker is added to the whitelist
-		PoolWhitelistCreated { pid: u64 },
-
-		/// The pool contribution whitelist is deleted
-		///
-		/// - lazy operated when the last staker is removed from the whitelist
-		PoolWhitelistDeleted { pid: u64 },
-
-		/// A staker is added to the pool contribution whitelist
-		PoolWhitelistStakerAdded { pid: u64, staker: T::AccountId },
-
-		/// A staker is removed from the pool contribution whitelist
-		PoolWhitelistStakerRemoved { pid: u64, staker: T::AccountId },
-
 		/// A worker is reclaimed from the pool
 		WorkerReclaimed { pid: u64, worker: WorkerPublicKey },
 
@@ -337,22 +327,16 @@ pub mod pallet {
 		CannotRestartWithLessStake,
 		/// Invalid amount of balance input when force reward.
 		InvalidForceRewardAmount,
-		/// Invalid staker to contribute because origin isn't in Pool's contribution whitelist.
-		NotInContributeWhitelist,
-		/// Can not add the staker to whitelist because the staker is already in whitelist.
-		AlreadyInContributeWhitelist,
-		/// Too many stakers in contribution whitelist that exceed the limit
-		ExceedWhitelistMaxLen,
-		/// The pool hasn't have a whitelist created
-		NoWhitelistCreated,
-		/// Too long for pool description length
-		ExceedMaxDescriptionLen,
 		/// Withdraw queue is not empty so that we can't restart computing
 		WithdrawQueueNotEmpty,
 		/// Stakepool's collection_id isn't founded
 		MissingCollectionId,
 		/// Vault is forced locked for it has some expired withdrawal
 		VaultIsLocked,
+		/// The target miner is not in the 	`miner` storage
+		SessionDoesNotExist,
+		/// The target worker is not reclaimed and can not be removed from a pool.
+		WorkerIsNotReady,
 	}
 
 	#[pallet::call]
@@ -368,7 +352,7 @@ pub mod pallet {
 		#[frame_support::transactional]
 		pub fn create(origin: OriginFor<T>) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
-			let pid = basepool::Pallet::<T>::consume_new_pid();
+			let pid = base_pool::Pallet::<T>::consume_new_pid();
 			// TODO(mingxuan): create_collection should return cid
 			let collection_id: CollectionId = pallet_rmrk_core::Pallet::<T>::collection_index();
 			// Create a NFT collection related to the new stake pool
@@ -379,19 +363,19 @@ pub mod pallet {
 					.try_into()
 					.expect("create a bvec from string should never fail; qed.");
 			pallet_rmrk_core::Pallet::<T>::create_collection(
-				Origin::<T>::Signed(basepool::pallet_id::<T::AccountId>()).into(),
+				Origin::<T>::Signed(base_pool::pallet_id::<T::AccountId>()).into(),
 				Default::default(),
 				None,
 				symbol,
 			)?;
 			let account_id =
-				basepool::pallet::generate_staker_account::<T::AccountId>(pid, owner.clone());
+				base_pool::pallet::generate_staker_account::<T::AccountId>(pid, owner.clone());
 			let (owner_reward_account, lock_account) =
 				generate_owner_and_lock_account::<T::AccountId>(pid, owner.clone());
-			basepool::pallet::Pools::<T>::insert(
+			base_pool::pallet::Pools::<T>::insert(
 				pid,
 				PoolProxy::StakePool(StakePool {
-					basepool: basepool::BasePool {
+					basepool: base_pool::BasePool {
 						pid,
 						owner: owner.clone(),
 						total_shares: Zero::zero(),
@@ -409,7 +393,11 @@ pub mod pallet {
 					owner_reward_account,
 				}),
 			);
-			Self::deposit_event(Event::<T>::PoolCreated { owner, pid });
+			Self::deposit_event(Event::<T>::PoolCreated {
+				owner,
+				pid,
+				cid: collection_id,
+			});
 			Ok(())
 		}
 
@@ -473,7 +461,7 @@ pub mod pallet {
 
 			// update worker vector
 			workers.push_back(pubkey);
-			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
+			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
 			WorkerAssignments::<T>::insert(&pubkey, pid);
 			Self::deposit_event(Event::<T>::PoolWorkerAdded {
 				pid,
@@ -510,6 +498,12 @@ pub mod pallet {
 			ensure!(pid == lookup_pid, Error::<T>::WorkerInAnotherPool);
 			// Remove the worker from the pool (notification suspended)
 			let sub_account: T::AccountId = pool_sub_account(pid, &worker);
+			let session = computation::pallet::Pallet::<T>::sessions(&sub_account)
+				.ok_or(Error::<T>::SessionDoesNotExist)?;
+			ensure!(
+				session.state == computation::WorkerState::Ready,
+				Error::<T>::WorkerIsNotReady
+			);
 			computation::pallet::Pallet::<T>::unbind_session(&sub_account, false)?;
 			// Manually clean up the worker, including the pool worker list, and the assignment
 			// indices. (Theoretically we can enable the unbinding notification, and follow the
@@ -540,7 +534,7 @@ pub mod pallet {
 			);
 
 			pool_info.cap = Some(cap);
-			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
+			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
 
 			Self::deposit_event(Event::<T>::PoolCapacitySet { pid, cap });
 			Ok(())
@@ -564,113 +558,13 @@ pub mod pallet {
 				Error::<T>::UnauthorizedPoolOwner
 			);
 			pool_info.payout_commission = payout_commission;
-			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
+			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
 
 			let mut commission: u32 = 0;
 			if let Some(ratio) = payout_commission {
 				commission = ratio.deconstruct();
 			}
 			Self::deposit_event(Event::<T>::PoolCommissionSet { pid, commission });
-
-			Ok(())
-		}
-
-		/// Adds a staker accountid to contribution whitelist.
-		///
-		/// Calling this method will forbide stakers contribute who isn't in the whitelist.
-		/// The caller must be the owner of the pool.
-		/// If a pool hasn't registed in the wihtelist map, any staker could contribute as what they use to do.
-		/// The whitelist has a lmit len of 100 stakers.
-		#[pallet::weight(0)]
-		pub fn add_staker_to_whitelist(
-			origin: OriginFor<T>,
-			pid: u64,
-			staker: T::AccountId,
-		) -> DispatchResult {
-			let owner = ensure_signed(origin)?;
-			let pool_info = ensure_stake_pool::<T>(pid)?;
-			ensure!(
-				pool_info.basepool.owner == owner,
-				Error::<T>::UnauthorizedPoolOwner
-			);
-			if let Some(mut whitelist) = PoolContributionWhitelists::<T>::get(&pid) {
-				ensure!(
-					!whitelist.contains(&staker),
-					Error::<T>::AlreadyInContributeWhitelist
-				);
-				ensure!(
-					(whitelist.len() as u32) < MAX_WHITELIST_LEN,
-					Error::<T>::ExceedWhitelistMaxLen
-				);
-				whitelist.push(staker.clone());
-				PoolContributionWhitelists::<T>::insert(&pid, &whitelist);
-			} else {
-				let new_list = vec![staker.clone()];
-				PoolContributionWhitelists::<T>::insert(&pid, &new_list);
-				Self::deposit_event(Event::<T>::PoolWhitelistCreated { pid });
-			}
-			Self::deposit_event(Event::<T>::PoolWhitelistStakerAdded { pid, staker });
-
-			Ok(())
-		}
-
-		/// Adds a description to the pool
-		///
-		/// The caller must be the owner of the pool.
-		#[pallet::weight(0)]
-		pub fn set_pool_description(
-			origin: OriginFor<T>,
-			pid: u64,
-			description: DescStr,
-		) -> DispatchResult {
-			let owner = ensure_signed(origin)?;
-			let pool_info = ensure_stake_pool::<T>(pid)?;
-			ensure!(
-				pool_info.basepool.owner == owner,
-				Error::<T>::UnauthorizedPoolOwner
-			);
-			PoolDescriptions::<T>::insert(&pid, description);
-
-			Ok(())
-		}
-
-		/// Removes a staker accountid to contribution whitelist.
-		///
-		/// The caller must be the owner of the pool.
-		/// If the last staker in the whitelist is removed, the pool will return back to a normal pool that allow anyone to contribute.
-		#[pallet::weight(0)]
-		pub fn remove_staker_from_whitelist(
-			origin: OriginFor<T>,
-			pid: u64,
-			staker: T::AccountId,
-		) -> DispatchResult {
-			let owner = ensure_signed(origin)?;
-			let pool_info = ensure_stake_pool::<T>(pid)?;
-			ensure!(
-				pool_info.basepool.owner == owner,
-				Error::<T>::UnauthorizedPoolOwner
-			);
-			let mut whitelist =
-				PoolContributionWhitelists::<T>::get(&pid).ok_or(Error::<T>::NoWhitelistCreated)?;
-			ensure!(
-				whitelist.contains(&staker),
-				Error::<T>::NotInContributeWhitelist
-			);
-			whitelist.retain(|accountid| accountid != &staker);
-			if whitelist.is_empty() {
-				PoolContributionWhitelists::<T>::remove(&pid);
-				Self::deposit_event(Event::<T>::PoolWhitelistStakerRemoved {
-					pid,
-					staker: staker.clone(),
-				});
-				Self::deposit_event(Event::<T>::PoolWhitelistDeleted { pid });
-			} else {
-				PoolContributionWhitelists::<T>::insert(&pid, &whitelist);
-				Self::deposit_event(Event::<T>::PoolWhitelistStakerRemoved {
-					pid,
-					staker: staker.clone(),
-				});
-			}
 
 			Ok(())
 		}
@@ -697,7 +591,7 @@ pub mod pallet {
 			let rewards = pool_info.get_owner_stakes::<T>();
 			ensure!(rewards > Zero::zero(), Error::<T>::NoRewardToClaim);
 			<pallet_assets::pallet::Pallet<T> as Transfer<T::AccountId>>::transfer(
-				<T as pawnshop::Config>::PPhaAssetId::get(),
+				<T as pawn_shop::Config>::PPhaAssetId::get(),
 				&pool_info.owner_reward_account,
 				&target,
 				rewards,
@@ -724,7 +618,7 @@ pub mod pallet {
 				.as_secs()
 				.saturated_into::<u64>();
 			let mut pool = ensure_stake_pool::<T>(pid)?;
-			basepool::Pallet::<T>::try_process_withdraw_queue(&mut pool.basepool);
+			base_pool::Pallet::<T>::try_process_withdraw_queue(&mut pool.basepool);
 			let grace_period = T::GracePeriod::get();
 			let mut releasing_stake = Zero::zero();
 			for worker in pool.cd_workers.iter() {
@@ -734,8 +628,8 @@ pub mod pallet {
 				// TODO(mingxuan): handle slash
 				releasing_stake += stakes;
 			}
-			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool.clone()));
-			if basepool::Pallet::<T>::has_expired_withdrawal(
+			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool.clone()));
+			if base_pool::Pallet::<T>::has_expired_withdrawal(
 				&pool.basepool,
 				now,
 				grace_period,
@@ -786,12 +680,6 @@ pub mod pallet {
 			let mut pool_info = ensure_stake_pool::<T>(pid)?;
 			let a = amount; // Alias to reduce confusion in the code below
 				// If the pool has a contribution whitelist in storages, check if the origin is authorized to contribute
-			if let Some(whitelist) = PoolContributionWhitelists::<T>::get(&pid) {
-				ensure!(
-					whitelist.contains(&who) || pool_info.basepool.owner == who,
-					Error::<T>::NotInContributeWhitelist
-				);
-			}
 			ensure!(
 				a >= T::MinContribution::get(),
 				Error::<T>::InsufficientContribution
@@ -799,19 +687,19 @@ pub mod pallet {
 			let free = match &maybe_vault {
 				Some((_, vault_info)) => vault_info.basepool.get_free_stakes::<T>(),
 				_ => pallet_assets::Pallet::<T>::balance(
-					<T as pawnshop::Config>::PPhaAssetId::get(),
+					<T as pawn_shop::Config>::PPhaAssetId::get(),
 					&who,
 				),
 			};
 			ensure!(free >= a, Error::<T>::InsufficientBalance);
 			// a lot of weird edge cases when dealing with pending slash.
 			let shares =
-				basepool::Pallet::<T>::contribute(&mut pool_info.basepool, who.clone(), amount)?;
+				base_pool::Pallet::<T>::contribute(&mut pool_info.basepool, who.clone(), amount)?;
 			if let Some((vault_pid, vault_info)) = &mut maybe_vault {
 				if !vault_info.invest_pools.contains(&pid) {
 					vault_info.invest_pools.push_back(pid);
 				}
-				basepool::pallet::Pools::<T>::insert(
+				base_pool::pallet::Pools::<T>::insert(
 					*vault_pid,
 					PoolProxy::Vault(vault_info.clone()),
 				);
@@ -821,7 +709,7 @@ pub mod pallet {
 			}
 			// We have new free stake now, try to handle the waiting withdraw queue
 
-			basepool::Pallet::<T>::try_process_withdraw_queue(&mut pool_info.basepool);
+			base_pool::Pallet::<T>::try_process_withdraw_queue(&mut pool_info.basepool);
 
 			// Post-check to ensure the total stake doesn't exceed the cap
 			if let Some(cap) = pool_info.cap {
@@ -831,13 +719,13 @@ pub mod pallet {
 				);
 			}
 			// Persist
-			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
-			basepool::Pallet::<T>::merge_or_init_nft_for_staker(
+			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
+			base_pool::Pallet::<T>::merge_or_init_nft_for_staker(
 				pool_info.basepool.cid,
 				who.clone(),
 			)?;
 			if as_vault.is_none() {
-				pawnshop::Pallet::<T>::maybe_subscribe_to_pool(&who, pid, pool_info.basepool.cid)?;
+				pawn_shop::Pallet::<T>::maybe_subscribe_to_pool(&who, pid, pool_info.basepool.cid)?;
 			}
 
 			Self::deposit_event(Event::<T>::Contribution {
@@ -878,7 +766,7 @@ pub mod pallet {
 				who = vault_info.basepool.pool_account_id;
 			}
 			let mut pool_info = ensure_stake_pool::<T>(pid)?;
-			let nft_id = basepool::Pallet::<T>::merge_or_init_nft_for_staker(
+			let nft_id = base_pool::Pallet::<T>::merge_or_init_nft_for_staker(
 				pool_info.basepool.cid,
 				who.clone(),
 			)?;
@@ -886,7 +774,7 @@ pub mod pallet {
 			// this nft's property shouldn't be accessed or wrote again from storage before set_nft_attr
 			// is called. Or the property of the nft will be overwrote incorrectly.
 			let mut nft_guard =
-				basepool::Pallet::<T>::get_nft_attr_guard(pool_info.basepool.cid, nft_id)?;
+				base_pool::Pallet::<T>::get_nft_attr_guard(pool_info.basepool.cid, nft_id)?;
 			let nft = &mut nft_guard.attr;
 			let in_queue_shares = match pool_info
 				.basepool
@@ -895,7 +783,7 @@ pub mod pallet {
 				.find(|&withdraw| withdraw.user == who)
 			{
 				Some(withdraw) => {
-					let withdraw_nft_guard = basepool::Pallet::<T>::get_nft_attr_guard(
+					let withdraw_nft_guard = base_pool::Pallet::<T>::get_nft_attr_guard(
 						pool_info.basepool.cid,
 						withdraw.nft_id,
 					)
@@ -905,15 +793,297 @@ pub mod pallet {
 				None => Zero::zero(),
 			};
 			ensure!(
-				basepool::is_nondust_balance(shares) && (shares <= nft.shares + in_queue_shares),
+				base_pool::is_nondust_balance(shares) && (shares <= nft.shares + in_queue_shares),
 				Error::<T>::InvalidWithdrawalAmount
 			);
-			basepool::Pallet::<T>::try_withdraw(&mut pool_info.basepool, nft, who.clone(), shares)?;
+			base_pool::Pallet::<T>::try_withdraw(
+				&mut pool_info.basepool,
+				nft,
+				who.clone(),
+				shares,
+			)?;
 			nft_guard.save()?;
 			let _nft_id =
-				basepool::Pallet::<T>::merge_or_init_nft_for_staker(pool_info.basepool.cid, who)?;
-			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
+				base_pool::Pallet::<T>::merge_or_init_nft_for_staker(pool_info.basepool.cid, who)?;
+			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
 
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn migrate_computation(origin: OriginFor<T>, max_iterations: u32) -> DispatchResult {
+			//ensure_root(origin)?;
+			migration::move_pallet(b"PhalaMining", b"PhalaComputation");
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn migrate_stakepools(origin: OriginFor<T>, max_iterations: u32) -> DispatchResult {
+			//ensure_root(origin)?;
+			let pawnshop_accountid = <T as pawn_shop::Config>::PawnShopAccountId::get();
+			let mut iter = match StakepoolIterateStartPos::<T>::get() {
+				Some(pid) => {
+					let key: Vec<u8> = stake_pool::pallet::StakePools::<T>::hashed_key_for(pid);
+					stake_pool::pallet::StakePools::<T>::iter_from(key)
+				}
+				None => stake_pool::pallet::StakePools::<T>::iter(),
+			};
+			let mut i = 0;
+			for (pid, pool_info) in iter.by_ref() {
+				let collection_id: CollectionId = pallet_rmrk_core::Pallet::<T>::collection_index();
+				let symbol: BoundedVec<u8, <T as pallet_rmrk_core::Config>::CollectionSymbolLimit> =
+					format!("STAKEPOOL-{}", pid)
+						.as_bytes()
+						.to_vec()
+						.try_into()
+						.expect("create a bvec from string should never fail; qed.");
+				pallet_rmrk_core::Pallet::<T>::create_collection(
+					Origin::<T>::Signed(base_pool::pallet_id::<T::AccountId>()).into(),
+					Default::default(),
+					None,
+					symbol,
+				)
+				.expect("create collection should not fail; qed.");
+				let account_id = base_pool::pallet::generate_staker_account::<T::AccountId>(
+					pid,
+					pool_info.owner.clone(),
+				);
+				let (owner_reward_account, lock_account) =
+					generate_owner_and_lock_account::<T::AccountId>(pid, pool_info.owner.clone());
+				let mut new_pool_info = StakePool {
+					basepool: base_pool::BasePool {
+						pid,
+						owner: pool_info.owner,
+						total_shares: pool_info.total_shares,
+						total_value: pool_info.total_stake,
+						withdraw_queue: VecDeque::new(),
+						value_subscribers: VecDeque::new(),
+						cid: collection_id,
+						pool_account_id: account_id,
+					},
+					payout_commission: pool_info.payout_commission,
+					cap: pool_info.cap,
+					workers: VecDeque::new(),
+					cd_workers: VecDeque::new(),
+					lock_account,
+					owner_reward_account,
+				};
+				// TODO(mingxuan): Will include removed workers after we measure how to get their pool-belonging.
+				pool_info.workers.into_iter().for_each(|pubkey| {
+					new_pool_info.workers.push_back(pubkey);
+					let session: T::AccountId = pool_sub_account(pid, &pubkey);
+					let worker_info = computation::pallet::Sessions::<T>::get(&session)
+						.expect("session data should exist; qed.");
+					if worker_info.state == computation::pallet::WorkerState::WorkerCoolingDown {
+						new_pool_info.cd_workers.push_back(pubkey);
+					}
+					let computing_stake =
+						computation::Stakes::<T>::get(&session).unwrap_or_default();
+					pawn_shop::Pallet::<T>::mint_into(
+						&new_pool_info.owner_reward_account,
+						computing_stake,
+					)
+					.expect("mint into should be success");
+				});
+				pool_info
+					.withdraw_queue
+					.into_iter()
+					.for_each(|withdraw_info| {
+						let nft_id = base_pool::Pallet::<T>::mint_nft(
+							collection_id,
+							base_pool::pallet::pallet_id(),
+							withdraw_info.shares,
+						)
+						.expect("mint nft should always success");
+						new_pool_info
+							.basepool
+							.withdraw_queue
+							.push_back(base_pool::WithdrawInfo {
+								user: withdraw_info.user,
+								start_time: withdraw_info.start_time,
+								nft_id,
+							});
+					});
+				// If the balance is too low to mint, we can just drop it.
+				if !pawn_shop::Pallet::<T>::mint_into(
+					&new_pool_info.owner_reward_account,
+					pool_info.owner_reward,
+				)
+				.is_err()
+				{
+					let _ = computation::Pallet::<T>::withdraw_subsidy_pool(
+						&pawnshop_accountid,
+						pool_info.owner_reward,
+					);
+				};
+				pawn_shop::Pallet::<T>::mint_into(
+					&new_pool_info.basepool.pool_account_id,
+					pool_info.free_stake,
+				);
+				base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(new_pool_info));
+				i += 1;
+				if i >= max_iterations {
+					break;
+				}
+			}
+			let iter = iter.next();
+			if let Some((pid, _)) = iter {
+				StakepoolIterateStartPos::<T>::put(Some(pid));
+			} else {
+				StakepoolIterateStartPos::<T>::put(None::<u64>);
+				base_pool::PoolCount::<T>::put(stake_pool::PoolCount::<T>::get());
+			}
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn migrate_pool_stakers(origin: OriginFor<T>, max_iterations: u32) -> DispatchResult {
+			//ensure_root(origin)?;
+			let pawnshop_accountid = <T as pawn_shop::Config>::PawnShopAccountId::get();
+			stake_pool::pallet::PoolStakers::<T>::drain()
+				.take(max_iterations.try_into().unwrap())
+				.for_each(|((pid, user_id), staker_info)| {
+					let mut account_status =
+						pawn_shop::StakerAccounts::<T>::get(&user_id).unwrap_or_default();
+					let deprecated_pool = stake_pool::pallet::StakePools::<T>::get(pid)
+						.expect("get deprecated pool should success; qed.");
+					let pending_reward =
+						mul(staker_info.shares, &deprecated_pool.reward_acc.into())
+							- staker_info.reward_debt;
+					let user_reward = pending_reward + staker_info.available_rewards;
+					let _ = computation::Pallet::<T>::withdraw_subsidy_pool(
+						&pawnshop_accountid,
+						user_reward,
+					);
+					let pool_info =
+						ensure_stake_pool::<T>(pid).expect("stakepool should exist; qed.");
+					// If the balance is too low to mint, we can just drop it.
+					// Even if user_reward is a dust, we should still create user's shares
+					pawn_shop::Pallet::<T>::mint_into(
+						&pool_info.basepool.pool_account_id,
+						user_reward,
+					);
+					base_pool::Pallet::<T>::mint_nft(
+						pool_info.basepool.cid,
+						user_id.clone(),
+						staker_info.shares,
+					);
+					if !account_status
+						.invest_pools
+						.contains(&(pid, pool_info.basepool.cid))
+					{
+						account_status
+							.invest_pools
+							.push((pid, pool_info.basepool.cid));
+					}
+					pawn_shop::StakerAccounts::<T>::insert(user_id, account_status);
+				});
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn migrate_stake_ledger(origin: OriginFor<T>, max_iterations: u32) -> DispatchResult {
+			//ensure_root(origin)?;
+			let pawnshop_accountid = <T as pawn_shop::Config>::PawnShopAccountId::get();
+			stake_pool::pallet::StakeLedger::<T>::drain()
+				.take(max_iterations.try_into().unwrap())
+				.for_each(|(user_id, balance)| {
+					<T as PhalaConfig>::Currency::remove_lock(STAKING_ID, &user_id);
+					<T as PhalaConfig>::Currency::remove_lock(VESTING_ID, &user_id);
+					<T as PhalaConfig>::Currency::remove_lock(DEMOCRAC_ID, &user_id);
+					<T as PhalaConfig>::Currency::remove_lock(PHRELECT_ID, &user_id);
+					if <T as PhalaConfig>::Currency::transfer(
+						&user_id,
+						&pawnshop_accountid,
+						balance,
+						KeepAlive,
+					)
+					.is_err()
+					{
+						// TODO(mingxuan): switch the currency sending account to a identical account before final push.
+						<T as PhalaConfig>::Currency::transfer(
+							&computation::Pallet::<T>::account_id(),
+							&user_id,
+							<T as PhalaConfig>::Currency::minimum_balance(),
+							KeepAlive,
+						);
+						<T as PhalaConfig>::Currency::transfer(
+							&user_id,
+							&pawnshop_accountid,
+							balance,
+							KeepAlive,
+						)
+						.expect("transfer should not fail; qed.");
+					}
+				});
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn drain_stakepool_storages(
+			origin: OriginFor<T>,
+			max_iterations: u32,
+		) -> DispatchResult {
+			//ensure_root(origin)?;
+			stake_pool::pallet::StakePools::<T>::drain()
+				.take(max_iterations.try_into().unwrap())
+				.for_each(|(_, _)| {});
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn migrate_worker_assignments(
+			origin: OriginFor<T>,
+			max_iterations: u32,
+		) -> DispatchResult {
+			//ensure_root(origin)?;
+			stake_pool::pallet::WorkerAssignments::<T>::drain()
+				.take(max_iterations.try_into().unwrap())
+				.for_each(|(k, v)| {
+					WorkerAssignments::<T>::insert(k, v);
+				});
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn migrate_subaccount_preimage(
+			origin: OriginFor<T>,
+			max_iterations: u32,
+		) -> DispatchResult {
+			//ensure_root(origin)?;
+			stake_pool::pallet::SubAccountPreimages::<T>::drain()
+				.take(max_iterations.try_into().unwrap())
+				.for_each(|(k, v)| {
+					SubAccountPreimages::<T>::insert(k, v);
+				});
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn migrate_contribution_whitelist(
+			origin: OriginFor<T>,
+			max_iterations: u32,
+		) -> DispatchResult {
+			//ensure_root(origin)?;
+			stake_pool::pallet::PoolContributionWhitelists::<T>::drain()
+				.take(max_iterations.try_into().unwrap())
+				.for_each(|(k, v)| {
+					base_pool::pallet::PoolContributionWhitelists::<T>::insert(k, v);
+				});
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn migrate_pool_description(
+			origin: OriginFor<T>,
+			max_iterations: u32,
+		) -> DispatchResult {
+			//ensure_root(origin)?;
+			stake_pool::pallet::PoolDescriptions::<T>::drain()
+				.take(max_iterations.try_into().unwrap())
+				.for_each(|(k, v)| {
+					base_pool::pallet::PoolDescriptions::<T>::insert(k, v);
+				});
 			Ok(())
 		}
 
@@ -1028,13 +1198,13 @@ pub mod pallet {
 			let session: T::AccountId = pool_sub_account(pid, &worker);
 			computation::pallet::Pallet::<T>::start_computing(session, stake)?;
 			<pallet_assets::pallet::Pallet<T> as Transfer<T::AccountId>>::transfer(
-				<T as pawnshop::Config>::PPhaAssetId::get(),
+				<T as pawn_shop::Config>::PPhaAssetId::get(),
 				&pool_info.basepool.pool_account_id,
 				&pool_info.lock_account,
 				stake,
 				false,
 			)?;
-			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
+			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
 			Self::deposit_event(Event::<T>::WorkingStarted {
 				pid,
 				worker,
@@ -1068,7 +1238,7 @@ pub mod pallet {
 			// Computation::stop_computing will notify us how much it will release by `on_stopped`
 			<computation::pallet::Pallet<T>>::stop_computing(session)?;
 			pool_info.cd_workers.push_back(worker);
-			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
+			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
 			Ok(())
 		}
 		fn do_reclaim(
@@ -1083,7 +1253,7 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::WorkerReclaimed { pid, worker });
 			let mut pool_info = ensure_stake_pool::<T>(pid)?;
 			pool_info.remove_cd_worker(&worker);
-			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
+			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
 			Ok((orig_stake, slashed))
 		}
 
@@ -1094,11 +1264,11 @@ pub mod pallet {
 		) {
 			if rewards > Zero::zero() {
 				computation::Pallet::<T>::withdraw_subsidy_pool(
-					&<T as pawnshop::Config>::PawnShopAccountId::get(),
+					&<T as pawn_shop::Config>::PawnShopAccountId::get(),
 					rewards,
 				)
 				.expect("this should not happen");
-				if basepool::balance_close_to_zero(pool_info.basepool.total_shares) {
+				if base_pool::balance_close_to_zero(pool_info.basepool.total_shares) {
 					Self::deposit_event(Event::<T>::RewardDismissedNoShare {
 						pid: pool_info.basepool.pid,
 						amount: rewards,
@@ -1107,15 +1277,15 @@ pub mod pallet {
 				}
 				let commission = pool_info.payout_commission.unwrap_or_default() * rewards;
 
-				pawnshop::Pallet::<T>::mint_into(&pool_info.owner_reward_account, commission)
+				pawn_shop::Pallet::<T>::mint_into(&pool_info.owner_reward_account, commission)
 					.expect("mint into should be success");
 				let to_distribute = rewards - commission;
-				pawnshop::Pallet::<T>::mint_into(
+				pawn_shop::Pallet::<T>::mint_into(
 					&pool_info.basepool.pool_account_id,
 					to_distribute,
 				)
 				.expect("mint into should be success");
-				let distributed = if basepool::is_nondust_balance(to_distribute) {
+				let distributed = if base_pool::is_nondust_balance(to_distribute) {
 					pool_info.basepool.distribute_reward::<T>(to_distribute);
 					true
 				} else if to_distribute > Zero::zero() {
@@ -1159,7 +1329,7 @@ pub mod pallet {
 
 			// With the worker being cleaned, those stake now are free
 			<pallet_assets::pallet::Pallet<T> as Transfer<T::AccountId>>::transfer(
-				<T as pawnshop::Config>::PPhaAssetId::get(),
+				<T as pawn_shop::Config>::PPhaAssetId::get(),
 				&pool_info.lock_account,
 				&pool_info.basepool.pool_account_id,
 				returned,
@@ -1167,8 +1337,8 @@ pub mod pallet {
 			)
 			.expect("transfer should not fail");
 
-			basepool::Pallet::<T>::try_process_withdraw_queue(&mut pool_info.basepool);
-			basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
+			base_pool::Pallet::<T>::try_process_withdraw_queue(&mut pool_info.basepool);
+			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
 		}
 
 		/// Removes a worker from a pool, either intentionally or unintentionally.
@@ -1176,19 +1346,13 @@ pub mod pallet {
 		/// It assumes the worker is already in a pool.
 		fn remove_worker_from_pool(worker: &WorkerPublicKey) {
 			let pid = WorkerAssignments::<T>::take(worker).expect("Worker must be in a pool; qed.");
-			basepool::pallet::Pools::<T>::mutate(pid, |value| {
+			base_pool::pallet::Pools::<T>::mutate(pid, |value| {
 				if let Some(PoolProxy::StakePool(pool)) = value {
 					pool.remove_worker(worker);
 					Self::deposit_event(Event::<T>::PoolWorkerRemoved {
 						pid,
 						worker: *worker,
 					});
-					// To adjust the case that skip stakepool::stop_computing when call remove_worker
-					// (TODO(mingxuan): should let remove_worker in stakepool call computing directly instead of stakepool -> computation -> stakepool
-					// and remove this cover code.)
-					if !pool.cd_workers.contains(worker) {
-						pool.cd_workers.push_back(*worker);
-					}
 				}
 			});
 		}
@@ -1227,7 +1391,7 @@ pub mod pallet {
 				let mut pool_info =
 					ensure_stake_pool::<T>(pid).expect("Stake pool must exist; qed.");
 				Self::handle_pool_new_reward(&mut pool_info, reward);
-				basepool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
+				base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info));
 			}
 		}
 	}
