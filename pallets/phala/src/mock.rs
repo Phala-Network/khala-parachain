@@ -1,6 +1,9 @@
 use crate::{
-	utils::attestation_legacy::{Attestation, AttestationValidator, Error as AttestationError, IasFields},
-	basepool, computation, mq, pawnshop, registry, stakepool, stakepoolv2, vault,
+	base_pool, computation, mq, pawn_shop, registry, stake_pool, stake_pool_v2,
+	utils::attestation_legacy::{
+		Attestation, AttestationValidator, Error as AttestationError, IasFields,
+	},
+	vault,
 };
 
 use frame_support::{
@@ -46,11 +49,11 @@ frame_support::construct_runtime!(
 		PhalaMq: mq::{Pallet, Call},
 		PhalaRegistry: registry::{Pallet, Event<T>, Storage, Config<T>},
 		PhalaComputation: computation::{Pallet, Event<T>, Storage, Config},
-		PhalaStakePoolv2: stakepoolv2::{Pallet, Event<T>},
+		PhalaStakePoolv2: stake_pool_v2::{Pallet, Event<T>},
 		PhalaVault: vault::{Pallet, Event<T>},
-		PhalaPawnshop: pawnshop::{Pallet, Event<T>},
-		PhalaBasePool: basepool::{Pallet, Event<T>},
-		PhalaStakePool: stakepool::{Event<T>},
+		PhalaPawnshop: pawn_shop::{Pallet, Event<T>},
+		PhalaBasePool: base_pool::{Pallet, Event<T>},
+		PhalaStakePool: stake_pool::{Event<T>},
 	}
 );
 
@@ -239,7 +242,7 @@ parameter_types! {
 	pub const PPhaAssetId: u32 = 1;
 }
 
-impl pawnshop::Config for Test {
+impl pawn_shop::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type PPhaAssetId = PPhaAssetId;
 	type PawnShopAccountId = ConstU64<1234>;
@@ -335,7 +338,7 @@ impl pallet_assets::Config for Test {
 	type WeightInfo = ();
 }
 
-impl stakepoolv2::Config for Test {
+impl stake_pool_v2::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MinContribution = MinContribution;
 	type GracePeriod = WorkingGracePeriod;
@@ -349,11 +352,11 @@ impl vault::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 }
 
-impl basepool::Config for Test {
+impl base_pool::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 }
 
-impl stakepool::Config for Test {
+impl stake_pool::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 }
