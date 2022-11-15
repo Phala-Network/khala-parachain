@@ -117,7 +117,7 @@ pub enum TaskStatus {
 	/// Task initial confirmed by user on source chain.
 	Initialized,
 	/// Task is being claimed by worker. [tx_hash]
-	Claimed(Option<Vec<u8>>),
+	Claiming(Option<Vec<u8>>),
 	/// Task is being uploaded to on-chain storage. [tx_hash]
 	Uploading(Option<Vec<u8>>),
 	/// Task is being executing with step index. [step_index, tx_hash]
