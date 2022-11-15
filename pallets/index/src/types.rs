@@ -116,10 +116,14 @@ pub struct Edge {
 pub enum TaskStatus {
 	/// Task initial confirmed by user on source chain.
 	Initialized,
-	/// Task is being executing with step index.
-	Executing(u8),
-	/// Task is being reverting with step index.
-	Reverting(u8),
+	/// Task is being claimed by worker. [tx_hash]
+	Claimed(Option<Vec<u8>>),
+	/// Task is being uploaded to on-chain storage. [tx_hash]
+	Uploading(Option<Vec<u8>>),
+	/// Task is being executing with step index. [step_index, tx_hash]
+	Executing(u8, Option<Vec<u8>>),
+	/// Task is being reverting with step index. [step_index, tx_hash]
+	Reverting(u8, Option<Vec<u8>>),
 	/// Last step of task has been executed successful last step on dest chain.
 	Completed,
 }
@@ -135,6 +139,8 @@ pub struct Task {
 	pub worker: [u8; 32],
 	// Task status
 	pub status: TaskStatus,
+	// Source chain name
+	pub source: Vec<u8>,
 	/// All edges to included in the task
 	pub edges: Vec<Edge>,
 	/// Sender address on source chain
