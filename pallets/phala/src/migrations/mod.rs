@@ -69,7 +69,7 @@ pub mod registry_v6_migration {
 	use scale_info::TypeInfo;
 
 	use phala_types::{WorkerPublicKey, EcdhPublicKey, AttestationProvider};
-	use crate::registry::WorkerInfo;
+	use crate::registry::WorkerInfoV2;
 	use super::*;
 
 	#[derive(Encode, Decode, TypeInfo, Debug, Clone)]
@@ -131,7 +131,7 @@ pub mod registry_v6_migration {
 				count += 1;
 
 				Some(
-					WorkerInfo {
+					WorkerInfoV2 {
 						pubkey: old.pubkey,
 						ecdh_pubkey: old.ecdh_pubkey,
 						runtime_version: old.runtime_version,
