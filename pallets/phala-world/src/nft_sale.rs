@@ -76,6 +76,11 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
+	/// Next available Collection ID
+	#[pallet::storage]
+	#[pallet::getter(fn next_collection_id)]
+	pub type NextCollectionId<T: Config> = StorageValue<_, CollectionId, ValueQuery>;
+
 	/// Next available NFT ID
 	#[pallet::storage]
 	#[pallet::getter(fn next_nft_id)]
@@ -431,6 +436,7 @@ pub mod pallet {
 		ValueNotDetected,
 		PayeeNotSet,
 		SignerNotSet,
+		NoAvailableCollectionId,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -1069,8 +1075,15 @@ pub mod pallet {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin.clone())?;
 			Self::ensure_overlord(&sender)?;
+			let collection_id = Self::get_next_collection_id()?;
 			// Call the RMRK Core function
-			pallet_rmrk_core::Pallet::<T>::create_collection(origin, metadata, max, symbol)?;
+			pallet_rmrk_core::Pallet::<T>::create_collection(
+				origin,
+				collection_id,
+				metadata,
+				max,
+				symbol,
+			)?;
 
 			Ok(())
 		}
@@ -1757,6 +1770,21 @@ where
 			None => Err(Error::<T>::OriginOfShellsMetadataNotSet),
 			Some(metadata) => Ok(metadata),
 		}
+	}
+
+	/// Helper function to get the next available Collection ID then increments `NextCollectionId` in Storage.
+	pub fn get_next_collection_id() -> Result<CollectionId, DispatchError> {
+		let collection_id =
+			<NextCollectionId<T>>::try_mutate(|n| -> Result<CollectionId, DispatchError> {
+				let id = *n;
+				ensure!(
+					id != CollectionId::max_value(),
+					Error::<T>::NoAvailableCollectionId
+				);
+				*n += 1;
+				Ok(id)
+			});
+		collection_id
 	}
 
 	/// Helper function to get the next available NFT ID then increments `NextNftId` in Storage.
