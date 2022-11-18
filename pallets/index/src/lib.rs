@@ -47,13 +47,11 @@ pub mod pallet {
 	pub type AccountTasks<T: Config> =
 		StorageMap<_, Twox64Concat, Vec<u8>, Vec<TaskId>, ValueQuery>;
 
-	/// Queue that contains all unfinished tasks belongs to the worker,
-	/// Worker should read this storage to get the unfinished task and contines the task execution
-	/// whenever scheduler triggered the query operation of InDex Ink contract.
+	/// Queue that contains all unfinished tasks belongs to the worker.
 	/// worker_account => task_queue
 	#[pallet::storage]
 	#[pallet::getter(fn pending_tasks)]
-	pub type PendingTasks<T: Config> =
+	pub type RunningTasks<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, VecDeque<TaskId>, ValueQuery>;
 
 	#[pallet::event]
@@ -105,9 +103,9 @@ pub mod pallet {
 				account_task_queue.push(task.id.clone());
 				AccountTasks::<T>::insert(&task.sender, &account_task_queue);
 				let worker_account: T::AccountId = task.worker.into();
-				let mut worker_task_queue = PendingTasks::<T>::get(&worker_account);
+				let mut worker_task_queue = RunningTasks::<T>::get(&worker_account);
 				worker_task_queue.push_back(task.id.clone());
-				PendingTasks::<T>::insert(&worker_account, &worker_task_queue);
+				RunningTasks::<T>::insert(&worker_account, &worker_task_queue);
 			}
 			Tasks::<T>::insert(&task.id, &task);
 
@@ -142,7 +140,7 @@ pub mod pallet {
 	#[cfg(test)]
 	mod tests {
 		use crate as pallet_index;
-		use crate::{AccountTasks, Event as PalletIndexEvent, Executor, PendingTasks};
+		use crate::{AccountTasks, Event as PalletIndexEvent, Executor, RunningTasks};
 		use codec::Encode;
 		use frame_support::{assert_noop, assert_ok, sp_runtime::traits::BadOrigin};
 		use pallet_index::mock::{
@@ -180,7 +178,7 @@ pub mod pallet {
 				));
 				assert_eq!(AccountTasks::<Test>::get(&task.sender), vec![task.id]);
 				let worker_account: <Test as frame_system::Config>::AccountId = task.worker.into();
-				assert_eq!(PendingTasks::<Test>::get(&worker_account)[0], task.id);
+				assert_eq!(RunningTasks::<Test>::get(&worker_account)[0], task.id);
 				assert_events(vec![Event::PalletIndex(PalletIndexEvent::TaskUpdated {
 					task: task.encode(),
 				})]);
