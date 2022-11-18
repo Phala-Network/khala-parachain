@@ -387,7 +387,6 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             relay_chain_interface,
             relay_chain_slot_duration,
             import_queue,
-            collator_options,
         };
 
         start_full_node(params)?;

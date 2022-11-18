@@ -82,7 +82,7 @@ pub struct Cli {
     pub no_hardware_benchmarks: bool,
 
     /// Relay chain arguments
-    #[arg(raw = true, conflicts_with = "relay-chain-rpc-url")]
+    #[arg(raw = true)]
     pub relaychain_args: Vec<String>,
 }
 
