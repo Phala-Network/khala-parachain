@@ -884,6 +884,7 @@ impl pallet_rmrk_core::Config for Runtime {
     type CollectionSymbolLimit = rmrk_core::CollectionSymbolLimit;
     type MaxResourcesOnMint = MaxResourcesOnMint;
     type WeightInfo = pallet_rmrk_core::weights::SubstrateWeight<Runtime>;
+    type CheckAllowTransfer = ();
 }
 
 impl pallet_rmrk_equip::Config for Runtime {
