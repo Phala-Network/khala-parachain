@@ -9,7 +9,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::types::{Task, TaskId};
-	use codec::{Decode, Encode};
+	use codec::Encode;
 	use frame_support::{
 		dispatch::DispatchResult, pallet_prelude::*, traits::StorageVersion, transactional,
 	};
@@ -29,12 +29,11 @@ pub mod pallet {
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
-	const LOG_TARGET: &str = "runtime::pallet-index";
 
 	/// Pre-set index executor account
 	#[pallet::storage]
-	#[pallet::getter(fn executor)]
-	pub type Executor<T: Config> = StorageValue<_, T::AccountId>;
+	#[pallet::getter(fn executors)]
+	pub type Executors<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, bool, ValueQuery>;
 
 	/// Mapping tak_id to the full task data
 	#[pallet::storage]
@@ -68,6 +67,7 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
+		ExecutorAlreadySet,
 		ExecutorMismatch,
 		TaskInvalid,
 	}
@@ -81,7 +81,11 @@ pub mod pallet {
 		#[transactional]
 		pub fn force_set_executor(origin: OriginFor<T>, executor: T::AccountId) -> DispatchResult {
 			T::CommitteeOrigin::ensure_origin(origin)?;
-			Executor::<T>::set(Some(executor.clone()));
+			ensure!(
+				Executors::<T>::get(&executor) == false,
+				Error::<T>::ExecutorAlreadySet
+			);
+			Executors::<T>::insert(&executor, true);
 			Self::deposit_event(Event::ExecutorSet { executor });
 			Ok(())
 		}
@@ -120,7 +124,7 @@ pub mod pallet {
 		fn ensure_executor(origin: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			ensure!(
-				Executor::<T>::get() == Some(sender),
+				Executors::<T>::get(&sender) == true,
 				Error::<T>::ExecutorMismatch
 			);
 			Ok(())
@@ -140,12 +144,12 @@ pub mod pallet {
 	#[cfg(test)]
 	mod tests {
 		use crate as pallet_index;
-		use crate::{AccountTasks, Event as PalletIndexEvent, Executor, RunningTasks};
+		use crate::{AccountTasks, Event as PalletIndexEvent, Executors, RunningTasks};
 		use codec::Encode;
-		use frame_support::{assert_noop, assert_ok, sp_runtime::traits::BadOrigin};
+		use frame_support::{assert_noop, assert_ok};
 		use pallet_index::mock::{
 			assert_events, new_test_ext, PalletIndex, RuntimeEvent as Event,
-			RuntimeOrigin as Origin, Test, ALICE, BOB,
+			RuntimeOrigin as Origin, Test, BOB,
 		};
 		use pallet_index::types::{Task, TaskStatus};
 
@@ -153,11 +157,30 @@ pub mod pallet {
 		fn test_set_executor_should_work() {
 			new_test_ext().execute_with(|| {
 				assert_ok!(PalletIndex::force_set_executor(Origin::root(), BOB.clone()));
-				assert_eq!(Executor::<Test>::get(), Some(BOB.clone()));
+				assert_eq!(Executors::<Test>::get(&BOB.clone()), true);
 				assert_events(vec![Event::PalletIndex(PalletIndexEvent::ExecutorSet {
 					executor: BOB,
 				})]);
 			});
+		}
+
+		#[test]
+		fn test_updata_task_with_no_permission_should_fail() {
+			new_test_ext().execute_with(|| {
+				let task = Task {
+					id: [1; 32],
+					worker: [2; 32],
+					status: TaskStatus::Uploading(Some(b"0x1234".to_vec())),
+					source: b"Ethereum".to_vec(),
+					edges: vec![],
+					sender: vec![3],
+					recipient: vec![4],
+				};
+				assert_noop!(
+					PalletIndex::update_task(Origin::signed(BOB.into()), task),
+					pallet_index::Error::<Test>::ExecutorMismatch,
+				);
+			})
 		}
 
 		#[test]
@@ -166,7 +189,8 @@ pub mod pallet {
 				let mut task = Task {
 					id: [1; 32],
 					worker: [2; 32],
-					status: TaskStatus::Initialized,
+					status: TaskStatus::Uploading(Some(b"0x1234".to_vec())),
+					source: b"Ethereum".to_vec(),
 					edges: vec![],
 					sender: vec![3],
 					recipient: vec![4],

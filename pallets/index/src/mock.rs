@@ -8,7 +8,6 @@ use frame_support::{
 		traits::{BlakeTwo256, IdentityLookup},
 		AccountId32, Perbill,
 	},
-	traits::ConstU128,
 };
 use frame_system::{self as system, EnsureRoot};
 
