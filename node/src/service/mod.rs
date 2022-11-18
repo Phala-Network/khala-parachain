@@ -40,7 +40,7 @@ use sp_keystore::SyncCryptoStorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use substrate_prometheus_endpoint::Registry;
 
-use rmrk_traits::primitives::{CollectionId, PartId};
+use rmrk_traits::primitives::{CollectionId, NftId, PartId};
 use rmrk_traits::{
     BaseInfo, CollectionInfo, NftInfo, PartType, PropertyInfo, ResourceInfo, Theme, ThemeProperty,
 };
@@ -84,8 +84,11 @@ async fn build_relay_chain_interface(
     match collator_options.relay_chain_rpc_url {
         Some(relay_chain_url) => {
             let client = create_client_and_start_worker(relay_chain_url, task_manager).await?;
-            Ok((Arc::new(RelayChainRpcInterface::new(client)) as Arc<_>, None))
-        },
+            Ok((
+                Arc::new(RelayChainRpcInterface::new(client)) as Arc<_>,
+                None,
+            ))
+        }
         None => build_inprocess_relay_chain(
             polkadot_config,
             parachain_config,
@@ -254,7 +257,7 @@ where
                 BoundedVec<u8, rmrk_core::CollectionSymbolLimit>,
                 AccountId,
             >,
-            NftInfo<AccountId, Permill, BoundedVec<u8, uniques::StringLimit>>,
+            NftInfo<AccountId, Permill, BoundedVec<u8, uniques::StringLimit>, CollectionId, NftId>,
             ResourceInfo<
                 BoundedVec<u8, uniques::StringLimit>,
                 BoundedVec<PartId, rmrk_core::PartsLimit>,

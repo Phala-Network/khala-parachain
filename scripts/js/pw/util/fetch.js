@@ -1,6 +1,6 @@
 
 async function getCollectionsCount(khalaApi) {
-    return (await khalaApi.query.rmrkCore.collectionIndex()).toNumber();
+    return (await khalaApi.query.pwNftSale.nextCollectionId()).toNumber();
 }
 
 // export async function getBalance(khalaApi, account)

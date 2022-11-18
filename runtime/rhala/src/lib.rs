@@ -53,7 +53,7 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto},
+    traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, Bounded, ConvertInto},
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
 };
@@ -65,17 +65,18 @@ use static_assertions::const_assert;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
-    construct_runtime, match_types, parameter_types,
+    construct_runtime,
+    dispatch::DispatchClass,
+    match_types, parameter_types,
     traits::{
         tokens::nonfungibles::*, AsEnsureOriginWithArg, Contains, Currency, EitherOfDiverse,
         EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem,
-        LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
+        LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote, WithdrawReasons,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         ConstantMultiplier, IdentityFee, Weight,
     },
-    dispatch::DispatchClass,
     BoundedVec, PalletId, RuntimeDebug, StorageValue,
 };
 
@@ -98,7 +99,11 @@ use xcm_executor::{Config, XcmExecutor};
 
 use pallet_rmrk_core::{CollectionInfoOf, InstanceInfoOf, PropertyInfoOf, ResourceInfoOf};
 use pallet_rmrk_equip::{BaseInfoOf, BoundedThemeOf, PartTypeOf};
-use rmrk_traits::{primitives::*, NftChild};
+use rmrk_traits::{
+    primitives::*,
+    primitives::{CollectionId, NftId, ResourceId},
+    NftChild,
+};
 
 pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
@@ -185,7 +190,8 @@ pub type SignedExtra = (
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
-pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+pub type UncheckedExtrinsic =
+    generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
@@ -553,7 +559,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
             ),
             ProxyType::Collator => matches!(
                 c,
-                RuntimeCall::CollatorSelection { .. } | RuntimeCall::Utility { .. } | RuntimeCall::Multisig { .. }
+                RuntimeCall::CollatorSelection { .. }
+                    | RuntimeCall::Utility { .. }
+                    | RuntimeCall::Multisig { .. }
             ),
             ProxyType::StakePoolManager => matches!(
                 c,
@@ -563,7 +571,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
                     | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::start_mining { .. })
                     | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::stop_mining { .. })
                     | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::restart_mining { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker { .. })
+                    | RuntimeCall::PhalaStakePool(
+                        pallet_stakepool::Call::reclaim_pool_worker { .. }
+                    )
                     | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::create { .. })
                     | RuntimeCall::PhalaRegistry(pallet_registry::Call::register_worker { .. })
                     | RuntimeCall::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })
@@ -614,8 +624,7 @@ impl pallet_scheduler::Config for Runtime {
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
-    type PreimageProvider = Preimage;
-    type NoPreimagePostponement = NoPreimagePostponement;
+    type Preimages = Preimage;
 }
 
 parameter_types! {
@@ -630,7 +639,6 @@ impl pallet_preimage::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type ManagerOrigin = EnsureRoot<AccountId>;
-    type MaxSize = PreimageMaxSize;
     type BaseDeposit = PreimageBaseDeposit;
     type ByteDeposit = PreimageByteDeposit;
 }
@@ -703,6 +711,7 @@ parameter_types! {
         pallet_transaction_payment::Multiplier::saturating_from_rational(1, 100_000);
     pub MinimumMultiplier: pallet_transaction_payment::Multiplier =
         pallet_transaction_payment::Multiplier::saturating_from_rational(1, 1_000_000_000u128);
+    pub MaximumMultiplier: pallet_transaction_payment::Multiplier = Bounded::max_value();
 }
 
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
@@ -729,6 +738,7 @@ impl pallet_transaction_payment::Config for Runtime {
         TargetBlockFullness,
         AdjustmentVariable,
         MinimumMultiplier,
+        MaximumMultiplier,
     >;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
@@ -770,6 +780,8 @@ impl pallet_identity::Config for Runtime {
 
 parameter_types! {
     pub const MinVestedTransfer: Balance = 1 * CENTS; // 0.01 PHA
+    pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
+        WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
 }
 
 impl pallet_vesting::Config for Runtime {
@@ -778,6 +790,7 @@ impl pallet_vesting::Config for Runtime {
     type BlockNumberToBalance = ConvertInto;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+    type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
     const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
@@ -850,21 +863,22 @@ impl pallet_uniques::Config for Runtime {
 }
 
 parameter_types! {
-    pub const MaxRecursions: u32 = 10;
     pub const ResourceSymbolLimit: u32 = 10;
     pub const MaxPriorities: u32 = 25;
     pub const MaxResourcesOnMint: u32 = 100;
+    pub const NestingBudget: u32 = 20;
 }
 
 impl pallet_rmrk_core::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ProtocolOrigin = EnsureRoot<AccountId>;
-    type MaxRecursions = MaxRecursions;
     type ResourceSymbolLimit = ResourceSymbolLimit;
     type PartsLimit = rmrk_core::PartsLimit;
     type MaxPriorities = MaxPriorities;
+    type NestingBudget = NestingBudget;
     type CollectionSymbolLimit = rmrk_core::CollectionSymbolLimit;
     type MaxResourcesOnMint = MaxResourcesOnMint;
+    type WeightInfo = pallet_rmrk_core::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_rmrk_equip::Config for Runtime {
@@ -1304,10 +1318,11 @@ parameter_types! {
     pub const CooloffPeriod: BlockNumber = 1 * DAYS;
     pub const MaxVotes: u32 = 100;
     pub const MaxProposals: u32 = 100;
+    pub const MaxDeposits: u32 = 100;
+    pub const MaxBlacklisted: u32 = 100;
 }
 
 impl pallet_democracy::Config for Runtime {
-    type Proposal = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type EnactmentPeriod = EnactmentPeriod;
@@ -1359,14 +1374,15 @@ impl pallet_democracy::Config for Runtime {
     // only do it once and it lasts only for the cooloff period.
     type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
     type CooloffPeriod = CooloffPeriod;
-    type PreimageByteDeposit = PreimageByteDeposit;
-    type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
     type Slash = Treasury;
     type Scheduler = Scheduler;
     type PalletsOrigin = OriginCaller;
     type MaxVotes = MaxVotes;
     type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
     type MaxProposals = MaxProposals;
+    type Preimages = Preimage;
+    type MaxDeposits = MaxDeposits;
+    type MaxBlacklisted = MaxBlacklisted;
 }
 
 parameter_types! {
@@ -1499,11 +1515,12 @@ parameter_types! {
 impl pallet_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type AttestationValidator = pallet_registry::IasValidator;
     type UnixTime = Timestamp;
     type VerifyPRuntime = VerifyPRuntime;
     type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
     type GovernanceOrigin = EnsureRootOrHalfCouncil;
+    type LegacyAttestationValidator = pallet_registry::IasValidator;
+    type NoneAttestationEnabled = ();
 }
 impl pallet_mq::Config for Runtime {
     type QueueNotifyConfig = msg_routing::MessageRouteConfig;
@@ -1706,10 +1723,6 @@ impl_runtime_apis! {
         BoundedThemeOf<Runtime>
     > for Runtime
     {
-        fn last_collection_idx() -> pallet_rmrk_rpc_runtime_api::Result<CollectionId> {
-            Ok(RmrkCore::collection_index())
-        }
-
         fn collection_by_id(id: CollectionId) -> pallet_rmrk_rpc_runtime_api::Result<Option<CollectionInfoOf<Runtime>>> {
             Ok(RmrkCore::collections(id))
         }
@@ -1722,7 +1735,7 @@ impl_runtime_apis! {
             Ok(Uniques::owned_in_collection(&collection_id, &account_id).collect())
         }
 
-        fn nft_children(collection_id: CollectionId, nft_id: NftId) -> pallet_rmrk_rpc_runtime_api::Result<Vec<NftChild>> {
+        fn nft_children(collection_id: CollectionId, nft_id: NftId) -> pallet_rmrk_rpc_runtime_api::Result<Vec<NftChild<CollectionId, NftId>>> {
             let children = RmrkCore::iterate_nft_children(collection_id, nft_id).collect();
 
             Ok(children)
