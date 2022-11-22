@@ -32,6 +32,7 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "relea
 
 # Cumulus dependencies
 pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.32", default-features = false }
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.32", default-features = false }
 
 [dev-dependencies]
 serde = { version = "1.0.119" }
@@ -52,6 +53,7 @@ std = [
 	"frame-executive/std",
 	"frame-system/std",
 	"pallet-collator-selection/std",
+	"cumulus-primitives-core/std",
 	"pallet-balances/std",
 	"polkadot-runtime-common/std",
 	"polkadot-primitives/std",
