@@ -115,6 +115,9 @@ subbridge-pallets = { path = "../../pallets/subbridge", default-features = false
 pallet-phala-world = { path = "../../pallets/phala-world", default-features = false }
 pallet-index = { path = "../../pallets/index", default-features = false }
 
+# TEMPORARY
+pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", optional = true }
 
@@ -242,6 +245,7 @@ std = [
 	"sygma-percentage-feehandler/std",
 	"sygma-runtime-api/std",
 	"primitive-types/std",
+	"pallet-sudo/std",
 ]
 
 try-runtime = [
@@ -296,6 +300,7 @@ try-runtime = [
 	"sygma-access-segregator/try-runtime",
 	"sygma-fee-handler-router/try-runtime",
 	"sygma-percentage-feehandler/try-runtime",
+	"pallet-sudo/try-runtime",
 ]
 
 # A feature that should be enabled when the runtime should be build for on-chain

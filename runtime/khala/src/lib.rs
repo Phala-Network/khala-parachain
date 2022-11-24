@@ -296,7 +296,7 @@ construct_runtime! {
         PhalaBasePool: pallet_base_pool::{Pallet, Call, Event<T>, Storage} = 96,
 
         // `sudo` has been removed on production
-        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` has been removed, the index should be kept
         // PhalaOneshotTransfer: pallet_ott::{Pallet, Call, Event<T>, Storage} = 100,
 
@@ -387,6 +387,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
 
         matches!(
             call,
+            RuntimeCall::Sudo { .. } |
             // System
             RuntimeCall::System { .. } | RuntimeCall::Timestamp { .. } | RuntimeCall::Utility { .. } |
             RuntimeCall::Multisig { .. } | RuntimeCall::Proxy { .. } | RuntimeCall::Scheduler { .. } |
@@ -1874,6 +1875,12 @@ impl pallet_index::Config for Runtime {
     type CommitteeOrigin = EnsureSignedBy<InDexAdminMembers, AccountId>;
     type AssetTransactor = (CurrencyTransactor, FungiblesTransactor);
     type AssetsRegistry = AssetsRegistry;
+}
+
+impl pallet_sudo::Config for Runtime {
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
