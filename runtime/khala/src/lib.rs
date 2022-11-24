@@ -277,7 +277,7 @@ construct_runtime! {
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
 
         // `sudo` has been removed on production
-        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` has been removed, the index should be kept
         // PhalaOneshotTransfer: pallet_ott::{Pallet, Call, Event<T>, Storage} = 100,
 
@@ -821,6 +821,11 @@ impl pallet_lottery::Config for Runtime {
     type ValidateCall = Lottery;
     type MaxGenerateRandom = MaxGenerateRandom;
     type WeightInfo = pallet_lottery::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_sudo::Config for Runtime {
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
