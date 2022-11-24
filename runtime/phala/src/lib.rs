@@ -296,14 +296,15 @@ construct_runtime! {
         PhalaBasePool: pallet_base_pool::{Pallet, Call, Event<T>, Storage} = 92,
         PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 93,
         PhalaFatTokenomic: pallet_fat_tokenomic::{Pallet, Call, Event<T>, Storage} = 94,
-        // `sudo` has been removed on production
-        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 255,
 
         // Phala World
         Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 101,
         RmrkCore: pallet_rmrk_core::{Pallet, Call, Event<T>, Storage} = 102,
         RmrkEquip: pallet_rmrk_equip::{Pallet, Call, Event<T>, Storage} = 103,
         RmrkMarket: pallet_rmrk_market::{Pallet, Call, Storage, Event<T>} = 104,
+
+        // `sudo` has been removed on production
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 255,
     }
 }
 
@@ -382,6 +383,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
 
         matches!(
             call,
+            RuntimeCall::Sudo { .. } |
             // System
             RuntimeCall::System { .. } | RuntimeCall::Timestamp { .. } | RuntimeCall::Utility { .. } |
             RuntimeCall::Multisig { .. } | RuntimeCall::Proxy { .. } | RuntimeCall::Scheduler { .. } |
@@ -1636,6 +1638,11 @@ impl pallet_fat::Config for Runtime {
 impl pallet_fat_tokenomic::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
+}
+
+impl pallet_sudo::Config for Runtime {
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
