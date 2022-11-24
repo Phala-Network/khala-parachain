@@ -193,6 +193,7 @@ fn genesis(
         balances: phala_parachain_runtime::BalancesConfig {
             balances: endowed_accounts,
         },
+        sudo: phala_parachain_runtime::SudoConfig { key: Some(root_key) },
         parachain_info: phala_parachain_runtime::ParachainInfoConfig { parachain_id: id },
         collator_selection: phala_parachain_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities

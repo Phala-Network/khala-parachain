@@ -253,7 +253,7 @@ construct_runtime! {
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 83,
 
         // `sudo` has been removed on production
-        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 255,
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 255,
     }
 }
 
@@ -298,6 +298,7 @@ impl Contains<Call> for BaseCallFilter {
 
         matches!(
             call,
+            Call::Sudo { .. } |
             // System
             Call::System { .. } | Call::Timestamp { .. } | Call::Utility { .. } |
             Call::Multisig { .. } | Call::Proxy { .. } | Call::Scheduler { .. } |
@@ -1310,6 +1311,11 @@ impl xtransfer::Config for Runtime {
         xcmbridge::BridgeTransactImpl<Runtime>,
         chainbridge::BridgeTransactImpl<Runtime>,
     );
+}
+
+impl pallet_sudo::Config for Runtime {
+    type Call = Call;
+    type Event = Event;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
