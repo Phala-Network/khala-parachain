@@ -104,6 +104,9 @@ pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-f
 subbridge-pallets = { path = "../../pallets/subbridge", default-features = false }
 pallet-index = { path = "../../pallets/index", default-features = false }
 
+# TEMPORARY
+pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42", default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42", optional = true }
 
@@ -219,6 +222,7 @@ std = [
 	"rmrk-traits/std",
 	"pallet-rmrk-rpc-runtime-api/std",
 	"pallet-index/std",
+	"pallet-sudo/std",
 ]
 
 try-runtime = [
