@@ -3848,6 +3848,7 @@ dependencies = [
  "pallet-rmrk-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-sudo",
  "pallet-timestamp",
  "pallet-tips",
  "pallet-transaction-payment",

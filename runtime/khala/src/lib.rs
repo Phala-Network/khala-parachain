@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 1192,
+    spec_version: 1193,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 5,
@@ -271,7 +271,7 @@ construct_runtime! {
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
 
         // `sudo` has been removed on production
-        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` has been removed, the index should be kept
         // PhalaOneshotTransfer: pallet_ott::{Pallet, Call, Event<T>, Storage} = 100,
 
@@ -349,6 +349,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
 
         matches!(
             call,
+            RuntimeCall::Sudo { .. } |
             // System
             RuntimeCall::System { .. } | RuntimeCall::Timestamp { .. } | RuntimeCall::Utility { .. } |
             RuntimeCall::Multisig { .. } | RuntimeCall::Proxy { .. } | RuntimeCall::Scheduler { .. } |
@@ -808,6 +809,11 @@ impl pallet_lottery::Config for Runtime {
     type ValidateCall = Lottery;
     type MaxGenerateRandom = MaxGenerateRandom;
     type WeightInfo = pallet_lottery::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_sudo::Config for Runtime {
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {

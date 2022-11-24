@@ -65,6 +65,8 @@ pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "p
 pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30", default-features = false }
 pallet-uniques = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30", default-features = false }
 
+pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30", default-features = false }
+
 # Cumulus dependencies
 pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.30", default-features = false }
 cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.30", default-features = false }
@@ -213,6 +215,7 @@ std = [
 	"rmrk-traits/std",
 	"pallet-rmrk-rpc-runtime-api/std",
 	"pallet-phala-world/std",
+	"pallet-sudo/std",
 ]
 
 try-runtime = [
@@ -260,6 +263,7 @@ try-runtime = [
 	"subbridge-pallets/try-runtime",
 	"assets-registry/try-runtime",
 	"phala-pallets/try-runtime",
+	"pallet-sudo/try-runtime",
 ]
 
 # A feature that should be enabled when the runtime should be build for on-chain
