@@ -1,8 +1,9 @@
 use codec::{Decode, Encode};
+use scale_info::TypeInfo;
+use sp_std::vec::Vec;
 
 /// Definition of source edge
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
+#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub struct SourceEdge {
 	/// asset/chain
 	pub to: Vec<u8>,
@@ -15,8 +16,7 @@ pub struct SourceEdge {
 }
 
 /// Definition of SINK edge
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
+#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub struct SinkEdge {
 	/// asset/chain
 	pub from: Vec<u8>,
@@ -29,8 +29,7 @@ pub struct SinkEdge {
 }
 
 /// Definition of swap operation edge
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
+#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub struct SwapEdge {
 	/// asset/chain
 	pub from: Vec<u8>,
@@ -53,8 +52,7 @@ pub struct SwapEdge {
 }
 
 /// Definition of bridge operation edge
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
+#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub struct BridgeEdge {
 	/// asset/chain
 	from: Vec<u8>,
@@ -72,8 +70,7 @@ pub struct BridgeEdge {
 	b1: Option<u128>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
+#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub enum EdgeStatus {
 	/// Haven't started executing this edge yet, which is the default status.
 	Inactive,
@@ -87,8 +84,7 @@ pub enum EdgeStatus {
 	Confirmed(u128),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
+#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub enum EdgeMeta {
 	Source(SourceEdge),
 	Sink(SinkEdge),
@@ -96,8 +92,7 @@ pub enum EdgeMeta {
 	Bridge(BridgeEdge),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
+#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub struct Edge {
 	/// Content of the edge
 	pub edge: EdgeMeta,
@@ -111,8 +106,7 @@ pub struct Edge {
 	pub nonce: Option<u128>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
+#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub enum TaskStatus {
 	/// Task initial confirmed by user on source chain.
 	Initialized,
@@ -130,8 +124,7 @@ pub enum TaskStatus {
 
 pub type TaskId = [u8; 32];
 
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo,))]
+#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub struct Task {
 	// Task id
 	pub id: TaskId,

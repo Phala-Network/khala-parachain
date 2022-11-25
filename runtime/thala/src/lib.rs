@@ -319,6 +319,9 @@ construct_runtime! {
         SygmaBridge: sygma_bridge::{Pallet, Call, Storage, Event<T>} = 113,
         SygmaFeeHandlerRouter: sygma_fee_handler_router::{Pallet, Call, Storage, Event<T>} = 114,
         SygmaWrapper: sygma_wrapper::{Pallet, Storage, Event<T>} = 115,
+
+        // inDEX
+        PalletIndex: pallet_index::{Pallet, Call, Storage, Event<T>} = 121,
     }
 }
 
@@ -423,6 +426,9 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World
             RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. } | RuntimeCall::PWMarketplace { .. }
+            RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. } |
+            // inDEX
+            RuntimeCall::PalletIndex { .. }
         )
     }
 }
@@ -1807,6 +1813,10 @@ impl pallet_fat::Config for Runtime {
 impl pallet_fat_tokenomic::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
+}
+impl pallet_index::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type CommitteeOrigin = EnsureRoot<Self::AccountId>;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
