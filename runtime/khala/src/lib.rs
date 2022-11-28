@@ -288,7 +288,7 @@ construct_runtime! {
         PhalaStakePoolv2: pallet_stakepoolv2::{Pallet, Call, Event<T>, Storage} = 93,
         PhalaVault: pallet_vault::{Pallet, Call, Event<T>, Storage} = 94,
         PhalaWrappedBalances: pallet_wrappedbalances::{Pallet, Call, Event<T>, Storage} = 95,
-        PhalaBasePool: pallet_basepool::{Pallet, Event<T>, Storage} = 96,
+        PhalaBasePool: pallet_basepool::{Pallet, Call, Event<T>, Storage} = 96,
 
         // `sudo` has been removed on production
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
@@ -393,7 +393,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             // Phala
             RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
             RuntimeCall::PhalaComputation { .. } |
-            RuntimeCall::PhalaStakePoolv2 { .. } |
+            RuntimeCall::PhalaStakePoolv2 { .. } | RuntimeCall::PhalaBasePool { .. } |
             RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
             // RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World

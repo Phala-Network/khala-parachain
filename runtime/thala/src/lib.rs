@@ -162,7 +162,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("thala"),
     impl_name: create_runtime_str!("thala"),
     authoring_version: 1,
-    spec_version: 1195,
+    spec_version: 1192,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 5,
@@ -288,7 +288,7 @@ construct_runtime! {
         PhalaStakePoolv2: pallet_stakepoolv2::{Pallet, Call, Event<T>, Storage} = 93,
         PhalaVault: pallet_vault::{Pallet, Call, Event<T>, Storage} = 94,
         PhalaWrappedBalances: pallet_wrappedbalances::{Pallet, Call, Event<T>, Storage} = 95,
-        PhalaBasePool: pallet_basepool::{Pallet, Event<T>, Storage} = 96,
+        PhalaBasePool: pallet_basepool::{Pallet, Call, Event<T>, Storage} = 96,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` was used in Khala, we avoid to use the index
@@ -385,7 +385,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             // Phala
             RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
             RuntimeCall::PhalaComputation { .. } |
-            RuntimeCall::PhalaStakePoolv2 { .. } |
+            RuntimeCall::PhalaStakePoolv2 { .. } | RuntimeCall::PhalaBasePool { .. } |
             RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
             RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World
