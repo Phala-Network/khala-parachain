@@ -429,6 +429,7 @@ pub mod pallet {
 			staker: T::AccountId,
 		) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
+<<<<<<< HEAD
 			let pool_proxy = Pallet::<T>::pool_collection(pid).ok_or(Error::<T>::PoolDoesNotExist)?;
 			let pool_info = match pool_proxy {
 				PoolProxy::Vault(res) => res.basepool,
@@ -436,6 +437,11 @@ pub mod pallet {
 			};
 			ensure!(
 				pool_info.owner == owner,
+=======
+			let pool_info = ensure_stake_pool::<T>(pid)?;
+			ensure!(
+				pool_info.basepool.owner == owner,
+>>>>>>> upstream/testing-spv2-pc4-2
 				Error::<T>::UnauthorizedPoolOwner
 			);
 			if let Some(mut whitelist) = PoolContributionWhitelists::<T>::get(&pid) {
@@ -469,6 +475,7 @@ pub mod pallet {
 			description: DescStr,
 		) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
+<<<<<<< HEAD
 			let pool_proxy = Pallet::<T>::pool_collection(pid).ok_or(Error::<T>::PoolDoesNotExist)?;
 			let pool_info = match pool_proxy {
 				PoolProxy::Vault(res) => res.basepool,
@@ -476,6 +483,11 @@ pub mod pallet {
 			};
 			ensure!(
 				pool_info.owner == owner,
+=======
+			let pool_info = ensure_stake_pool::<T>(pid)?;
+			ensure!(
+				pool_info.basepool.owner == owner,
+>>>>>>> upstream/testing-spv2-pc4-2
 				Error::<T>::UnauthorizedPoolOwner
 			);
 			PoolDescriptions::<T>::insert(&pid, description);
@@ -494,6 +506,7 @@ pub mod pallet {
 			staker: T::AccountId,
 		) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
+<<<<<<< HEAD
 			let pool_proxy = Pallet::<T>::pool_collection(pid).ok_or(Error::<T>::PoolDoesNotExist)?;
 			let pool_info = match pool_proxy {
 				PoolProxy::Vault(res) => res.basepool,
@@ -501,6 +514,11 @@ pub mod pallet {
 			};
 			ensure!(
 				pool_info.owner == owner,
+=======
+			let pool_info = ensure_stake_pool::<T>(pid)?;
+			ensure!(
+				pool_info.basepool.owner == owner,
+>>>>>>> upstream/testing-spv2-pc4-2
 				Error::<T>::UnauthorizedPoolOwner
 			);
 			let mut whitelist =

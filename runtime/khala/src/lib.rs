@@ -1637,7 +1637,11 @@ impl pallet_vault::Config for Runtime {
 }
 
 parameter_types! {
+<<<<<<< HEAD
     pub const WPhaAssetId: u32 = 13;
+=======
+    pub const WPhaAssetId: u32 = 1;
+>>>>>>> upstream/testing-spv2-pc4-2
 }
 
 pub struct WrappedBalancesGet;
