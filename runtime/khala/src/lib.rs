@@ -406,6 +406,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
 
         matches!(
             call,
+            RuntimeCall::Sudo { .. } |
             // System
             RuntimeCall::System { .. } | RuntimeCall::Timestamp { .. } | RuntimeCall::Utility { .. } |
             RuntimeCall::Multisig { .. } | RuntimeCall::Proxy { .. } | RuntimeCall::Scheduler { .. } |
@@ -1636,7 +1637,7 @@ impl pallet_vault::Config for Runtime {
 }
 
 parameter_types! {
-    pub const WPhaAssetId: u32 = 1;
+    pub const WPhaAssetId: u32 = 13;
 }
 
 pub struct WrappedBalancesGet;
