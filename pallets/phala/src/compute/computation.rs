@@ -13,7 +13,7 @@ pub mod pallet {
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
-		storage::{storage_prefix, unhashed, PrefixIterator},
+		storage::{storage_prefix, unhashed, PrefixIterator, migration},
 		traits::{
 			Currency, ExistenceRequirement::KeepAlive, OnUnbalanced, Randomness, StorageVersion,
 			UnixTime, ConstBool,
@@ -602,37 +602,37 @@ pub mod pallet {
 			);
 			let mining_prefix = storage_prefix(b"PhalaMining", b"TokenomicParameters");
 			let computation_prefix = storage_prefix(b"PhalaComputation", b"TokenomicParameters");
-			Self::move_prefix(mining_prefix.as_slice(), computation_prefix.as_slice(), 1);
+			Self::move_value(mining_prefix.as_slice(), computation_prefix.as_slice());
 
 			let mining_prefix = storage_prefix(b"PhalaMining", b"ScheduledTokenomicUpdate");
 			let computation_prefix =
 				storage_prefix(b"PhalaComputation", b"ScheduledTokenomicUpdate");
-			Self::move_prefix(mining_prefix.as_slice(), computation_prefix.as_slice(), 1);
+			Self::move_value(mining_prefix.as_slice(), computation_prefix.as_slice());
 
 			let mining_prefix = storage_prefix(b"PhalaMining", b"OnlineMiners");
 			let computation_prefix = storage_prefix(b"PhalaComputation", b"OnlineWorkers");
-			Self::move_prefix(mining_prefix.as_slice(), computation_prefix.as_slice(), 1);
+			Self::move_value(mining_prefix.as_slice(), computation_prefix.as_slice());
 
 			let mining_prefix = storage_prefix(b"PhalaMining", b"ExpectedHeartbeatCount");
 			let computation_prefix = storage_prefix(b"PhalaComputation", b"ExpectedHeartbeatCount");
-			Self::move_prefix(mining_prefix.as_slice(), computation_prefix.as_slice(), 1);
+			Self::move_value(mining_prefix.as_slice(), computation_prefix.as_slice());
 
 			let mining_prefix = storage_prefix(b"PhalaMining", b"CoolDownPeriod");
 			let computation_prefix = storage_prefix(b"PhalaComputation", b"CoolDownPeriod");
-			Self::move_prefix(mining_prefix.as_slice(), computation_prefix.as_slice(), 1);
+			Self::move_value(mining_prefix.as_slice(), computation_prefix.as_slice());
 
 			let mining_prefix = storage_prefix(b"PhalaMining", b"NextSessionId");
 			let computation_prefix = storage_prefix(b"PhalaComputation", b"NextSessionId");
-			Self::move_prefix(mining_prefix.as_slice(), computation_prefix.as_slice(), 1);
+			Self::move_value(mining_prefix.as_slice(), computation_prefix.as_slice());
 
 			let mining_prefix = storage_prefix(b"PhalaMining", b"MiningStartBlock");
 			let computation_prefix = storage_prefix(b"PhalaComputation", b"ComputingStartBlock");
-			Self::move_prefix(mining_prefix.as_slice(), computation_prefix.as_slice(), 1);
+			Self::move_value(mining_prefix.as_slice(), computation_prefix.as_slice());
 
 			let mining_prefix = storage_prefix(b"PhalaMining", b"MiningHalvingInterval");
 			let computation_prefix =
 				storage_prefix(b"PhalaComputation", b"ComputingHalvingInterval");
-			Self::move_prefix(mining_prefix.as_slice(), computation_prefix.as_slice(), 1);
+			Self::move_value(mining_prefix.as_slice(), computation_prefix.as_slice());
 			Ok(())
 		}
 		
@@ -682,6 +682,16 @@ pub mod pallet {
 	{
 		pub fn account_id() -> T::AccountId {
 			COMPUTING_PALLETID.into_account_truncating()
+		}
+
+		pub fn move_value(from_prefix: &[u8], to_prefix: &[u8]) {
+			if from_prefix == to_prefix {
+				return;
+			}
+			let value = unhashed::get_raw(from_prefix).unwrap_or_default();
+			unhashed::put_raw(to_prefix, &value);
+
+			return;
 		}
 
 		pub fn move_prefix(from_prefix: &[u8], to_prefix: &[u8], max_iterations: u32) {
