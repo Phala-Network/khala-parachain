@@ -14,15 +14,15 @@ mod phala_world_migration_common {
 	);
 
 	pub const EXPECTED_KHALA_STORAGE_VERSION: Versions = (
-		StorageVersion::new(0),
-		StorageVersion::new(0),
-		StorageVersion::new(0),
+		StorageVersion::new(1),
+		StorageVersion::new(1),
+		StorageVersion::new(1),
 	);
 
 	pub const FINAL_STORAGE_VERSION: Versions = (
-		StorageVersion::new(1),
-		StorageVersion::new(1),
-		StorageVersion::new(1),
+		StorageVersion::new(2),
+		StorageVersion::new(2),
+		StorageVersion::new(2),
 	);
 
 	pub fn get_versions<T>() -> Versions
@@ -45,18 +45,24 @@ pub mod phala_world_migration {
 	use frame_support::{ensure, log, traits::Get};
 	use pallet_rmrk_core::Collections;
 	use phala_world_migration_common as common;
-	pub const SPIRIT_COLLECTION_ID: u32 = 0;
 
-	pub fn get_collection_count<T>(
-		collection_id: <T as pallet_uniques::Config>::CollectionId,
-	) -> Option<u32>
+	pub fn get_next_collection_id<T>() -> (u32, u64)
 	where
 		T: pallet_pw_nft_sale::Config
 			+ pallet_rmrk_core::Config
 			+ pallet_uniques::Config<CollectionId = u32>,
 	{
-		let collection_info = Collections::<T>::get(collection_id);
-		collection_info.map(|info| info.nfts_count)
+		let mut next_collection_id: u32 = 0;
+		let mut reads: u64 = 0;
+		for collection_id in pallet_rmrk_core::Collections::<T>::iter_keys() {
+			if collection_id > next_collection_id {
+				next_collection_id = collection_id;
+			}
+			reads += 1;
+		}
+		// Add 1 to the next_collection_id
+		next_collection_id += 1;
+		(next_collection_id, reads)
 	}
 
 	pub fn pre_migrate<T>() -> Result<(), &'static str>
@@ -82,19 +88,16 @@ pub mod phala_world_migration {
 		if common::get_versions::<T>() == common::EXPECTED_KHALA_STORAGE_VERSION {
 			log::info!("Start PhalaWorld migration");
 
-			if let Some(next_nft_id) = get_collection_count::<T>(SPIRIT_COLLECTION_ID) {
-				pallet_pw_nft_sale::NextNftId::<T>::insert(SPIRIT_COLLECTION_ID, next_nft_id);
-				// Set new storage version
-				StorageVersion::new(1).put::<pallet_pw_nft_sale::Pallet<T>>();
-				StorageVersion::new(1).put::<pallet_rmrk_core::Pallet<T>>();
-				StorageVersion::new(1).put::<pallet_uniques::Pallet<T>>();
+			let (next_collection_id, reads) = get_next_collection_id::<T>();
+			log::info!("Insert {} into NextCollectionId", next_collection_id);
+			pallet_pw_nft_sale::NextCollectionId::<T>::put(next_collection_id);
+			// Set new storage version
+			StorageVersion::new(2).put::<pallet_pw_nft_sale::Pallet<T>>();
+			StorageVersion::new(2).put::<pallet_rmrk_core::Pallet<T>>();
+			StorageVersion::new(2).put::<pallet_uniques::Pallet<T>>();
 
-				log::info!("PhalaWorld migration done👏");
-				T::DbWeight::get().reads_writes(1, 5)
-			} else {
-				log::error!("NFT count could not be determined");
-				T::DbWeight::get().reads(1)
-			}
+			log::info!("PhalaWorld migration done👏");
+			T::DbWeight::get().reads_writes(reads, 1)
 		} else {
 			T::DbWeight::get().reads(1)
 		}

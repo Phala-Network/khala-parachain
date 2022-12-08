@@ -33,7 +33,7 @@ macro_rules! bvec {
 
 fn mint_collection(account: AccountId32) {
 	// Mint Spirits collection
-	assert_ok!(RmrkCore::create_collection(
+	assert_ok!(PWNftSale::pw_create_collection(
 		Origin::signed(account),
 		bvec![0u8; 20],
 		Some(10),
