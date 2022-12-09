@@ -78,11 +78,9 @@ pub use frame_support::{
     },
     PalletId, RuntimeDebug, StorageValue,
 };
+use frame_support::traits::AsEnsureOriginWithArg;
 
-use frame_system::{
-    limits::{BlockLength, BlockWeights},
-    EnsureRoot,
-};
+use frame_system::{limits::{BlockLength, BlockWeights}, EnsureRoot, EnsureSigned};
 
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
@@ -141,7 +139,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("phala"),
     impl_name: create_runtime_str!("phala"),
     authoring_version: 1,
-    spec_version: 1192,
+    spec_version: 1196,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 5,
@@ -625,6 +623,7 @@ impl pallet_assets::Config for Runtime {
     type Balance = Balance;
     type AssetId = u32;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type AssetAccountDeposit = AssetAccountDeposit;

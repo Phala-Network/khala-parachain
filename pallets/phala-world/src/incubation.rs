@@ -442,7 +442,7 @@ pub mod pallet {
 				Origin::<T>::Signed(owner.clone()).into(),
 				collection_id,
 				nft_id,
-			)?;
+			).map_err(|e| e.error)?;
 			// Remove Properties from Uniques pallet
 			pallet_pw_nft_sale::Pallet::<T>::remove_nft_properties(
 				collection_id,

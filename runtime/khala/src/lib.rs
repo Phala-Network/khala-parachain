@@ -151,7 +151,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 1192,
+    spec_version: 1196,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -701,6 +701,7 @@ impl pallet_assets::Config for Runtime {
     type Balance = Balance;
     type AssetId = u32;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type AssetAccountDeposit = AssetAccountDeposit;
@@ -884,7 +885,7 @@ impl pallet_rmrk_core::Config for Runtime {
     type CollectionSymbolLimit = rmrk_core::CollectionSymbolLimit;
     type MaxResourcesOnMint = MaxResourcesOnMint;
     type WeightInfo = pallet_rmrk_core::weights::SubstrateWeight<Runtime>;
-    type CheckAllowTransfer = ();
+    type TransferHooks = ();
 }
 
 impl pallet_rmrk_equip::Config for Runtime {
@@ -1515,8 +1516,10 @@ parameter_types! {
     pub const MinInitP: u32 = 50;
     pub const MiningEnabledByDefault: bool = false;
     pub const MaxPoolWorkers: u32 = 200;
+    pub const NoneAttestationEnabled: bool = false;
     pub const VerifyPRuntime: bool = true;
     pub const VerifyRelaychainGenesisBlockHash: bool = true;
+    pub ParachainId: u32 = ParachainInfo::parachain_id().into();
 }
 
 impl pallet_registry::Config for Runtime {
@@ -1527,7 +1530,8 @@ impl pallet_registry::Config for Runtime {
     type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
     type GovernanceOrigin = EnsureRootOrHalfCouncil;
     type LegacyAttestationValidator = pallet_registry::IasValidator;
-    type NoneAttestationEnabled = ();
+    type NoneAttestationEnabled = NoneAttestationEnabled;
+    type ParachainId = ParachainId;
 }
 impl pallet_mq::Config for Runtime {
     type QueueNotifyConfig = msg_routing::MessageRouteConfig;

@@ -1,4 +1,5 @@
 //! Manages mining lifecycle, reward and slashes
+#![allow(clippy::all)]
 
 pub use self::pallet::*;
 
@@ -503,7 +504,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			new_params: TokenomicParams,
 		) -> DispatchResult {
-			T::GovernanceOrigin::ensure_origin(origin)?;
+			T::UpdateTokenomicOrigin::ensure_origin(origin)?;
 			ScheduledTokenomicUpdate::<T>::put(new_params);
 			Ok(())
 		}
@@ -517,7 +518,7 @@ pub mod pallet {
 		/// Can only be called by root.
 		#[pallet::weight(1)]
 		pub fn set_heartbeat_paused(origin: OriginFor<T>, paused: bool) -> DispatchResult {
-			ensure_root(origin)?;
+			T::GovernanceOrigin::ensure_origin(origin)?;
 			HeartbeatPaused::<T>::put(paused);
 			Ok(())
 		}
@@ -560,7 +561,6 @@ pub mod pallet {
 			if HeartbeatPaused::<T>::get() {
 				return;
 			}
-
 			// Random seed for the heartbeat challenge
 			let seed_hash = T::Randomness::random(crate::constants::RANDOMNESS_SUBJECT).0;
 			let seed: U256 = AsRef::<[u8]>::as_ref(&seed_hash).into();

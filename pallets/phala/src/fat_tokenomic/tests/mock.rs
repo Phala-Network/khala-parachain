@@ -115,12 +115,14 @@ impl registry::Config for Test {
 	type VerifyPRuntime = VerifyPRuntime;
 	type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
 	type GovernanceOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type ParachainId = ConstU32<0>;
 }
 
 impl fat::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type InkCodeSizeLimit = ConstU32<{ 1024 * 1024 }>;
 	type SidevmCodeSizeLimit = ConstU32<{ 1024 * 1024 }>;
+	type Currency = Balances;
 }
 
 impl fat_tokenomic::Config for Test {

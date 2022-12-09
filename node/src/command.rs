@@ -23,10 +23,7 @@ use sc_cli::{
     CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
     NetworkParams, Result, RuntimeVersion, SharedParams, SubstrateCli,
 };
-use sc_service::{
-    config::{BasePath, PrometheusConfig},
-    TaskManager,
-};
+use sc_service::config::{BasePath, PrometheusConfig};
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
 
@@ -36,17 +33,6 @@ use crate::{
 };
 
 use crate::service::{Block, new_partial};
-
-#[cfg(feature = "phala-native")]
-use crate::service::phala::RuntimeExecutor as PhalaParachainRuntimeExecutor;
-#[cfg(feature = "khala-native")]
-use crate::service::khala::RuntimeExecutor as KhalaParachainRuntimeExecutor;
-#[cfg(feature = "rhala-native")]
-use crate::service::rhala::RuntimeExecutor as RhalaParachainRuntimeExecutor;
-#[cfg(feature = "thala-native")]
-use crate::service::thala::RuntimeExecutor as ThalaParachainRuntimeExecutor;
-#[cfg(feature = "shell-native")]
-use crate::service::shell::RuntimeExecutor as ShellParachainRuntimeExecutor;
 
 trait IdentifyChain {
     fn runtime_name(&self) -> String;
@@ -645,55 +631,56 @@ pub fn run() -> Result<()> {
             }
         },
         Some(Subcommand::Key(cmd)) => Ok(cmd.run(&cli)?),
+        #[cfg(feature = "try-runtime")]
         Some(Subcommand::TryRuntime(cmd)) => {
-            if cfg!(feature = "try-runtime") {
-                // grab the task manager.
-                let runner = cli.create_runner(cmd)?;
-                let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
-                let task_manager =
-                    TaskManager::new(runner.config().tokio_handle.clone(), *registry)
-                        .map_err(|e| format!("Error: {:?}", e))?;
+            // grab the task manager.
+            let runner = cli.create_runner(cmd)?;
+            let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
+            let task_manager =
+                sc_service::TaskManager::new(runner.config().tokio_handle.clone(), *registry)
+                    .map_err(|e| format!("Error: {:?}", e))?;
 
-                #[cfg(feature = "phala-native")]
-                if runner.config().chain_spec.is_phala() {
-                    return runner.async_run(|config| {
-                        Ok((cmd.run::<Block, PhalaParachainRuntimeExecutor>(config), task_manager))
-                    })
-                }
-
-                #[cfg(feature = "khala-native")]
-                if runner.config().chain_spec.is_khala() {
-                    return runner.async_run(|config| {
-                        Ok((cmd.run::<Block, KhalaParachainRuntimeExecutor>(config), task_manager))
-                    })
-                }
-
-                #[cfg(feature = "rhala-native")]
-                if runner.config().chain_spec.is_rhala() {
-                    return runner.async_run(|config| {
-                        Ok((cmd.run::<Block, RhalaParachainRuntimeExecutor>(config), task_manager))
-                    })
-                }
-
-                #[cfg(feature = "thala-native")]
-                if runner.config().chain_spec.is_thala() {
-                    return runner.async_run(|config| {
-                        Ok((cmd.run::<Block, ThalaParachainRuntimeExecutor>(config), task_manager))
-                    })
-                }
-
-                #[cfg(feature = "shell-native")]
-                if runner.config().chain_spec.is_shell() {
-                    return runner.async_run(|config| {
-                        Ok((cmd.run::<Block, ShellParachainRuntimeExecutor>(config), task_manager))
-                    })
-                }
-
-                Err("Can't determine runtime from chain_spec".into())
-            } else {
-                Err("Try-runtime must be enabled by `--features try-runtime`.".into())
+            #[cfg(feature = "phala-native")]
+            if runner.config().chain_spec.is_phala() {
+                return runner.async_run(|config| {
+                    Ok((cmd.run::<Block, crate::service::phala::RuntimeExecutor>(config), task_manager))
+                })
             }
+
+            #[cfg(feature = "khala-native")]
+            if runner.config().chain_spec.is_khala() {
+                return runner.async_run(|config| {
+                    Ok((cmd.run::<Block, crate::service::khala::RuntimeExecutor>(config), task_manager))
+                })
+            }
+
+            #[cfg(feature = "rhala-native")]
+            if runner.config().chain_spec.is_rhala() {
+                return runner.async_run(|config| {
+                    Ok((cmd.run::<Block, crate::service::rhala::RuntimeExecutor>(config), task_manager))
+                })
+            }
+
+            #[cfg(feature = "thala-native")]
+            if runner.config().chain_spec.is_thala() {
+                return runner.async_run(|config| {
+                    Ok((cmd.run::<Block, crate::service::thala::RuntimeExecutor>(config), task_manager))
+                })
+            }
+
+            #[cfg(feature = "shell-native")]
+            if runner.config().chain_spec.is_shell() {
+                return runner.async_run(|config| {
+                    Ok((cmd.run::<Block, crate::service::shell::RuntimeExecutor>(config), task_manager))
+                })
+            }
+
+            Err("Can't determine runtime from chain_spec".into())
         },
+        #[cfg(not(feature = "try-runtime"))]
+        Some(Subcommand::TryRuntime) => Err("Try-runtime was not enabled when building the node. \
+            You can enable it with `--features try-runtime`."
+            .into()),
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
             let collator_options = cli.run.collator_options();
