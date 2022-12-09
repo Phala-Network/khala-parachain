@@ -110,7 +110,8 @@ impl pallet_rmrk_core::Config for Test {
 	type NestingBudget = NestingBudget;
 	type CollectionSymbolLimit = CollectionSymbolLimit;
 	type MaxResourcesOnMint = MaxResourcesOnMint;
-	type WeightInfo = ();
+	type WeightInfo = pallet_rmrk_core::weights::SubstrateWeight<Test>;
+	type TransferHooks = ();
 }
 
 parameter_types! {

@@ -106,7 +106,7 @@ fn setup_config(enable_status_type: StatusType) {
 	assert_ok!(PWNftSale::set_payee(Origin::signed(OVERLORD), PAYEE));
 	// Set Signer account
 	assert_ok!(PWNftSale::set_signer(Origin::signed(OVERLORD), SIGNER));
-	let spirit_collection_id = RmrkCore::collection_index();
+	let spirit_collection_id: <Test as pallet_uniques::Config>::CollectionId = 0;
 	// Mint Spirits Collection
 	mint_collection(OVERLORD);
 	// Set Spirit Collection ID
@@ -119,7 +119,7 @@ fn setup_config(enable_status_type: StatusType) {
 		Origin::signed(OVERLORD),
 		spirits_metadata
 	));
-	let origin_of_shell_collection_id = RmrkCore::collection_index();
+	let origin_of_shell_collection_id: <Test as pallet_uniques::Config>::CollectionId = 1;
 	// Mint Origin of Shells Collection
 	mint_collection(OVERLORD);
 	// Set Origin of Shell Collection ID
@@ -207,14 +207,14 @@ fn setup_config(enable_status_type: StatusType) {
 }
 
 fn setup_incubation_config() {
-	let shell_collection_id = RmrkCore::collection_index();
+	let shell_collection_id: <Test as pallet_uniques::Config>::CollectionId = 2;
 	// Mint Shell Collection
 	mint_collection(OVERLORD);
 	assert_ok!(PWIncubation::set_shell_collection_id(
 		Origin::signed(OVERLORD),
 		shell_collection_id
 	));
-	let shell_parts_collection_id = RmrkCore::collection_index();
+	let shell_parts_collection_id: <Test as pallet_uniques::Config>::CollectionId = 3;
 	// Mint Shell Parts Collection
 	mint_collection(OVERLORD);
 	assert_ok!(PWIncubation::set_shell_parts_collection_id(
