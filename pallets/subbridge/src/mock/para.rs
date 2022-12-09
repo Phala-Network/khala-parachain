@@ -7,7 +7,7 @@ use crate::{
 use assets_registry;
 use frame_support::{
 	construct_runtime, match_types, parameter_types,
-	traits::{ConstU128, ConstU32, Contains, Everything},
+	traits::{ConstU128, ConstU32, Contains, Everything, AsEnsureOriginWithArg},
 	weights::Weight,
 	PalletId,
 };
@@ -131,6 +131,7 @@ impl pallet_assets::Config for Runtime {
 	type Balance = Balance;
 	type AssetId = u32;
 	type Currency = Balances;
+	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type AssetDeposit = AssetDeposit;
 	type AssetAccountDeposit = ConstU128<10>;

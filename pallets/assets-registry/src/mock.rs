@@ -3,7 +3,7 @@
 use crate as assets_registry;
 use frame_support::{
 	ord_parameter_types, parameter_types,
-	traits::{ConstU128, ConstU32, GenesisBuild},
+	traits::{ConstU128, ConstU32, GenesisBuild, AsEnsureOriginWithArg},
 };
 use frame_system::{self as system};
 use sp_core::H256;
@@ -103,6 +103,7 @@ impl pallet_assets::Config for Test {
 	type Balance = Balance;
 	type AssetId = u32;
 	type Currency = Balances;
+	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<Self::AccountId>>;
 	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type AssetDeposit = AssetDeposit;
 	type AssetAccountDeposit = ConstU128<10>;
