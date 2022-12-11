@@ -53,9 +53,13 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, Bounded, ConvertInto},
+    traits::{
+        AccountIdConversion, AccountIdLookup, Block as BlockT, Bounded, ConvertInto,
+        TrailingZeroInput,
+    },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
+    AccountId32,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 #[cfg(feature = "std")]
@@ -66,17 +70,19 @@ use static_assertions::const_assert;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
     construct_runtime,
-    dispatch::DispatchClass,
     match_types, parameter_types,
     traits::{
         tokens::nonfungibles::*, AsEnsureOriginWithArg, Contains, Currency, EitherOfDiverse,
         EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem,
         LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote, WithdrawReasons,
+        ConstU32,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         ConstantMultiplier, IdentityFee, Weight,
     },
+    pallet_prelude::Get,
+    dispatch::DispatchClass,
     BoundedVec, PalletId, RuntimeDebug, StorageValue,
 };
 
@@ -108,7 +114,10 @@ use rmrk_traits::{
 pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
-pub use phala_pallets::{pallet_mining, pallet_mq, pallet_registry, pallet_stakepool};
+pub use phala_pallets::{
+    pallet_base_pool, pallet_computation, pallet_fat, pallet_mq, pallet_wrapped_balances, pallet_registry,
+    pallet_stake_pool, pallet_stake_pool_v2, pallet_vault, pallet_fat_tokenomic,
+};
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
     xcmbridge, xtransfer,
@@ -271,10 +280,16 @@ construct_runtime! {
         // Phala
         PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
         PhalaRegistry: pallet_registry::{Pallet, Call, Event<T>, Storage, Config<T>} = 86,
-        PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
-        PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
+        PhalaComputation: pallet_computation::{Pallet, Call, Event<T>, Storage, Config} = 87,
+        PhalaStakePool: pallet_stake_pool::{Pallet, Event<T>, Storage} = 88,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
+        // PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 91,
+        // PhalaFatTokenomic: pallet_fat_tokenomic::{Pallet, Call, Event<T>, Storage} = 92,
+        PhalaStakePoolv2: pallet_stake_pool_v2::{Pallet, Call, Event<T>, Storage} = 93,
+        PhalaVault: pallet_vault::{Pallet, Call, Event<T>, Storage} = 94,
+        PhalaWrappedBalances: pallet_wrapped_balances::{Pallet, Call, Event<T>, Storage} = 95,
+        PhalaBasePool: pallet_base_pool::{Pallet, Event<T>, Storage} = 96,
 
         // `sudo` has been removed on production
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
@@ -378,7 +393,10 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::Lottery { .. } | RuntimeCall::Tips { .. } |
             // Phala
             RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
-            RuntimeCall::PhalaMining { .. } | RuntimeCall::PhalaStakePool { .. } |
+            RuntimeCall::PhalaComputation { .. } |
+            RuntimeCall::PhalaStakePoolv2 { .. } |
+            RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
+            // RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World
             RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. }
         )
@@ -576,15 +594,13 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
             ProxyType::StakePoolManager => matches!(
                 c,
                 RuntimeCall::Utility { .. }
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::add_worker { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::remove_worker { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::start_mining { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::stop_mining { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::restart_mining { .. })
-                    | RuntimeCall::PhalaStakePool(
-                        pallet_stakepool::Call::reclaim_pool_worker { .. }
-                    )
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::create { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::add_worker { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::remove_worker { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::start_computing { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::stop_computing { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::restart_computing { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::reclaim_pool_worker { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::create { .. })
                     | RuntimeCall::PhalaRegistry(pallet_registry::Call::register_worker { .. })
                     | RuntimeCall::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })
             ),
@@ -885,7 +901,7 @@ impl pallet_rmrk_core::Config for Runtime {
     type CollectionSymbolLimit = rmrk_core::CollectionSymbolLimit;
     type MaxResourcesOnMint = MaxResourcesOnMint;
     type WeightInfo = pallet_rmrk_core::weights::SubstrateWeight<Runtime>;
-    type TransferHooks = ();
+    type TransferHooks = PhalaWrappedBalances;
 }
 
 impl pallet_rmrk_equip::Config for Runtime {
@@ -1508,13 +1524,23 @@ impl pallet_mq::CallMatcher<Runtime> for MqCallMatcher {
     }
 }
 
+pub struct MigrationAccount;
+
+impl Get<AccountId32> for MigrationAccount {
+    fn get() -> AccountId32 {
+        let account: [u8; 32] =
+            hex_literal::hex!("9e6399cd577e8ac536bdc017675f747b2d1893ad9cc8c69fd17eef73d4e6e51e");
+        account.into()
+    }
+}
+
 parameter_types! {
     pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
-    pub const MinMiningStaking: Balance = 1 * DOLLARS;
+    pub const MinWorkingStaking: Balance = 1 * DOLLARS;
     pub const MinContribution: Balance = 1 * CENTS;
-    pub const MiningGracePeriod: u64 = 7 * 24 * 3600;
+    pub const WorkingGracePeriod: u64 = 7 * 24 * 3600;
     pub const MinInitP: u32 = 50;
-    pub const MiningEnabledByDefault: bool = false;
+    pub const ComputingEnabledByDefault: bool = false;
     pub const MaxPoolWorkers: u32 = 200;
     pub const NoneAttestationEnabled: bool = false;
     pub const VerifyPRuntime: bool = true;
@@ -1526,40 +1552,90 @@ impl pallet_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type UnixTime = Timestamp;
+    type LegacyAttestationValidator = pallet_registry::IasValidator;
+    type NoneAttestationEnabled = NoneAttestationEnabled;
     type VerifyPRuntime = VerifyPRuntime;
     type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
     type GovernanceOrigin = EnsureRootOrHalfCouncil;
-    type LegacyAttestationValidator = pallet_registry::IasValidator;
-    type NoneAttestationEnabled = NoneAttestationEnabled;
     type ParachainId = ParachainId;
+    type RegistryMigrationAccountId = MigrationAccount;
 }
 impl pallet_mq::Config for Runtime {
     type QueueNotifyConfig = msg_routing::MessageRouteConfig;
     type CallMatcher = MqCallMatcher;
 }
-impl pallet_mining::Config for Runtime {
+impl pallet_computation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
     type MinInitP = MinInitP;
-    type Currency = Balances;
     type Randomness = RandomnessCollectiveFlip;
-    type OnReward = PhalaStakePool;
-    type OnUnbound = PhalaStakePool;
-    type OnStopped = PhalaStakePool;
+    type OnReward = PhalaStakePoolv2;
+    type OnUnbound = PhalaStakePoolv2;
+    type OnStopped = PhalaStakePoolv2;
     type OnTreasurySettled = Treasury;
     type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
+    type ComputationMigrationAccountId = MigrationAccount;
 }
-impl pallet_stakepool::Config for Runtime {
+impl pallet_stake_pool_v2::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MinContribution = MinContribution;
+    type GracePeriod = WorkingGracePeriod;
+    type ComputingEnabledByDefault = ComputingEnabledByDefault;
+    type MaxPoolWorkers = MaxPoolWorkers;
+    type ComputingSwitchOrigin = EnsureRootOrHalfCouncil;
+}
+impl pallet_stake_pool::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type MinContribution = MinContribution;
-    type GracePeriod = MiningGracePeriod;
-    type MiningEnabledByDefault = MiningEnabledByDefault;
-    type MaxPoolWorkers = MaxPoolWorkers;
-    type OnSlashed = Treasury;
-    type MiningSwitchOrigin = EnsureRootOrHalfCouncil;
-    type BackfillOrigin = EnsureRootOrHalfCouncil;
 }
+
+parameter_types! {
+    pub const InitialPriceCheckPoint: Balance = 1 * DOLLARS;
+}
+
+impl pallet_vault::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type InitialPriceCheckPoint = InitialPriceCheckPoint;
+}
+
+parameter_types! {
+    pub const WPhaAssetId: u32 = 1;
+}
+
+pub struct WrappedBalancesPalletAccount;
+
+impl Get<AccountId32> for WrappedBalancesPalletAccount {
+    fn get() -> AccountId32 {
+        (b"wpha/")
+            .using_encoded(|b| AccountId32::decode(&mut TrailingZeroInput::new(b)))
+            .expect("Decoding zero-padded account id should always succeed; qed")
+    }
+}
+
+impl pallet_wrapped_balances::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type WPhaAssetId = ConstU32<15>;
+    type WrappedBalancesAccountId = WrappedBalancesPalletAccount;
+    type OnSlashed = Treasury;
+}
+impl pallet_base_pool::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MigrationAccountId = MigrationAccount;
+}
+
+impl phala_pallets::PhalaConfig for Runtime {
+    type Currency = Balances;
+}
+// impl pallet_fat::Config for Runtime {
+//     type RuntimeEvent = RuntimeEvent;
+//     type InkCodeSizeLimit = ConstU32<{1024*1024*2}>;
+//     type SidevmCodeSizeLimit = ConstU32<{1024*1024*8}>;
+//     type Currency = Balances;
+// }
+// impl pallet_fat_tokenomic::Config for Runtime {
+//     type RuntimeEvent = RuntimeEvent;
+//     type Currency = Balances;
+// }
 
 #[cfg(feature = "runtime-benchmarks")]
 #[macro_use]
