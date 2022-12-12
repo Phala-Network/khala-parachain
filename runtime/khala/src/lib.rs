@@ -368,6 +368,44 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             };
         }
 
+        // For spv2 migration
+        /*if let RuntimeCall::PhalaRegistry(phala_registry_method) = call {
+            return match phala_registry_method {
+                pallet_registry::Call::migrate_workers { .. }
+                | pallet_registry::Call::__Ignore { .. } => true,
+                _ => false,
+            };
+        }
+
+        if let RuntimeCall::PhalaComputation(phala_computation_method) = call {
+            return match phala_computation_method {
+                pallet_computation::Call::migrate_miners { .. }
+                | pallet_computation::Call::migrate_miner_bindings { .. }
+                | pallet_computation::Call::migrate_worker_bindings { .. }
+                | pallet_computation::Call::migrate_stakes { .. }
+                | pallet_computation::Call::migrate_storage_values { .. }
+                | pallet_computation::Call::set_heartbeat_paused { .. }
+                | pallet_computation::Call::__Ignore { .. } => true,
+                _ => false,
+            };
+        }
+
+        if let RuntimeCall::PhalaStakePoolv2(phala_stakepoolv2_method) = call {
+            return match phala_stakepoolv2_method {
+                pallet_stakepoolv2::Call::migrate_stakepools { .. }
+                | pallet_stakepoolv2::Call::migrate_pool_stakers { .. }
+                | pallet_stakepoolv2::Call::migrate_stake_ledger { .. }
+                | pallet_stakepoolv2::Call::drain_stakepool_storages { .. }
+                | pallet_stakepoolv2::Call::migrate_worker_assignments { .. }
+                | pallet_stakepoolv2::Call::migrate_subaccount_preimage { .. }
+                | pallet_stakepoolv2::Call::migrate_contribution_whitelist { .. }
+                | pallet_stakepoolv2::Call::migrate_pool_description { .. }
+                | pallet_stakepoolv2::Call::__Ignore { .. } => true,
+                _ => false,
+            };
+        }*/
+
+
         matches!(
             call,
             RuntimeCall::Sudo { .. } |
@@ -388,7 +426,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::DmpQueue { .. } |
             // Governance
             RuntimeCall::Identity { .. } | RuntimeCall::Treasury { .. } |
-            RuntimeCall::Democracy { .. } | RuntimeCall::PhragmenElection { .. } |
+            RuntimeCall::Democracy { .. } | /*RuntimeCall::PhragmenElection { .. } |*/
             RuntimeCall::Council { .. } | RuntimeCall::TechnicalCommittee { .. } | RuntimeCall::TechnicalMembership { .. } |
             RuntimeCall::Bounties { .. } | RuntimeCall::ChildBounties { .. } |
             RuntimeCall::Lottery { .. } | RuntimeCall::Tips { .. } |
@@ -894,7 +932,7 @@ parameter_types! {
     pub const ResourceSymbolLimit: u32 = 10;
     pub const MaxPriorities: u32 = 25;
     pub const MaxResourcesOnMint: u32 = 100;
-    pub const NestingBudget: u32 = 20;
+    pub const NestingBudget: u32 = 200;
 }
 
 impl pallet_rmrk_core::Config for Runtime {
