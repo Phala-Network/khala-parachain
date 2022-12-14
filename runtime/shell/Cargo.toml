@@ -47,7 +47,7 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", default-feature
 pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33", default-features = false }
 
 [build-dependencies]
-substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
+substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33", optional = true }
 
 [features]
 default = ["std"]
@@ -67,6 +67,7 @@ std = [
 	"sp-block-builder/std",
 	"sp-transaction-pool/std",
 	"sp-inherents/std",
+	"substrate-wasm-builder",
 	"frame-support/std",
 	"frame-executive/std",
 	"frame-system/std",

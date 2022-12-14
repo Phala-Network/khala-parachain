@@ -101,7 +101,7 @@ subbridge-pallets = { path = "../../pallets/subbridge", default-features = false
 pallet-phala-world = { path = "../../pallets/phala-world", default-features = false }
 
 [build-dependencies]
-substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
+substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33", optional = true }
 
 [features]
 default = ["std", "include-wasm"]
@@ -156,6 +156,7 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-inherents/std",
 	"sp-consensus-aura/std",
+	"substrate-wasm-builder",
 	"frame-support/std",
 	"frame-benchmarking/std",
 	"frame-executive/std",
