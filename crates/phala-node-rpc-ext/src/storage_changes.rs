@@ -29,7 +29,7 @@ pub enum Error {
 
 impl Error {
     fn invalid_block<Block: BlockT, E: Display>(id: BlockId<Block>, error: E) -> Self {
-        Self::InvalidBlock(format!("{}: {}", id, error))
+        Self::InvalidBlock(format!("{id}: {error}"))
     }
 }
 
@@ -80,8 +80,8 @@ where
 
     if n_from > n_to {
         return Err(Error::InvalidBlockRange {
-            from: format!("{}({})", from, n_from),
-            to: format!("{}({})", to, n_to),
+            from: format!("{from}({n_from})"),
+            to: format!("{to}({n_to})"),
         });
     }
 
@@ -110,9 +110,10 @@ where
         .into_par_iter()
         .map(|(id, mut header)| -> Result<_, Error> {
             let api = client.runtime_api();
+            let hash = client.expect_block_hash_from_id(&id).expect("Should get the block hash");
             if (*header.number()).into() == 0u64 {
                 let state = backend
-                    .state_at(id)
+                    .state_at(hash)
                     .map_err(|e| Error::invalid_block(id, e))?;
                 return Ok(StorageChanges {
                     main_storage_changes: state
@@ -125,7 +126,7 @@ where
             }
 
             let extrinsics = client
-                .block_body(&id)
+                .block_body(hash)
                 .map_err(|e| Error::invalid_block(id, e))?
                 .ok_or_else(|| Error::invalid_block(id, "block body not found"))?;
             let parent_hash = *header.parent_hash();
@@ -140,7 +141,7 @@ where
                 .map_err(|e| Error::invalid_block(id, e))?;
 
             let state = backend
-                .state_at(parent_id)
+                .state_at(hash)
                 .map_err(|e| Error::invalid_block(parent_id, e))?;
 
             let storage_changes = api

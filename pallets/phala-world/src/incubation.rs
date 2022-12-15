@@ -16,7 +16,7 @@ use frame_support::{
 use frame_system::{ensure_signed, pallet_prelude::*, Origin};
 pub use pallet_rmrk_core::types::*;
 pub use pallet_rmrk_market;
-use rmrk_traits::{primitives::*, Nft};
+use rmrk_traits::{budget, primitives::*, Nft};
 use sp_runtime::{DispatchError, Permill};
 use sp_std::vec::Vec;
 
@@ -365,8 +365,8 @@ pub mod pallet {
 		/// NFT.
 		///
 		/// Parameters:
-		/// - `origin`: The origin of the extrinsic incubation the origin_of_shell
-		/// - `collection_id`: The collection id of the Origin of Shell RMRK NFT
+		/// - `origin`: Expected to be the `Overlord` account
+        /// - `collection_id`: The collection id of the Origin of Shell RMRK NFT
 		/// - `nft_id`: The NFT id of the Origin of Shell RMRK NFT
 		/// - `default_shell_metadata`: File resource URI in decentralized storage for Shell NFT
 		///	parts that render the Shell NFT
@@ -378,6 +378,7 @@ pub mod pallet {
 			nft_id: NftId,
 			default_shell_metadata: BoundedVec<u8, T::StringLimit>,
 		) -> DispatchResult {
+            // Ensure Overlord account is the sender
 			let sender = ensure_signed(origin.clone())?;
 			pallet_pw_nft_sale::pallet::Pallet::<T>::ensure_overlord(&sender)?;
 			// Check if Incubation Phase has started
@@ -390,9 +391,10 @@ pub mod pallet {
 				Self::is_origin_of_shell_collection_id(collection_id),
 				Error::<T>::WrongCollectionId
 			);
+			let budget = budget::Value::new(T::NestingBudget::get());
 			// Get owner of the Origin of Shell NFT
 			let (owner, _) =
-				pallet_rmrk_core::Pallet::<T>::lookup_root_owner(collection_id, nft_id)?;
+				pallet_rmrk_core::Pallet::<T>::lookup_root_owner(collection_id, nft_id, &budget)?;
 			// Check if the incubation has started and the official hatch time has been met
 			ensure!(
 				HasOriginOfShellStartedIncubation::<T>::get((collection_id, nft_id))
@@ -441,8 +443,7 @@ pub mod pallet {
 				Origin::<T>::Signed(owner.clone()).into(),
 				collection_id,
 				nft_id,
-				1,
-			)?;
+			).map_err(|e| e.error)?;
 			// Remove Properties from Uniques pallet
 			pallet_pw_nft_sale::Pallet::<T>::remove_nft_properties(
 				collection_id,

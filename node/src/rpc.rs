@@ -23,7 +23,7 @@ use std::sync::Arc;
 use parachains_common::{
     rmrk_core, rmrk_equip, uniques, AccountId, Balance, Block, Index as Nonce,
 };
-use rmrk_traits::primitives::{CollectionId, PartId};
+use rmrk_traits::primitives::{CollectionId, NftId, PartId};
 use rmrk_traits::{
     BaseInfo, CollectionInfo, NftInfo, PartType, PropertyInfo, ResourceInfo, Theme, ThemeProperty,
 };
@@ -79,7 +79,7 @@ where
             BoundedVec<u8, rmrk_core::CollectionSymbolLimit>,
             AccountId,
         >,
-        NftInfo<AccountId, Permill, BoundedVec<u8, uniques::StringLimit>>,
+        NftInfo<AccountId, Permill, BoundedVec<u8, uniques::StringLimit>, CollectionId, NftId>,
         ResourceInfo<
             BoundedVec<u8, uniques::StringLimit>,
             BoundedVec<PartId, rmrk_core::PartsLimit>,

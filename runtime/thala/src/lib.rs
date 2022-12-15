@@ -53,9 +53,13 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{AccountIdConversion, AccountIdLookup, Block as BlockT, ConvertInto},
+    traits::{
+        AccountIdConversion, AccountIdLookup, Block as BlockT, Bounded, ConvertInto,
+        TrailingZeroInput,
+    },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
+    AccountId32,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 #[cfg(feature = "std")]
@@ -65,16 +69,19 @@ use static_assertions::const_assert;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
-    construct_runtime, match_types, parameter_types,
+    construct_runtime,
+    match_types, parameter_types,
     traits::{
         tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency,
         EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
         KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
+        WithdrawReasons,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         ConstantMultiplier, IdentityFee, Weight,
     },
+    pallet_prelude::Get,
     dispatch::DispatchClass,
     BoundedVec, PalletId, RuntimeDebug, StorageValue,
 };
@@ -98,13 +105,18 @@ use xcm_executor::{Config, XcmExecutor};
 
 use pallet_rmrk_core::{CollectionInfoOf, InstanceInfoOf, PropertyInfoOf, ResourceInfoOf};
 use pallet_rmrk_equip::{BaseInfoOf, BoundedThemeOf, PartTypeOf};
-use rmrk_traits::{primitives::*, NftChild};
+use rmrk_traits::{
+    primitives::*,
+    primitives::{CollectionId, NftId, ResourceId},
+    NftChild,
+};
 
 pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
 pub use phala_pallets::{
-    pallet_fat, pallet_mining, pallet_mq, pallet_registry, pallet_stakepool, pallet_fat_tokenomic
+    pallet_base_pool, pallet_computation, pallet_fat, pallet_mq, pallet_wrapped_balances, pallet_registry,
+    pallet_stake_pool, pallet_stake_pool_v2, pallet_vault, pallet_fat_tokenomic,
 };
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
@@ -150,10 +162,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("thala"),
     impl_name: create_runtime_str!("thala"),
     authoring_version: 1,
-    spec_version: 1192,
+    spec_version: 1196,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 5,
+    transaction_version: 6,
     state_version: 0,
 };
 
@@ -187,7 +199,8 @@ pub type SignedExtra = (
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
-pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+pub type UncheckedExtrinsic =
+    generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
@@ -266,12 +279,16 @@ construct_runtime! {
         // Phala
         PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
         PhalaRegistry: pallet_registry::{Pallet, Call, Event<T>, Storage, Config<T>} = 86,
-        PhalaMining: pallet_mining::{Pallet, Call, Event<T>, Storage, Config} = 87,
-        PhalaStakePool: pallet_stakepool::{Pallet, Call, Event<T>, Storage} = 88,
+        PhalaComputation: pallet_computation::{Pallet, Call, Event<T>, Storage, Config} = 87,
+        PhalaStakePool: pallet_stake_pool::{Pallet, Event<T>, Storage} = 88,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
         PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 91,
         PhalaFatTokenomic: pallet_fat_tokenomic::{Pallet, Call, Event<T>, Storage} = 92,
+        PhalaStakePoolv2: pallet_stake_pool_v2::{Pallet, Call, Event<T>, Storage} = 93,
+        PhalaVault: pallet_vault::{Pallet, Call, Event<T>, Storage} = 94,
+        PhalaWrappedBalances: pallet_wrapped_balances::{Pallet, Call, Event<T>, Storage} = 95,
+        PhalaBasePool: pallet_base_pool::{Pallet, Event<T>, Storage} = 96,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` was used in Khala, we avoid to use the index
@@ -367,7 +384,9 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::Lottery { .. } | RuntimeCall::Tips { .. } |
             // Phala
             RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
-            RuntimeCall::PhalaMining { .. } | RuntimeCall::PhalaStakePool { .. } |
+            RuntimeCall::PhalaComputation { .. } |
+            RuntimeCall::PhalaStakePoolv2 { .. } |
+            RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
             RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World
             RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. }
@@ -559,18 +578,20 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
             ),
             ProxyType::Collator => matches!(
                 c,
-                RuntimeCall::CollatorSelection { .. } | RuntimeCall::Utility { .. } | RuntimeCall::Multisig { .. }
+                RuntimeCall::CollatorSelection { .. }
+                    | RuntimeCall::Utility { .. }
+                    | RuntimeCall::Multisig { .. }
             ),
             ProxyType::StakePoolManager => matches!(
                 c,
                 RuntimeCall::Utility { .. }
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::add_worker { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::remove_worker { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::start_mining { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::stop_mining { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::restart_mining { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::reclaim_pool_worker { .. })
-                    | RuntimeCall::PhalaStakePool(pallet_stakepool::Call::create { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::add_worker { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::remove_worker { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::start_computing { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::stop_computing { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::restart_computing { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::reclaim_pool_worker { .. })
+                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::create { .. })
                     | RuntimeCall::PhalaRegistry(pallet_registry::Call::register_worker { .. })
                     | RuntimeCall::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })
             ),
@@ -620,8 +641,7 @@ impl pallet_scheduler::Config for Runtime {
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
-    type PreimageProvider = Preimage;
-    type NoPreimagePostponement = NoPreimagePostponement;
+    type Preimages = Preimage;
 }
 
 parameter_types! {
@@ -636,7 +656,6 @@ impl pallet_preimage::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type ManagerOrigin = EnsureRoot<AccountId>;
-    type MaxSize = PreimageMaxSize;
     type BaseDeposit = PreimageBaseDeposit;
     type ByteDeposit = PreimageByteDeposit;
 }
@@ -689,6 +708,7 @@ impl pallet_assets::Config for Runtime {
     type Balance = Balance;
     type AssetId = u32;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type AssetAccountDeposit = AssetAccountDeposit;
@@ -709,6 +729,7 @@ parameter_types! {
         pallet_transaction_payment::Multiplier::saturating_from_rational(1, 100_000);
     pub MinimumMultiplier: pallet_transaction_payment::Multiplier =
         pallet_transaction_payment::Multiplier::saturating_from_rational(1, 1_000_000_000u128);
+    pub MaximumMultiplier: pallet_transaction_payment::Multiplier = Bounded::max_value();
 }
 
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
@@ -735,6 +756,7 @@ impl pallet_transaction_payment::Config for Runtime {
         TargetBlockFullness,
         AdjustmentVariable,
         MinimumMultiplier,
+        MaximumMultiplier,
     >;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
@@ -776,6 +798,8 @@ impl pallet_identity::Config for Runtime {
 
 parameter_types! {
     pub const MinVestedTransfer: Balance = 1 * CENTS; // 0.01 PHA
+    pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
+        WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
 }
 
 impl pallet_vesting::Config for Runtime {
@@ -784,6 +808,7 @@ impl pallet_vesting::Config for Runtime {
     type BlockNumberToBalance = ConvertInto;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+    type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
     const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
@@ -856,21 +881,23 @@ impl pallet_uniques::Config for Runtime {
 }
 
 parameter_types! {
-    pub const MaxRecursions: u32 = 10;
     pub const ResourceSymbolLimit: u32 = 10;
     pub const MaxPriorities: u32 = 25;
     pub const MaxResourcesOnMint: u32 = 100;
+    pub const NestingBudget: u32 = 200;
 }
 
 impl pallet_rmrk_core::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ProtocolOrigin = EnsureRoot<AccountId>;
-    type MaxRecursions = MaxRecursions;
     type ResourceSymbolLimit = ResourceSymbolLimit;
     type PartsLimit = rmrk_core::PartsLimit;
     type MaxPriorities = MaxPriorities;
+    type NestingBudget = NestingBudget;
     type CollectionSymbolLimit = rmrk_core::CollectionSymbolLimit;
     type MaxResourcesOnMint = MaxResourcesOnMint;
+    type WeightInfo = pallet_rmrk_core::weights::SubstrateWeight<Runtime>;
+    type TransferHooks = PhalaWrappedBalances;
 }
 
 impl pallet_rmrk_equip::Config for Runtime {
@@ -1317,10 +1344,11 @@ parameter_types! {
     pub const CooloffPeriod: BlockNumber = 1 * DAYS;
     pub const MaxVotes: u32 = 100;
     pub const MaxProposals: u32 = 100;
+    pub const MaxDeposits: u32 = 100;
+    pub const MaxBlacklisted: u32 = 100;
 }
 
 impl pallet_democracy::Config for Runtime {
-    type Proposal = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type EnactmentPeriod = EnactmentPeriod;
@@ -1372,14 +1400,15 @@ impl pallet_democracy::Config for Runtime {
     // only do it once and it lasts only for the cooloff period.
     type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
     type CooloffPeriod = CooloffPeriod;
-    type PreimageByteDeposit = PreimageByteDeposit;
-    type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
     type Slash = Treasury;
     type Scheduler = Scheduler;
     type PalletsOrigin = OriginCaller;
     type MaxVotes = MaxVotes;
     type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
     type MaxProposals = MaxProposals;
+    type Preimages = Preimage;
+    type MaxDeposits = MaxDeposits;
+    type MaxBlacklisted = MaxBlacklisted;
 }
 
 parameter_types! {
@@ -1497,60 +1526,115 @@ impl pallet_mq::CallMatcher<Runtime> for MqCallMatcher {
     }
 }
 
+pub struct MigrationAccount;
+
+impl Get<AccountId32> for MigrationAccount {
+    fn get() -> AccountId32 {
+        let account: [u8; 32] =
+            hex_literal::hex!("9e6399cd577e8ac536bdc017675f747b2d1893ad9cc8c69fd17eef73d4e6e51e");
+        account.into()
+    }
+}
+
 parameter_types! {
     pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
-    pub const MinMiningStaking: Balance = 1 * DOLLARS;
+    pub const MinWorkingStaking: Balance = 1 * DOLLARS;
     pub const MinContribution: Balance = 1 * CENTS;
-    pub const MiningGracePeriod: u64 = 1 * 3600;
+    pub const WorkingGracePeriod: u64 = 7 * 24 * 3600;
     pub const MinInitP: u32 = 50;
-    pub const MiningEnabledByDefault: bool = true;
+    pub const ComputingEnabledByDefault: bool = true;
     pub const MaxPoolWorkers: u32 = 200;
+    pub const NoneAttestationEnabled: bool = true;
     pub const VerifyPRuntime: bool = false;
     pub const VerifyRelaychainGenesisBlockHash: bool = false;
+    pub ParachainId: u32 = ParachainInfo::parachain_id().into();
 }
 
 impl pallet_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type AttestationValidator = pallet_registry::IasValidator;
     type UnixTime = Timestamp;
+    type LegacyAttestationValidator = pallet_registry::IasValidator;
+    type NoneAttestationEnabled = NoneAttestationEnabled;
     type VerifyPRuntime = VerifyPRuntime;
     type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
     type GovernanceOrigin = EnsureRootOrHalfCouncil;
+    type ParachainId = ParachainId;
+    type RegistryMigrationAccountId = MigrationAccount;
 }
 impl pallet_mq::Config for Runtime {
     type QueueNotifyConfig = msg_routing::MessageRouteConfig;
     type CallMatcher = MqCallMatcher;
 }
-impl pallet_mining::Config for Runtime {
+impl pallet_computation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
     type MinInitP = MinInitP;
-    type Currency = Balances;
     type Randomness = RandomnessCollectiveFlip;
-    type OnReward = PhalaStakePool;
-    type OnUnbound = PhalaStakePool;
-    type OnStopped = PhalaStakePool;
+    type OnReward = PhalaStakePoolv2;
+    type OnUnbound = PhalaStakePoolv2;
+    type OnStopped = PhalaStakePoolv2;
     type OnTreasurySettled = Treasury;
     type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
+    type ComputationMigrationAccountId = MigrationAccount;
 }
-impl pallet_stakepool::Config for Runtime {
+impl pallet_stake_pool_v2::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MinContribution = MinContribution;
+    type GracePeriod = WorkingGracePeriod;
+    type ComputingEnabledByDefault = ComputingEnabledByDefault;
+    type MaxPoolWorkers = MaxPoolWorkers;
+    type ComputingSwitchOrigin = EnsureRootOrHalfCouncil;
+}
+impl pallet_stake_pool::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type MinContribution = MinContribution;
-    type GracePeriod = MiningGracePeriod;
-    type MiningEnabledByDefault = MiningEnabledByDefault;
-    type MaxPoolWorkers = MaxPoolWorkers;
+}
+
+parameter_types! {
+    pub const InitialPriceCheckPoint: Balance = 1 * DOLLARS;
+}
+
+impl pallet_vault::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type InitialPriceCheckPoint = InitialPriceCheckPoint;
+}
+
+parameter_types! {
+    pub const WPhaAssetId: u32 = 1;
+}
+
+pub struct WrappedBalancesPalletAccount;
+
+impl Get<AccountId32> for WrappedBalancesPalletAccount {
+    fn get() -> AccountId32 {
+        (b"wpha/")
+            .using_encoded(|b| AccountId32::decode(&mut TrailingZeroInput::new(b)))
+            .expect("Decoding zero-padded account id should always succeed; qed")
+    }
+}
+
+impl pallet_wrapped_balances::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type WPhaAssetId = ConstU32<15>;
+    type WrappedBalancesAccountId = WrappedBalancesPalletAccount;
     type OnSlashed = Treasury;
-    type MiningSwitchOrigin = EnsureRootOrHalfCouncil;
-    type BackfillOrigin = EnsureRootOrHalfCouncil;
+}
+
+impl pallet_base_pool::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MigrationAccountId = MigrationAccount;
+}
+
+impl phala_pallets::PhalaConfig for Runtime {
+    type Currency = Balances;
 }
 impl pallet_fat::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type InkCodeSizeLimit = ConstU32<{1024*1024*2}>;
-    type SidevmCodeSizeLimit = ConstU32<{1024*1024*8}>;
+    type InkCodeSizeLimit = ConstU32<{ 1024 * 1024 * 2 }>;
+    type SidevmCodeSizeLimit = ConstU32<{ 1024 * 1024 * 8 }>;
+    type Currency = Balances;
 }
-
 impl pallet_fat_tokenomic::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
@@ -1729,10 +1813,6 @@ impl_runtime_apis! {
         BoundedThemeOf<Runtime>
     > for Runtime
     {
-        fn last_collection_idx() -> pallet_rmrk_rpc_runtime_api::Result<CollectionId> {
-            Ok(RmrkCore::collection_index())
-        }
-
         fn collection_by_id(id: CollectionId) -> pallet_rmrk_rpc_runtime_api::Result<Option<CollectionInfoOf<Runtime>>> {
             Ok(RmrkCore::collections(id))
         }
@@ -1745,7 +1825,7 @@ impl_runtime_apis! {
             Ok(Uniques::owned_in_collection(&collection_id, &account_id).collect())
         }
 
-        fn nft_children(collection_id: CollectionId, nft_id: NftId) -> pallet_rmrk_rpc_runtime_api::Result<Vec<NftChild>> {
+        fn nft_children(collection_id: CollectionId, nft_id: NftId) -> pallet_rmrk_rpc_runtime_api::Result<Vec<NftChild<CollectionId, NftId>>> {
             let children = RmrkCore::iterate_nft_children(collection_id, nft_id).collect();
 
             Ok(children)

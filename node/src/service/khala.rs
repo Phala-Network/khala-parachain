@@ -7,14 +7,14 @@ use cumulus_client_consensus_aura::{
 use cumulus_primitives_core::ParaId;
 
 pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
-use sc_executor::WasmExecutor;
 
 use sc_service::{
-    Configuration, TFullClient, TaskManager,
+    Configuration, TaskManager,
 };
 use sc_telemetry::TelemetryHandle;
 
 use khala_parachain_runtime::RuntimeApi;
+use crate::service::{ParachainBlockImport, ParachainClient};
 
 pub struct RuntimeExecutor;
 
@@ -33,15 +33,13 @@ impl sc_executor::NativeExecutionDispatch for RuntimeExecutor {
 /// Build the import queue for the parachain runtime.
 #[allow(clippy::type_complexity)]
 pub fn parachain_build_import_queue(
-    client: Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
+    client: Arc<ParachainClient<RuntimeApi>>,
+    block_import: ParachainBlockImport<RuntimeApi>,
     config: &Configuration,
     telemetry: Option<TelemetryHandle>,
     task_manager: &TaskManager,
 ) -> Result<
-    sc_consensus::DefaultImportQueue<
-        Block,
-        TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>,
-    >,
+    sc_consensus::DefaultImportQueue<Block, ParachainClient<RuntimeApi>>,
     sc_service::Error,
 > {
     let slot_duration = cumulus_client_consensus_aura::slot_duration(&*client)?;
@@ -54,7 +52,7 @@ pub fn parachain_build_import_queue(
         _,
         _,
     >(cumulus_client_consensus_aura::ImportQueueParams {
-        block_import: client.clone(),
+        block_import,
         client,
         create_inherent_data_providers: move |_, _| async move {
             let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
@@ -79,20 +77,21 @@ pub async fn start_parachain_node(
     parachain_config: Configuration,
     polkadot_config: Configuration,
     collator_options: CollatorOptions,
-    id: ParaId,
+    para_id: ParaId,
     hwbench: Option<sc_sysinfo::HwBench>,
 ) -> sc_service::error::Result<(
     TaskManager,
-    Arc<TFullClient<Block, RuntimeApi, WasmExecutor<crate::service::HostFunctions>>>,
+    Arc<ParachainClient<RuntimeApi>>,
 )> {
     crate::service::start_node_impl::<RuntimeApi, _, _, _>(
         parachain_config,
         polkadot_config,
         collator_options,
-        id,
+        para_id,
         |_| Ok(jsonrpsee::RpcModule::new(())),
         parachain_build_import_queue,
         |client,
+         block_import,
          prometheus_registry,
          telemetry,
          task_manager,
@@ -123,7 +122,7 @@ pub async fn start_parachain_node(
                                     relay_parent,
                                     &relay_chain_interface,
                                     &validation_data,
-                                    id,
+                                    para_id,
                                 ).await;
 
                             let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
@@ -143,7 +142,7 @@ pub async fn start_parachain_node(
                             Ok((slot, timestamp, parachain_inherent))
                         }
                     },
-                    block_import: client.clone(),
+                    block_import,
                     para_client: client,
                     backoff_authoring_blocks: Option::<()>::None,
                     sync_oracle,

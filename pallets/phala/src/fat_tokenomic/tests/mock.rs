@@ -1,14 +1,17 @@
-use crate::{
-	attestation::{Attestation, AttestationValidator, Error as AttestationError, IasFields},
-	fat, fat_tokenomic, mq, registry,
-};
+use crate::{fat, fat_tokenomic, mq, registry};
 
-use frame_support::{pallet_prelude::ConstU32, parameter_types, traits::GenesisBuild};
+use crate::mock::{MockValidator, NoneAttestationEnabled};
+use frame_support::{
+	pallet_prelude::{ConstU32, Get},
+	parameter_types,
+	traits::GenesisBuild,
+};
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
+	AccountId32,
 };
 
 pub(crate) type Balance = u128;
@@ -109,42 +112,35 @@ impl mq::CallMatcher<Test> for MqCallMatcher {
 impl registry::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type AttestationValidator = MockValidator;
+	type LegacyAttestationValidator = MockValidator;
 	type UnixTime = Timestamp;
+	type NoneAttestationEnabled = NoneAttestationEnabled;
 	type VerifyPRuntime = VerifyPRuntime;
 	type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
 	type GovernanceOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type RegistryMigrationAccountId = MigrationAccount;
+	type ParachainId = ConstU32<0>;
 }
 
+pub struct MigrationAccount;
+
+impl Get<AccountId32> for MigrationAccount {
+	fn get() -> AccountId32 {
+		let account: [u8; 32] =
+			hex_literal::hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d");
+		account.into()
+	}
+}
 impl fat::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type InkCodeSizeLimit = ConstU32<{ 1024 * 1024 }>;
 	type SidevmCodeSizeLimit = ConstU32<{ 1024 * 1024 }>;
+	type Currency = Balances;
 }
 
 impl fat_tokenomic::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-}
-
-pub struct MockValidator;
-impl AttestationValidator for MockValidator {
-	fn validate(
-		_attestation: &Attestation,
-		_user_data_hash: &[u8; 32],
-		_now: u64,
-		_verify_pruntime: bool,
-		_pruntime_allowlist: Vec<Vec<u8>>,
-	) -> Result<IasFields, AttestationError> {
-		Ok(IasFields {
-			mr_enclave: [0u8; 32],
-			mr_signer: [0u8; 32],
-			isv_prod_id: [0u8; 2],
-			isv_svn: [0u8; 2],
-			report_data: [0u8; 64],
-			confidence_level: 128u8,
-		})
-	}
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
@@ -154,8 +150,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	let zero_pubkey = sp_core::sr25519::Public::from_raw([0u8; 32]);
 	let zero_ecdh_pubkey = Vec::from(&[0u8; 32][..]);
 	crate::registry::GenesisConfig::<Test> {
-		workers: vec![(zero_pubkey.clone(), zero_ecdh_pubkey, None)],
-		gatekeepers: vec![(zero_pubkey.clone())],
+		workers: vec![(zero_pubkey, zero_ecdh_pubkey, None)],
+		gatekeepers: vec![zero_pubkey],
 		benchmark_duration: 0u32,
 	}
 	.assimilate_storage(&mut t)
@@ -164,10 +160,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 pub fn take_events() -> Vec<RuntimeEvent> {
-	let evt = System::events()
-		.into_iter()
-		.map(|evt| evt.event)
-		.collect();
+	let evt = System::events().into_iter().map(|evt| evt.event).collect();
 	System::reset_events();
 	evt
 }
