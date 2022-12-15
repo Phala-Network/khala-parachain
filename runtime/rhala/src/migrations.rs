@@ -2,6 +2,13 @@
 use super::*;
 #[allow(unused_imports)]
 use frame_support::traits::OnRuntimeUpgrade;
+pub struct PhalaWorldRhalaMigrations;
+
+impl OnRuntimeUpgrade for PhalaWorldRhalaMigrations {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        pallet_phala_world::migration::phala_world_migration_rhala::migrate::<Runtime>()
+    }
+}
 
 // Note to "late-migration":
 //

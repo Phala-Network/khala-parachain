@@ -131,6 +131,7 @@ pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
+use crate::migrations::PhalaWorldKhalaMigrations;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -212,7 +213,7 @@ pub type Executive = frame_executive::Executive<
 >;
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`.
-type Migrations = ();
+type Migrations = PhalaWorldKhalaMigrations;
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
@@ -888,7 +889,7 @@ parameter_types! {
     pub const ResourceSymbolLimit: u32 = 10;
     pub const MaxPriorities: u32 = 25;
     pub const MaxResourcesOnMint: u32 = 100;
-    pub const NestingBudget: u32 = 20;
+    pub const NestingBudget: u32 = 200;
 }
 
 impl pallet_rmrk_core::Config for Runtime {
