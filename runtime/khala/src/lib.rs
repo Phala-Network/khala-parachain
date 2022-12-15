@@ -395,7 +395,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             // Phala
             RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
             RuntimeCall::PhalaComputation { .. } |
-            RuntimeCall::PhalaStakePoolv2 { .. } | RuntimeCall::PhalaBasePool |
+            RuntimeCall::PhalaStakePoolv2 { .. } |
             RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
             // RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World
