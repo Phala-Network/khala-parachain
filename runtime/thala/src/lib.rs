@@ -378,7 +378,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::DmpQueue { .. } |
             // Governance
             RuntimeCall::Identity { .. } | RuntimeCall::Treasury { .. } |
-            RuntimeCall::Democracy { .. } | RuntimeCall::PhragmenElection { .. } |
+            RuntimeCall::Democracy { .. } | //RuntimeCall::PhragmenElection { .. } |
             RuntimeCall::Council { .. } | RuntimeCall::TechnicalCommittee { .. } | RuntimeCall::TechnicalMembership { .. } |
             RuntimeCall::Bounties { .. } | RuntimeCall::ChildBounties { .. } |
             RuntimeCall::Lottery { .. } | RuntimeCall::Tips { .. } |
