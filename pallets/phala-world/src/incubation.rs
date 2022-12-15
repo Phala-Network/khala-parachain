@@ -365,8 +365,8 @@ pub mod pallet {
 		/// NFT.
 		///
 		/// Parameters:
-		/// - `origin`: The origin of the extrinsic incubation the origin_of_shell
-		/// - `collection_id`: The collection id of the Origin of Shell RMRK NFT
+		/// - `origin`: Expected to be the `Overlord` account
+        /// - `collection_id`: The collection id of the Origin of Shell RMRK NFT
 		/// - `nft_id`: The NFT id of the Origin of Shell RMRK NFT
 		/// - `default_shell_metadata`: File resource URI in decentralized storage for Shell NFT
 		///	parts that render the Shell NFT
@@ -378,6 +378,7 @@ pub mod pallet {
 			nft_id: NftId,
 			default_shell_metadata: BoundedVec<u8, T::StringLimit>,
 		) -> DispatchResult {
+            // Ensure Overlord account is the sender
 			let sender = ensure_signed(origin.clone())?;
 			pallet_pw_nft_sale::pallet::Pallet::<T>::ensure_overlord(&sender)?;
 			// Check if Incubation Phase has started

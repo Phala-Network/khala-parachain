@@ -884,7 +884,7 @@ parameter_types! {
     pub const ResourceSymbolLimit: u32 = 10;
     pub const MaxPriorities: u32 = 25;
     pub const MaxResourcesOnMint: u32 = 100;
-    pub const NestingBudget: u32 = 20;
+    pub const NestingBudget: u32 = 200;
 }
 
 impl pallet_rmrk_core::Config for Runtime {
