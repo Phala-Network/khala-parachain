@@ -369,6 +369,41 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             };
         }
 
+        // For spv2 migration
+        if let RuntimeCall::PhalaRegistry(phala_registry_method) = call {
+            return match phala_registry_method {
+                pallet_registry::Call::migrate_workers { .. }
+                | pallet_registry::Call::__Ignore { .. } => true,
+                _ => false,
+            };
+        }
+        if let RuntimeCall::PhalaComputation(phala_computation_method) = call {
+            return match phala_computation_method {
+                pallet_computation::Call::migrate_miners { .. }
+                | pallet_computation::Call::migrate_miner_bindings { .. }
+                | pallet_computation::Call::migrate_worker_bindings { .. }
+                | pallet_computation::Call::migrate_stakes { .. }
+                | pallet_computation::Call::migrate_storage_values { .. }
+                | pallet_computation::Call::set_heartbeat_paused { .. }
+                | pallet_computation::Call::__Ignore { .. } => true,
+                _ => false,
+            };
+        }
+        if let RuntimeCall::PhalaStakePoolv2(phala_stake_pool_v2_method) = call {
+            return match phala_stake_pool_v2_method {
+                pallet_stake_pool_v2::Call::migrate_stakepools { .. }
+                | pallet_stake_pool_v2::Call::migrate_pool_stakers { .. }
+                | pallet_stake_pool_v2::Call::migrate_stake_ledger { .. }
+                | pallet_stake_pool_v2::Call::drain_stakepool_storages { .. }
+                | pallet_stake_pool_v2::Call::migrate_worker_assignments { .. }
+                | pallet_stake_pool_v2::Call::migrate_subaccount_preimage { .. }
+                | pallet_stake_pool_v2::Call::migrate_contribution_whitelist { .. }
+                | pallet_stake_pool_v2::Call::migrate_pool_description { .. }
+                | pallet_stake_pool_v2::Call::__Ignore { .. } => true,
+                _ => false,
+            };
+        }
+
         matches!(
             call,
             // System
@@ -388,15 +423,15 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::DmpQueue { .. } |
             // Governance
             RuntimeCall::Identity { .. } | RuntimeCall::Treasury { .. } |
-            RuntimeCall::Democracy { .. } | //RuntimeCall::PhragmenElection { .. } |
+            RuntimeCall::Democracy { .. } | // RuntimeCall::PhragmenElection { .. } |
             RuntimeCall::Council { .. } | RuntimeCall::TechnicalCommittee { .. } | RuntimeCall::TechnicalMembership { .. } |
             RuntimeCall::Bounties { .. } | RuntimeCall::ChildBounties { .. } |
             RuntimeCall::Lottery { .. } | RuntimeCall::Tips { .. } |
             // Phala
-            RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
-            RuntimeCall::PhalaComputation { .. } |
-            RuntimeCall::PhalaStakePoolv2 { .. } | RuntimeCall::PhalaBasePool { .. } |
-            RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
+            RuntimeCall::PhalaMq { .. } | // RuntimeCall::PhalaRegistry { .. } |
+            // RuntimeCall::PhalaComputation { .. } |
+            // RuntimeCall::PhalaStakePoolv2 { .. } | RuntimeCall::PhalaBasePool { .. } |
+            // RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
             // RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World
             RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. }
