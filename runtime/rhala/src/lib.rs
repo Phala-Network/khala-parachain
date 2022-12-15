@@ -292,7 +292,7 @@ construct_runtime! {
         PhalaStakePoolv2: pallet_stake_pool_v2::{Pallet, Call, Event<T>, Storage} = 93,
         PhalaVault: pallet_vault::{Pallet, Call, Event<T>, Storage} = 94,
         PhalaWrappedBalances: pallet_wrapped_balances::{Pallet, Call, Event<T>, Storage} = 95,
-        PhalaBasePool: pallet_base_pool::{Pallet, Event<T>, Storage} = 96,
+        PhalaBasePool: pallet_base_pool::{Pallet, Call, Event<T>, Storage} = 96,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 99,
         // `OTT` has been removed, the index should be kept
@@ -382,14 +382,14 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::DmpQueue { .. } |
             // Governance
             RuntimeCall::Identity { .. } | RuntimeCall::Treasury { .. } |
-            RuntimeCall::Democracy { .. } | RuntimeCall::PhragmenElection { .. } |
+            RuntimeCall::Democracy { .. } | //RuntimeCall::PhragmenElection { .. } |
             RuntimeCall::Council { .. } | RuntimeCall::TechnicalCommittee { .. } | RuntimeCall::TechnicalMembership { .. } |
             RuntimeCall::Bounties { .. } | RuntimeCall::ChildBounties { .. } |
             RuntimeCall::Lottery { .. } | RuntimeCall::Tips { .. } |
             // Phala
             RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
             RuntimeCall::PhalaComputation { .. } |
-            RuntimeCall::PhalaStakePoolv2 { .. } |
+            RuntimeCall::PhalaStakePoolv2 { .. } | RuntimeCall::PhalaBasePool { .. } |
             RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
             RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World
@@ -1537,7 +1537,7 @@ parameter_types! {
     pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
     pub const MinWorkingStaking: Balance = 1 * DOLLARS;
     pub const MinContribution: Balance = 1 * CENTS;
-    pub const WorkingGracePeriod: u64 = 7 * 24 * 3600;
+    pub const WorkingGracePeriod: u64 = 14 * 24 * 3600;
     pub const MinInitP: u32 = 50;
     pub const ComputingEnabledByDefault: bool = false;
     pub const MaxPoolWorkers: u32 = 200;
