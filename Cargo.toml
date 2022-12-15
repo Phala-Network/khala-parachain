@@ -25,6 +25,8 @@ exclude = [
 	"vendor/webpki",
 	"vendor/ring",
 	"polkadot/node/service",
+	"substrate/client/db",
+	"substrate/client/state-db",
 ]
 
 members = [
@@ -53,3 +55,8 @@ members = [
 
 [patch."https://github.com/paritytech/polkadot"]
 polkadot-service = { path = "polkadot/node/service" }
+
+# Remove after we upgrade to polkadot-v0.9.36
+[patch."https://github.com/paritytech/substrate"]
+sc-state-db = { path = "substrate/client/state-db" }
+sc-client-db = { path = "substrate/client/db" }

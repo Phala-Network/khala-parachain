@@ -1,0 +1,22 @@
+[package]
+name = "sc-state-db"
+version = "0.10.0-dev"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2021"
+license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
+homepage = "https://substrate.io"
+repository = "https://github.com/paritytech/substrate/"
+description = "State database maintenance. Handles canonicalization and pruning in the database."
+readme = "README.md"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
+log = "0.4.17"
+parity-util-mem = { version = "0.12.0", default-features = false, features = ["primitive-types"] }
+parity-util-mem-derive = "0.1.0"
+parking_lot = "0.12.1"
+sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
