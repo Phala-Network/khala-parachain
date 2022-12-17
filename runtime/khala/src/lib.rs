@@ -161,7 +161,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 1199,
+    spec_version: 1200,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -399,6 +399,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 | pallet_stake_pool_v2::Call::migrate_subaccount_preimage { .. }
                 | pallet_stake_pool_v2::Call::migrate_contribution_whitelist { .. }
                 | pallet_stake_pool_v2::Call::migrate_pool_description { .. }
+                | pallet_stake_pool_v2::Call::reset_iter_pos { .. }
                 | pallet_stake_pool_v2::Call::__Ignore { .. } => true,
                 _ => false,
             };
@@ -1650,7 +1651,7 @@ impl Get<AccountId32> for WrappedBalancesPalletAccount {
 
 impl pallet_wrapped_balances::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type WPhaAssetId = ConstU32<15>;
+    type WPhaAssetId = ConstU32<10000>;
     type WrappedBalancesAccountId = WrappedBalancesPalletAccount;
     type OnSlashed = Treasury;
 }
