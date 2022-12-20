@@ -1522,16 +1522,6 @@ impl pallet_mq::CallMatcher<Runtime> for MqCallMatcher {
     }
 }
 
-pub struct MigrationAccount;
-
-impl Get<AccountId32> for MigrationAccount {
-    fn get() -> AccountId32 {
-        let account: [u8; 32] =
-            hex_literal::hex!("9e6399cd577e8ac536bdc017675f747b2d1893ad9cc8c69fd17eef73d4e6e51e");
-        account.into()
-    }
-}
-
 parameter_types! {
     pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
     pub const MinWorkingStaking: Balance = 1 * DOLLARS;
@@ -1556,7 +1546,6 @@ impl pallet_registry::Config for Runtime {
     type VerifyRelaychainGenesisBlockHash = VerifyRelaychainGenesisBlockHash;
     type GovernanceOrigin = EnsureRootOrHalfCouncil;
     type ParachainId = ParachainId;
-    type RegistryMigrationAccountId = MigrationAccount;
 }
 impl pallet_mq::Config for Runtime {
     type QueueNotifyConfig = msg_routing::MessageRouteConfig;
@@ -1572,7 +1561,6 @@ impl pallet_computation::Config for Runtime {
     type OnStopped = PhalaStakePoolv2;
     type OnTreasurySettled = Treasury;
     type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
-    type ComputationMigrationAccountId = MigrationAccount;
 }
 impl pallet_stake_pool_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -1618,7 +1606,6 @@ impl pallet_wrapped_balances::Config for Runtime {
 }
 impl pallet_base_pool::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type MigrationAccountId = MigrationAccount;
 }
 
 impl phala_pallets::PhalaConfig for Runtime {
