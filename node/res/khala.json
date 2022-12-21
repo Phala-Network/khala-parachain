@@ -3,7 +3,10 @@
   "id": "khala",
   "chainType": "Live",
   "bootNodes": [
-    "/dns4/khala-node-eu-1.phala.network/tcp/30333/ws/p2p/12D3KooWGxVpuCw6gNb67ST2LnsqfYhBYPKm75AiVHoSZF7nxTor"
+    "/dns4/khala-node-us-1.phala.network/tcp/30333/ws/p2p/12D3KooWBpZP6As5WA7LdBYcoQxbkLKbK9WQ2qqYB91MqF3ZmmQE",
+    "/dns4/khala-node-eu-1.phala.network/tcp/30333/ws/p2p/12D3KooWGxVpuCw6gNb67ST2LnsqfYhBYPKm75AiVHoSZF7nxTor",
+    "/dns4/khala-node-asia-2.phala.network/tcp/30333/ws/p2p/12D3KooWLi5WqKWv3WwKRbW4s7owvKJoMuJ9sCntBpwDzi32vWHd",
+    "/dns4/khala-node-asia-1.phala.network/tcp/30333/ws/p2p/12D3KooWNRR7q6TiFJ9zooSQGxL7xtRtikAMijG3VVrN44bNRtCj"
   ],
   "telemetryEndpoints": [
     [
