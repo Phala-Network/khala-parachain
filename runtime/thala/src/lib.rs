@@ -1530,7 +1530,7 @@ parameter_types! {
     pub const ExpectedBlockTimeSec: u32 = SECS_PER_BLOCK as u32;
     pub const MinWorkingStaking: Balance = 1 * DOLLARS;
     pub const MinContribution: Balance = 1 * CENTS;
-    pub const WorkingGracePeriod: u64 = 14 * 24 * 3600;
+    pub const WorkingGracePeriod: u64 = 7 * 24 * 3600;
     pub const MinInitP: u32 = 50;
     pub const ComputingEnabledByDefault: bool = true;
     pub const MaxPoolWorkers: u32 = 200;
