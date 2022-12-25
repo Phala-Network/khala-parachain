@@ -1586,10 +1586,6 @@ impl pallet_vault::Config for Runtime {
     type InitialPriceCheckPoint = InitialPriceCheckPoint;
 }
 
-parameter_types! {
-    pub const WPhaAssetId: u32 = 1;
-}
-
 pub struct WrappedBalancesPalletAccount;
 
 impl Get<AccountId32> for WrappedBalancesPalletAccount {
@@ -1606,8 +1602,20 @@ impl pallet_wrapped_balances::Config for Runtime {
     type WrappedBalancesAccountId = WrappedBalancesPalletAccount;
     type OnSlashed = Treasury;
 }
+
+pub struct MigrationAccount;
+
+impl Get<AccountId32> for MigrationAccount {
+    fn get() -> AccountId32 {
+        let account: [u8; 32] =
+            hex_literal::hex!("9e6399cd577e8ac536bdc017675f747b2d1893ad9cc8c69fd17eef73d4e6e51e");
+        account.into()
+    }
+}
+
 impl pallet_base_pool::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type MigrationAccountId = MigrationAccount;
 }
 
 impl phala_pallets::PhalaConfig for Runtime {
