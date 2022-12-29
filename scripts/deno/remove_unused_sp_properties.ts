@@ -90,22 +90,6 @@ api.on("error", (e) => {
 
 await api.isReady.catch((e) => console.error(e));
 
-await api.rpc.chain.subscribeNewHeads(async (header) => {
-  const blockNumber = header.number.toNumber();
-  const blockHash = header.hash.toHex();
-
-  console.debug(
-    `best: #${blockNumber} (${blockHash})`,
-  );
-
-  console.info(`Sending "phalaBasePool.removeUnusedProperty(maxIterations)`);
-  const txPromise = api.tx.phalaBasePool.removeUnusedProperty(maxIteration);
-  console.info(`Call hash: ${txPromise.toHex()}`);
-  const txHash = await txPromise.signAndSend(operatorKeyPair, { nonce: -1 });
-  console.info(`Transaction hash: ${txHash.toHex()}`);
-});
-
-
 let sentTxAt = undefined;
 await api.rpc.chain.subscribeFinalizedHeads(async (finalizedHeader) => {
   const finalizedBlockHash = finalizedHeader.hash.toHex();
