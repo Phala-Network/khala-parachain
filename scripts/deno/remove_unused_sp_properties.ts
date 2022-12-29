@@ -90,7 +90,7 @@ api.on("error", (e) => {
 
 await api.isReady.catch((e) => console.error(e));
 
-let sentTxAt = undefined;
+let sentTxAt: undefined | Number = undefined;
 await api.rpc.chain.subscribeFinalizedHeads(async (finalizedHeader) => {
   const finalizedBlockHash = finalizedHeader.hash.toHex();
   const finalizedBlockNumber = finalizedHeader.number.toNumber();
@@ -103,7 +103,7 @@ await api.rpc.chain.subscribeFinalizedHeads(async (finalizedHeader) => {
     `best: #${latestBlockNumber} (${latestBlockHash}), finalized #${finalizedBlockNumber} (${finalizedBlockHash})`
   );
 
-  if (sentTxAt && sentTxAt <= finalizedBlockNumber) {
+  if (sentTxAt !== undefined && sentTxAt >= finalizedBlockNumber) {
     console.debug("Waiting extrinsic finalize...");
 
     return;
