@@ -1,6 +1,6 @@
 [package]
 name = "thala-parachain-runtime"
-version = "0.1.20"
+version = "0.1.20-4"
 authors = ["Phala Network"]
 edition = "2021"
 
