@@ -58,8 +58,8 @@ use sp_runtime::{
         TrailingZeroInput,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
-    AccountId32,
+    AccountId32, ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill,
+    Perquintill,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 #[cfg(feature = "std")]
@@ -70,18 +70,20 @@ use static_assertions::const_assert;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
     construct_runtime,
-    match_types, parameter_types,
+    dispatch::DispatchClass,
+    match_types,
+    pallet_prelude::Get,
+    parameter_types,
     traits::{
-        tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency, EitherOfDiverse,
-        EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem,
-        LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote, WithdrawReasons,
+        tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency,
+        EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
+        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
+        WithdrawReasons,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         ConstantMultiplier, IdentityFee, Weight,
     },
-    pallet_prelude::Get,
-    dispatch::DispatchClass,
     BoundedVec, PalletId, RuntimeDebug, StorageValue,
 };
 
@@ -114,8 +116,9 @@ pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
 pub use phala_pallets::{
-    pallet_base_pool, pallet_computation, pallet_fat, pallet_mq, pallet_wrapped_balances, pallet_registry,
-    pallet_stake_pool, pallet_stake_pool_v2, pallet_vault, pallet_fat_tokenomic,
+    pallet_base_pool, pallet_computation, pallet_fat, pallet_fat_tokenomic, pallet_mq,
+    pallet_registry, pallet_stake_pool, pallet_stake_pool_v2, pallet_vault,
+    pallet_wrapped_balances,
 };
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
@@ -589,11 +592,21 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
                 c,
                 RuntimeCall::Utility { .. }
                     | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::add_worker { .. })
-                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::remove_worker { .. })
-                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::start_computing { .. })
-                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::stop_computing { .. })
-                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::restart_computing { .. })
-                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::reclaim_pool_worker { .. })
+                    | RuntimeCall::PhalaStakePoolv2(
+                        pallet_stake_pool_v2::Call::remove_worker { .. }
+                    )
+                    | RuntimeCall::PhalaStakePoolv2(
+                        pallet_stake_pool_v2::Call::start_computing { .. }
+                    )
+                    | RuntimeCall::PhalaStakePoolv2(
+                        pallet_stake_pool_v2::Call::stop_computing { .. }
+                    )
+                    | RuntimeCall::PhalaStakePoolv2(
+                        pallet_stake_pool_v2::Call::restart_computing { .. }
+                    )
+                    | RuntimeCall::PhalaStakePoolv2(
+                        pallet_stake_pool_v2::Call::reclaim_pool_worker { .. }
+                    )
                     | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::create { .. })
                     | RuntimeCall::PhalaRegistry(pallet_registry::Call::register_worker { .. })
                     | RuntimeCall::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })

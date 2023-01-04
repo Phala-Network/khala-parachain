@@ -381,11 +381,6 @@ pub mod pallet {
             // Ensure Overlord account is the sender
 			let sender = ensure_signed(origin.clone())?;
 			pallet_pw_nft_sale::pallet::Pallet::<T>::ensure_overlord(&sender)?;
-			// Check if Incubation Phase has started
-			ensure!(
-				CanStartIncubation::<T>::get(),
-				Error::<T>::StartIncubationNotAvailable
-			);
 			// Ensure that the collection is an Origin of Shell Collection
 			ensure!(
 				Self::is_origin_of_shell_collection_id(collection_id),
@@ -395,12 +390,6 @@ pub mod pallet {
 			// Get owner of the Origin of Shell NFT
 			let (owner, _) =
 				pallet_rmrk_core::Pallet::<T>::lookup_root_owner(collection_id, nft_id, &budget)?;
-			// Check if the incubation has started and the official hatch time has been met
-			ensure!(
-				HasOriginOfShellStartedIncubation::<T>::get((collection_id, nft_id))
-					&& Self::can_hatch(),
-				Error::<T>::CannotHatchOriginOfShell
-			);
 			// Check if Shell Collection ID is set
 			let shell_collection_id = Self::get_shell_collection_id()?;
 			// Check if Shell Parts Collection ID is set
