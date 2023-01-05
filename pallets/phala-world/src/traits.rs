@@ -69,6 +69,10 @@ pub enum PartRarityType {
 pub enum PartSizeType {
 	MA,
 	MB,
+	MC,
+	FA,
+	FB,
+	FC,
 	XA,
 	XB,
 	XC,
