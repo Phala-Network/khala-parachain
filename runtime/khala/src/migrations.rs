@@ -2,13 +2,7 @@
 use super::*;
 #[allow(unused_imports)]
 use frame_support::traits::OnRuntimeUpgrade;
-pub struct PhalaWorldKhalaMigrations;
 
-impl OnRuntimeUpgrade for PhalaWorldKhalaMigrations {
-    fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        pallet_phala_world::migration::phala_world_migration_khala::migrate::<Runtime>()
-    }
-}
 // Note to "late-migration":
 //
 // All the migrations defined in this file are so called "late-migration". We should have done the
