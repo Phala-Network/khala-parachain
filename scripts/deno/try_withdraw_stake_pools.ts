@@ -107,17 +107,28 @@ const pids = data?.basePoolsConnection?.edges?.map((i: any) => stringToInteger(i
 
 console.log(pids);
 
-const txPromise = api.tx.utility.forceBatch(
-  pids.map(
-    (pid: any) => {
-      return [
-        api.tx.phalaStakePoolv2.checkAndMaybeForceWithdraw(pid),
-      ]
-    }
-  ).flat()
-);
+// // the weight too large that can't batch, so we comment here
+// const txPromise = api.tx.utility.forceBatch(
+//   pids.map(
+//     (pid: any) => {
+//       return [
+//         api.tx.phalaStakePoolv2.checkAndMaybeForceWithdraw(pid),
+//       ]
+//     }
+//   ).flat()
+// );
 
-console.info(`Sending phalaStakePoolv2.checkAndMaybeForceWithdraw(pid)`);
-console.info(`Call hash: ${txPromise.toHex()}`);
-const txHash = await txPromise.signAndSend(operatorKeyPair, { nonce: -1 });
-console.info(`Transaction hash: ${txHash.toHex()}`);
+// console.info(`Sending phalaStakePoolv2.checkAndMaybeForceWithdraw(pid)`);
+// console.info(`Call hash: ${txPromise.toHex()}`);
+// const txHash = await txPromise.signAndSend(operatorKeyPair, { nonce: -1 });
+// console.info(`Transaction hash: ${txHash.toHex()}`);
+
+for (const pid of pids) {
+  console.info(`Sending phalaStakePoolv2.checkAndMaybeForceWithdraw(${pid})`);
+  const txPromise = api.tx.phalaStakePoolv2.checkAndMaybeForceWithdraw(pid);
+  console.info(`Call hash: ${txPromise.toHex()}`);
+  const txHash = await txPromise.signAndSend(operatorKeyPair, { nonce: -1 });
+  console.info(`Transaction hash: ${txHash.toHex()}`);
+}
+
+Deno.exit(0);
