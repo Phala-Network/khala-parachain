@@ -1,5 +1,6 @@
 {
   "tasks": {
     "remove_unused_sp_properties": "deno run --allow-net remove_unused_sp_properties.ts",
+    "try_withdraw_stake_pools": "deno run --allow-net try_withdraw_stake_pools.ts"
   }
 }
