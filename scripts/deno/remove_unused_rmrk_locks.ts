@@ -109,8 +109,8 @@ await api.rpc.chain.subscribeFinalizedHeads(async (finalizedHeader) => {
     return;
   }
 
-  console.info(`Sending "phalaBasePool.removeUnusedProperty(maxIterations)`);
-  const txPromise = api.tx.phalaBasePool.removeUnusedProperty(maxIteration);
+  console.info(`Sending "phalaBasePool.removeUnusedLock(maxIterations)`);
+  const txPromise = api.tx.phalaBasePool.removeUnusedLock(maxIteration);
   console.info(`Call hash: ${txPromise.toHex()}`);
   const txHash = await txPromise.signAndSend(operatorKeyPair, { nonce: -1 });
   console.info(`Transaction hash: ${txHash.toHex()}`);
