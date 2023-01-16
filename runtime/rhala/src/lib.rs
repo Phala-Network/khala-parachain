@@ -164,7 +164,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("rhala"),
     impl_name: create_runtime_str!("rhala"),
     authoring_version: 1,
-    spec_version: 1206,
+    spec_version: 1207,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -1590,6 +1590,7 @@ impl pallet_stake_pool::Config for Runtime {
 
 parameter_types! {
     pub const InitialPriceCheckPoint: Balance = 1 * DOLLARS;
+    pub const WPhaMinBalance: Balance = CENTS;
 }
 
 impl pallet_vault::Config for Runtime {
@@ -1627,6 +1628,7 @@ impl Get<AccountId32> for MigrationAccount {
 impl pallet_base_pool::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type MigrationAccountId = MigrationAccount;
+    type WPhaMinBalance = WPhaMinBalance;
 }
 
 impl phala_pallets::PhalaConfig for Runtime {

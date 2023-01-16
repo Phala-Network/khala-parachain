@@ -342,6 +342,7 @@ impl pallet_assets::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type AssetId = u32;
+	type AssetIdParameter = codec::Compact<u32>;
 	type Currency = Balances;
 	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type AssetDeposit = AssetDeposit;
@@ -353,6 +354,9 @@ impl pallet_assets::Config for Test {
 	type Freezer = ();
 	type Extra = ();
 	type WeightInfo = ();
+	type RemoveItemsLimit = ConstU32<1000>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<Self::AccountId>>;
 }
 
@@ -367,6 +371,7 @@ impl stake_pool_v2::Config for Test {
 
 parameter_types! {
 	pub const InitialPriceCheckPoint: Balance = DOLLARS;
+	pub const WPhaMinBalance: Balance = CENTS;
 }
 
 impl vault::Config for Test {
@@ -377,6 +382,7 @@ impl vault::Config for Test {
 impl base_pool::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MigrationAccountId = ConstU64<1234>;
+	type WPhaMinBalance = WPhaMinBalance;
 }
 
 impl stake_pool::Config for Test {
