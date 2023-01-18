@@ -8,8 +8,9 @@ mod tests;
 mod traits;
 
 pub mod incubation;
-pub mod migration;
 pub mod nft_sale;
+
+pub mod migration;
 
 // Alias
 pub use incubation as pallet_pw_incubation;
