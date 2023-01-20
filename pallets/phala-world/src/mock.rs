@@ -156,6 +156,7 @@ impl pallet_rmrk_market::Config for Test {
 	type ProtocolOrigin = EnsureRoot<AccountId>;
 	type Currency = Balances;
 	type MinimumOfferAmount = MinimumOfferAmount;
+	type WeightInfo = pallet_rmrk_market::weights::SubstrateWeight<Test>;
 }
 
 parameter_types! {

@@ -720,6 +720,7 @@ impl pallet_assets::Config for Runtime {
     type RemoveItemsLimit = ConstU32<1000>;
     type Freezer = ();
     type Extra = ();
+    type CallbackHandle = ();
     type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
@@ -908,6 +909,7 @@ impl pallet_rmrk_equip::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type MaxPropertiesPerTheme = rmrk_equip::MaxPropertiesPerTheme;
     type MaxCollectionsEquippablePerPart = rmrk_equip::MaxCollectionsEquippablePerPart;
+    type WeightInfo = pallet_rmrk_equip::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -919,6 +921,7 @@ impl pallet_rmrk_market::Config for Runtime {
     type ProtocolOrigin = EnsureRoot<AccountId>;
     type Currency = Balances;
     type MinimumOfferAmount = MinimumOfferAmount;
+    type WeightInfo = pallet_rmrk_market::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1903,7 +1906,7 @@ impl_runtime_apis! {
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade(checks: bool) -> (Weight, Weight) {
+        fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
             let weight = Executive::try_runtime_upgrade(checks).unwrap();
             (weight, RuntimeBlockWeights::get().max_block)
         }
