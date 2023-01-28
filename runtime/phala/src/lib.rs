@@ -186,7 +186,15 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
+    Migrations,
 >;
+
+/// All migrations executed on runtime upgrade as a nested tuple of types implementing
+/// `OnRuntimeUpgrade`.
+type Migrations = (
+    pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccount>,
+    pallet_assets::migration::v1::MigrateToV1<Runtime>,
+);
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
