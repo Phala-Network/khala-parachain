@@ -1238,7 +1238,7 @@ where
 		// Grandpa performance can be improved a bit by tuning this parameter, see:
 		// https://github.com/paritytech/polkadot/issues/5464
 		gossip_duration: Duration::from_millis(1000),
-		justification_period: 512,
+		justification_period: 1,
 		name: Some(name),
 		observer_enabled: false,
 		keystore: keystore_opt,
