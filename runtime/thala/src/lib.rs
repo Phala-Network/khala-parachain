@@ -1621,7 +1621,7 @@ impl sygma_wrapper::Config for Runtime {
 impl xtransfer::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Bridge = (
-        sygma_bridge_wrapper::BridgeTransactImpl<Runtime>,
+        sygma_wrapper::BridgeTransactImpl<Runtime>,
         xcmbridge::BridgeTransactImpl<Runtime>,
         chainbridge::BridgeTransactImpl<Runtime>,
     );
