@@ -26,7 +26,9 @@ pub mod pallet {
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::AccountIdConversion;
 	use sp_std::{boxed::Box, cmp, convert::From, vec, vec::Vec};
+	use sygma_traits::{DomainID, SygmaResourceId, VerifyingContractAddress};
 	use xcm::latest::{prelude::*, AssetId as XcmAssetId, MultiLocation};
+	use xcm_executor::traits::FilterAssetLocation;
 
 	/// Const used to indicate chainbridge path. str "cb"
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
@@ -42,6 +44,11 @@ pub mod pallet {
 			chain_id: u8,
 			resource_id: [u8; 32],
 			reserve_account: [u8; 32],
+			is_mintable: bool,
+		},
+		SygmaBridge {
+			dest_domain: DomainID,
+			resource_id: SygmaResourceId,
 			is_mintable: bool,
 		},
 		// Potential other bridge solutions
@@ -255,6 +262,13 @@ pub mod pallet {
 				// Asset location already reprensted by gloable consensus if it is non-reserved asset for us.
 				_ => asset.clone(),
 			}
+		}
+	}
+
+	impl<T: Get<ParaId>, I: NativeAssetChecker> FilterAssetLocation for ReserveAssetFilter<T, I> {
+		fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
+			// TODO: impl
+			false
 		}
 	}
 
@@ -810,13 +824,21 @@ pub mod pallet {
 		}
 	}
 
+	// Return (asset_id, sygma_resource_id) pair from registried assets
+	impl Get<Vec<(XcmAssetId, ResourceId)>> for Pallet<T> {
+		fn get() -> Vec<(XcmAssetId, SygmaResourceId)> {
+			// TODO: lookup RegistryInfoByIds
+			vec![]
+		}
+	}
+
 	#[cfg(test)]
 	mod tests {
 		use crate as assets_registry;
 		use assets_registry::{
-			mock::{RuntimeOrigin as Origin, RuntimeEvent as Event, *},
-			AccountId32Conversion, AssetProperties, ExtractReserveLocation,
-			GetAssetRegistryInfo, IntoResourceId, ASSETS_REGISTRY_ID,
+			mock::{RuntimeEvent as Event, RuntimeOrigin as Origin, *},
+			AccountId32Conversion, AssetProperties, ExtractReserveLocation, GetAssetRegistryInfo,
+			IntoResourceId, ASSETS_REGISTRY_ID,
 		};
 		use frame_support::{assert_noop, assert_ok};
 		use phala_pallet_common::WrapSlice;

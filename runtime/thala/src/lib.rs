@@ -58,8 +58,8 @@ use sp_runtime::{
         TrailingZeroInput,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
-    AccountId32,
+    AccountId32, ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill,
+    Perquintill,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 #[cfg(feature = "std")]
@@ -70,7 +70,10 @@ use static_assertions::const_assert;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
     construct_runtime,
-    match_types, parameter_types,
+    dispatch::DispatchClass,
+    match_types,
+    pallet_prelude::Get,
+    parameter_types,
     traits::{
         tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency,
         EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
@@ -81,8 +84,6 @@ pub use frame_support::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         ConstantMultiplier, IdentityFee, Weight,
     },
-    pallet_prelude::Get,
-    dispatch::DispatchClass,
     BoundedVec, PalletId, RuntimeDebug, StorageValue,
 };
 
@@ -115,13 +116,15 @@ pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
 pub use phala_pallets::{
-    pallet_base_pool, pallet_computation, pallet_fat, pallet_mq, pallet_wrapped_balances, pallet_registry,
-    pallet_stake_pool, pallet_stake_pool_v2, pallet_vault, pallet_fat_tokenomic,
+    pallet_base_pool, pallet_computation, pallet_fat, pallet_fat_tokenomic, pallet_mq,
+    pallet_registry, pallet_stake_pool, pallet_stake_pool_v2, pallet_vault,
+    pallet_wrapped_balances,
 };
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
-    xcmbridge, xtransfer,
+    sygma_wrapper, xcmbridge, xtransfer,
 };
+use sygma_traits::{ChainID, DomainID, ExtractRecipient, ResourceId, VerifyingContractAddress};
 
 #[cfg(any(feature = "std", test))]
 pub use frame_system::Call as SystemCall;
@@ -301,6 +304,13 @@ construct_runtime! {
         RmrkMarket: pallet_rmrk_market::{Pallet, Call, Storage, Event<T>} = 104,
         PWNftSale: pallet_pw_nft_sale::{Pallet, Call, Storage, Event<T>} = 105,
         PWIncubation: pallet_pw_incubation::{Pallet, Call, Storage, Event<T>} = 106,
+
+        // Sygma bridge
+        SygmaAccessSegregator: sygma_access_segregator::{Pallet, Call, Storage, Event<T>} = 111,
+        SygmaBasicFeeHandler: sygma_basic_feehandler::{Pallet, Call, Storage, Event<T>} = 112,
+        SygmaBridge: sygma_bridge::{Pallet, Call, Storage, Event<T>} = 113,
+        SygmaFeeHandlerRouter: sygma_fee_handler_router::{Pallet, Call, Storage, Event<T>} = 114,
+        SygmaWrapper: sygma_wrapper::{Pallet, Call, Storage, Event<T>} = 115,
     }
 }
 
@@ -370,6 +380,10 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::AssetsRegistry { .. } |
             RuntimeCall::Balances { .. }  |
             RuntimeCall::ChainBridge { .. } |
+            RuntimeCall::SygmaAccessSegregator { .. } |
+            RuntimeCall::SygmaBasicFeeHandler { .. } |
+            RuntimeCall::SygmaFeeHandlerRouter { .. } |
+            RuntimeCall::SygmaBridge { .. } |
             RuntimeCall::XTransfer { .. } |
             // Collator
             RuntimeCall::Authorship(_) | RuntimeCall::CollatorSelection(_) | RuntimeCall::Session(_) |
@@ -586,11 +600,21 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
                 c,
                 RuntimeCall::Utility { .. }
                     | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::add_worker { .. })
-                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::remove_worker { .. })
-                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::start_computing { .. })
-                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::stop_computing { .. })
-                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::restart_computing { .. })
-                    | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::reclaim_pool_worker { .. })
+                    | RuntimeCall::PhalaStakePoolv2(
+                        pallet_stake_pool_v2::Call::remove_worker { .. }
+                    )
+                    | RuntimeCall::PhalaStakePoolv2(
+                        pallet_stake_pool_v2::Call::start_computing { .. }
+                    )
+                    | RuntimeCall::PhalaStakePoolv2(
+                        pallet_stake_pool_v2::Call::stop_computing { .. }
+                    )
+                    | RuntimeCall::PhalaStakePoolv2(
+                        pallet_stake_pool_v2::Call::restart_computing { .. }
+                    )
+                    | RuntimeCall::PhalaStakePoolv2(
+                        pallet_stake_pool_v2::Call::reclaim_pool_worker { .. }
+                    )
                     | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::create { .. })
                     | RuntimeCall::PhalaRegistry(pallet_registry::Call::register_worker { .. })
                     | RuntimeCall::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })
@@ -1508,9 +1532,96 @@ impl chainbridge::Config for Runtime {
     type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
 }
 
+parameter_types! {
+    // Make sure put same value with `construct_runtime`
+    pub const SygmaAccessSegregatorPalletIndex: u8 = 111;
+    pub const SygmaBasicFeeHandlerPalletIndex: u8 = 112;
+    pub const SygmaBridgePalletIndex: u8 = 113;
+    pub const SygmaFeeHandlerRouterPalletIndex: u8 = 114;
+    // RegisteredExtrinsics here registers all valid (pallet index, extrinsic_name) paris
+    // make sure to update this when adding new access control extrinsic
+    pub RegisteredExtrinsics: Vec<(u8, Vec<u8>)> = [
+        (SygmaAccessSegregatorPalletIndex::get(), b"grant_access".to_vec()),
+        (SygmaBasicFeeHandlerPalletIndex::get(), b"set_fee".to_vec()),
+        (SygmaBridgePalletIndex::get(), b"set_mpc_address".to_vec()),
+        (SygmaBridgePalletIndex::get(), b"pause_bridge".to_vec()),
+        (SygmaBridgePalletIndex::get(), b"unpause_bridge".to_vec()),
+        (SygmaFeeHandlerRouterPalletIndex::get(), b"set_fee_handler".to_vec()),
+    ].to_vec();
+
+    // SygmaBridgeAccount is an account for holding transferred asset collection
+    // SygmaBridgeAccount address: 5EMepC39b7E2zfM9g6CkPp8KCAxGTh7D4w4T2tFjmjpd4tPw
+    pub SygmaBridgeAccount: AccountId32 = AccountId32::new([101u8; 32]);
+    // DestVerifyingContractAddress is a H160 address that is used in proposal signature verification, specifically EIP712 typed data
+    // When relayers signing, this address will be included in the EIP712Domain
+    // As long as the relayer and pallet configured with the same address, EIP712Domain should be recognized properly.
+    pub DestVerifyingContractAddress: VerifyingContractAddress = primitive_types::H160::from_slice(hex::decode(DEST_VERIFYING_CONTRACT_ADDRESS).ok().unwrap().as_slice());
+    // SygmaBridgePalletId is the palletID
+    // this is used as the replacement of handler address in the ProposalExecution event
+    pub const SygmaBridgePalletId: PalletId = PalletId(*b"sygma/01");
+}
+
+impl sygma_access_segregator::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
+    type PalletIndex = SygmaAccessSegregatorPalletIndex;
+    type Extrinsics = RegisteredExtrinsics;
+}
+
+impl sygma_basic_feehandler::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
+    type PalletIndex = SygmaBasicFeeHandlerPalletIndex;
+}
+
+impl sygma_fee_handler_router::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
+    type BasicFeeHandler = SygmaBasicFeeHandler;
+    type DynamicFeeHandler = ();
+    type PalletIndex = SygmaFeeHandlerRouterPalletIndex;
+}
+
+// This address is defined in the substrate E2E test of sygma-relayer
+const DEST_VERIFYING_CONTRACT_ADDRESS: &str = "6CdE2Cd82a4F8B74693Ff5e194c19CA08c2d1c68";
+
+impl sygma_bridge::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
+    type TransferReserveAccount = SygmaBridgeAccount;
+    type FeeReserveAccount = ThalaTreasuryAccount;
+    type EIP712ChainID = EIP712ChainID;
+    type DestVerifyingContractAddress = DestVerifyingContractAddress;
+    type FeeHandler = FeeHandlerRouter;
+    type AssetTransactor = XTransferAdapter<
+        CurrencyTransactor,
+        FungiblesTransactor,
+        XTransfer,
+        assets_registry::NativeAssetFilter<ParachainInfo>,
+        assets_registry::ReserveAssetFilter<
+            ParachainInfo,
+            assets_registry::NativeAssetFilter<ParachainInfo>,
+        >,
+    >;
+    type ResourcePairs = AssetsRegistry;
+    type ReserveChecker = assets_registry::ReserveAssetFilter<
+        ParachainInfo,
+        assets_registry::NativeAssetFilter<ParachainInfo>,
+    >;
+    type ExtractRecipient = SygmaBridgeWrapper;
+    type ExtractDestDomainID = SygmaBridgeWrapper;
+    type PalletId = SygmaBridgePalletId;
+    type PalletIndex = SygmaBridgePalletIndex;
+}
+
+impl sygma_wrapper::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+}
+
 impl xtransfer::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Bridge = (
+        sygma_bridge_wrapper::BridgeTransactImpl<Runtime>,
         xcmbridge::BridgeTransactImpl<Runtime>,
         chainbridge::BridgeTransactImpl<Runtime>,
     );

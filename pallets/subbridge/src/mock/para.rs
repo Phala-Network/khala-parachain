@@ -7,7 +7,7 @@ use crate::{
 use assets_registry;
 use frame_support::{
 	construct_runtime, match_types, parameter_types,
-	traits::{ConstU128, ConstU32, Contains, Everything, AsEnsureOriginWithArg},
+	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32, Contains, Everything},
 	weights::Weight,
 	PalletId,
 };

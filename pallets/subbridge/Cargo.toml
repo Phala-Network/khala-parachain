@@ -71,6 +71,10 @@ cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/cumulus", bra
 cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.33" }
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.33" }
 
+# Sygma
+sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "freddy/multi-domain", default-features = false }
+sygma-bridge = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "freddy/multi-domain", default-features = false }
+
 # Local
 assets-registry = { path = "../assets-registry" }
 phala-pallet-common = { path = "../../crates/phala-pallet-common" }
@@ -107,5 +111,7 @@ std = [
 	"parachains-common/std",
 	"assets-registry/std",
 	"phala-pallet-common/std",
+	"sygma-traits/std",
+	"sygma-bridge/std",
 ]
 try-runtime = ["frame-support/try-runtime"]

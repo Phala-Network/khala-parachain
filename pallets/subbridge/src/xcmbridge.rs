@@ -467,7 +467,11 @@ pub mod pallet {
 					},
 				));
 				// ParaB set price of the native asset of paraA
-				assert_ok!(AssetsRegistry::force_set_price(para::RuntimeOrigin::root(), 0, 1,));
+				assert_ok!(AssetsRegistry::force_set_price(
+					para::RuntimeOrigin::root(),
+					0,
+					1,
+				));
 			});
 
 			ParaA::execute_with(|| {
@@ -520,7 +524,11 @@ pub mod pallet {
 					},
 				));
 				// ParaB set price of the native asset of paraA
-				assert_ok!(AssetsRegistry::force_set_price(para::RuntimeOrigin::root(), 0, 1,));
+				assert_ok!(AssetsRegistry::force_set_price(
+					para::RuntimeOrigin::root(),
+					0,
+					1,
+				));
 			});
 
 			ParaA::execute_with(|| {

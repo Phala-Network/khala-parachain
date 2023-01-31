@@ -9,11 +9,10 @@ pub mod pallet {
 	};
 	use codec::{Decode, Encode, EncodeLike};
 	pub use frame_support::{
+		dispatch::GetDispatchInfo,
 		pallet_prelude::*,
 		traits::{tokens::fungibles::Inspect, Currency, StorageVersion},
-		transactional,
-		dispatch::GetDispatchInfo,
-		PalletId, Parameter,
+		transactional, PalletId, Parameter,
 	};
 	use frame_system::{self as system, pallet_prelude::*};
 	use phala_pallet_common::WrapSlice;
@@ -1098,7 +1097,7 @@ pub mod pallet {
 		use crate::chainbridge::Event as ChainbridgeEvent;
 		use crate::mock::para::*;
 		use crate::mock::para::{
-			RuntimeCall as Call, RuntimeEvent as Event, RuntimeOrigin as Origin, Runtime,
+			Runtime, RuntimeCall as Call, RuntimeEvent as Event, RuntimeOrigin as Origin,
 		};
 		use crate::mock::{
 			para_assert_events, para_expect_event, para_ext, ParaA, ParaChainBridge as ChainBridge,

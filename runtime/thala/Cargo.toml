@@ -92,6 +92,13 @@ pallet-rmrk-market = { git = "https://github.com/Phala-Network/rmrk-substrate", 
 rmrk-traits = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.33", default-features = false }
 pallet-rmrk-rpc-runtime-api = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.33", default-features = false }
 
+# Sygma dependencies
+sygma-basic-feehandler = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "freddy/multi-domain", default-features = false }
+sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "freddy/multi-domain", default-features = false }
+sygma-bridge = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "freddy/multi-domain", default-features = false }
+sygma-access-segregator = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "freddy/multi-domain", default-features = false }
+sygma-fee-handler-router = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "freddy/multi-domain", default-features = false }
+
 # Local dependencies
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
@@ -216,6 +223,11 @@ std = [
 	"rmrk-traits/std",
 	"pallet-rmrk-rpc-runtime-api/std",
 	"pallet-phala-world/std",
+	"sygma-basic-feehandler/std",
+	"sygma-traits/std",
+	"sygma-bridge/std",
+	"sygma-access-segregator/std",
+	"sygma-fee-handler-router/std",
 ]
 
 try-runtime = [

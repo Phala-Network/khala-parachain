@@ -167,8 +167,8 @@ pub mod pallet {
 	mod test {
 		use crate::chainbridge::Error as ChainbridgeError;
 		use crate::chainbridge::Event as ChainbridgeEvent;
-		use crate::mock::para::RuntimeOrigin as ParaOrigin;
 		use crate::mock::para::Runtime;
+		use crate::mock::para::RuntimeOrigin as ParaOrigin;
 		use crate::mock::{
 			para, para_expect_event, ParaA, ParaAssets as Assets,
 			ParaAssetsRegistry as AssetsRegistry, ParaB, ParaBalances,

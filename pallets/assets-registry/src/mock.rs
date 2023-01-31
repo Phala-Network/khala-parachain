@@ -3,7 +3,7 @@
 use crate as assets_registry;
 use frame_support::{
 	ord_parameter_types, parameter_types,
-	traits::{ConstU128, ConstU32, GenesisBuild, AsEnsureOriginWithArg},
+	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32, GenesisBuild},
 };
 use frame_system::{self as system};
 use sp_core::H256;
