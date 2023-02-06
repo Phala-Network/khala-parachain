@@ -33,7 +33,6 @@ pub mod pallet {
 
 	const LOG_TARGET: &str = "runtime::wanbridge";
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
-	const MODULE_ID: PalletId = PalletId(*b"phala/bg");
 
 	type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -68,8 +67,11 @@ pub mod pallet {
 		/// Execution price in PHA
 		type NativeExecutionPrice: Get<u128>;
 
-		/// Treasury account to receive assets fee
-		type TreasuryAccount: Get<Self::AccountId>;
+		/// Account to receive bridge fee
+		type BridgeFeeAccount: Get<Self::AccountId>;
+
+		/// Account to temporarily hold assets when do reserve transfer
+		type BridgeReserveAccount: Get<Self::AccountId>;
 
 		/// Asset adapter to do withdraw, deposit etc.
 		type FungibleAdapter: TransactAsset;
@@ -343,17 +345,11 @@ pub mod pallet {
 			// Note: If we received asset send from its reserve chain, we just need
 			// mint the same amount of asset at local
 			if asset_reserve_location != src_reserve_location {
-				let reserve_account: T::AccountId = if token_pair == T::NativeTokenPair::get() {
-					// PHA need to be released from bridge account due to historical reason
-					MODULE_ID.into_account_truncating()
-				} else {
-					src_reserve_location.into_account().into()
-				};
 				T::FungibleAdapter::withdraw_asset(
 					&(asset_location.clone(), amount.into()).into(),
 					&Junction::AccountId32 {
 						network: NetworkId::Any,
-						id: reserve_account.into(),
+						id: T::BridgeReserveAccount::get().into(),
 					}
 					.into(),
 				)
@@ -651,7 +647,7 @@ pub mod pallet {
 				&(asset.id.clone(), Fungible(fee.into())).into(),
 				&Junction::AccountId32 {
 					network: NetworkId::Any,
-					id: T::TreasuryAccount::get().into(),
+					id: T::BridgeFeeAccount::get().into(),
 				}
 				.into(),
 			)
@@ -670,11 +666,6 @@ pub mod pallet {
 				.clone()
 				.reserve_location()
 				.ok_or(Error::<T>::CannotDetermineReservedLocation)?;
-			let reserve_account = if T::NativeAssetChecker::is_native_asset(&asset) {
-				MODULE_ID.into_account_truncating()
-			} else {
-				dest_reserve_location.clone().into_account()
-			};
 			if T::NativeAssetChecker::is_native_asset(&asset)
 				|| asset_reserve_location != dest_reserve_location
 			{
@@ -682,7 +673,7 @@ pub mod pallet {
 					&(asset.id.clone(), Fungible((amount - fee).into())).into(),
 					&Junction::AccountId32 {
 						network: NetworkId::Any,
-						id: reserve_account.into(),
+						id: T::BridgeReserveAccount::get().into(),
 					}
 					.into(),
 				)

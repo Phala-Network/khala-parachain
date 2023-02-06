@@ -162,7 +162,8 @@ parameter_types! {
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 
 	pub TREASURY: AccountId32 = AccountId32::new([4u8; 32]);
-		// We define two test assets to simulate tranfer assets to reserve location and unreserve location,
+	pub WANBRIDGE_ACCOUNT: AccountId32 = AccountId32::new([5u8; 32]);
+	// We define two test assets to simulate tranfer assets to reserve location and unreserve location,
 	// we must defiend here because those need be configed as fee payment assets
 	pub SoloChain0AssetLocation: MultiLocation = MultiLocation::new(
 		1,
@@ -386,7 +387,8 @@ impl wanbridge::Config for Runtime {
 	type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
 	type NativeTokenPair = WanBridgeNativeTokenPair;
 	type NativeExecutionPrice = NativeExecutionPrice;
-	type TreasuryAccount = TREASURY;
+	type BridgeFeeAccount = TREASURY;
+	type BridgeReserveAccount = WANBRIDGE_ACCOUNT;
 	type FungibleAdapter = XTransferAdapter<
 		CurrencyTransactor,
 		FungiblesTransactor,

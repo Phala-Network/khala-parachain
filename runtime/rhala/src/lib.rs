@@ -85,7 +85,7 @@ use frame_system::{
 
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use xcm::latest::{prelude::*, Weight as XCMWeight,};
+use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
@@ -962,6 +962,7 @@ parameter_types! {
     pub UnitWeightCost: XCMWeight = 200_000_000;
     pub const MaxInstructions: u32 = 100;
     pub RhalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
+    pub WanbridgeAccount: AccountId = PalletId(*b"bg/wanbr").into_account_truncating();
     pub CheckingAccount: AccountId = PalletId(*b"checking").into_account_truncating();
 }
 
@@ -1477,7 +1478,8 @@ impl wanbridge::Config for Runtime {
     type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
     type NativeTokenPair = WanBridgeNativeTokenPair;
     type NativeExecutionPrice = NativeExecutionPrice;
-    type TreasuryAccount = RhalaTreasuryAccount;
+	type BridgeFeeAccount = RhalaTreasuryAccount;
+	type BridgeReserveAccount = WanbridgeAccount;
     type FungibleAdapter = XTransferAdapter<
         CurrencyTransactor,
         FungiblesTransactor,
@@ -1825,24 +1827,24 @@ impl_runtime_apis! {
     }
 
     #[cfg(feature = "try-runtime")]
-	impl frame_try_runtime::TryRuntime<Block> for Runtime {
-		fn on_runtime_upgrade() -> (Weight, Weight) {
-			log::info!("try-runtime::on_runtime_upgrade statemine.");
-			let weight = Executive::try_runtime_upgrade().unwrap();
-			(weight, RuntimeBlockWeights::get().max_block)
-		}
+    impl frame_try_runtime::TryRuntime<Block> for Runtime {
+        fn on_runtime_upgrade() -> (Weight, Weight) {
+            log::info!("try-runtime::on_runtime_upgrade statemine.");
+            let weight = Executive::try_runtime_upgrade().unwrap();
+            (weight, RuntimeBlockWeights::get().max_block)
+        }
 
-		fn execute_block(block: Block, state_root_check: bool, select: frame_try_runtime::TryStateSelect) -> Weight {
-			log::info!(
-				target: "runtime::statemine", "try-runtime: executing block #{} ({:?}) / root checks: {:?} / sanity-checks: {:?}",
-				block.header.number,
-				block.header.hash(),
-				state_root_check,
-				select,
-			);
-			Executive::try_execute_block(block, state_root_check, select).expect("try_execute_block failed")
-		}
-	}
+        fn execute_block(block: Block, state_root_check: bool, select: frame_try_runtime::TryStateSelect) -> Weight {
+            log::info!(
+                target: "runtime::statemine", "try-runtime: executing block #{} ({:?}) / root checks: {:?} / sanity-checks: {:?}",
+                block.header.number,
+                block.header.hash(),
+                state_root_check,
+                select,
+            );
+            Executive::try_execute_block(block, state_root_check, select).expect("try_execute_block failed")
+        }
+    }
 
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
