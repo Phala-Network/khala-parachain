@@ -907,6 +907,7 @@ impl pallet_uniques::Config for Runtime {
 parameter_types! {
     pub const ResourceSymbolLimit: u32 = 10;
     pub const MaxPriorities: u32 = 25;
+    pub const PropertiesLimit: u32 = 15;
     pub const MaxResourcesOnMint: u32 = 100;
     pub const NestingBudget: u32 = 200;
 }
@@ -917,11 +918,14 @@ impl pallet_rmrk_core::Config for Runtime {
     type ResourceSymbolLimit = ResourceSymbolLimit;
     type PartsLimit = rmrk_core::PartsLimit;
     type MaxPriorities = MaxPriorities;
+    type PropertiesLimit = PropertiesLimit;
     type NestingBudget = NestingBudget;
     type CollectionSymbolLimit = rmrk_core::CollectionSymbolLimit;
     type MaxResourcesOnMint = MaxResourcesOnMint;
     type WeightInfo = pallet_rmrk_core::weights::SubstrateWeight<Runtime>;
     type TransferHooks = PhalaWrappedBalances;
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = pallet_rmrk_core::RmrkBenchmark;
 }
 
 impl pallet_rmrk_equip::Config for Runtime {
