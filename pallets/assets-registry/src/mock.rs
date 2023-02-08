@@ -119,6 +119,8 @@ impl pallet_assets::Config for Test {
 parameter_types! {
 	pub NativeExecutionPrice: u128 = 1;
 	pub ResourceIdGenerationSalt: Option<u128> = Some(3);
+	pub NativeAssetLocation: MultiLocation = MultiLocation::here();
+	pub NativeAssetSygmaResourceId: [u8; 32] = [0; 32];
 }
 impl assets_registry::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
@@ -132,6 +134,8 @@ impl assets_registry::Config for Test {
 		assets_registry::NativeAssetFilter<ParachainInfo>,
 	>;
 	type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
+	type NativeAssetLocation = NativeAssetLocation;
+	type NativeAssetSygmaResourceId = NativeAssetSygmaResourceId;
 }
 
 impl pallet_timestamp::Config for Test {

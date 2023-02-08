@@ -1015,7 +1015,10 @@ pub mod pallet {
 		};
 		use frame_support::{assert_noop, assert_ok};
 		use phala_pallet_common::WrapSlice;
+		use sp_core::Get;
 		use sp_runtime::{traits::AccountIdConversion, AccountId32, DispatchError};
+		use sygma_traits::ResourceId as SygmaResourceId;
+		use xcm::latest::{AssetId as XcmAssetId, MultiLocation};
 
 		#[test]
 		fn test_withdraw_fund_of_pha() {
@@ -1572,6 +1575,102 @@ pub mod pallet {
 					para_b_location
 				);
 			});
+		}
+
+		#[test]
+		fn test_get_sygma_pair_should_work() {
+			new_test_ext().execute_with(|| {
+				let para_a_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(1)),
+				};
+				let para_b_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(2)),
+				};
+
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_a_location.clone().into(),
+					0,
+					AssetProperties {
+						name: b"ParaAAsset".to_vec(),
+						symbol: b"PAA".to_vec(),
+						decimals: 12,
+					},
+				));
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_b_location.clone().into(),
+					1,
+					AssetProperties {
+						name: b"ParaBAsset".to_vec(),
+						symbol: b"PBA".to_vec(),
+						decimals: 12,
+					},
+				));
+				assert_ok!(AssetsRegistry::force_enable_sygmabridge(
+					Origin::root(),
+					// asset id
+					0,
+					// rid
+					[0; 32],
+					// dest domain
+					0,
+					false,
+					Box::new(Vec::new()),
+				));
+				assert_ok!(AssetsRegistry::force_enable_sygmabridge(
+					Origin::root(),
+					// asset id
+					1,
+					// rid
+					[1; 32],
+					// dest domain
+					0,
+					false,
+					Box::new(Vec::new()),
+				));
+
+				let mut pairs: Vec<(XcmAssetId, SygmaResourceId)> = AssetsRegistry::get();
+				assert_eq!(pairs.len(), 3);
+				assert_eq!(
+					pairs[0],
+					(
+						Concrete(NativeAssetLocation::get()).into(),
+						NativeAssetSygmaResourceId::get()
+					)
+				);
+				assert_eq!(
+					pairs.contains(&(Concrete(para_a_location.clone()).into(), [0; 32])),
+					true
+				);
+				assert_eq!(
+					pairs.contains(&(Concrete(para_b_location.clone()).into(), [1; 32])),
+					true
+				);
+
+				assert_ok!(AssetsRegistry::force_disable_sygmabridge(
+					Origin::root(),
+					// asset id
+					1,
+					// rid
+					[1; 32],
+					// dest domain
+					0,
+				));
+				pairs = AssetsRegistry::get();
+				assert_eq!(
+					pairs,
+					vec![
+						(
+							Concrete(NativeAssetLocation::get()).into(),
+							NativeAssetSygmaResourceId::get()
+						),
+						(Concrete(para_a_location.clone()).into(), [0; 32]),
+					]
+				);
+			})
 		}
 
 		#[test]
