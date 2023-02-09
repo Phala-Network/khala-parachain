@@ -4,22 +4,27 @@ pub use self::pallet::*;
 #[allow(clippy::large_enum_variant)]
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::RawOrigin;
-	use frame_system::pallet_prelude::*;
-	use sygma_traits::{ChainID, DomainID, ExtractRecipient, ResourceId};
-	use xcm::latest::{prelude::*, AssetId as XcmAssetId, MultiLocation};
+	use crate::traits::*;
+	use assets_registry::SYGMA_PATH_KEY;
+	use frame_support::{dispatch::RawOrigin, pallet_prelude::*, transactional};
+	use funty::Fundamental;
+	use sp_std::vec::Vec;
+	use sygma_traits::{DomainID, ExtractDestinationData};
+	use xcm::latest::{prelude::*, MultiLocation, Weight as XCMWeight};
 
 	const LOG_TARGET: &str = "runtime::sygma-wrapper";
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub (super) trait Store)]
-	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + sygma_bridge::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 	}
+
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event<T: Config> {}
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -31,23 +36,22 @@ pub mod pallet {
 		Unimplemented,
 	}
 
-	impl ExtractRecipient for Pallet<T> {
-		fn extract_recipient(dest: &MultiLocation) -> Option<Vec<u8>> {
-			// For example, we force a dest location should be represented by following format.
+	impl<T> ExtractDestinationData for Pallet<T> {
+		fn extract_dest(dest: &MultiLocation) -> Option<(Vec<u8>, DomainID)> {
 			match (dest.parents, &dest.interior) {
-				(0, Junctions::X2(GeneralKey(recipient), GeneralIndex(_dest_domain_id))) => {
-					Some(recipient.to_vec())
-				}
-				_ => None,
-			}
-		}
-	}
-
-	impl ExtractDestDomainID for Pallet<T> {
-		fn extract_dest_domain_id(dest: &MultiLocation) -> Option<DomainID> {
-			match (dest.parents, &dest.interior) {
-				(0, Junctions::X2(GeneralKey(_recipient), GeneralIndex(dest_domain_id))) => {
-					Some(dest_domain_id.as_u8())
+				(
+					0,
+					Junctions::X3(
+						GeneralKey(sygma_path),
+						GeneralIndex(dest_domain_id),
+						GeneralKey(recipient),
+					),
+				) => {
+					if sygma_path.clone().into_inner() == SYGMA_PATH_KEY.to_vec() {
+						None
+					} else {
+						Some((recipient.to_vec(), dest_domain_id.as_u8()))
+					}
 				}
 				_ => None,
 			}
@@ -59,8 +63,19 @@ pub mod pallet {
 		<T as frame_system::Config>::AccountId: From<[u8; 32]> + Into<[u8; 32]>,
 	{
 		fn can_deposit_asset(asset: MultiAsset, dest: MultiLocation) -> bool {
-			// TODO: impl
-			true
+			match Self::extract_dest(&dest) {
+				// The destination path should follow SubBridge protocol
+				Some((_, dest_domain)) => {
+					// Reject all destination not supported by sygmabridge
+					//
+					// Sygma bridge itself will verify fee setting and its the (ResourceId, AssetId)
+					// list returned by AssetRegistry will represent if asset has been registered and
+					// enabled sygmabridge transfer. We don't need verify more here
+					sygma_bridge::DestDomainIds::<T>::get(&dest_domain) == true
+				}
+				_ => false,
+			}
+			// TODO: NonFungible verification
 		}
 
 		fn can_send_data(_data: &Vec<u8>, _dest: MultiLocation) -> bool {
@@ -93,7 +108,6 @@ pub mod pallet {
 				sender,
 				&asset,
 				&dest,
-				max_weight,
 			);
 
 			// Check if we can deposit asset into dest.

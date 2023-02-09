@@ -12,6 +12,7 @@ codec = { package = "parity-scale-codec", version = "3.0", default-features = fa
 scale-info = { version = "2.0", default-features = false, features = ["derive", "serde", "decode"] }
 impl-trait-for-tuples = "0.2.2"
 log = { version = "0.4.14", default-features = false }
+funty = { version = "3.0.0-rc1", default-features = false }
 
 # Substrate
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33", default-features = false }
@@ -34,6 +35,10 @@ xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "releas
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.33", default-features = false }
 cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.33", default-features = false }
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.33", default-features = false }
+
+# Sygma
+sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
+sygma-bridge = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
 
 # Local
 assets-registry = { path = "../assets-registry", default-features = false }
@@ -72,8 +77,8 @@ cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.33" }
 
 # Sygma
-sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "freddy/multi-domain", default-features = false }
-sygma-bridge = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "freddy/multi-domain", default-features = false }
+sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main" }
+sygma-bridge = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main" }
 
 # Local
 assets-registry = { path = "../assets-registry" }
