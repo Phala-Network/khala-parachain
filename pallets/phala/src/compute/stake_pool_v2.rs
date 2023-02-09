@@ -12,7 +12,7 @@ pub mod pallet {
 	use crate::balance_convert::FixedPointConvert;
 	use crate::base_pool;
 	use crate::computation;
-	use crate::pool_proxy::{ensure_stake_pool, ensure_vault, PoolProxy, PoolType, StakePool};
+	use crate::pool_proxy::{ensure_stake_pool, ensure_vault, PoolProxy, StakePool};
 	use crate::registry;
 	use crate::stake_pool;
 	use crate::vault;
@@ -273,6 +273,8 @@ pub mod pallet {
 		_PoolIsBusy,
 		/// The contributed stake is smaller than the minimum threshold
 		InsufficientContribution,
+		/// The caller has no nft to withdraw
+		NoNftToWithdraw,
 		/// Trying to contribute more than the available balance
 		InsufficientBalance,
 		/// The user doesn't have stake in a pool
@@ -325,6 +327,7 @@ pub mod pallet {
 		T: Config + vault::Config,
 	{
 		/// Creates a new stake pool
+		#[pallet::call_index(0)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn create(origin: OriginFor<T>) -> DispatchResult {
@@ -389,6 +392,7 @@ pub mod pallet {
 		/// Requires:
 		/// 1. The worker is registered and benchmarked
 		/// 2. The worker is not bound a pool
+		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
 		pub fn add_worker(
 			origin: OriginFor<T>,
@@ -457,6 +461,7 @@ pub mod pallet {
 		/// 1. The worker is registered
 		/// 2. The worker is associated with a pool
 		/// 3. The worker is removable (not in computing)
+		#[pallet::call_index(2)]
 		#[pallet::weight(0)]
 		pub fn remove_worker(
 			origin: OriginFor<T>,
@@ -496,6 +501,7 @@ pub mod pallet {
 		/// Note: a smaller cap than current total_value if not allowed.
 		/// Requires:
 		/// 1. The sender is the owner
+		#[pallet::call_index(3)]
 		#[pallet::weight(0)]
 		pub fn set_cap(origin: OriginFor<T>, pid: u64, cap: BalanceOf<T>) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
@@ -523,6 +529,7 @@ pub mod pallet {
 		///
 		/// Requires:
 		/// 1. The sender is the owner
+		#[pallet::call_index(4)]
 		#[pallet::weight(0)]
 		pub fn set_payout_pref(
 			origin: OriginFor<T>,
@@ -548,6 +555,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(5)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn claim_legacy_rewards(
@@ -562,6 +570,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(6)]
 		#[pallet::weight(0)]
 		pub fn backfill_add_missing_reward(
 			origin: OriginFor<T>,
@@ -582,6 +591,7 @@ pub mod pallet {
 		///
 		/// Requires:
 		/// 1. The sender is a pool owner
+		#[pallet::call_index(7)]
 		#[pallet::weight(0)]
 		pub fn claim_owner_rewards(
 			origin: OriginFor<T>,
@@ -618,6 +628,7 @@ pub mod pallet {
 		/// If the shutdown condition is met, all workers in the pool will be forced shutdown.
 		/// Note: This function doesn't guarantee no-op when there's error.
 		/// TODO(mingxuan): add more detail comment later.
+		#[pallet::call_index(8)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn check_and_maybe_force_withdraw(origin: OriginFor<T>, pid: u64) -> DispatchResult {
@@ -666,6 +677,7 @@ pub mod pallet {
 		/// Requires:
 		/// 1. The pool exists
 		/// 2. After the deposit, the pool doesn't reach the cap
+		#[pallet::call_index(9)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn contribute(
@@ -705,7 +717,6 @@ pub mod pallet {
 				&mut pool_info.basepool,
 				who.clone(),
 				amount,
-				PoolType::StakePool,
 			)?;
 			if let Some((vault_pid, vault_info)) = &mut maybe_vault {
 				if !vault_info.invest_pools.contains(&pid) {
@@ -732,11 +743,10 @@ pub mod pallet {
 			}
 			// Persist
 			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
-			base_pool::Pallet::<T>::merge_or_init_nft_for_staker(
+			base_pool::Pallet::<T>::merge_nft_for_staker(
 				pool_info.basepool.cid,
 				who.clone(),
 				pool_info.basepool.pid,
-				PoolType::StakePool,
 			)?;
 			if as_vault.is_none() {
 				wrapped_balances::Pallet::<T>::maybe_subscribe_to_pool(
@@ -763,6 +773,7 @@ pub mod pallet {
 		/// Once a withdraw request is proceeded successfully, The withdrawal would be queued and waiting to be dealed.
 		/// Afer the withdrawal is queued, The withdraw queue will be automaticly consumed util there are not enough free stakes to fullfill withdrawals.
 		/// Everytime the free stakes in the pools increases (except for rewards distributing), the withdraw queue will be consumed as it describes above.
+		#[pallet::call_index(10)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn withdraw(
@@ -785,12 +796,12 @@ pub mod pallet {
 				who = vault_info.basepool.pool_account_id;
 			}
 			let mut pool_info = ensure_stake_pool::<T>(pid)?;
-			let nft_id = base_pool::Pallet::<T>::merge_or_init_nft_for_staker(
+			let maybe_nft_id = base_pool::Pallet::<T>::merge_nft_for_staker(
 				pool_info.basepool.cid,
 				who.clone(),
 				pool_info.basepool.pid,
-				PoolType::StakePool,
 			)?;
+			let nft_id = maybe_nft_id.ok_or(Error::<T>::NoNftToWithdraw)?;
 			// The nft instance must be wrote to Nft storage at the end of the function
 			// this nft's property shouldn't be accessed or wrote again from storage before set_nft_attr
 			// is called. Or the property of the nft will be overwrote incorrectly.
@@ -824,20 +835,19 @@ pub mod pallet {
 				shares,
 				nft_id,
 				as_vault,
-				PoolType::StakePool,
 			)?;
 			nft_guard.save()?;
-			let _nft_id = base_pool::Pallet::<T>::merge_or_init_nft_for_staker(
+			let _nft_id = base_pool::Pallet::<T>::merge_nft_for_staker(
 				pool_info.basepool.cid,
 				who,
 				pool_info.basepool.pid,
-				PoolType::StakePool,
 			)?;
 			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::StakePool(pool_info.clone()));
 
 			Ok(())
 		}
 
+		#[pallet::call_index(11)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn reset_iter_pos(origin: OriginFor<T>) -> DispatchResult {
@@ -847,6 +857,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(12)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn fix_missing_worker_lock(
@@ -910,6 +921,7 @@ pub mod pallet {
 		/// Requires:
 		/// 1. The worker is bound to the pool and is in Ready state
 		/// 2. The remaining stake in the pool can cover the minimal stake required
+		#[pallet::call_index(13)]
 		#[pallet::weight(0)]
 		pub fn start_computing(
 			origin: OriginFor<T>,
@@ -926,6 +938,7 @@ pub mod pallet {
 		///
 		/// Requires:
 		/// 1. There worker is bound to the pool and is in a stoppable state
+		#[pallet::call_index(14)]
 		#[pallet::weight(0)]
 		pub fn stop_computing(
 			origin: OriginFor<T>,
@@ -937,6 +950,7 @@ pub mod pallet {
 		}
 
 		/// Reclaims the releasing stake of a worker in a pool.
+		#[pallet::call_index(15)]
 		#[pallet::weight(0)]
 		pub fn reclaim_pool_worker(
 			origin: OriginFor<T>,
@@ -950,6 +964,7 @@ pub mod pallet {
 		}
 
 		/// Enables or disables computing. Must be called with the council or root permission.
+		#[pallet::call_index(16)]
 		#[pallet::weight(0)]
 		pub fn set_working_enabled(origin: OriginFor<T>, enable: bool) -> DispatchResult {
 			T::ComputingSwitchOrigin::ensure_origin(origin)?;
@@ -958,6 +973,7 @@ pub mod pallet {
 		}
 
 		/// Restarts the worker with a higher stake
+		#[pallet::call_index(17)]
 		#[pallet::weight(195_000_000)]
 		#[frame_support::transactional]
 		pub fn restart_computing(

@@ -5,7 +5,7 @@ pub mod pallet {
 	use crate::balance_convert::{mul as bmul, FixedPointConvert};
 	use crate::base_pool;
 	use crate::computation;
-	use crate::pool_proxy::{PoolProxy, PoolType};
+	use crate::pool_proxy::PoolProxy;
 	use crate::registry;
 	use crate::vault;
 	use crate::{BalanceOf, NegativeImbalanceOf, PhalaConfig};
@@ -178,17 +178,10 @@ pub mod pallet {
 			_nft_id: &NftId,
 		) -> bool {
 			if let Some(pid) = base_pool::pallet::PoolCollections::<T>::get(collection_id) {
-				let pool_proxy = base_pool::Pallet::<T>::pool_collection(pid)
-					.expect("already checked exist; qed.");
-				let pool_type = match pool_proxy {
-					PoolProxy::Vault(_res) => PoolType::Vault,
-					PoolProxy::StakePool(_res) => PoolType::StakePool,
-				};
-				base_pool::Pallet::<T>::merge_or_init_nft_for_staker(
+				base_pool::Pallet::<T>::merge_nft_for_staker(
 					*collection_id,
 					recipient.clone(),
 					pid,
-					pool_type,
 				)
 				.expect("mrege or init should not fail");
 			}
@@ -208,6 +201,7 @@ pub mod pallet {
 		/// Wraps some pha and gain equal amount of W-PHA
 		///
 		/// The wrapped pha is stored in `WrappedBalancesAccountId`'s wallet and can not be taken away
+		#[pallet::call_index(0)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn wrap(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
@@ -233,6 +227,7 @@ pub mod pallet {
 		/// Burns the amount of all free W-PHA and unwraps equal amount of pha
 		///
 		/// The unwrapped pha is transfered from `WrappedBalancesAccountId` to the user's wallet
+		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn unwrap_all(origin: OriginFor<T>) -> DispatchResult {
@@ -257,6 +252,7 @@ pub mod pallet {
 		/// Unwraps some pha by burning equal amount of W-PHA
 		///
 		/// The unwrapped pha is transfered from `WrappedBalancesAccountId` to the user's wallet
+		#[pallet::call_index(2)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn unwrap(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
@@ -290,6 +286,7 @@ pub mod pallet {
 		///
 		/// Can both approve and oppose a vote at the same time
 		/// The W-PHA used in vote will be locked until the vote is finished or canceled
+		#[pallet::call_index(3)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn vote(
@@ -325,6 +322,7 @@ pub mod pallet {
 		/// Tries to unlock W-PHAs used in vote after the vote finished or canceled
 		///
 		/// Must assign the max iterations to avoid computing complexity overwhelm
+		#[pallet::call_index(4)]
 		#[pallet::weight(0)]
 		#[frame_support::transactional]
 		pub fn unlock(
