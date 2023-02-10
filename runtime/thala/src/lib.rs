@@ -310,7 +310,7 @@ construct_runtime! {
         SygmaBasicFeeHandler: sygma_basic_feehandler::{Pallet, Call, Storage, Event<T>} = 112,
         SygmaBridge: sygma_bridge::{Pallet, Call, Storage, Event<T>} = 113,
         SygmaFeeHandlerRouter: sygma_fee_handler_router::{Pallet, Call, Storage, Event<T>} = 114,
-        SygmaWrapper: sygma_wrapper::{Pallet, Event<T>} = 115,
+        SygmaWrapper: sygma_wrapper::{Pallet, Storage, Event<T>} = 115,
     }
 }
 

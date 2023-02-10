@@ -12,7 +12,7 @@ codec = { package = "parity-scale-codec", version = "3.0", default-features = fa
 scale-info = { version = "2.0", default-features = false, features = ["derive", "serde", "decode"] }
 impl-trait-for-tuples = "0.2.2"
 log = { version = "0.4.14", default-features = false }
-funty = { version = "3.0.0-rc1", default-features = false }
+funty = { version = "3.0.0-rc2", default-features = false }
 
 # Substrate
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33", default-features = false }
@@ -96,6 +96,7 @@ std = [
 	"codec/std",
 	"scale-info/std",
 	"log/std",
+	"funty/std",
 	"sp-std/std",
 	"sp-runtime/std",
 	"sp-io/std",

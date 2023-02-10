@@ -13,8 +13,11 @@ pub mod pallet {
 	use xcm::latest::{prelude::*, MultiLocation, Weight as XCMWeight};
 
 	const LOG_TARGET: &str = "runtime::sygma-wrapper";
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
 	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
@@ -24,12 +27,17 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	pub enum Event<T: Config> {}
+	pub enum Event<T: Config> {
+		/// Assets sent to EVM chain.
+		AssetTransfered {
+			asset: MultiAsset,
+			origin: MultiLocation,
+			dest: MultiLocation,
+		},
+	}
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Extract dest location failed
-		IllegalDestination,
 		/// Can not transfer asset to dest
 		CannotDepositAsset,
 		/// Unimplemented function
@@ -109,6 +117,11 @@ pub mod pallet {
 				&asset,
 				&dest,
 			);
+			let origin_location = Junction::AccountId32 {
+				network: NetworkId::Any,
+				id: sender,
+			}
+			.into();
 
 			// Check if we can deposit asset into dest.
 			ensure!(
@@ -119,9 +132,17 @@ pub mod pallet {
 			// Transfer asset through sygma bridge
 			<sygma_bridge::pallet::Pallet<T>>::deposit(
 				RawOrigin::Signed(sender.into()).into(),
+				asset.clone(),
+				dest.clone(),
+			)?;
+
+			Pallet::<T>::deposit_event(Event::AssetTransfered {
 				asset,
+				origin: origin_location,
 				dest,
-			)
+			});
+
+			Ok(())
 		}
 
 		/// Initiates a transfer of a nonfungible asset out of the chain. This should be called by another pallet.
