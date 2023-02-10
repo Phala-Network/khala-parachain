@@ -111,6 +111,10 @@ polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch =
 polkadot-service = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.33" }
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.33" }
 
+# Sygma
+sygma-rpc = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main" }
+sygma-runtime-api = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main" }
+
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
 

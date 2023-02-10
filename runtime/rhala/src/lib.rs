@@ -66,6 +66,7 @@ use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use static_assertions::const_assert;
+use sygma_traits::{DepositNonce, DomainID};
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
@@ -1165,6 +1166,10 @@ impl xcmbridge::Config for Runtime {
     type AssetsRegistry = AssetsRegistry;
 }
 
+parameter_types! {
+    pub PHALocation: MultiLocation = MultiLocation::here();
+    pub PHASygmaResourceId: [u8; 32] = hex_literal::hex!("0000000000000000000000000000000000000000000000000000000000000001");
+}
 impl assets_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RegistryCommitteeOrigin = EnsureRootOrHalfCouncil;
@@ -1177,6 +1182,8 @@ impl assets_registry::Config for Runtime {
         assets_registry::NativeAssetFilter<ParachainInfo>,
     >;
     type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
+    type NativeAssetLocation = PHALocation;
+    type NativeAssetSygmaResourceId = PHASygmaResourceId;
 }
 
 parameter_types! {
@@ -1905,6 +1912,13 @@ impl_runtime_apis! {
             Ok(theme)
         }
     }
+
+	impl sygma_runtime_api::SygmaBridgeApi<Block> for Runtime {
+		fn is_proposal_executed(nonce: DepositNonce, domain_id: DomainID) -> bool {
+            // TODO: enable Sygma
+			false
+		}
+	}
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {

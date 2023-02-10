@@ -182,6 +182,8 @@ parameter_types! {
 	);
 	pub NativeExecutionPrice: u128 = 1;
 	pub WeightPerSecond: u64 = 1;
+	pub NativeAssetLocation: MultiLocation = MultiLocation::here();
+	pub NativeAssetSygmaResourceId: [u8; 32] = [0; 32];
 }
 
 pub type LocationToAccountId = (
@@ -349,6 +351,8 @@ impl assets_registry::Config for Runtime {
 		assets_registry::NativeAssetFilter<ParachainInfo>,
 	>;
 	type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
+	type NativeAssetLocation = NativeAssetLocation;
+	type NativeAssetSygmaResourceId = NativeAssetSygmaResourceId;
 }
 
 impl chainbridge::Config for Runtime {

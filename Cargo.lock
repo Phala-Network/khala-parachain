@@ -3884,6 +3884,8 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "substrate-prometheus-endpoint",
+ "sygma-rpc",
+ "sygma-runtime-api",
  "thala-parachain-runtime",
  "thiserror",
  "try-runtime-cli",
@@ -3973,6 +3975,8 @@ dependencies = [
  "static_assertions",
  "subbridge-pallets",
  "substrate-wasm-builder",
+ "sygma-runtime-api",
+ "sygma-traits",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -6854,6 +6858,8 @@ dependencies = [
  "static_assertions",
  "subbridge-pallets",
  "substrate-wasm-builder",
+ "sygma-runtime-api",
+ "sygma-traits",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -8779,6 +8785,8 @@ dependencies = [
  "static_assertions",
  "subbridge-pallets",
  "substrate-wasm-builder",
+ "sygma-runtime-api",
+ "sygma-traits",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -11762,6 +11770,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "sygma-rpc"
+version = "0.1.0"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#9852c999772cb263b39c77910fb141b1f29cc642"
+dependencies = [
+ "jsonrpsee",
+ "parity-scale-codec",
+ "sc-client-api",
+ "sc-rpc",
+ "scale-info",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+ "sygma-runtime-api",
+ "sygma-traits",
+]
+
+[[package]]
+name = "sygma-runtime-api"
+version = "0.1.0"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#9852c999772cb263b39c77910fb141b1f29cc642"
+dependencies = [
+ "sp-api",
+ "sygma-bridge",
+ "sygma-traits",
+]
+
+[[package]]
 name = "sygma-traits"
 version = "0.1.0"
 source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#9852c999772cb263b39c77910fb141b1f29cc642"
@@ -11892,6 +11927,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
+ "hex",
  "hex-literal",
  "log",
  "pallet-assets",
@@ -11936,6 +11972,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "primitive-types",
  "rmrk-traits",
  "scale-info",
  "smallvec",
@@ -11958,6 +11995,7 @@ dependencies = [
  "sygma-basic-feehandler",
  "sygma-bridge",
  "sygma-fee-handler-router",
+ "sygma-runtime-api",
  "sygma-traits",
  "xcm",
  "xcm-builder",
