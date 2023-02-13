@@ -640,39 +640,55 @@ pub fn run() -> Result<()> {
                 sc_service::TaskManager::new(runner.config().tokio_handle.clone(), *registry)
                     .map_err(|e| format!("Error: {:?}", e))?;
 
+            use sc_executor::{sp_wasm_interface::ExtendedHostFunctions, NativeExecutionDispatch};
+            type HostFunctionsOf<E> = ExtendedHostFunctions<
+                sp_io::SubstrateHostFunctions,
+                <E as NativeExecutionDispatch>::ExtendHostFunctions,
+            >;
+
             #[cfg(feature = "phala-native")]
             if runner.config().chain_spec.is_phala() {
-                return runner.async_run(|config| {
-                    Ok((cmd.run::<Block, crate::service::phala::RuntimeExecutor>(config), task_manager))
+                return runner.async_run(|_config| {
+                    Ok((
+                        cmd.run::<Block, HostFunctionsOf<crate::service::phala::RuntimeExecutor>>(),
+                        task_manager,
+                    ))
                 })
             }
 
             #[cfg(feature = "khala-native")]
             if runner.config().chain_spec.is_khala() {
-                return runner.async_run(|config| {
-                    Ok((cmd.run::<Block, crate::service::khala::RuntimeExecutor>(config), task_manager))
+                return runner.async_run(|_config| {
+                    Ok((
+                       cmd.run::<Block, HostFunctionsOf<crate::service::khala::RuntimeExecutor>>(),
+                       task_manager,
+                    ))
                 })
             }
 
             #[cfg(feature = "rhala-native")]
             if runner.config().chain_spec.is_rhala() {
-                return runner.async_run(|config| {
-                    Ok((cmd.run::<Block, crate::service::rhala::RuntimeExecutor>(config), task_manager))
+                return runner.async_run(|_config| {
+                    Ok((
+                       cmd.run::<Block, HostFunctionsOf<crate::service::rhala::RuntimeExecutor>>(),
+                       task_manager,
+                    ))
                 })
             }
 
             #[cfg(feature = "thala-native")]
             if runner.config().chain_spec.is_thala() {
-                return runner.async_run(|config| {
-                    Ok((cmd.run::<Block, crate::service::thala::RuntimeExecutor>(config), task_manager))
+                return runner.async_run(|_config| {
+                    Ok((
+                       cmd.run::<Block, HostFunctionsOf<crate::service::thala::RuntimeExecutor>>(),
+                       task_manager,
+                    ))
                 })
             }
 
             #[cfg(feature = "shell-native")]
             if runner.config().chain_spec.is_shell() {
-                return runner.async_run(|config| {
-                    Ok((cmd.run::<Block, crate::service::shell::RuntimeExecutor>(config), task_manager))
-                })
+                return Err("Shell runtime doesn't support try-runtime".into())
             }
 
             Err("Can't determine runtime from chain_spec".into())
@@ -731,7 +747,7 @@ pub fn run() -> Result<()> {
                         "no"
                     }
                 );
-                if collator_options.relay_chain_rpc_url.is_some() && cli.relaychain_args.len() > 0 {
+                if !collator_options.relay_chain_rpc_urls.is_empty() && cli.relaychain_args.len() > 0 {
                     warn!("Detected relay chain node arguments together with --relay-chain-rpc-url. This command starts a minimal Polkadot node that only uses a network-related subset of all relay chain CLI options.");
                 }
 

@@ -96,6 +96,7 @@ parameter_types! {
 	pub const ResourceSymbolLimit: u32 = 10;
 	pub const PartsLimit: u32 = 25;
 	pub const MaxPriorities: u32 = 25;
+	pub const PropertiesLimit: u32 = 15;
 	pub const CollectionSymbolLimit: u32 = 100;
 	pub const MaxResourcesOnMint: u32 = 100;
 	pub const NestingBudget: u32 = 20;
@@ -107,11 +108,14 @@ impl pallet_rmrk_core::Config for Test {
 	type ResourceSymbolLimit = ResourceSymbolLimit;
 	type PartsLimit = PartsLimit;
 	type MaxPriorities = MaxPriorities;
+	type PropertiesLimit = PropertiesLimit;
 	type NestingBudget = NestingBudget;
 	type CollectionSymbolLimit = CollectionSymbolLimit;
 	type MaxResourcesOnMint = MaxResourcesOnMint;
 	type WeightInfo = pallet_rmrk_core::weights::SubstrateWeight<Test>;
 	type TransferHooks = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type Helper = pallet_rmrk_core::RmrkBenchmark;
 }
 
 parameter_types! {
@@ -156,6 +160,7 @@ impl pallet_rmrk_market::Config for Test {
 	type ProtocolOrigin = EnsureRoot<AccountId>;
 	type Currency = Balances;
 	type MinimumOfferAmount = MinimumOfferAmount;
+	type WeightInfo = pallet_rmrk_market::weights::SubstrateWeight<Test>;
 }
 
 parameter_types! {

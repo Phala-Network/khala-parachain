@@ -61,6 +61,7 @@ pub mod pallet {
 	where
 		T::AccountId: Into<[u8; 32]> + From<[u8; 32]>,
 	{
+		#[pallet::call_index(0)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn transfer(
@@ -74,6 +75,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(1)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn transfer_generic(

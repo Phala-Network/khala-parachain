@@ -337,6 +337,7 @@ pub mod pallet {
 		/// # <weight>
 		/// - O(1) lookup and insert
 		/// # </weight>
+		#[pallet::call_index(0)]
 		#[pallet::weight(195_000_000)]
 		pub fn set_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
@@ -348,6 +349,7 @@ pub mod pallet {
 		/// # <weight>
 		/// - O(1) lookup and insert
 		/// # </weight>
+		#[pallet::call_index(1)]
 		#[pallet::weight(195_000_000)]
 		pub fn whitelist_chain(origin: OriginFor<T>, id: BridgeChainId) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
@@ -359,6 +361,7 @@ pub mod pallet {
 		/// # <weight>
 		/// - O(1) lookup and insert
 		/// # </weight>
+		#[pallet::call_index(2)]
 		#[pallet::weight(195_000_000)]
 		pub fn add_relayer(origin: OriginFor<T>, v: T::AccountId) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
@@ -370,6 +373,7 @@ pub mod pallet {
 		/// # <weight>
 		/// - O(1) lookup and removal
 		/// # </weight>
+		#[pallet::call_index(3)]
 		#[pallet::weight(195_000_000)]
 		pub fn remove_relayer(origin: OriginFor<T>, v: T::AccountId) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
@@ -381,6 +385,7 @@ pub mod pallet {
 		/// # <weight>
 		/// - O(1) lookup and insert
 		/// # </weight>
+		#[pallet::call_index(4)]
 		#[pallet::weight(195_000_000)]
 		pub fn update_fee(
 			origin: OriginFor<T>,
@@ -405,6 +410,7 @@ pub mod pallet {
 		/// # <weight>
 		/// - weight of proposed call, regardless of whether execution is performed
 		/// # </weight>
+		#[pallet::call_index(5)]
 		#[pallet::weight({
 			let dispatch_info = call.get_dispatch_info();
 			(dispatch_info.weight.saturating_add(Weight::from_ref_time(195_000_000)), dispatch_info.class, Pays::Yes)
@@ -432,6 +438,7 @@ pub mod pallet {
 		/// # <weight>
 		/// - Fixed, since execution of proposal should not be included
 		/// # </weight>
+		#[pallet::call_index(6)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn reject_proposal(
@@ -459,6 +466,7 @@ pub mod pallet {
 		/// # <weight>
 		/// - weight of proposed call, regardless of whether execution is performed
 		/// # </weight>
+		#[pallet::call_index(7)]
 		#[pallet::weight({
 			let dispatch_info = prop.get_dispatch_info();
 			(dispatch_info.weight.saturating_add(Weight::from_ref_time(195_000_000)), dispatch_info.class, Pays::Yes)
@@ -476,6 +484,7 @@ pub mod pallet {
 		}
 
 		/// Triggered by a initial transfer on source chain, executed by relayer when proposal was resolved.
+		#[pallet::call_index(8)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn handle_fungible_transfer(

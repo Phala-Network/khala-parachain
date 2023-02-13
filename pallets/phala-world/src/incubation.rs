@@ -215,6 +215,7 @@ pub mod pallet {
 		/// - origin: The origin of the extrinsic starting the incubation process
 		/// - collection_id: The collection id of the Origin of Shell RMRK NFT
 		/// - nft_id: The NFT id of the Origin of Shell RMRK NFT
+		#[pallet::call_index(0)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn start_incubation(
@@ -270,6 +271,7 @@ pub mod pallet {
 		/// - origin: The origin of the extrinsic feeding the target Origin of Shell.
 		/// - collection_id: The collection id of the Origin of Shell.
 		/// - nft_id: The NFT id of the Origin of Shell.
+		#[pallet::call_index(1)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn feed_origin_of_shell(
@@ -370,6 +372,7 @@ pub mod pallet {
 		/// - `nft_id`: The NFT id of the Origin of Shell RMRK NFT
 		/// - `default_shell_metadata`: File resource URI in decentralized storage for Shell NFT
 		///	parts that render the Shell NFT
+		#[pallet::call_index(2)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn hatch_origin_of_shell(
@@ -553,6 +556,7 @@ pub mod pallet {
 		/// Parameters:
 		/// `origin`: Expected to be the `Overlord` account
 		/// `status`: `bool` value to set for the status in storage
+		#[pallet::call_index(3)]
 		#[pallet::weight(0)]
 		pub fn set_can_start_incubation_status(
 			origin: OriginFor<T>,
@@ -584,6 +588,7 @@ pub mod pallet {
 		/// Parameters:
 		/// - `origin` - Expected Overlord admin account to set the Shell Collection ID
 		/// - `collection_id` - Collection ID of the Shell Collection
+		#[pallet::call_index(4)]
 		#[pallet::weight(0)]
 		pub fn set_shell_collection_id(
 			origin: OriginFor<T>,
@@ -609,6 +614,7 @@ pub mod pallet {
 		/// Parameters:
 		/// - `origin` - Expected Overlord admin account to set the Shell Parts Collection ID
 		/// - `collection_id` - Collection ID of the Shell Parts Collection
+		#[pallet::call_index(5)]
 		#[pallet::weight(0)]
 		pub fn set_shell_parts_collection_id(
 			origin: OriginFor<T>,
@@ -636,6 +642,7 @@ pub mod pallet {
 		/// - `collection_id` - Collection ID of Origin of Shell
 		/// - `nft_id` - NFT ID of the Origin of Shell
 		/// - `chosen_parts` - Shell parts to be stored in Storage
+		#[pallet::call_index(6)]
 		#[pallet::weight(0)]
 		pub fn set_origin_of_shell_chosen_parts(
 			origin: OriginFor<T>,
