@@ -60,6 +60,3 @@ polkadot-service = { path = "polkadot/node/service" }
 [patch."https://github.com/paritytech/substrate"]
 sc-state-db = { path = "substrate/client/state-db" }
 sc-client-db = { path = "substrate/client/db" }
-
-[patch.crates-io]
-eth-encode-packed = { git = "https://github.com/tolak/eth-encode-packed-rs.git", branch = "0.1.0-etherabi-18" }

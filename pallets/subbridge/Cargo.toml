@@ -37,8 +37,8 @@ cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.33", default-features = false }
 
 # Sygma
-sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
-sygma-bridge = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
+sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "fix-duplicated-impl", default-features = false }
+sygma-bridge = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "fix-duplicated-impl", default-features = false }
 
 # Local
 assets-registry = { path = "../assets-registry", default-features = false }
@@ -77,8 +77,8 @@ cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.33" }
 
 # Sygma
-sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main" }
-sygma-bridge = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main" }
+sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "fix-duplicated-impl" }
+sygma-bridge = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "fix-duplicated-impl" }
 
 # Local
 assets-registry = { path = "../assets-registry" }

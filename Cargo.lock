@@ -2275,15 +2275,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "eth-encode-packed"
-version = "0.1.0"
-source = "git+https://github.com/tolak/eth-encode-packed-rs.git?branch=0.1.0-etherabi-18#90d2fe0e98232cb318771ee3ffd4fee284c7c870"
-dependencies = [
- "ethabi",
- "hex",
-]
-
-[[package]]
 name = "ethabi"
 version = "18.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11697,7 +11688,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "sygma-access-segregator"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#9852c999772cb263b39c77910fb141b1f29cc642"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=fix-duplicated-impl#741d8197206c1d08c92fa9f250d47aa7a6033957"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -11709,7 +11700,7 @@ dependencies = [
 [[package]]
 name = "sygma-basic-feehandler"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#9852c999772cb263b39c77910fb141b1f29cc642"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=fix-duplicated-impl#741d8197206c1d08c92fa9f250d47aa7a6033957"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -11725,15 +11716,15 @@ dependencies = [
 [[package]]
 name = "sygma-bridge"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#9852c999772cb263b39c77910fb141b1f29cc642"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=fix-duplicated-impl#741d8197206c1d08c92fa9f250d47aa7a6033957"
 dependencies = [
  "arrayref",
- "eth-encode-packed",
  "ethabi",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "funty 3.0.0-rc2",
+ "hex",
  "log",
  "pallet-assets",
  "pallet-balances",
@@ -11755,7 +11746,7 @@ dependencies = [
 [[package]]
 name = "sygma-fee-handler-router"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#9852c999772cb263b39c77910fb141b1f29cc642"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=fix-duplicated-impl#741d8197206c1d08c92fa9f250d47aa7a6033957"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -11772,7 +11763,7 @@ dependencies = [
 [[package]]
 name = "sygma-rpc"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#9852c999772cb263b39c77910fb141b1f29cc642"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=fix-duplicated-impl#741d8197206c1d08c92fa9f250d47aa7a6033957"
 dependencies = [
  "jsonrpsee",
  "parity-scale-codec",
@@ -11789,7 +11780,7 @@ dependencies = [
 [[package]]
 name = "sygma-runtime-api"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#9852c999772cb263b39c77910fb141b1f29cc642"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=fix-duplicated-impl#741d8197206c1d08c92fa9f250d47aa7a6033957"
 dependencies = [
  "sp-api",
  "sygma-bridge",
@@ -11799,7 +11790,7 @@ dependencies = [
 [[package]]
 name = "sygma-traits"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#9852c999772cb263b39c77910fb141b1f29cc642"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=fix-duplicated-impl#741d8197206c1d08c92fa9f250d47aa7a6033957"
 dependencies = [
  "ethabi",
  "frame-support",
