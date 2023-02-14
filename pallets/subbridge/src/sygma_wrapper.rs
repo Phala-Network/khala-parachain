@@ -56,10 +56,9 @@ pub mod pallet {
 					),
 				) => {
 					if sygma_path.clone().into_inner() == SYGMA_PATH_KEY.to_vec() {
-						None
-					} else {
-						Some((recipient.to_vec(), dest_domain_id.as_u8()))
+						return Some((recipient.to_vec(), dest_domain_id.as_u8()));
 					}
+					None
 				}
 				_ => None,
 			}
