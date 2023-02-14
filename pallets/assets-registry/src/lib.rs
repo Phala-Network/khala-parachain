@@ -568,6 +568,17 @@ pub mod pallet {
 						chain_id,
 					);
 					IdByResourceId::<T>::remove(&resource_id);
+				} else if let XBridgeConfig::SygmaBridge {
+					dest_domain,
+					resource_id,
+					..
+				} = bridge.config {
+					log::trace!(
+						target: LOG_TARGET,
+						"Found enabled sygmabridge, dest_domain ${:?}.",
+						dest_domain,
+					);
+					IdByResourceId::<T>::remove(&resource_id);
 				}
 			}
 			// Delete registry info
@@ -1001,6 +1012,11 @@ pub mod pallet {
 						.collect();
 				})
 				.collect();
+			log::trace!(
+				target: LOG_TARGET,
+				"Get sygma asset pairs: ${:?}.",
+				&pairs,
+			);
 			pairs
 		}
 	}
