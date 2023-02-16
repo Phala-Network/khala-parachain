@@ -81,7 +81,9 @@ pub use frame_support::{
         WithdrawReasons,
     },
     weights::{
-        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
+        constants::{
+            BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND,
+        },
         ConstantMultiplier, IdentityFee, Weight,
     },
     BoundedVec, PalletId, RuntimeDebug, StorageValue,
@@ -114,25 +116,26 @@ use rmrk_traits::{
 
 pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
-pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
-pub use phala_pallets::{
-    pallet_base_pool, pallet_computation, pallet_fat, pallet_fat_tokenomic, pallet_mq,
-    pallet_registry, pallet_stake_pool, pallet_stake_pool_v2, pallet_vault,
-    pallet_wrapped_balances,
-};
-pub use subbridge_pallets::{
-    chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
-    xcmbridge, xtransfer,
-};
+use crate::migrations::PhalaWorldKhalaMigrations;
 
 #[cfg(any(feature = "std", test))]
 pub use frame_system::Call as SystemCall;
 #[cfg(any(feature = "std", test))]
 pub use pallet_balances::Call as BalancesCall;
+pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
 #[cfg(any(feature = "std", test))]
 pub use pallet_timestamp::Call as TimestampCall;
+pub use phala_pallets::{
+    pallet_base_pool, pallet_computation, pallet_fat, pallet_fat_tokenomic, pallet_mq,
+    pallet_registry, pallet_stake_pool, pallet_stake_pool_v2, pallet_vault,
+    pallet_wrapped_balances,
+};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
+pub use subbridge_pallets::{
+    chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
+    xcmbridge, xtransfer,
+};
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -217,6 +220,7 @@ pub type Executive = frame_executive::Executive<
 type Migrations = (
     pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccount>,
     pallet_assets::migration::v1::MigrateToV1<Runtime>,
+    PhalaWorldKhalaMigrations,
 );
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
@@ -1929,15 +1933,15 @@ impl_runtime_apis! {
         }
 
         fn execute_block(
-			block: Block,
-			state_root_check: bool,
-			signature_check: bool,
-			select: frame_try_runtime::TryStateSelect,
-		) -> Weight {
-			// NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
-			// have a backtrace here.
-			Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
-		}
+            block: Block,
+            state_root_check: bool,
+            signature_check: bool,
+            select: frame_try_runtime::TryStateSelect,
+        ) -> Weight {
+            // NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
+            // have a backtrace here.
+            Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
+        }
     }
 
     #[cfg(feature = "runtime-benchmarks")]
