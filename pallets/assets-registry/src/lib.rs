@@ -449,6 +449,7 @@ pub mod pallet {
 	{
 		/// Force withdraw some amount of assets from ASSETS_REGISTRY_ID, if the given asset_id is None,
 		/// would performance withdraw PHA from this account
+		#[pallet::call_index(0)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_withdraw_fund(
@@ -479,6 +480,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(1)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_register_asset(
@@ -542,6 +544,7 @@ pub mod pallet {
 		/// By cleaning them in current pallet, xcm and bridge transfering on this asset
 		/// will not success anymore, we should call pallet_assets::destory() manually
 		/// if we want to delete this asset from our chain
+		#[pallet::call_index(2)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_unregister_asset(
@@ -591,6 +594,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(3)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_set_metadata(
@@ -615,6 +619,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(4)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_mint(
@@ -638,6 +643,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(5)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_burn(
@@ -659,6 +665,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(6)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_set_price(
@@ -675,6 +682,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(7)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_set_location(
@@ -730,6 +738,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(8)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_enable_chainbridge(
@@ -780,6 +789,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(9)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_disable_chainbridge(

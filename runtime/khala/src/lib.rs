@@ -81,7 +81,7 @@ pub use frame_support::{
         WithdrawReasons,
     },
     weights::{
-        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
         ConstantMultiplier, IdentityFee, Weight,
     },
     BoundedVec, PalletId, RuntimeDebug, StorageValue,
@@ -163,7 +163,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 1208,
+    spec_version: 1209,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -215,7 +215,10 @@ pub type Executive = frame_executive::Executive<
 >;
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`.
-type Migrations = ();
+type Migrations = (
+    pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccount>,
+    pallet_assets::migration::v1::MigrateToV1<Runtime>,
+);
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
@@ -729,6 +732,7 @@ impl pallet_assets::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = u32;
+    type AssetIdParameter = codec::Compact<u32>;
     type Currency = Balances;
     type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
@@ -738,9 +742,13 @@ impl pallet_assets::Config for Runtime {
     type MetadataDepositPerByte = MetadataDepositPerByte;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = AssetsStringLimit;
+    type RemoveItemsLimit = ConstU32<1000>;
     type Freezer = ();
     type Extra = ();
+    type CallbackHandle = ();
     type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 parameter_types! {
@@ -900,6 +908,7 @@ impl pallet_uniques::Config for Runtime {
 parameter_types! {
     pub const ResourceSymbolLimit: u32 = 10;
     pub const MaxPriorities: u32 = 25;
+    pub const PropertiesLimit: u32 = 15;
     pub const MaxResourcesOnMint: u32 = 100;
     pub const NestingBudget: u32 = 200;
 }
@@ -910,17 +919,21 @@ impl pallet_rmrk_core::Config for Runtime {
     type ResourceSymbolLimit = ResourceSymbolLimit;
     type PartsLimit = rmrk_core::PartsLimit;
     type MaxPriorities = MaxPriorities;
+    type PropertiesLimit = PropertiesLimit;
     type NestingBudget = NestingBudget;
     type CollectionSymbolLimit = rmrk_core::CollectionSymbolLimit;
     type MaxResourcesOnMint = MaxResourcesOnMint;
     type WeightInfo = pallet_rmrk_core::weights::SubstrateWeight<Runtime>;
     type TransferHooks = PhalaWrappedBalances;
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = pallet_rmrk_core::RmrkBenchmark;
 }
 
 impl pallet_rmrk_equip::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type MaxPropertiesPerTheme = rmrk_equip::MaxPropertiesPerTheme;
     type MaxCollectionsEquippablePerPart = rmrk_equip::MaxCollectionsEquippablePerPart;
+    type WeightInfo = pallet_rmrk_equip::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -932,6 +945,7 @@ impl pallet_rmrk_market::Config for Runtime {
     type ProtocolOrigin = EnsureRoot<AccountId>;
     type Currency = Balances;
     type MinimumOfferAmount = MinimumOfferAmount;
+    type WeightInfo = pallet_rmrk_market::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1066,7 +1080,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
 
 parameter_types! {
     pub NativeExecutionPrice: u128 = pha_per_second();
-    pub WeightPerSecond: XCMWeight = WEIGHT_PER_SECOND.ref_time();
+    pub WeightPerSecond: XCMWeight = WEIGHT_REF_TIME_PER_SECOND;
 }
 
 pub struct XcmConfig;
@@ -1923,22 +1937,21 @@ impl_runtime_apis! {
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade() -> (Weight, Weight) {
-            log::info!("try-runtime::on_runtime_upgrade statemine.");
-            let weight = Executive::try_runtime_upgrade().unwrap();
+        fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
+            let weight = Executive::try_runtime_upgrade(checks).unwrap();
             (weight, RuntimeBlockWeights::get().max_block)
         }
 
-        fn execute_block(block: Block, state_root_check: bool, select: frame_try_runtime::TryStateSelect) -> Weight {
-            log::info!(
-                target: "runtime::statemine", "try-runtime: executing block #{} ({:?}) / root checks: {:?} / sanity-checks: {:?}",
-                block.header.number,
-                block.header.hash(),
-                state_root_check,
-                select,
-            );
-            Executive::try_execute_block(block, state_root_check, select).expect("try_execute_block failed")
-        }
+        fn execute_block(
+			block: Block,
+			state_root_check: bool,
+			signature_check: bool,
+			select: frame_try_runtime::TryStateSelect,
+		) -> Weight {
+			// NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
+			// have a backtrace here.
+			Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
+		}
     }
 
     #[cfg(feature = "runtime-benchmarks")]

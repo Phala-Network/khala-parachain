@@ -451,6 +451,7 @@ pub mod pallet {
 		///
 		/// Parameters:
 		/// - origin: The origin of the extrinsic.
+		#[pallet::call_index(0)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn claim_spirit(origin: OriginFor<T>) -> DispatchResult {
@@ -480,6 +481,7 @@ pub mod pallet {
 		///
 		/// Parameters:
 		/// - origin: The origin of the extrinsic.
+		#[pallet::call_index(1)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn redeem_spirit(
@@ -514,6 +516,7 @@ pub mod pallet {
 		/// - race: The race of the origin_of_shell chosen by the user.
 		/// - career: The career of the origin_of_shell chosen by the user or auto-generated based
 		///   on metadata
+		#[pallet::call_index(2)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn buy_rare_origin_of_shell(
@@ -559,6 +562,7 @@ pub mod pallet {
 		/// - signature: The signature of the account that is claiming the spirit.
 		/// - race: The race that the user has chosen (limited # of races)
 		/// - career: The career that the user has chosen (unlimited careers)
+		#[pallet::call_index(3)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn buy_prime_origin_of_shell(
@@ -610,6 +614,7 @@ pub mod pallet {
 		/// - origin: The origin of the extrinsic preordering the origin_of_shell
 		/// - race: The race that the user has chosen (limited # of races)
 		/// - career: The career that the user has chosen (limited # of careers)
+		#[pallet::call_index(4)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn preorder_origin_of_shell(
@@ -684,6 +689,7 @@ pub mod pallet {
 		/// Parameters:
 		/// `origin`: Expected to come from Overlord admin account
 		/// `preorders`: Vec of Preorder IDs that were `Chosen`
+		#[pallet::call_index(5)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn mint_chosen_preorders(
@@ -752,6 +758,7 @@ pub mod pallet {
 		/// Parameters:
 		/// `origin`: Expected to come from Overlord admin account
 		/// `preorders`: Preorder ids of the not chosen preorders
+		#[pallet::call_index(6)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn refund_not_chosen_preorders(
@@ -809,6 +816,7 @@ pub mod pallet {
 		/// - `career`: The career of the origin_of_shell chosen by the user or auto-generated based
 		///   on metadata
 		/// - `nft_sale_type`: Either a `NftSaleType::Giveaway` or `NftSaleType::Reserved`
+		#[pallet::call_index(7)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn mint_gift_origin_of_shell(
@@ -853,6 +861,7 @@ pub mod pallet {
 		/// Parameters:
 		/// - origin: Expected to be called by `GovernanceOrigin`
 		/// - new_overlord: T::AccountId
+		#[pallet::call_index(8)]
 		#[pallet::weight(0)]
 		pub fn set_overlord(
 			origin: OriginFor<T>,
@@ -876,6 +885,7 @@ pub mod pallet {
 		///
 		/// Parameters:
 		/// `origin`: Expected to be called by `Overlord` admin account
+		#[pallet::call_index(9)]
 		#[pallet::weight(0)]
 		pub fn initialize_world_clock(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
@@ -903,6 +913,7 @@ pub mod pallet {
 		/// - `origin` - Expected Overlord admin account to set the status
 		/// - `status` - `bool` to set the status to
 		/// - `status_type` - `StatusType` to set the status for
+		#[pallet::call_index(10)]
 		#[pallet::weight(0)]
 		pub fn set_status_type(
 			origin: OriginFor<T>,
@@ -936,6 +947,7 @@ pub mod pallet {
 		///
 		/// Parameters:
 		/// - `origin` - Expected Overlord admin account
+		#[pallet::call_index(11)]
 		#[pallet::weight(0)]
 		pub fn init_rarity_type_counts(origin: OriginFor<T>) -> DispatchResult {
 			// Ensure Overlord account makes call
@@ -958,6 +970,7 @@ pub mod pallet {
 		/// - `for_sale_count` - Number of Origin of Shells for sale
 		/// - `giveaway_count` - Number of Origin of Shells for giveaways
 		/// - `reserve_count` - Number of Origin of Shells to be reserved
+		#[pallet::call_index(12)]
 		#[pallet::weight(0)]
 		pub fn update_rarity_type_counts(
 			origin: OriginFor<T>,
@@ -1009,6 +1022,7 @@ pub mod pallet {
 		/// Parameters:
 		/// - `origin` - Expected Overlord admin account to set the Spirit Collection ID
 		/// - `collection_id` - Collection ID of the Spirit Collection
+		#[pallet::call_index(13)]
 		#[pallet::weight(0)]
 		pub fn set_spirit_collection_id(
 			origin: OriginFor<T>,
@@ -1034,6 +1048,7 @@ pub mod pallet {
 		/// Parameters:
 		/// - `origin` - Expected Overlord admin account to set the Origin of Shell Collection ID
 		/// - `collection_id` - Collection ID of the Origin of Shell Collection
+		#[pallet::call_index(14)]
 		#[pallet::weight(0)]
 		pub fn set_origin_of_shell_collection_id(
 			origin: OriginFor<T>,
@@ -1064,6 +1079,7 @@ pub mod pallet {
 		/// - `metadata`: Metadata pertaining to the collection
 		/// - `max`: Optional max u32 for the size of the collection
 		/// - `symbol`: BoundedString of the collection's symbol i.e 'OVRLD'
+		#[pallet::call_index(15)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn pw_create_collection(
@@ -1094,6 +1110,7 @@ pub mod pallet {
 		/// Parameters:
 		/// - `origin`: Expected to be called from the Overlord account
 		/// - `spirits_metadata`: `BoundedVec<u8, T::StringLimit>` to be added in storage
+		#[pallet::call_index(16)]
 		#[pallet::weight(0)]
 		pub fn set_spirits_metadata(
 			origin: OriginFor<T>,
@@ -1117,6 +1134,7 @@ pub mod pallet {
 		/// Parameters:
 		/// - `origin`: Expected to be called from the Overlord account
 		/// - `origin_of_shells_metadata`: A Vec of `((RaceType, CareerType), BoundedVec<u8, T::StringLimit>>)` to be added in storage
+		#[pallet::call_index(17)]
 		#[pallet::weight(0)]
 		pub fn set_origin_of_shells_metadata(
 			origin: OriginFor<T>,
@@ -1143,6 +1161,7 @@ pub mod pallet {
 		/// Parameters:
 		/// - origin: Expected to be called by `Overlord`.
 		/// - new_payee: T::AccountId of the Payee account.
+		#[pallet::call_index(18)]
 		#[pallet::weight(0)]
 		pub fn set_payee(
 			origin: OriginFor<T>,
@@ -1167,6 +1186,7 @@ pub mod pallet {
 		/// Parameters:
 		/// - origin: Expected to be called by `Overlord`.
 		/// - new_signer: T::AccountId of the Signer.
+		#[pallet::call_index(19)]
 		#[pallet::weight(0)]
 		pub fn set_signer(
 			origin: OriginFor<T>,
