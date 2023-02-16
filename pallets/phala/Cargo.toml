@@ -21,8 +21,8 @@ pallet-uniques = { git = "https://github.com/paritytech/substrate", branch = "po
 pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37", default-features = false }
 
 # RMRK dependencies
-pallet-rmrk-core = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.37", default-features = false }
-rmrk-traits = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.37", default-features = false }
+pallet-rmrk-core = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "market-fees", default-features = false }
+rmrk-traits = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "market-fees", default-features = false }
 
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37", default-features = false }

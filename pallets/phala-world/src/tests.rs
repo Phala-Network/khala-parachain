@@ -8,8 +8,9 @@ use crate::mock::*;
 use codec::Encode;
 use frame_support::bounded_vec;
 use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::Currency};
+use rmrk_traits::RoyaltyInfo;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
-use sp_runtime::BoundedVec;
+use sp_runtime::{BoundedVec, Permill};
 
 use crate::incubation::{ShellPartInfoOf, ShellPartsOf};
 use crate::traits::{
@@ -17,8 +18,8 @@ use crate::traits::{
 	PartSizeType, Purpose, RaceType, RarityType, ShellPartInfo, ShellParts, StatusType,
 };
 use mock::{
-	ExtBuilder, PWIncubation, PWNftSale, RmrkCore, RmrkMarket, RuntimeEvent as MockEvent,
-	RuntimeOrigin as Origin, Test,
+	ExtBuilder, PWIncubation, PWMarketplace, PWNftSale, RmrkCore, RmrkMarket,
+	RuntimeEvent as MockEvent, RuntimeOrigin as Origin, Test,
 };
 
 /// Turns a string into a BoundedVec
@@ -1772,7 +1773,7 @@ fn can_hatch_origin_of_shell() {
 			),
 			pallet_uniques::Error::<Test>::Frozen
 		);
-		let nft_parts = pallet_rmrk_core::Nfts::<Test>::iter_prefix_values(3u32);
+		// let nft_parts = pallet_rmrk_core::Nfts::<Test>::iter_prefix_values(3u32);
 		// Print out NFT parts minted for debugging
 		// for part in nft_parts {
 		// 	println!("{:?}", part);
@@ -2130,4 +2131,79 @@ fn can_add_origin_of_shell_chosen_parts() {
 			},
 		));
 	});
+}
+
+#[test]
+fn set_marketplace_owner_works() {
+	ExtBuilder::default().build(OVERLORD).execute_with(|| {
+		// Set Overlord and configuration then enable preorder origin of shells
+		setup_config(StatusType::ClaimSpirits);
+		assert_ok!(PWMarketplace::set_marketplace_owner(
+			Origin::signed(OVERLORD),
+			ALICE,
+		));
+
+		System::assert_last_event(MockEvent::PWMarketplace(
+			crate::pallet_pw_marketplace::Event::MarketplaceOwnerSet {
+				old_marketplace_owner: None,
+				new_marketplace_owner: ALICE,
+			},
+		));
+	})
+}
+
+#[test]
+fn set_nfts_royalty_info() {
+	ExtBuilder::default().build(OVERLORD).execute_with(|| {
+		// Set Overlord and configuration then enable preorder origin of shells
+		// Set Overlord and configuration then enable preorder origin of shells
+		setup_config(StatusType::PreorderOriginOfShells);
+		mint_spirit(ALICE, None);
+		mint_spirit(BOB, None);
+		mint_spirit(CHARLIE, None);
+		mint_spirit(OVERLORD, None);
+		// ALICE purchases Legendary Origin of Shell
+		assert_ok!(PWNftSale::buy_rare_origin_of_shell(
+			Origin::signed(ALICE),
+			RarityType::Legendary,
+			RaceType::AISpectre,
+			CareerType::HackerWizard,
+		));
+		// Check if event triggered
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::OriginOfShellMinted {
+				rarity_type: RarityType::Legendary,
+				collection_id: 1,
+				nft_id: 0,
+				owner: ALICE,
+				race: RaceType::AISpectre,
+				career: CareerType::HackerWizard,
+				generation_id: 0,
+			},
+		));
+		assert_ok!(PWMarketplace::set_nfts_royalty_info(
+			Origin::signed(OVERLORD),
+			RoyaltyInfo {
+				recipient: OVERLORD,
+				amount: Permill::from_percent(2)
+			},
+			1,
+			bvec![0; 1]
+		));
+
+		System::assert_last_event(MockEvent::PWMarketplace(
+			crate::pallet_pw_marketplace::Event::RoyaltyInfoUpdated {
+				collection_id: 1,
+				nft_id: 0,
+				old_royalty_info: Some(RoyaltyInfo {
+					recipient: PAYEE,
+					amount: Permill::from_percent(1)
+				}),
+				new_royalty_info: RoyaltyInfo {
+					recipient: OVERLORD,
+					amount: Permill::from_percent(2)
+				},
+			},
+		));
+	})
 }

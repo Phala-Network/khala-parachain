@@ -1,4 +1,4 @@
-use crate::{pallet_pw_incubation, pallet_pw_nft_sale};
+use crate::{pallet_pw_incubation, pallet_pw_marketplace, pallet_pw_nft_sale};
 
 use frame_support::{
 	construct_runtime, parameter_types,
@@ -11,6 +11,7 @@ use sp_core::{crypto::AccountId32, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
+	Permill,
 };
 
 type AccountId = AccountId32;
@@ -37,6 +38,7 @@ construct_runtime!(
 		RmrkMarket: pallet_rmrk_market::{Pallet, Call, Event<T>},
 		PWNftSale: pallet_pw_nft_sale::{Pallet, Call, Storage, Event<T>},
 		PWIncubation: pallet_pw_incubation::{Pallet, Call, Storage, Event<T>},
+		PWMarketplace: pallet_pw_marketplace::{Pallet, Call, Event<T>},
 	}
 );
 
@@ -153,6 +155,7 @@ impl pallet_uniques::Config for Test {
 
 parameter_types! {
 	pub const MinimumOfferAmount: Balance = 50 * UNITS;
+	pub const MarketFee: Permill = Permill::from_parts(1/2);
 }
 
 impl pallet_rmrk_market::Config for Test {
@@ -161,6 +164,8 @@ impl pallet_rmrk_market::Config for Test {
 	type Currency = Balances;
 	type MinimumOfferAmount = MinimumOfferAmount;
 	type WeightInfo = pallet_rmrk_market::weights::SubstrateWeight<Test>;
+	type MarketplaceHooks = ();
+	type MarketFee = MarketFee;
 }
 
 parameter_types! {
@@ -205,6 +210,10 @@ impl pallet_pw_incubation::Config for Test {
 	type FoodPerEra = FoodPerEra;
 	type MaxFoodFeedSelf = MaxFoodFeedSelf;
 	type IncubationDurationSec = IncubationDurationSec;
+}
+
+impl pallet_pw_marketplace::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
 }
 
 pub fn fast_forward_to(n: u64) {
