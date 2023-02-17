@@ -2198,7 +2198,7 @@ fn set_nfts_royalty_info() {
 			Origin::signed(OVERLORD),
 			RoyaltyInfo {
 				recipient: OVERLORD,
-				amount: Permill::from_percent(2)
+				amount: Permill::from_percent(1)
 			},
 			1,
 			bvec![0; 1]
@@ -2210,11 +2210,11 @@ fn set_nfts_royalty_info() {
 				nft_id: 0,
 				old_royalty_info: Some(RoyaltyInfo {
 					recipient: PAYEE,
-					amount: Permill::from_percent(2),
+					amount: Permill::from_percent(1),
 				}),
 				new_royalty_info: RoyaltyInfo {
 					recipient: OVERLORD,
-					amount: Permill::from_percent(2),
+					amount: Permill::from_percent(1),
 				},
 			},
 		));
@@ -2520,13 +2520,13 @@ fn marketplace_hooks_works() {
 		));
 
 		// ALICE receives amount - market fees (0.5%) - royalties fee (2%) = 975 PHA
-		assert_eq!(Balances::total_balance(&ALICE), 20_000_965 * PHA);
+		assert_eq!(Balances::total_balance(&ALICE), 20_000_975 * PHA);
 		// BOB is MarketplaceOwner 0.5% of 1000 PHA is 5 PHA
 		assert_eq!(Balances::total_balance(&BOB), 14_995 * PHA);
 		// CHARLIE is buyer so 1000 PHA deducted from balance
 		assert_eq!(Balances::total_balance(&CHARLIE), 148_990 * PHA);
 		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
 		// PAYEE is Royalties Owner 2% of 1000 PHA is 20 PHA
-		assert_eq!(Balances::total_balance(&PAYEE), 50 * PHA);
+		assert_eq!(Balances::total_balance(&PAYEE), 40 * PHA);
 	});
 }
