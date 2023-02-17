@@ -950,7 +950,7 @@ impl pallet_rmrk_market::Config for Runtime {
     type Currency = Balances;
     type MinimumOfferAmount = MinimumOfferAmount;
     type WeightInfo = pallet_rmrk_market::weights::SubstrateWeight<Runtime>;
-    type MarketplaceHooks = pallet_pw_marketplace;
+    type MarketplaceHooks = PWMarketplace;
     type MarketFee = MarketFee;
 }
 
