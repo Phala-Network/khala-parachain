@@ -143,7 +143,7 @@ pub mod pallet {
 		T: pallet_democracy::Config<Currency = <T as crate::PhalaConfig>::Currency>,
 		T: Config + vault::Config,
 	{
-		fn pre_check(sender: &T::AccountId, collection_id: &CollectionId, nft_id: &NftId) -> bool {
+		fn pre_check(sender: &T::AccountId, _recipient: &T::AccountId, collection_id: &CollectionId, nft_id: &NftId) -> bool {
 			if let Some(pid) = base_pool::pallet::PoolCollections::<T>::get(collection_id) {
 				if let Ok(net_value) = Pallet::<T>::get_net_value((*sender).clone()) {
 					let property_guard =

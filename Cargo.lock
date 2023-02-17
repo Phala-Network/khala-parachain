@@ -6332,7 +6332,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-core"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.37#a7e970cd6bd4b7b50f6611ea1023d1570721633c"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6350,7 +6350,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-equip"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.37#a7e970cd6bd4b7b50f6611ea1023d1570721633c"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6369,7 +6369,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-market"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.37#a7e970cd6bd4b7b50f6611ea1023d1570721633c"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6388,7 +6388,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-rpc"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.37#a7e970cd6bd4b7b50f6611ea1023d1570721633c"
 dependencies = [
  "jsonrpsee",
  "pallet-rmrk-rpc-runtime-api",
@@ -6405,7 +6405,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-rpc-runtime-api"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.37#a7e970cd6bd4b7b50f6611ea1023d1570721633c"
 dependencies = [
  "parity-scale-codec",
  "rmrk-traits",
@@ -9183,7 +9183,7 @@ dependencies = [
 [[package]]
 name = "rmrk-traits"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=polkadot-v0.9.37#a7e970cd6bd4b7b50f6611ea1023d1570721633c"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
