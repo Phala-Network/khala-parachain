@@ -3700,9 +3700,9 @@ dependencies = [
 
 [[package]]
 name = "insta"
-version = "1.26.0"
+version = "1.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f0f08b46e4379744de2ab67aa8f7de3ffd1da3e275adc41fcc82053ede46ff"
+checksum = "fea5b3894afe466b4bcf0388630fc15e11938a6074af0cd637c825ba2ec8a099"
 dependencies = [
  "console",
  "lazy_static",
@@ -6332,7 +6332,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-core"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#549366f8174d161fccf389da7f435377e52b3b27"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6350,7 +6350,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-equip"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#549366f8174d161fccf389da7f435377e52b3b27"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6369,7 +6369,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-market"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#549366f8174d161fccf389da7f435377e52b3b27"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6388,7 +6388,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-rpc"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#549366f8174d161fccf389da7f435377e52b3b27"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
 dependencies = [
  "jsonrpsee",
  "pallet-rmrk-rpc-runtime-api",
@@ -6405,7 +6405,7 @@ dependencies = [
 [[package]]
 name = "pallet-rmrk-rpc-runtime-api"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#549366f8174d161fccf389da7f435377e52b3b27"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
 dependencies = [
  "parity-scale-codec",
  "rmrk-traits",
@@ -9183,7 +9183,7 @@ dependencies = [
 [[package]]
 name = "rmrk-traits"
 version = "0.0.1"
-source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#549366f8174d161fccf389da7f435377e52b3b27"
+source = "git+https://github.com/Phala-Network/rmrk-substrate?branch=market-fees#238a189c621912000c494c5be0a14488a278b177"
 dependencies = [
  "frame-benchmarking",
  "frame-support",

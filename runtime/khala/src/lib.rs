@@ -950,7 +950,7 @@ impl pallet_rmrk_equip::Config for Runtime {
 
 parameter_types! {
     pub const MinimumOfferAmount: Balance = DOLLARS / 10_000;
-    pub const MarketFee: Permill = Permill::from_parts(1/2);
+    pub const MarketFee: Permill = Permill::from_parts(5_000);
 }
 
 impl pallet_rmrk_market::Config for Runtime {
@@ -959,7 +959,7 @@ impl pallet_rmrk_market::Config for Runtime {
     type Currency = Balances;
     type MinimumOfferAmount = MinimumOfferAmount;
     type WeightInfo = pallet_rmrk_market::weights::SubstrateWeight<Runtime>;
-    type MarketplaceHooks = ();
+    type MarketplaceHooks = PWMarketplace;
     type MarketFee = MarketFee;
 }
 

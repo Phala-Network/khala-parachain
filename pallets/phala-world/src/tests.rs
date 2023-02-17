@@ -1522,6 +1522,19 @@ fn can_hatch_origin_of_shell() {
 		mint_spirit(BOB, None);
 		mint_spirit(CHARLIE, None);
 		mint_spirit(OVERLORD, None);
+		// Set BOB to marketplace owner
+		assert_ok!(PWMarketplace::set_marketplace_owner(
+			Origin::signed(OVERLORD),
+			BOB,
+		));
+
+		System::assert_last_event(MockEvent::PWMarketplace(
+			crate::pallet_pw_marketplace::Event::MarketplaceOwnerSet {
+				old_marketplace_owner: None,
+				new_marketplace_owner: BOB,
+			},
+		));
+
 		// BOB preorders an origin of shell
 		assert_ok!(PWNftSale::preorder_origin_of_shell(
 			Origin::signed(BOB),
@@ -1795,19 +1808,19 @@ fn can_hatch_origin_of_shell() {
 			),
 			pallet_rmrk_core::Error::<Test>::NonTransferable
 		);
-		// ALICE lists NFT part in marketplace
+		// ALICE lists NFT Shell in marketplace
 		assert_ok!(RmrkMarket::list(
 			Origin::signed(ALICE),
-			3u32,
-			1u32,
+			2u32,
+			0u32,
 			10u128,
 			None,
 		));
-		// CHARLIE buys NFT part from ALICE
+		// CHARLIE buys NFT Shell from ALICE
 		assert_ok!(RmrkMarket::buy(
 			Origin::signed(CHARLIE),
-			3u32,
-			1u32,
+			2u32,
+			0u32,
 			Some(10u128)
 		));
 
@@ -2197,13 +2210,323 @@ fn set_nfts_royalty_info() {
 				nft_id: 0,
 				old_royalty_info: Some(RoyaltyInfo {
 					recipient: PAYEE,
-					amount: Permill::from_percent(1)
+					amount: Permill::from_percent(2),
 				}),
 				new_royalty_info: RoyaltyInfo {
 					recipient: OVERLORD,
-					amount: Permill::from_percent(2)
+					amount: Permill::from_percent(2),
 				},
 			},
 		));
 	})
+}
+
+#[test]
+fn marketplace_hooks_works() {
+	ExtBuilder::default().build(OVERLORD).execute_with(|| {
+		// Set Overlord and configuration then enable preorder origin of shells
+		setup_config(StatusType::PreorderOriginOfShells);
+		mint_spirit(ALICE, None);
+		mint_spirit(BOB, None);
+		mint_spirit(CHARLIE, None);
+		mint_spirit(OVERLORD, None);
+		// Set BOB to marketplace owner
+		assert_ok!(PWMarketplace::set_marketplace_owner(
+			Origin::signed(OVERLORD),
+			BOB,
+		));
+
+		System::assert_last_event(MockEvent::PWMarketplace(
+			crate::pallet_pw_marketplace::Event::MarketplaceOwnerSet {
+				old_marketplace_owner: None,
+				new_marketplace_owner: BOB,
+			},
+		));
+		// BOB preorders an origin of shell
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(BOB),
+			RaceType::Cyborg,
+			CareerType::HardwareDruid,
+		));
+		// Check if event triggered
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
+				owner: BOB,
+				preorder_id: 0,
+				race: RaceType::Cyborg,
+				career: CareerType::HardwareDruid,
+			},
+		));
+		// CHARLIE preorders an origin of shell
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(CHARLIE),
+			RaceType::Pandroid,
+			CareerType::HardwareDruid,
+		));
+		// Check if event triggered
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::OriginOfShellPreordered {
+				owner: CHARLIE,
+				preorder_id: 1,
+				race: RaceType::Pandroid,
+				career: CareerType::HardwareDruid,
+			},
+		));
+		// ALICE preorders an origin of shell successfully
+		assert_ok!(PWNftSale::preorder_origin_of_shell(
+			Origin::signed(ALICE),
+			RaceType::AISpectre,
+			CareerType::HackerWizard,
+		));
+		let preorders: Vec<PreorderId> = vec![0u32, 1u32, 2u32];
+		// Set ALICE & BOB has Chosen and CHARLIE as NotChosen
+		assert_ok!(PWNftSale::mint_chosen_preorders(
+			Origin::signed(OVERLORD),
+			preorders
+		));
+		System::assert_last_event(MockEvent::PWNftSale(
+			crate::pallet_pw_nft_sale::Event::ChosenPreorderMinted {
+				preorder_id: 2u32,
+				owner: ALICE,
+				nft_id: 2,
+			},
+		));
+		// Reassign PreorderIndex to max value
+		pallet_pw_nft_sale::PreorderIndex::<Test>::mutate(|id| *id = PreorderId::max_value());
+		// OVERLORD preorders an origin of shell but max value is reached
+		assert_noop!(
+			PWNftSale::preorder_origin_of_shell(
+				Origin::signed(OVERLORD),
+				RaceType::Cyborg,
+				CareerType::HackerWizard,
+			),
+			pallet_pw_nft_sale::Error::<Test>::NoAvailablePreorderId
+		);
+		// ALICE preorders but can't because already minted origin of shell
+		assert_noop!(
+			PWNftSale::preorder_origin_of_shell(
+				Origin::signed(ALICE),
+				RaceType::Cyborg,
+				CareerType::HackerWizard,
+			),
+			pallet_pw_nft_sale::Error::<Test>::OriginOfShellAlreadyPurchased
+		);
+		assert_ok!(PWNftSale::set_status_type(
+			Origin::signed(OVERLORD),
+			false,
+			StatusType::PreorderOriginOfShells
+		));
+		// Check Balances of ALICE, BOB, CHARLIE & OVERLORD
+		assert_eq!(Balances::total_balance(&ALICE), 19_999_990 * PHA);
+		assert_eq!(Balances::total_balance(&BOB), 14_990 * PHA);
+		assert_eq!(Balances::total_balance(&CHARLIE), 149_990 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
+		assert_eq!(Balances::total_balance(&PAYEE), 30 * PHA);
+		assert_ok!(PWIncubation::set_can_start_incubation_status(
+			Origin::signed(OVERLORD),
+			true
+		));
+		let now = INIT_TIMESTAMP_SECONDS;
+		let official_hatch_time = now + INCUBATION_DURATION_SEC;
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::CanStartIncubationStatusChanged {
+				status: true,
+				start_time: now,
+				official_hatch_time,
+			},
+		));
+		// ALICE initiates incubation process
+		assert_ok!(PWIncubation::start_incubation(
+			Origin::signed(ALICE),
+			1u32,
+			2u32
+		));
+		let alice_now = INIT_TIMESTAMP_SECONDS;
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::StartedIncubation {
+				collection_id: 1u32,
+				nft_id: 2u32,
+				owner: ALICE,
+				start_time: alice_now,
+				hatch_time: official_hatch_time,
+			},
+		));
+		// CHARLIE feeds ALICE's Origin of Shell Twice and fails on the third
+		assert_ok!(PWIncubation::feed_origin_of_shell(
+			Origin::signed(CHARLIE),
+			1u32,
+			2u32
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellReceivedFood {
+				collection_id: 1u32,
+				nft_id: 2u32,
+				sender: CHARLIE,
+				era: 0,
+			},
+		));
+		assert_ok!(PWIncubation::feed_origin_of_shell(
+			Origin::signed(CHARLIE),
+			1u32,
+			2u32
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellReceivedFood {
+				collection_id: 1u32,
+				nft_id: 2u32,
+				sender: CHARLIE,
+				era: 0,
+			},
+		));
+		assert_noop!(
+			PWIncubation::feed_origin_of_shell(Origin::signed(CHARLIE), 1u32, 2u32),
+			pallet_pw_incubation::Error::<Test>::AlreadySentFoodTwice
+		);
+		// CHARLIE cannot send food to BOB since he hasn't started incubation process
+		assert_noop!(
+			PWIncubation::feed_origin_of_shell(Origin::signed(CHARLIE), 1u32, 0u32),
+			pallet_pw_incubation::Error::<Test>::CannotSendFoodToOriginOfShell
+		);
+		// CHARLIE can feed now that a new Era has started
+		fast_forward_to(7);
+		let bob_now = 7 * BLOCK_TIME_SECONDS + INIT_TIMESTAMP_SECONDS;
+		assert_ok!(PWIncubation::start_incubation(
+			Origin::signed(BOB),
+			1u32,
+			0u32
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::StartedIncubation {
+				collection_id: 1u32,
+				nft_id: 0u32,
+				owner: BOB,
+				start_time: bob_now,
+				hatch_time: official_hatch_time,
+			},
+		));
+		// CHARLIE can feed BOB's Origin of Shell now
+		assert_ok!(PWIncubation::feed_origin_of_shell(
+			Origin::signed(CHARLIE),
+			1u32,
+			0u32
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellReceivedFood {
+				collection_id: 1u32,
+				nft_id: 0u32,
+				sender: CHARLIE,
+				era: 1,
+			},
+		));
+		// OVERLORD cannot send food bc they do not own an Origin of Shell
+		assert_noop!(
+			PWIncubation::feed_origin_of_shell(Origin::signed(OVERLORD), 1u32, 2u32),
+			pallet_pw_incubation::Error::<Test>::NoPermission
+		);
+		setup_incubation_config();
+		let composable_part = get_shell_part(1);
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+			Origin::signed(OVERLORD),
+			1u32,
+			2u32,
+			composable_part.clone(),
+		));
+
+		let new_chosen_parts =
+			pallet_pw_incubation::OriginOfShellsChosenParts::<Test>::get((1u32, 2u32))
+				.expect("good");
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
+				collection_id: 1u32,
+				nft_id: 2u32,
+				old_chosen_parts: None,
+				new_chosen_parts: new_chosen_parts.clone(),
+			},
+		));
+		let basic_part = get_shell_part(4);
+		assert_ok!(PWIncubation::set_origin_of_shell_chosen_parts(
+			Origin::signed(OVERLORD),
+			1u32,
+			2u32,
+			basic_part.clone(),
+		));
+		let new_chosen_parts2 =
+			pallet_pw_incubation::OriginOfShellsChosenParts::<Test>::get((1u32, 2u32))
+				.expect("good");
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::OriginOfShellChosenPartsUpdated {
+				collection_id: 1u32,
+				nft_id: 2u32,
+				old_chosen_parts: Some(new_chosen_parts),
+				new_chosen_parts: new_chosen_parts2.clone(),
+			},
+		));
+
+		fast_forward_to(630);
+		// ALICE can hatch origin of shell from OVERLORD admin call
+		assert_ok!(PWIncubation::hatch_origin_of_shell(
+			Origin::signed(OVERLORD),
+			1u32,
+			2u32,
+			bvec![0u8; 15]
+		));
+		System::assert_last_event(MockEvent::PWIncubation(
+			crate::pallet_pw_incubation::Event::ShellAwakened {
+				shell_collection_id: 2u32,
+				shell_nft_id: 0u32,
+				origin_of_shell_collection_id: 1u32,
+				origin_of_shell_nft_id: 2u32,
+				rarity: RarityType::Prime,
+				race: RaceType::AISpectre,
+				career: CareerType::HackerWizard,
+				generation_id: 0,
+				owner: ALICE,
+			},
+		));
+		// BOB cannot trade his NFT
+		assert_noop!(
+			RmrkCore::send(
+				Origin::signed(BOB),
+				1u32,
+				0u32,
+				rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(CHARLIE)
+			),
+			pallet_uniques::Error::<Test>::Frozen
+		);
+		// ALICE fails to move transferable to wallet
+		assert_noop!(
+			RmrkCore::send(
+				Origin::signed(ALICE),
+				3u32,
+				0u32,
+				rmrk_traits::AccountIdOrCollectionNftTuple::AccountId(ALICE)
+			),
+			pallet_rmrk_core::Error::<Test>::NonTransferable
+		);
+		// ALICE lists NFT Shell in marketplace
+		assert_ok!(RmrkMarket::list(
+			Origin::signed(ALICE),
+			2u32,
+			0u32,
+			1000u128,
+			None,
+		));
+		// CHARLIE buys NFT Shell from ALICE
+		assert_ok!(RmrkMarket::buy(
+			Origin::signed(CHARLIE),
+			2u32,
+			0u32,
+			Some(1000u128)
+		));
+
+		// ALICE receives amount - market fees (0.5%) - royalties fee (2%) = 975 PHA
+		assert_eq!(Balances::total_balance(&ALICE), 20_000_965 * PHA);
+		// BOB is MarketplaceOwner 0.5% of 1000 PHA is 5 PHA
+		assert_eq!(Balances::total_balance(&BOB), 14_995 * PHA);
+		// CHARLIE is buyer so 1000 PHA deducted from balance
+		assert_eq!(Balances::total_balance(&CHARLIE), 148_990 * PHA);
+		assert_eq!(Balances::total_balance(&OVERLORD), 2_813_308_004 * PHA);
+		// PAYEE is Royalties Owner 2% of 1000 PHA is 20 PHA
+		assert_eq!(Balances::total_balance(&PAYEE), 50 * PHA);
+	});
 }

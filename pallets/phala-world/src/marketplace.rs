@@ -7,6 +7,7 @@ pub use pallet_rmrk_core::types::*;
 pub use pallet_rmrk_core::Nfts;
 pub use pallet_rmrk_market;
 
+use crate::nft_sale::BalanceOf;
 pub use frame_support::pallet_prelude::*;
 pub use frame_system::pallet_prelude::*;
 pub use rmrk_traits::{primitives::*, RoyaltyInfo};
@@ -19,8 +20,7 @@ pub mod pallet {
 	use super::*;
 	use rmrk_traits::RoyaltyInfo;
 
-	pub type RoyaltyInfoOf<T> = RoyaltyInfo<<T as frame_system::Config>::AccountId,
-		Permill>;
+	pub type RoyaltyInfoOf<T> = RoyaltyInfo<<T as frame_system::Config>::AccountId, Permill>;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -120,15 +120,39 @@ pub mod pallet {
 			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
 			// Iterate through NFT IDs and set new RoyaltyInfo
 			for nft_id in nft_ids {
-				Self::do_set_nft_royalty_info(
-					royalty_info.clone(),
-					collection_id,
-					nft_id,
-				);
+				Self::do_set_nft_royalty_info(royalty_info.clone(), collection_id, nft_id);
 			}
 
 			Ok(Pays::No.into())
 		}
+	}
+}
+
+impl<T: Config>
+	pallet_rmrk_market::types::MarketplaceHooks<BalanceOf<T>, T::CollectionId, T::ItemId> for Pallet<T>
+where
+	T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
+{
+	fn calculate_market_fee(amount: BalanceOf<T>, market_fee: Permill) -> Option<BalanceOf<T>> {
+		if market_fee.is_zero() {
+			None
+		} else {
+			let calculated_market_fee = market_fee * amount;
+			Some(calculated_market_fee)
+		}
+	}
+
+	fn calculate_royalty_fee(amount: BalanceOf<T>, royalty_fee: Permill) -> Option<BalanceOf<T>> {
+		if royalty_fee.is_zero() {
+			None
+		} else {
+			let calculated_royalty_fee = royalty_fee * amount;
+			Some(calculated_royalty_fee)
+		}
+	}
+
+	fn can_sell_in_marketplace(collection_id: T::CollectionId, _nft_id: T::ItemId) -> bool {
+		pallet_pw_incubation::ShellCollectionId::<T>::get() == Some(collection_id)
 	}
 }
 

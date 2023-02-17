@@ -6,6 +6,7 @@ use frame_support::{
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
+use pallet_rmrk_market::types::MarketplaceHooks;
 use sp_core::{crypto::AccountId32, H256};
 
 use sp_runtime::{
@@ -155,7 +156,7 @@ impl pallet_uniques::Config for Test {
 
 parameter_types! {
 	pub const MinimumOfferAmount: Balance = 50 * UNITS;
-	pub const MarketFee: Permill = Permill::from_parts(1/2);
+	pub const MarketFee: Permill = Permill::from_parts(5_000);
 }
 
 impl pallet_rmrk_market::Config for Test {
@@ -164,7 +165,7 @@ impl pallet_rmrk_market::Config for Test {
 	type Currency = Balances;
 	type MinimumOfferAmount = MinimumOfferAmount;
 	type WeightInfo = pallet_rmrk_market::weights::SubstrateWeight<Test>;
-	type MarketplaceHooks = ();
+	type MarketplaceHooks = PWMarketplace;
 	type MarketFee = MarketFee;
 }
 

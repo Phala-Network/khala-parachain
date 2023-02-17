@@ -1550,7 +1550,7 @@ where
 			next_nft_id,
 			origin_of_shell_collection_id,
 			Some(payee),
-			Some(Permill::from_percent(1)),
+			Some(Permill::from_percent(2)),
 			metadata,
 			true,
 			None,
