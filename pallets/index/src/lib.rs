@@ -78,6 +78,7 @@ pub mod pallet {
 		T::AccountId: Into<[u8; 32]> + From<[u8; 32]>,
 	{
 		#[pallet::weight(195_000_000)]
+		#[pallet::call_index(0)]
 		#[transactional]
 		pub fn force_set_executor(origin: OriginFor<T>, executor: T::AccountId) -> DispatchResult {
 			T::CommitteeOrigin::ensure_origin(origin)?;
@@ -91,6 +92,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(195_000_000)]
+		#[pallet::call_index(1)]
 		#[transactional]
 		pub fn update_task(origin: OriginFor<T>, task: Task) -> DispatchResult {
 			// Check origin, must be the executor
