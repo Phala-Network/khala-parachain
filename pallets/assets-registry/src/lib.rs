@@ -927,6 +927,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(10)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_enable_sygmabridge(
@@ -964,6 +965,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(11)]
 		#[pallet::weight(195_000_000)]
 		#[transactional]
 		pub fn force_disable_sygmabridge(
