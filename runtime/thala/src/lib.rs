@@ -1634,6 +1634,7 @@ impl sygma_bridge::Config for Runtime {
     type ExtractDestData = SygmaWrapper;
     type PalletId = SygmaBridgePalletId;
     type PalletIndex = SygmaBridgePalletIndex;
+    type DecimalConverter = assets_registry::SygmaDecimalConverter<AssetsRegistry>;
 }
 
 impl sygma_wrapper::Config for Runtime {

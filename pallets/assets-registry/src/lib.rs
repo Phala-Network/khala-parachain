@@ -11,6 +11,7 @@ pub use pallet::*;
 pub mod pallet {
 	use codec::{Decode, Encode};
 	use cumulus_primitives_core::ParaId;
+	use fixed::{types::extra::U16, FixedU128};
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
@@ -26,7 +27,7 @@ pub mod pallet {
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::AccountIdConversion;
 	use sp_std::{boxed::Box, cmp, convert::From, vec, vec::Vec};
-	use sygma_traits::{DomainID, ResourceId as SygmaResourceId};
+	use sygma_traits::{DecimalConverter, DomainID, ResourceId as SygmaResourceId};
 	use xcm::latest::{prelude::*, AssetId as XcmAssetId, MultiLocation};
 	use xcm_executor::traits::FilterAssetLocation;
 
@@ -329,6 +330,96 @@ pub mod pallet {
 		}
 	}
 
+	pub struct SygmaDecimalConverter<DecimalPairs>(PhantomData<DecimalPairs>);
+	impl<DecimalPairs: Get<Vec<(XcmAssetId, u8)>>> DecimalConverter
+		for SygmaDecimalConverter<DecimalPairs>
+	{
+		fn convert_to(asset: &MultiAsset) -> Option<u128> {
+			match (&asset.fun, &asset.id) {
+				(Fungible(amount), _) => {
+					for (asset_id, decimal) in DecimalPairs::get().iter() {
+						if *asset_id == asset.id {
+							return if *decimal == 18 {
+								Some(*amount)
+							} else {
+								type U112F16 = FixedU128<U16>;
+								if *decimal > 18 {
+									let a = U112F16::from_num(
+										10u128.saturating_pow(*decimal as u32 - 18),
+									);
+									let b = U112F16::from_num(*amount).checked_div(a);
+									let r: u128 =
+										b.unwrap_or_else(|| U112F16::from_num(0)).to_num();
+									if r == 0 {
+										return None;
+									}
+									Some(r)
+								} else {
+									// Max is 5192296858534827628530496329220095
+									// if source asset decimal is 12, the max amount sending to sygma
+									// relayer is 5192296858534827.628530496329
+									if *amount > U112F16::MAX {
+										return None;
+									}
+									let a = U112F16::from_num(
+										10u128.saturating_pow(18 - *decimal as u32),
+									);
+									let b = U112F16::from_num(*amount).saturating_mul(a);
+									Some(b.to_num())
+								}
+							};
+						}
+					}
+					None
+				}
+				_ => None,
+			}
+		}
+
+		fn convert_from(asset: &MultiAsset) -> Option<MultiAsset> {
+			match (&asset.fun, &asset.id) {
+				(Fungible(amount), _) => {
+					for (asset_id, decimal) in DecimalPairs::get().iter() {
+						if *asset_id == asset.id {
+							return if *decimal == 18 {
+								Some((asset.id.clone(), *amount).into())
+							} else {
+								type U112F16 = FixedU128<U16>;
+								if *decimal > 18 {
+									// Max is 5192296858534827628530496329220095
+									// if dest asset decimal is 24, the max amount coming from sygma
+									// relayer is 5192296858.534827628530496329
+									if *amount > U112F16::MAX {
+										return None;
+									}
+									let a = U112F16::from_num(
+										10u128.saturating_pow(*decimal as u32 - 18),
+									);
+									let b = U112F16::from_num(*amount).saturating_mul(a);
+									let r: u128 = b.to_num();
+									Some((asset.id.clone(), r).into())
+								} else {
+									let a = U112F16::from_num(
+										10u128.saturating_pow(18 - *decimal as u32),
+									);
+									let b = U112F16::from_num(*amount).checked_div(a);
+									let r: u128 =
+										b.unwrap_or_else(|| U112F16::from_num(0)).to_num();
+									if r == 0 {
+										return None;
+									}
+									Some((asset.id.clone(), r).into())
+								}
+							};
+						}
+					}
+					None
+				}
+				_ => None,
+			}
+		}
+	}
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
@@ -575,7 +666,8 @@ pub mod pallet {
 					dest_domain,
 					resource_id,
 					..
-				} = bridge.config {
+				} = bridge.config
+				{
 					log::trace!(
 						target: LOG_TARGET,
 						"Found enabled sygmabridge, dest_domain ${:?}.",
@@ -1022,12 +1114,32 @@ pub mod pallet {
 						.collect();
 				})
 				.collect();
+			log::trace!(target: LOG_TARGET, "Get sygma asset pairs: ${:?}.", &pairs,);
+			pairs
+		}
+	}
+
+	// Return (asset_id, asset decimal) pair from registried assets
+	impl<T: Config> Get<Vec<(XcmAssetId, u8)>> for Pallet<T> {
+		fn get() -> Vec<(XcmAssetId, u8)> {
+			let mut decimals: Vec<(XcmAssetId, u8)> =
+				vec![(Concrete(T::NativeAssetLocation::get()).into(), 12)];
+
+			// Lookup RegistryInfoByIds find all assets' decimal
+			let _: Vec<()> = RegistryInfoByIds::<T>::iter()
+				.map(|(_, info)| {
+					decimals.push((
+						Concrete(info.location.clone()).into(),
+						info.properties.decimals,
+					));
+				})
+				.collect();
 			log::trace!(
 				target: LOG_TARGET,
-				"Get sygma asset pairs: ${:?}.",
-				&pairs,
+				"Get all asset decimal pairs: ${:?}.",
+				&decimals,
 			);
-			pairs
+			decimals
 		}
 	}
 
