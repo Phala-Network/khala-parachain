@@ -10,13 +10,12 @@ pub mod pallet {
 	use codec::Encode;
 	use frame_support::{
 		dispatch::DispatchResult, pallet_prelude::*, traits::StorageVersion, transactional,
+		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
+	use sp_runtime::traits::AccountIdConversion;
 	use sp_std::{collections::vec_deque::VecDeque, vec, vec::Vec};
-	use xcm::latest::{
-		prelude::*, AssetId as XcmAssetId, Fungibility::Fungible, MultiAsset, MultiLocation,
-		Weight as XCMWeight,
-	};
+	use xcm::latest::{prelude::*, AssetId as XcmAssetId};
 	use xcm_executor::traits::TransactAsset;
 
 	#[pallet::pallet]
@@ -26,6 +25,7 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	pub type RequestId = [u8; 32];
+	pub const MODULE_ID: PalletId = PalletId(*b"index/ac");
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 	pub struct DepositInfo {
@@ -45,6 +45,8 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type CommitteeOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+		/// Asset adapter to do withdraw, deposit etc.
+		type AssetTransactor: TransactAsset;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
@@ -89,6 +91,7 @@ pub mod pallet {
 		RequestAlreadyExist,
 		NotFoundInTaskQueue,
 		TaskQueueEmpty,
+		TransactFailed,
 	}
 
 	#[pallet::call]
@@ -115,7 +118,10 @@ pub mod pallet {
 		#[transactional]
 		pub fn force_remove_worker(origin: OriginFor<T>, worker: T::AccountId) -> DispatchResult {
 			T::CommitteeOrigin::ensure_origin(origin)?;
-			ensure!(Workers::<T>::get(&worker.clone().into()), Error::<T>::WorkerNotSet);
+			ensure!(
+				Workers::<T>::get(&worker.clone().into()),
+				Error::<T>::WorkerNotSet
+			);
 			Workers::<T>::insert(&worker.clone().into(), false);
 			Self::deposit_event(Event::WorkerAdd { worker });
 			Ok(())
@@ -153,14 +159,34 @@ pub mod pallet {
 			// Save record data
 			let deposit_info = DepositInfo {
 				sender,
-				asset,
+				asset: asset.clone(),
 				amount,
 				recipient,
 				request,
 			};
 			DepositRecords::<T>::insert(&request_id, &deposit_info);
 
-			// TODO: Transfer asset from user account to pallet account
+			// Withdraw from sender account
+			T::AssetTransactor::withdraw_asset(
+				&(asset.clone(), amount).into(),
+				&Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: sender.into(),
+				}
+				.into(),
+			)
+			.map_err(|_| Error::<T>::TransactFailed)?;
+			// Deposit into module account
+			let module_account: T::AccountId = MODULE_ID.into_account_truncating();
+			T::AssetTransactor::deposit_asset(
+				&(asset.clone(), amount).into(),
+				&Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: module_account.into(),
+				}
+				.into(),
+			)
+			.map_err(|_| Error::<T>::TransactFailed)?;
 
 			Self::deposit_event(Event::NewRequest { deposit_info });
 			Ok(())
@@ -184,14 +210,36 @@ pub mod pallet {
 				worker_task_queue.contains(&request_id),
 				Error::<T>::NotFoundInTaskQueue
 			);
-
 			// Pop the oldest task from worker task queue
-			let _deposit_info = worker_task_queue
+			let _ = worker_task_queue
 				.pop_front()
 				.ok_or(Error::<T>::TaskQueueEmpty)?;
 			ActivedRequests::<T>::insert(&worker, &worker_task_queue);
+			let deposit_info = DepositRecords::<T>::get(&request_id).unwrap();
 
-			// TODO: Transfer asset from pallet account to worker account
+			// Withdraw from module account
+			let module_account: T::AccountId = MODULE_ID.into_account_truncating();
+			T::AssetTransactor::withdraw_asset(
+				&(deposit_info.asset.clone(), deposit_info.amount).into(),
+				&Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: module_account.into(),
+				}
+				.into(),
+			)
+			.map_err(|_| Error::<T>::TransactFailed)?;
+			// Deposit into worker account
+			T::AssetTransactor::deposit_asset(
+				&(deposit_info.asset.clone(), deposit_info.amount).into(),
+				&Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: worker,
+				}
+				.into(),
+			)
+			.map_err(|_| Error::<T>::TransactFailed)?;
+			// Delete deposit record
+			DepositRecords::<T>::remove(&request_id);
 
 			Self::deposit_event(Event::Claimed {
 				requests: vec![request_id],
@@ -211,12 +259,33 @@ pub mod pallet {
 			);
 
 			let worker_task_queue = ActivedRequests::<T>::get(&worker);
-
 			// Put an empty task queue
 			ActivedRequests::<T>::insert(&worker, &VecDeque::<RequestId>::new());
-
-			for deposit_info in worker_task_queue.iter() {
-				// TODO: Transfer asset from pallet account to worker account
+			for request_id in worker_task_queue.iter() {
+				let deposit_info = DepositRecords::<T>::get(&request_id).unwrap();
+				// Withdraw from module account
+				let module_account: T::AccountId = MODULE_ID.into_account_truncating();
+				T::AssetTransactor::withdraw_asset(
+					&(deposit_info.asset.clone(), deposit_info.amount).into(),
+					&Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: module_account.into(),
+					}
+					.into(),
+				)
+				.map_err(|_| Error::<T>::TransactFailed)?;
+				// Deposit into worker account
+				T::AssetTransactor::deposit_asset(
+					&(deposit_info.asset.clone(), deposit_info.amount).into(),
+					&Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: worker,
+					}
+					.into(),
+				)
+				.map_err(|_| Error::<T>::TransactFailed)?;
+				// Delete deposit record
+				DepositRecords::<T>::remove(&request_id);
 			}
 
 			Self::deposit_event(Event::Claimed {
@@ -229,13 +298,16 @@ pub mod pallet {
 	#[cfg(test)]
 	mod tests {
 		use crate as pallet_index;
-		use crate::{Event as PalletIndexEvent, Workers};
-		use codec::Encode;
+		use crate::{
+			ActivedRequests, DepositRecords, Event as PalletIndexEvent, Workers, MODULE_ID,
+		};
 		use frame_support::{assert_noop, assert_ok};
 		use pallet_index::mock::{
-			assert_events, new_test_ext, PalletIndex, RuntimeEvent as Event,
-			RuntimeOrigin as Origin, Test, BOB,
+			assert_events, new_test_ext, Balances, PalletIndex, RuntimeEvent as Event,
+			RuntimeOrigin as Origin, Test, ALICE, BOB, ENDOWED_BALANCE,
 		};
+		use sp_runtime::traits::AccountIdConversion;
+		use xcm::latest::MultiLocation;
 
 		#[test]
 		fn test_add_executor_should_work() {
@@ -252,6 +324,66 @@ pub mod pallet {
 				));
 				assert_eq!(Workers::<Test>::get(bob_key), false);
 			});
+		}
+
+		#[test]
+		fn test_deposit_task_should_work() {
+			new_test_ext().execute_with(|| {
+				let alice_key: [u8; 32] = ALICE.into();
+				let bob_key: [u8; 32] = BOB.into();
+				let request_id = [2; 32];
+
+				assert_noop!(
+					PalletIndex::deposit_task(
+						Origin::signed(ALICE),
+						MultiLocation::here().into(),
+						100u128,
+						[1, 2, 3].to_vec(),
+						bob_key,
+						[2; 32],
+						[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
+					),
+					pallet_index::Error::<Test>::WorkerNotSet
+				);
+
+				assert_ok!(PalletIndex::force_add_worker(Origin::root(), BOB.clone()));
+				let module_account: <Test as frame_system::Config>::AccountId =
+					MODULE_ID.into_account_truncating();
+				assert_eq!(Balances::free_balance(ALICE), ENDOWED_BALANCE);
+				assert_eq!(Balances::free_balance(module_account.clone()), 0);
+				assert_ok!(PalletIndex::deposit_task(
+					Origin::signed(ALICE),
+					MultiLocation::here().into(),
+					100u128,
+					[1, 2, 3].to_vec(),
+					bob_key,
+					request_id,
+					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
+				));
+				assert_eq!(Balances::free_balance(ALICE), ENDOWED_BALANCE - 100);
+				assert_eq!(Balances::free_balance(module_account), 100);
+				assert_eq!(
+					ActivedRequests::<Test>::get(&bob_key),
+					[request_id].to_vec()
+				);
+				assert_eq!(
+					DepositRecords::<Test>::get(&request_id).unwrap().sender,
+					alice_key
+				);
+
+				assert_noop!(
+					PalletIndex::deposit_task(
+						Origin::signed(ALICE),
+						MultiLocation::here().into(),
+						100u128,
+						[1, 2, 3].to_vec(),
+						bob_key,
+						[2; 32],
+						[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
+					),
+					pallet_index::Error::<Test>::RequestAlreadyExist
+				);
+			})
 		}
 	}
 }

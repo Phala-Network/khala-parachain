@@ -5,9 +5,10 @@ use frame_support::{
 	parameter_types,
 	sp_runtime::{
 		testing::{Header, H256},
-		traits::{BlakeTwo256, IdentityLookup},
+		traits::{AccountIdConversion, BlakeTwo256, CheckedConversion, IdentityLookup},
 		AccountId32, Perbill,
 	},
+	PalletId,
 };
 use frame_system::{self as system, EnsureRoot};
 
@@ -15,6 +16,12 @@ use crate as pallet_index;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+use polkadot_parachain::primitives::Sibling;
+use xcm::latest::prelude::*;
+use xcm_builder::{
+	AccountId32Aliases, CurrencyAdapter, ParentIsPreset, SiblingParachainConvertsVia,
+};
+use xcm_executor::traits::MatchesFungible;
 
 pub(crate) type Balance = u128;
 
@@ -85,9 +92,46 @@ impl pallet_balances::Config for Test {
 	type ReserveIdentifier = [u8; 8];
 }
 
+parameter_types! {
+	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+	pub ParaCheckingAccount: AccountId32 = PalletId(*b"py/check").into_account_truncating();
+}
+
+pub struct NativeAssetMatcher;
+impl<B: TryFrom<u128>> MatchesFungible<B> for NativeAssetMatcher {
+	fn matches_fungible(a: &MultiAsset) -> Option<B> {
+		match (&a.id, &a.fun) {
+			(Concrete(location), Fungible(ref amount)) if location == &MultiLocation::here() => {
+				CheckedConversion::checked_from(*amount)
+			}
+			_ => None,
+		}
+	}
+}
+
+pub type LocationToAccountId = (
+	ParentIsPreset<AccountId32>,
+	SiblingParachainConvertsVia<Sibling, AccountId32>,
+	AccountId32Aliases<RelayNetwork, AccountId32>,
+);
+
+pub type CurrencyTransactor = CurrencyAdapter<
+	// Use this currency:
+	Balances,
+	// Use this currency when it is a fungible asset matching the given location or name:
+	NativeAssetMatcher,
+	// Convert an XCM MultiLocation into a local account id:
+	LocationToAccountId,
+	// Our chain's account ID type (we can't get away without mentioning it explicitly):
+	AccountId32,
+	// We don't track any teleports of `Balances`.
+	ParaCheckingAccount,
+>;
+
 impl pallet_index::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type CommitteeOrigin = EnsureRoot<Self::AccountId>;
+	type AssetTransactor = CurrencyTransactor;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
