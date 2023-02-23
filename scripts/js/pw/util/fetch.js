@@ -2,8 +2,9 @@
 async function getCollectionsCount(khalaApi) {
     return (await khalaApi.query.pwNftSale.nextCollectionId()).toNumber();
 }
-
-// export async function getBalance(khalaApi, account)
+export async function getCollectionInfo(khalaApi, collectionId) {
+    return (await khalaApi.query.rmrkCore.collections(collectionId));
+}
 
 async function getOverlord(khalaApi) {
     return (await khalaApi.query.pwNftSale.overlord())
@@ -184,5 +185,6 @@ module.exports = {
     getHasOriginOfShellStartedIncubationStatus,
     getOriginOfShellsChosenParts,
     getOwnedNftsInCollection,
-    getNftInfo
+    getNftInfo,
+    getCollectionInfo
 }
