@@ -320,8 +320,8 @@ pub mod pallet {
 		use frame_support::{assert_noop, assert_ok};
 		use pallet_index::mock::{
 			assert_events, new_test_ext, Assets, AssetsRegistry, Balances, PalletIndex,
-			RuntimeEvent as Event, RuntimeOrigin as Origin, Test, TestAssetId, TestAssetLocation,
-			ALICE, BOB, ENDOWED_BALANCE,
+			RuntimeEvent as Event, RuntimeOrigin as Origin, Test, TestAssetAssetId,
+			TestAssetLocation, ALICE, BOB, ENDOWED_BALANCE,
 		};
 		use sp_runtime::traits::AccountIdConversion;
 		use xcm::latest::{prelude::*, MultiLocation};
@@ -418,7 +418,7 @@ pub mod pallet {
 				assert_ok!(AssetsRegistry::force_register_asset(
 					Origin::root(),
 					TestAssetLocation::get().into(),
-					TestAssetId::get(),
+					TestAssetAssetId::get(),
 					assets_registry::AssetProperties {
 						name: b"TestAsset".to_vec(),
 						symbol: b"TA".to_vec(),
@@ -430,11 +430,11 @@ pub mod pallet {
 					assets_registry::ASSETS_REGISTRY_ID.into_account_truncating();
 				assert_ok!(Assets::mint(
 					Origin::signed(asset_owner.clone()),
-					TestAssetId::get(),
+					TestAssetAssetId::get(),
 					ALICE.into(),
 					1_000
 				));
-				assert_eq!(Assets::balance(TestAssetId::get(), &ALICE), 1_000);
+				assert_eq!(Assets::balance(TestAssetAssetId::get(), &ALICE), 1_000);
 				// Now, deposit should success
 				assert_ok!(PalletIndex::deposit_task(
 					Origin::signed(ALICE),
@@ -445,8 +445,14 @@ pub mod pallet {
 					[3; 32],
 					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 				));
-				assert_eq!(Assets::balance(TestAssetId::get(), &ALICE), 1_000 - 100);
-				assert_eq!(Assets::balance(TestAssetId::get(), &module_account), 100);
+				assert_eq!(
+					Assets::balance(TestAssetAssetId::get(), &ALICE),
+					1_000 - 100
+				);
+				assert_eq!(
+					Assets::balance(TestAssetAssetId::get(), &module_account),
+					100
+				);
 			})
 		}
 

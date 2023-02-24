@@ -46,6 +46,8 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "polk
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37", default-features = false }
 
+pallet-parachain-info = { path = "../../pallets/parachain-info" }
+
 [features]
 default = ["std"]
 runtime-benchmarks = [

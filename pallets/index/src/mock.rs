@@ -7,7 +7,7 @@ use frame_support::{
 		traits::{AccountIdConversion, BlakeTwo256, CheckedConversion, IdentityLookup},
 		AccountId32, Perbill,
 	},
-	traits::{AsEnsureOriginWithArg, ConstU128, Contains},
+	traits::{AsEnsureOriginWithArg, ConstU128, Contains, GenesisBuild},
 	PalletId,
 };
 use frame_system::{self as system, EnsureRoot, EnsureSigned};
@@ -240,6 +240,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<Test>()
 		.unwrap();
+	let parachain_info_config = pallet_parachain_info::GenesisConfig {
+		parachain_id: 2004u32.into(),
+	};
+	<pallet_parachain_info::GenesisConfig as GenesisBuild<Test, _>>::assimilate_storage(
+		&parachain_info_config,
+		&mut t,
+	)
+	.unwrap();
 	let assets_registry_account = assets_registry::ASSETS_REGISTRY_ID.into_account_truncating();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
