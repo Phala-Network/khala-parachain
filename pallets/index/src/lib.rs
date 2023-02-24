@@ -259,6 +259,8 @@ pub mod pallet {
 			);
 
 			let worker_task_queue = ActivedRequests::<T>::get(&worker);
+			// Check reqeust exist in actived task queue
+			ensure!(worker_task_queue.len() > 0, Error::<T>::NotFoundInTaskQueue);
 			// Put an empty task queue
 			ActivedRequests::<T>::insert(&worker, &VecDeque::<RequestId>::new());
 			for request_id in worker_task_queue.iter() {
@@ -332,6 +334,8 @@ pub mod pallet {
 				let alice_key: [u8; 32] = ALICE.into();
 				let bob_key: [u8; 32] = BOB.into();
 				let request_id = [2; 32];
+				let module_account: <Test as frame_system::Config>::AccountId =
+					MODULE_ID.into_account_truncating();
 
 				assert_noop!(
 					PalletIndex::deposit_task(
@@ -347,8 +351,6 @@ pub mod pallet {
 				);
 
 				assert_ok!(PalletIndex::force_add_worker(Origin::root(), BOB.clone()));
-				let module_account: <Test as frame_system::Config>::AccountId =
-					MODULE_ID.into_account_truncating();
 				assert_eq!(Balances::free_balance(ALICE), ENDOWED_BALANCE);
 				assert_eq!(Balances::free_balance(module_account.clone()), 0);
 				assert_ok!(PalletIndex::deposit_task(
@@ -382,6 +384,80 @@ pub mod pallet {
 						[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 					),
 					pallet_index::Error::<Test>::RequestAlreadyExist
+				);
+			})
+		}
+
+		#[test]
+		fn test_claim_task_should_work() {
+			new_test_ext().execute_with(|| {
+				let bob_key: [u8; 32] = BOB.into();
+				let request_id_1 = [1; 32];
+				let request_id_2 = [2; 32];
+				let request_id_3 = [3; 32];
+				let module_account: <Test as frame_system::Config>::AccountId =
+					MODULE_ID.into_account_truncating();
+
+				assert_ok!(PalletIndex::force_add_worker(Origin::root(), BOB.clone()));
+				assert_ok!(PalletIndex::deposit_task(
+					Origin::signed(ALICE),
+					MultiLocation::here().into(),
+					100u128,
+					[1, 2, 3].to_vec(),
+					bob_key,
+					request_id_1,
+					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
+				));
+				assert_ok!(PalletIndex::deposit_task(
+					Origin::signed(ALICE),
+					MultiLocation::here().into(),
+					200u128,
+					[1, 2, 3].to_vec(),
+					bob_key,
+					request_id_2,
+					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
+				));
+				assert_ok!(PalletIndex::deposit_task(
+					Origin::signed(ALICE),
+					MultiLocation::here().into(),
+					300u128,
+					[1, 2, 3].to_vec(),
+					bob_key,
+					request_id_3,
+					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
+				));
+				assert_eq!(Balances::free_balance(module_account.clone()), 600);
+				assert_eq!(Balances::free_balance(ALICE), ENDOWED_BALANCE - 600);
+				assert_eq!(Balances::free_balance(BOB), ENDOWED_BALANCE);
+
+				// Claim failed if sender is not worker
+				assert_noop!(
+					PalletIndex::claim_task(Origin::signed(ALICE), request_id_1,),
+					pallet_index::Error::<Test>::WorkerMismatch
+				);
+				assert_noop!(
+					PalletIndex::claim_all_task(Origin::signed(ALICE),),
+					pallet_index::Error::<Test>::WorkerMismatch
+				);
+
+				// Claim one task
+				assert_ok!(PalletIndex::claim_task(Origin::signed(BOB), request_id_1,));
+				assert_eq!(Balances::free_balance(module_account.clone()), 500);
+				assert_eq!(Balances::free_balance(BOB), ENDOWED_BALANCE + 100);
+
+				// Claim rest of tasks
+				assert_ok!(PalletIndex::claim_all_task(Origin::signed(BOB),));
+				assert_eq!(Balances::free_balance(module_account), 0);
+				assert_eq!(Balances::free_balance(BOB), ENDOWED_BALANCE + 600);
+
+				// Claim failed if no task exist
+				assert_noop!(
+					PalletIndex::claim_task(Origin::signed(BOB), request_id_1,),
+					pallet_index::Error::<Test>::NotFoundInTaskQueue
+				);
+				assert_noop!(
+					PalletIndex::claim_all_task(Origin::signed(BOB),),
+					pallet_index::Error::<Test>::NotFoundInTaskQueue
 				);
 			})
 		}
