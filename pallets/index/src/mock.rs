@@ -1,5 +1,4 @@
 #![cfg(test)]
-
 use frame_support::{
 	pallet_prelude::ConstU32,
 	parameter_types,
@@ -8,9 +7,11 @@ use frame_support::{
 		traits::{AccountIdConversion, BlakeTwo256, CheckedConversion, IdentityLookup},
 		AccountId32, Perbill,
 	},
+	traits::{AsEnsureOriginWithArg, ConstU128, Contains},
 	PalletId,
 };
-use frame_system::{self as system, EnsureRoot};
+use frame_system::{self as system, EnsureRoot, EnsureSigned};
+use sp_std::{marker::PhantomData, result};
 
 use crate as pallet_index;
 
@@ -19,9 +20,10 @@ type Block = frame_system::mocking::MockBlock<Test>;
 use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, CurrencyAdapter, ParentIsPreset, SiblingParachainConvertsVia,
+	AccountId32Aliases, CurrencyAdapter, FungiblesAdapter, ParentIsPreset,
+	SiblingParachainConvertsVia,
 };
-use xcm_executor::traits::MatchesFungible;
+use xcm_executor::traits::{Error as MatchError, MatchesFungible, MatchesFungibles};
 
 pub(crate) type Balance = u128;
 
@@ -38,6 +40,9 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		PalletIndex: pallet_index::{Pallet, Call, Storage, Event<T>},
+		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+		AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>},
+		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config},
 	}
 );
 
@@ -93,18 +98,91 @@ impl pallet_balances::Config for Test {
 }
 
 parameter_types! {
-	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
-	pub ParaCheckingAccount: AccountId32 = PalletId(*b"py/check").into_account_truncating();
+	pub const AssetDeposit: Balance = 1; // 1 Unit deposit to create asset
+	pub const ApprovalDeposit: Balance = 1;
+	pub const AssetsStringLimit: u32 = 50;
+	pub const MetadataDepositBase: Balance = 1;
+	pub const MetadataDepositPerByte: Balance = 1;
 }
 
-pub struct NativeAssetMatcher;
-impl<B: TryFrom<u128>> MatchesFungible<B> for NativeAssetMatcher {
+pub type AssetId = u32;
+impl pallet_assets::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type AssetId = AssetId;
+	type AssetIdParameter = u32;
+	type Currency = Balances;
+	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
+	type ForceOrigin = EnsureRoot<Self::AccountId>;
+	type AssetDeposit = AssetDeposit;
+	type AssetAccountDeposit = ConstU128<10>;
+	type MetadataDepositBase = MetadataDepositBase;
+	type MetadataDepositPerByte = MetadataDepositPerByte;
+	type ApprovalDeposit = ApprovalDeposit;
+	type StringLimit = AssetsStringLimit;
+	type Freezer = ();
+	type Extra = ();
+	type CallbackHandle = ();
+	type WeightInfo = ();
+	type RemoveItemsLimit = ConstU32<5>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
+}
+
+parameter_types! {
+	pub NativeExecutionPrice: u128 = 1;
+	pub ResourceIdGenerationSalt: Option<u128> = Some(3);
+}
+impl assets_registry::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type RegistryCommitteeOrigin = EnsureRoot<Self::AccountId>;
+	type Currency = Balances;
+	type MinBalance = ExistentialDeposit;
+	type NativeExecutionPrice = NativeExecutionPrice;
+	type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
+	type ReserveAssetChecker = assets_registry::ReserveAssetFilter<
+		ParachainInfo,
+		assets_registry::NativeAssetFilter<ParachainInfo>,
+	>;
+	type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
+}
+impl pallet_parachain_info::Config for Test {}
+
+parameter_types! {
+	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+	pub ParaCheckingAccount: AccountId32 = PalletId(*b"py/check").into_account_truncating();
+	pub TestAssetLocation: MultiLocation = MultiLocation::new(1, X1(GeneralIndex(123)));
+	pub TestAssetAssetId: AssetId = 0;
+}
+
+pub struct SimpleNativeAssetMatcher;
+impl<B: TryFrom<u128>> MatchesFungible<B> for SimpleNativeAssetMatcher {
 	fn matches_fungible(a: &MultiAsset) -> Option<B> {
 		match (&a.id, &a.fun) {
-			(Concrete(location), Fungible(ref amount)) if location == &MultiLocation::here() => {
-				CheckedConversion::checked_from(*amount)
+			(Concrete(location), Fungible(ref amount)) => {
+				if location == &MultiLocation::here() {
+					CheckedConversion::checked_from(*amount)
+				} else {
+					None
+				}
 			}
 			_ => None,
+		}
+	}
+}
+
+pub struct SimpleForeignAssetMatcher(PhantomData<()>);
+impl MatchesFungibles<AssetId, Balance> for SimpleForeignAssetMatcher {
+	fn matches_fungibles(a: &MultiAsset) -> result::Result<(AssetId, Balance), MatchError> {
+		match (&a.fun, &a.id) {
+			(Fungible(ref amount), Concrete(ref id)) => {
+				if id == &TestAssetLocation::get() {
+					Ok((TestAssetAssetId::get(), *amount))
+				} else {
+					Err(MatchError::AssetNotFound)
+				}
+			}
+			_ => Err(MatchError::AssetNotFound),
 		}
 	}
 }
@@ -119,7 +197,7 @@ pub type CurrencyTransactor = CurrencyAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	NativeAssetMatcher,
+	SimpleNativeAssetMatcher,
 	// Convert an XCM MultiLocation into a local account id:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -128,18 +206,47 @@ pub type CurrencyTransactor = CurrencyAdapter<
 	ParaCheckingAccount,
 >;
 
+pub struct AssetChecker;
+impl Contains<u32> for AssetChecker {
+	fn contains(_: &u32) -> bool {
+		false
+	}
+}
+/// Means for transacting assets besides the native currency on this chain.
+pub type FungiblesTransactor = FungiblesAdapter<
+	// Use this fungibles implementation:
+	Assets,
+	// Use this currency when it is a fungible asset matching the given location or name:
+	SimpleForeignAssetMatcher,
+	// Convert an XCM MultiLocation into a local account id:
+	LocationToAccountId,
+	// Our chain's account ID type (we can't get away without mentioning it explicitly):
+	AccountId32,
+	// We do not support teleport assets
+	AssetChecker,
+	// We do not support teleport assets
+	ParaCheckingAccount,
+>;
+
+pub type AssetTransactors = (CurrencyTransactor, FungiblesTransactor);
 impl pallet_index::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type CommitteeOrigin = EnsureRoot<Self::AccountId>;
-	type AssetTransactor = CurrencyTransactor;
+	type AssetTransactor = AssetTransactors;
+	type AssetsRegistry = AssetsRegistry;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<Test>()
 		.unwrap();
+	let assets_registry_account = assets_registry::ASSETS_REGISTRY_ID.into_account_truncating();
 	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![(ALICE, ENDOWED_BALANCE), (BOB, ENDOWED_BALANCE)],
+		balances: vec![
+			(ALICE, ENDOWED_BALANCE),
+			(BOB, ENDOWED_BALANCE),
+			(assets_registry_account, ENDOWED_BALANCE),
+		],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

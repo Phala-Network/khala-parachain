@@ -7,6 +7,7 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use assets_registry::GetAssetRegistryInfo;
 	use codec::Encode;
 	use frame_support::{
 		dispatch::DispatchResult, pallet_prelude::*, traits::StorageVersion, transactional,
@@ -42,11 +43,13 @@ pub mod pallet {
 	}
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_assets::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type CommitteeOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// Asset adapter to do withdraw, deposit etc.
 		type AssetTransactor: TransactAsset;
+		/// Assets registry
+		type AssetsRegistry: GetAssetRegistryInfo<<Self as pallet_assets::Config>::AssetId>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
@@ -85,6 +88,7 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
+		AssetNotFound,
 		WorkerAlreadySet,
 		WorkerNotSet,
 		WorkerMismatch,
@@ -143,8 +147,18 @@ pub mod pallet {
 
 			// Ensure given worker was registered
 			ensure!(Workers::<T>::get(&worker), Error::<T>::WorkerNotSet);
-
-			// TODO: Check if asset was registered on our chain
+			// Check if foreign asset was registered on our chain
+			if &asset != &MultiLocation::here().into() {
+				let asset_location = match &asset {
+					Concrete(location) => Some(location),
+					_ => None,
+				}
+				.ok_or(Error::<T>::AssetNotFound)?;
+				ensure!(
+					T::AssetsRegistry::id(&asset_location).is_some(),
+					Error::<T>::AssetNotFound
+				);
+			}
 
 			// Check if record already exist
 			ensure!(
@@ -305,11 +319,12 @@ pub mod pallet {
 		};
 		use frame_support::{assert_noop, assert_ok};
 		use pallet_index::mock::{
-			assert_events, new_test_ext, Balances, PalletIndex, RuntimeEvent as Event,
-			RuntimeOrigin as Origin, Test, ALICE, BOB, ENDOWED_BALANCE,
+			assert_events, new_test_ext, Assets, AssetsRegistry, Balances, PalletIndex,
+			RuntimeEvent as Event, RuntimeOrigin as Origin, Test, TestAssetId, TestAssetLocation,
+			ALICE, BOB, ENDOWED_BALANCE,
 		};
 		use sp_runtime::traits::AccountIdConversion;
-		use xcm::latest::MultiLocation;
+		use xcm::latest::{prelude::*, MultiLocation};
 
 		#[test]
 		fn test_add_executor_should_work() {
@@ -363,7 +378,7 @@ pub mod pallet {
 					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 				));
 				assert_eq!(Balances::free_balance(ALICE), ENDOWED_BALANCE - 100);
-				assert_eq!(Balances::free_balance(module_account), 100);
+				assert_eq!(Balances::free_balance(module_account.clone()), 100);
 				assert_eq!(
 					ActivedRequests::<Test>::get(&bob_key),
 					[request_id].to_vec()
@@ -385,6 +400,53 @@ pub mod pallet {
 					),
 					pallet_index::Error::<Test>::RequestAlreadyExist
 				);
+
+				// Should fail if foreign asset not registered
+				assert_noop!(
+					PalletIndex::deposit_task(
+						Origin::signed(ALICE),
+						TestAssetLocation::get().into(),
+						100u128,
+						[1, 2, 3].to_vec(),
+						bob_key,
+						[3; 32],
+						[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
+					),
+					pallet_index::Error::<Test>::AssetNotFound
+				);
+				// Register asset
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					TestAssetLocation::get().into(),
+					TestAssetId::get(),
+					assets_registry::AssetProperties {
+						name: b"TestAsset".to_vec(),
+						symbol: b"TA".to_vec(),
+						decimals: 12,
+					},
+				));
+				// mint some asset to Alice, only ASSETS_REGISTRY_ID has mint permission
+				let asset_owner: <Test as frame_system::Config>::AccountId =
+					assets_registry::ASSETS_REGISTRY_ID.into_account_truncating();
+				assert_ok!(Assets::mint(
+					Origin::signed(asset_owner.clone()),
+					TestAssetId::get(),
+					ALICE.into(),
+					1_000
+				));
+				assert_eq!(Assets::balance(TestAssetId::get(), &ALICE), 1_000);
+				// Now, deposit should success
+				assert_ok!(PalletIndex::deposit_task(
+					Origin::signed(ALICE),
+					TestAssetLocation::get().into(),
+					100u128,
+					[1, 2, 3].to_vec(),
+					bob_key,
+					[3; 32],
+					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
+				));
+				assert_eq!(Assets::balance(TestAssetId::get(), &ALICE), 1_000 - 100);
+				assert_eq!(Assets::balance(TestAssetId::get(), &module_account), 100);
 			})
 		}
 
