@@ -375,6 +375,15 @@ async function listNft(khalaApi, owner, collectionId, nftId, amount, maybeExpire
     ).to.be.true;
 }
 
+async function listNftFail(khalaApi, owner, collectionId, nftId, amount, maybeExpires) {
+    console.log(`\tListing NFT ID [${collectionId}, ${nftId}] for sale should fail...`);
+    const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.list(collectionId, nftId, amount, maybeExpires), owner);
+    expect(
+        result,
+        `Error: list NFT ID [${collectionId}, ${nftId}] succeeded`
+    ).to.be.false;
+}
+
 // Buy NFT for sale. The buyer can set an Option<maybeAmount> to ensure that the buyer is buying at the expected price
 // of the listed NFT. Once the purchase passes permissions checks, the NFT is unlocked, money is transferred to the old
 // owner, the NFT is sent to the buyer & an event is emitted named TokenSold {owner, buyer, collection_id, nft_id, price}
@@ -407,6 +416,15 @@ async function makeOfferOnNft(khalaApi, offerer, collectionId, nftId, amount, ma
         result,
         `Error: could not make offer on NFT ID [${collectionId}, ${nftId}]`
     ).to.be.true;
+}
+
+async function makeOfferOnNftFail(khalaApi, offerer, collectionId, nftId, amount, maybeExpires) {
+    console.log(`\tMake offer on NFT ID [${collectionId}, ${nftId}] should fail...`);
+    const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.rmrkMarket.makeOffer(collectionId, nftId, amount, maybeExpires), offerer);
+    expect(
+        result,
+        `Error: make offer on NFT ID [${collectionId}, ${nftId}] should not succeed`
+    ).to.be.false;
 }
 
 // Accept Offer for NFT. The owner can accept an active offer in storage for a NFT. This will remove the offer from storage,
@@ -452,6 +470,19 @@ async function failToSendNonTransferableNft(khalaApi, owner, collectionId, nftId
     ).to.be.false;
 }
 
+async function bulkFreezeCollectionNFTs(khalaApi, collectionId, startNftId, endNftId, overlord) {
+    console.log(`Freezing NFTs in Collection ID [${collectionId}] from NFT ID [${startNftId}] to [${endNftId}]...`);
+    let uniques_freeze_array = [];
+    for (let currentNftId = startNftId; currentNftId <= endNftId; currentNftId++) {
+        uniques_freeze_array.push(khalaApi.tx.uniques.freeze(collectionId, currentNftId));
+    }
+    const result = await waitExtrinsicFinished(khalaApi, khalaApi.tx.utility.batch(uniques_freeze_array), overlord);
+    expect(
+        result,
+        `Error: could not freeze NFTs in Collection ID [${collectionId}] from NFT ID [${startNftId}] to [${endNftId}]`
+    ).to.be.true;
+}
+
 module.exports = {
     pwCreateCollection,
     setStatusType,
@@ -483,5 +514,8 @@ module.exports = {
     sendNftToOwner,
     failToSendNonTransferableNft,
     setPayeeAccount,
-    setSignerAccount
+    setSignerAccount,
+    bulkFreezeCollectionNFTs,
+    listNftFail,
+    makeOfferOnNftFail
 }
