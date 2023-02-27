@@ -6979,6 +6979,7 @@ dependencies = [
  "impl-serde",
  "jsonrpsee",
  "log",
+ "once_cell",
  "pallet-mq-runtime-api",
  "parity-scale-codec",
  "phala-mq",
