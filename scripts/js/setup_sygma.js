@@ -397,7 +397,9 @@ async function main() {
     }
 
     // transfer some native asset to FeeReserveAccount as Existential Deposit(aka ED)
-    await setBalance(api, ThreasuryAccount, bn1e12.mul(new BN(10000)), false, sudo); // set balance to 10000 native asset
+    await setBalance(api, ThreasuryAccount, bn1e12.mul(new BN(1)), false, sudo); // set balance to 1 native asset
+    // transfer some native asset to BridgeAccount as initial liquidity
+    await setBalance(api, BridgeAccount, bn1e12.mul(new BN(10000)), false, sudo); // set balance to 10000 native asset
 
     // bridge should be unpaused by the end of the setup
     for (const domain of supportedDestDomains) {
