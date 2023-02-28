@@ -382,7 +382,7 @@ async function main() {
     const usdcName = "USDC test asset";
     const usdcSymbol = "USDC";
     const usdcDecimal = 12;
-    const usdcResourceID = "0x0000000000000000000000000000000000000000000000000000000000000002";
+    const usdcResourceID = "0x0000000000000000000000000000000000000000000000000000000000000300";
     // transfer some native asset to AssetRegistryAdmin to reserve for asset creation
     await setBalance(api, AssetRegistryAdmin, bn1e12.mul(new BN(10)), false, sudo); // set balance to 10 native asset
     await registerAsset(api, getUSDCLocation(api), usdcAssetID, {name: usdcName, symbol: usdcSymbol, decimals: usdcDecimal}, false, sudo);
