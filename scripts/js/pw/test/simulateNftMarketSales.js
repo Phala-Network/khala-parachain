@@ -2,10 +2,10 @@ const { getApiConnection, getAccount, alicePrivkey, evePrivkey, ferdiePrivkey, o
     charliePrivkey, davidPrivkey
 } = require('../khala/khalaApi');
 const {setIncubationProcessStatus, hatchOriginOfShell, listNft, buyNft, sendNftToOwner, makeOfferOnNft,
-    withdrawOfferOnNft, unlistNft, acceptOfferOnNft, failToSendNonTransferableNft
+    withdrawOfferOnNft, unlistNft, acceptOfferOnNft, failToSendNonTransferableNft, bulkFreezeCollectionNFTs, listNftFail, makeOfferOnNftFail
 } = require("../util/tx");
 const { getOwnedNftsInCollection, getShellCollectionId, getShellPartsCollectionId} = require("../util/fetch");
-const {getNonTransferableNft} = require("../util/helpers");
+const {getNonTransferableNft, getCollectionNftCount} = require("../util/helpers");
 
 describe("Simulate NFT Market Sales", () => {
     let api;
@@ -31,6 +31,20 @@ describe("Simulate NFT Market Sales", () => {
         await listNft(api, alice, shellCollectionId.unwrap(), nftId, 1000, null);
         await buyNft(api, bob, shellCollectionId.unwrap(), nftId, 1000);
     });
+    it(`Freeze all Shell Equipment NFTs`, async () => {
+        overlord = await getAccount(overlordPrivkey);
+        const shellPartsCollectionId = await getShellPartsCollectionId(api);
+        expect(
+            shellPartsCollectionId.isSome,
+            `Error: Shell Parts Collection ID is not set`
+        ).to.be.true;
+        const shellPartsNftCount = await getCollectionNftCount(api, shellPartsCollectionId);
+        expect(
+            shellPartsNftCount > 0,
+            `Error: Shell Parts NFT count is 0`
+        ).to.be.true;
+        await bulkFreezeCollectionNFTs(api, shellPartsCollectionId, 0, shellPartsNftCount - 1, overlord);
+    });
     let shellPartNftId;
     it(`Bob Sends Shell Part NFT to Self and Lists Shell Part NFT`, async () => {
         bob = await getAccount(bobPrivkey);
@@ -45,8 +59,10 @@ describe("Simulate NFT Market Sales", () => {
             `Error: Bob does not own a Shell Parts NFT`
         ).to.be.true;
         shellPartNftId = nfts[0];
-        await sendNftToOwner(api, bob, shellPartsCollectionId, shellPartNftId, bob);
-        await listNft(api, bob, shellPartsCollectionId, shellPartNftId, 50, null);
+        // Comment out tests while functions are disabled
+        // await sendNftToOwner(api, bob, shellPartsCollectionId, shellPartNftId, bob);
+        await listNftFail(api, bob, shellPartsCollectionId, shellPartNftId, 50, null);
+
     });
     it(`Charlie & David Make Offers on Bob's Shell Part Listed Then Charlie Withdraws Offer`, async () => {
         charlie = await getAccount(charliePrivkey);
@@ -56,9 +72,10 @@ describe("Simulate NFT Market Sales", () => {
             shellPartsCollectionId.isSome,
             `Error: Shell Parts Collection ID is not set`
         ).to.be.true;
-        await makeOfferOnNft(api, charlie, shellPartsCollectionId.unwrap(), shellPartNftId, 10, null);
-        await makeOfferOnNft(api, david, shellPartsCollectionId.unwrap(), shellPartNftId, 45, 50);
-        await withdrawOfferOnNft(api, charlie, shellPartsCollectionId.unwrap(), shellPartNftId);
+        // Comment out tests while functions are disabled
+        await makeOfferOnNftFail(api, charlie, shellPartsCollectionId.unwrap(), shellPartNftId, 10, null);
+        // await makeOfferOnNft(api, david, shellPartsCollectionId.unwrap(), shellPartNftId, 45, 50);
+        // await withdrawOfferOnNft(api, charlie, shellPartsCollectionId.unwrap(), shellPartNftId);
     });
     it(`Bob Unlists Shell Part NFT Then Accepts David's Offer`, async () => {
         david = await getAccount(davidPrivkey);
@@ -68,8 +85,8 @@ describe("Simulate NFT Market Sales", () => {
             shellPartsCollectionId.isSome,
             `Error: Shell Parts Collection ID is not set`
         ).to.be.true;
-        await unlistNft(api, bob, shellPartsCollectionId.unwrap(), shellPartNftId);
-        await acceptOfferOnNft(api, bob, shellPartsCollectionId.unwrap(), shellPartNftId, david);
+        // await unlistNft(api, bob, shellPartsCollectionId.unwrap(), shellPartNftId);
+        // await acceptOfferOnNft(api, bob, shellPartsCollectionId.unwrap(), shellPartNftId, david);
     });
     it(`Bob Cannot Send Non-Transferable Shell Part`, async () => {
         bob = await getAccount(bobPrivkey);

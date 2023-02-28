@@ -368,7 +368,7 @@ pub mod pallet {
 		///
 		/// Parameters:
 		/// - `origin`: Expected to be the `Overlord` account
-        /// - `collection_id`: The collection id of the Origin of Shell RMRK NFT
+		/// - `collection_id`: The collection id of the Origin of Shell RMRK NFT
 		/// - `nft_id`: The NFT id of the Origin of Shell RMRK NFT
 		/// - `default_shell_metadata`: File resource URI in decentralized storage for Shell NFT
 		///	parts that render the Shell NFT
@@ -381,7 +381,7 @@ pub mod pallet {
 			nft_id: NftId,
 			default_shell_metadata: BoundedVec<u8, T::StringLimit>,
 		) -> DispatchResult {
-            // Ensure Overlord account is the sender
+			// Ensure Overlord account is the sender
 			let sender = ensure_signed(origin.clone())?;
 			pallet_pw_nft_sale::pallet::Pallet::<T>::ensure_overlord(&sender)?;
 			// Ensure that the collection is an Origin of Shell Collection
@@ -435,7 +435,8 @@ pub mod pallet {
 				Origin::<T>::Signed(owner.clone()).into(),
 				collection_id,
 				nft_id,
-			).map_err(|e| e.error)?;
+			)
+			.map_err(|e| e.error)?;
 			// Remove Properties from Uniques pallet
 			pallet_pw_nft_sale::Pallet::<T>::remove_nft_properties(
 				collection_id,
@@ -450,7 +451,7 @@ pub mod pallet {
 				next_shell_nft_id,
 				shell_collection_id,
 				Some(payee),
-				None,
+				Some(Permill::from_percent(1)),
 				default_shell_metadata,
 				true,
 				None,

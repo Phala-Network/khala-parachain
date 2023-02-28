@@ -8,7 +8,7 @@ pub mod pallet {
 	use assets_registry::SYGMA_PATH_KEY;
 	use frame_support::{dispatch::RawOrigin, pallet_prelude::*, transactional};
 	use funty::Fundamental;
-	use sp_std::{boxed::Box, vec::Vec};
+	use sp_std::vec::Vec;
 	use sygma_traits::{DomainID, ExtractDestinationData};
 	use xcm::latest::{prelude::*, MultiLocation, Weight as XCMWeight};
 
@@ -131,8 +131,8 @@ pub mod pallet {
 			// Transfer asset through sygma bridge
 			<sygma_bridge::pallet::Pallet<T>>::deposit(
 				RawOrigin::Signed(sender.into()).into(),
-				Box::new(asset.clone()),
-				Box::new(dest.clone()),
+				asset.clone(),
+				dest.clone(),
 			)?;
 
 			Pallet::<T>::deposit_event(Event::AssetTransfered {

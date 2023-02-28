@@ -81,7 +81,9 @@ pub use frame_support::{
         WithdrawReasons,
     },
     weights::{
-        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
+        constants::{
+            BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND,
+        },
         ConstantMultiplier, IdentityFee, Weight,
     },
     BoundedVec, PalletId, RuntimeDebug, StorageValue,
@@ -114,26 +116,25 @@ use rmrk_traits::{
 
 pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
-pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_nft_sale};
+#[cfg(any(feature = "std", test))]
+pub use frame_system::Call as SystemCall;
+#[cfg(any(feature = "std", test))]
+pub use pallet_balances::Call as BalancesCall;
+pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_marketplace, pallet_pw_nft_sale};
+#[cfg(any(feature = "std", test))]
+pub use pallet_timestamp::Call as TimestampCall;
 pub use phala_pallets::{
     pallet_base_pool, pallet_computation, pallet_fat, pallet_fat_tokenomic, pallet_mq,
     pallet_registry, pallet_stake_pool, pallet_stake_pool_v2, pallet_vault,
     pallet_wrapped_balances,
 };
+#[cfg(any(feature = "std", test))]
+pub use sp_runtime::BuildStorage;
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
     xcmbridge, xtransfer,
 };
 use sygma_traits::{DepositNonce, DomainID};
-
-#[cfg(any(feature = "std", test))]
-pub use frame_system::Call as SystemCall;
-#[cfg(any(feature = "std", test))]
-pub use pallet_balances::Call as BalancesCall;
-#[cfg(any(feature = "std", test))]
-pub use pallet_timestamp::Call as TimestampCall;
-#[cfg(any(feature = "std", test))]
-pub use sp_runtime::BuildStorage;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -309,6 +310,7 @@ construct_runtime! {
         RmrkMarket: pallet_rmrk_market::{Pallet, Call, Storage, Event<T>} = 104,
         PWNftSale: pallet_pw_nft_sale::{Pallet, Call, Storage, Event<T>} = 105,
         PWIncubation: pallet_pw_incubation::{Pallet, Call, Storage, Event<T>} = 106,
+        PWMarketplace: pallet_pw_marketplace::{Pallet, Call, Event<T>} = 107,
     }
 }
 
@@ -369,7 +371,18 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 | pallet_rmrk_core::Call::accept_resource { .. }
                 | pallet_rmrk_core::Call::remove_resource { .. }
                 | pallet_rmrk_core::Call::accept_resource_removal { .. }
+                | pallet_rmrk_core::Call::send { .. }
                 | pallet_rmrk_core::Call::__Ignore { .. } => true,
+                _ => false,
+            };
+        }
+
+        if let RuntimeCall::RmrkMarket(rmrk_market_method) = call {
+            return match rmrk_market_method {
+                pallet_rmrk_market::Call::buy { .. }
+                | pallet_rmrk_market::Call::list { .. }
+                | pallet_rmrk_market::Call::unlist { .. }
+                | pallet_rmrk_market::Call::__Ignore { .. } => true,
                 _ => false,
             };
         }
@@ -404,7 +417,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
             // RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World
-            RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. }
+            RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. } | RuntimeCall::PWMarketplace { .. }
         )
     }
 }
@@ -938,6 +951,7 @@ impl pallet_rmrk_equip::Config for Runtime {
 
 parameter_types! {
     pub const MinimumOfferAmount: Balance = DOLLARS / 10_000;
+    pub const MarketFee: Permill = Permill::from_parts(5_000);
 }
 
 impl pallet_rmrk_market::Config for Runtime {
@@ -946,6 +960,8 @@ impl pallet_rmrk_market::Config for Runtime {
     type Currency = Balances;
     type MinimumOfferAmount = MinimumOfferAmount;
     type WeightInfo = pallet_rmrk_market::weights::SubstrateWeight<Runtime>;
+    type MarketplaceHooks = PWMarketplace;
+    type MarketFee = MarketFee;
 }
 
 parameter_types! {
@@ -977,6 +993,10 @@ impl pallet_pw_incubation::Config for Runtime {
     type FoodPerEra = FoodPerEra;
     type MaxFoodFeedSelf = MaxFoodFeedSelf;
     type IncubationDurationSec = IncubationDurationSec;
+}
+
+impl pallet_pw_marketplace::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
 }
 
 impl pallet_parachain_info::Config for Runtime {}
@@ -1943,15 +1963,15 @@ impl_runtime_apis! {
         }
 
         fn execute_block(
-			block: Block,
-			state_root_check: bool,
-			signature_check: bool,
-			select: frame_try_runtime::TryStateSelect,
-		) -> Weight {
-			// NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
-			// have a backtrace here.
-			Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
-		}
+            block: Block,
+            state_root_check: bool,
+            signature_check: bool,
+            select: frame_try_runtime::TryStateSelect,
+        ) -> Weight {
+            // NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
+            // have a backtrace here.
+            Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
+        }
     }
 
     #[cfg(feature = "runtime-benchmarks")]
