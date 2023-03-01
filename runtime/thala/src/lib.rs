@@ -166,7 +166,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("thala"),
     impl_name: create_runtime_str!("thala"),
     authoring_version: 1,
-    spec_version: 1209,
+    spec_version: 1210,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
