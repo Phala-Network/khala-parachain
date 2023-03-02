@@ -13,16 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::chain_spec::{get_account_id_from_seed, get_collator_keys_from_seed, Extensions};
 use cumulus_primitives_core::ParaId;
+use hex_literal::hex;
 use phala_parachain_runtime::{AccountId, AuraId};
 use sc_chain_spec::Properties;
 use sc_service::ChainType;
 use serde::Deserialize;
 use sp_core::sr25519;
-use crate::chain_spec::{
-    get_collator_keys_from_seed, get_account_id_from_seed,
-    Extensions,
-};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec =
@@ -52,19 +50,19 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         move || {
             genesis(
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
-                vec![
-                    (
-                        get_account_id_from_seed::<sr25519::Public>("Alice"),
-                        get_collator_keys_from_seed("Alice"),
-                    ),
-                ],
-                vec![
+                vec![(
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
-                ],
-                vec![
-                    (get_account_id_from_seed::<sr25519::Public>("Alice"), 1 << 60),
-                ],
+                    get_collator_keys_from_seed("Alice"),
+                )],
+                vec![get_account_id_from_seed::<sr25519::Public>("Alice")],
+                vec![(
+                    get_account_id_from_seed::<sr25519::Public>("Alice"),
+                    1 << 60,
+                )],
                 id,
+                Some(development_registry_config(get_account_id_from_seed::<
+                    sr25519::Public,
+                >("Alice"))),
             )
         },
         vec![],
@@ -114,6 +112,7 @@ fn local_testnet_config(id: ParaId, genesis_info_bytes: &[u8], relay_chain: &str
                     .map(|(k, amount)| (k, u128::from_str(&amount).expect("Bad amount; qed.")))
                     .collect(),
                 id,
+                None,
             )
         },
         Vec::new(),
@@ -151,6 +150,7 @@ pub fn staging_config() -> ChainSpec {
                     .map(|(k, amount)| (k, u128::from_str(&amount).expect("Bad amount; qed.")))
                     .collect(),
                 2035u32.into(),
+                None,
             )
         },
         Vec::new(),
@@ -172,6 +172,7 @@ fn genesis(
     technical_committee: Vec<AccountId>,
     endowed_accounts: Vec<(AccountId, u128)>,
     id: ParaId,
+    registry_override: Option<phala_parachain_runtime::PhalaRegistryConfig>,
 ) -> phala_parachain_runtime::GenesisConfig {
     let all_accounts: Vec<_> = initial_authorities
         .iter()
@@ -209,8 +210,8 @@ fn genesis(
                 .cloned()
                 .map(|(acc, aura)| {
                     (
-                        acc.clone(),              // account id
-                        acc.clone(),              // validator id
+                        acc.clone(),        // account id
+                        acc.clone(),        // validator id
                         session_keys(aura), // session keys
                     )
                 })
@@ -234,6 +235,12 @@ fn genesis(
         vesting: phala_parachain_runtime::VestingConfig { vesting: vec![] },
         democracy: Default::default(),
         phragmen_election: Default::default(),
+        phala_registry: registry_override.unwrap_or(phala_parachain_runtime::PhalaRegistryConfig {
+            workers: Vec::new(),
+            gatekeepers: Vec::new(),
+            benchmark_duration: 50,
+        }),
+        phala_computation: Default::default(),
         polkadot_xcm: phala_parachain_runtime::PolkadotXcmConfig {
             safe_xcm_version: Some(2),
         },
@@ -260,4 +267,21 @@ fn check_accounts_endowed(
             .iter()
             .any(|(endowed, _)| account == endowed)
     })
+}
+
+fn development_registry_config(
+    operator: AccountId,
+) -> phala_parachain_runtime::PhalaRegistryConfig {
+    // The pubkey of "0x1"
+    let raw_sr25519_pubkey: [u8; 32] =
+        hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"];
+    let sr25519_pubkey = sp_core::sr25519::Public::from_raw(raw_sr25519_pubkey);
+    let ecdh_pubkey =
+        hex!["3a3d45dc55b57bf542f4c6ff41af080ec675317f4ed50ae1d2713bf9f892692d"].to_vec();
+
+    phala_parachain_runtime::PhalaRegistryConfig {
+        workers: vec![(sr25519_pubkey.clone(), ecdh_pubkey, Some(operator.clone()))],
+        gatekeepers: vec![sr25519_pubkey],
+        benchmark_duration: 1,
+    }
 }
