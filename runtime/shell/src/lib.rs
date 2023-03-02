@@ -43,13 +43,16 @@ use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
-    construct_runtime, match_types, parameter_types,
-    traits::{Everything, IsInVec, Randomness},
+    construct_runtime,
+    dispatch::DispatchClass,
+    match_types, parameter_types,
+    traits::{Contains, Everything, IsInVec, Randomness},
     weights::{
-        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
+        constants::{
+            BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND,
+        },
         IdentityFee, Weight,
     },
-    dispatch::DispatchClass,
     StorageValue,
 };
 use frame_system::limits::{BlockLength, BlockWeights};
@@ -195,6 +198,8 @@ construct_runtime! {
 
         // DMP handler.
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin},
+        // XCM utility
+        PolkadotXcm: pallet_xcm::{Pallet, Storage, Call, Event<T>, Origin, Config},
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 255,
     }
@@ -268,7 +273,8 @@ pub type SignedExtra = (
     frame_system::CheckWeight<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
-pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+pub type UncheckedExtrinsic =
+    generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
@@ -369,4 +375,35 @@ cumulus_pallet_parachain_system::register_validate_block! {
     Runtime = Runtime,
     BlockExecutor = Executive,
     CheckInherents = CheckInherents,
+}
+
+pub struct BaseCallFilter;
+impl Contains<RuntimeCall> for BaseCallFilter {
+    fn contains(call: &RuntimeCall) -> bool {
+        if let RuntimeCall::PolkadotXcm(xcm_method) = call {
+            return match xcm_method {
+                pallet_xcm::Call::execute { .. }
+                | pallet_xcm::Call::teleport_assets { .. }
+                | pallet_xcm::Call::reserve_transfer_assets { .. }
+                | pallet_xcm::Call::limited_reserve_transfer_assets { .. }
+                | pallet_xcm::Call::limited_teleport_assets { .. }
+                | pallet_xcm::Call::__Ignore { .. } => false,
+                pallet_xcm::Call::force_xcm_version { .. }
+                | pallet_xcm::Call::force_default_xcm_version { .. }
+                | pallet_xcm::Call::force_subscribe_version_notify { .. }
+                | pallet_xcm::Call::force_unsubscribe_version_notify { .. }
+                | pallet_xcm::Call::send { .. } => true,
+            };
+        }
+
+        matches!(
+            call,
+            // Sudo
+            RuntimeCall::Sudo { .. } |
+            // System
+            RuntimeCall::System { .. } |
+            // Parachain
+            RuntimeCall::ParachainSystem { .. }
+        )
+    }
 }
