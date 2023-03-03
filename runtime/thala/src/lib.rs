@@ -66,6 +66,7 @@ use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use static_assertions::const_assert;
+use primitive_types::U256;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
@@ -1598,7 +1599,7 @@ parameter_types! {
     // SygmaBridgeAccount address: 5EMepC39b7E2zfM9g6CkPp8KCAxGTh7D4w4T2tFjmjpd4tPw
     pub SygmaBridgeAccount: AccountId32 = AccountId32::new([101u8; 32]);
     // EIP712ChainID is the chainID that pallet is assigned with, used in EIP712 typed data domain
-    pub EIP712ChainID: SygmaChainID = primitive_types::U256([1u64; 4]);
+    pub EIP712ChainID: SygmaChainID = U256::from(5);
     // DestVerifyingContractAddress is a H160 address that is used in proposal signature verification, specifically EIP712 typed data
     // When relayers signing, this address will be included in the EIP712Domain
     // As long as the relayer and pallet configured with the same address, EIP712Domain should be recognized properly.

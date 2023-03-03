@@ -232,6 +232,7 @@ std = [
 	"sygma-access-segregator/std",
 	"sygma-fee-handler-router/std",
 	"sygma-runtime-api/std",
+	"primitive-types/std",
 ]
 
 try-runtime = [
