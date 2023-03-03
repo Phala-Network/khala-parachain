@@ -1100,22 +1100,19 @@ pub mod pallet {
 			)];
 
 			// Lookup RegistryInfoByIds find all assets that enabled Sygmabridge transfering
-			let _: Vec<()> = RegistryInfoByIds::<T>::iter()
-				.map(|(_, info)| {
-					let _: Vec<()> = info
-						.enabled_bridges
-						.iter()
-						.map(|item| match item.config {
-							XBridgeConfig::SygmaBridge {
-								resource_id: rid, ..
-							} => {
-								pairs.push((Concrete(info.location.clone()).into(), rid.into()));
-							}
-							_ => return,
-						})
-						.collect();
-				})
-				.collect();
+			let _ = RegistryInfoByIds::<T>::iter().for_each(|(_, info)| {
+				let _ = info
+					.enabled_bridges
+					.iter()
+					.for_each(|item| match item.config {
+						XBridgeConfig::SygmaBridge {
+							resource_id: rid, ..
+						} => {
+							pairs.push((Concrete(info.location.clone()).into(), rid.into()));
+						}
+						_ => return,
+					});
+			});
 			log::trace!(target: LOG_TARGET, "Get sygma asset pairs: ${:?}.", &pairs,);
 			pairs
 		}
@@ -1128,14 +1125,12 @@ pub mod pallet {
 				vec![(Concrete(T::NativeAssetLocation::get()).into(), 12)];
 
 			// Lookup RegistryInfoByIds find all assets' decimal
-			let _: Vec<()> = RegistryInfoByIds::<T>::iter()
-				.map(|(_, info)| {
-					decimals.push((
-						Concrete(info.location.clone()).into(),
-						info.properties.decimals,
-					));
-				})
-				.collect();
+			let _ = RegistryInfoByIds::<T>::iter().for_each(|(_, info)| {
+				decimals.push((
+					Concrete(info.location.clone()).into(),
+					info.properties.decimals,
+				));
+			});
 			log::trace!(
 				target: LOG_TARGET,
 				"Get all asset decimal pairs: ${:?}.",
