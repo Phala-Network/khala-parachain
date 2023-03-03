@@ -12241,7 +12241,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "sygma-access-segregator"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#027e05fe69adeaf031dbd86f45ac97dff7a0c98d"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -12253,7 +12253,7 @@ dependencies = [
 [[package]]
 name = "sygma-basic-feehandler"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#027e05fe69adeaf031dbd86f45ac97dff7a0c98d"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -12269,7 +12269,7 @@ dependencies = [
 [[package]]
 name = "sygma-bridge"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#027e05fe69adeaf031dbd86f45ac97dff7a0c98d"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
 dependencies = [
  "arrayref",
  "ethabi",
@@ -12300,7 +12300,7 @@ dependencies = [
 [[package]]
 name = "sygma-fee-handler-router"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#027e05fe69adeaf031dbd86f45ac97dff7a0c98d"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -12317,7 +12317,7 @@ dependencies = [
 [[package]]
 name = "sygma-rpc"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#027e05fe69adeaf031dbd86f45ac97dff7a0c98d"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
 dependencies = [
  "jsonrpsee",
  "parity-scale-codec",
@@ -12334,7 +12334,7 @@ dependencies = [
 [[package]]
 name = "sygma-runtime-api"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#027e05fe69adeaf031dbd86f45ac97dff7a0c98d"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
 dependencies = [
  "sp-api",
  "sygma-bridge",
@@ -12344,7 +12344,7 @@ dependencies = [
 [[package]]
 name = "sygma-traits"
 version = "0.1.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#027e05fe69adeaf031dbd86f45ac97dff7a0c98d"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
 dependencies = [
  "ethabi",
  "frame-support",
