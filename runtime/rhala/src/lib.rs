@@ -1215,7 +1215,7 @@ impl xcmbridge::Config for Runtime {
 
 parameter_types! {
     pub PHALocation: MultiLocation = MultiLocation::here();
-    pub PHASygmaResourceId: [u8; 32] = hex_literal::hex!("0000000000000000000000000000000000000000000000000000000000000001");
+    pub PHASygmaResourceId: [u8; 32] = hex_literal::hex!("0000000000000000000000000000000000000000000000000000000000000100");
 }
 impl assets_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -1593,10 +1593,11 @@ parameter_types! {
     // SygmaBridgeAccount is an account for holding transferred asset collection
     // SygmaBridgeAccount address: 5EYCAe5jLbHcAAMKvLFSXgCTbPrLgBJusvPwfKcaKzuf5X5e
     pub SygmaBridgeAccount: AccountId = SygmaBridgePalletId::get().into_account_truncating();
-    pub SygmaBridgeFeeAccountKey: [u8; 32] = hex::decode("6d6f646c7379676d612f30310000000000000000000000000000000000000000").unwrap().try_into().unwrap();
+    // SygmaBridgeFeeAccountKey Address: 5FbR7ZkYSgsFsBMmqsdEpgAU7DkMdKpkGWSBZdhn6LAdesQ6
+    pub SygmaBridgeFeeAccountKey: [u8; 32] = hex::decode("9c20f205595671c6f121b9d9bbfb9caa66380f8f3ad8d47d901b84b7fb757042").unwrap().try_into().unwrap();
     pub SygmaBridgeFeeAccount: AccountId = SygmaBridgeFeeAccountKey::get().into();
     // EIP712ChainID is the chainID that pallet is assigned with, used in EIP712 typed data domain
-    pub EIP712ChainID: SygmaChainID = U256::from(5);
+    pub EIP712ChainID: SygmaChainID = U256::from(5231);
     // DestVerifyingContractAddress is a H160 address that is used in proposal signature verification, specifically EIP712 typed data
     // When relayers signing, this address will be included in the EIP712Domain
     // As long as the relayer and pallet configured with the same address, EIP712Domain should be recognized properly.
