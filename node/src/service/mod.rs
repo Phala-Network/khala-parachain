@@ -236,7 +236,9 @@ where
                     rmrk_equip::MaxPropertiesPerTheme,
                 >,
             >,
-        > + pallet_mq_runtime_api::MqApi<Block>,
+        >
+        + pallet_mq_runtime_api::MqApi<Block>
+        + sygma_runtime_api::SygmaBridgeApi<Block>,
     sc_client_api::StateBackendFor<ParachainBackend, Block>: sp_api::StateBackend<BlakeTwo256>,
     RB: Fn(Arc<ParachainClient<RuntimeApi>>) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>
         + Send

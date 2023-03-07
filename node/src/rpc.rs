@@ -99,12 +99,14 @@ where
         >,
     >,
     C::Api: pallet_mq_runtime_api::MqApi<Block>,
+    C::Api: sygma_runtime_api::SygmaBridgeApi<Block>,
     B: Backend<Block> + 'static,
     P: TransactionPool + Sync + Send + 'static,
 {
     use frame_rpc_system::{System, SystemApiServer};
     use pallet_rmrk_rpc::{Rmrk, RmrkApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
+	use sygma_rpc::{SygmaBridgeRpcServer, SygmaBridgeStorage};
 
     let mut module = RpcExtension::new(());
     let FullDeps {
@@ -118,6 +120,7 @@ where
     module.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
     module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
     module.merge(Rmrk::new(client.clone()).into_rpc())?;
+	module.merge(SygmaBridgeStorage::new(client.clone()).into_rpc())?;
 
     phala_node_rpc_ext::extend_rpc(
         &mut module,

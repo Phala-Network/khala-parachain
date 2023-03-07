@@ -3,7 +3,7 @@
 use crate as assets_registry;
 use frame_support::{
 	ord_parameter_types, parameter_types,
-	traits::{ConstU128, ConstU32, GenesisBuild, AsEnsureOriginWithArg},
+	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32, GenesisBuild},
 };
 use frame_system::{self as system};
 use sp_core::H256;
@@ -124,6 +124,8 @@ impl pallet_assets::Config for Test {
 parameter_types! {
 	pub NativeExecutionPrice: u128 = 1;
 	pub ResourceIdGenerationSalt: Option<u128> = Some(3);
+	pub NativeAssetLocation: MultiLocation = MultiLocation::here();
+	pub NativeAssetSygmaResourceId: [u8; 32] = [0; 32];
 }
 impl assets_registry::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
@@ -137,6 +139,8 @@ impl assets_registry::Config for Test {
 		assets_registry::NativeAssetFilter<ParachainInfo>,
 	>;
 	type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
+	type NativeAssetLocation = NativeAssetLocation;
+	type NativeAssetSygmaResourceId = NativeAssetSygmaResourceId;
 }
 
 impl pallet_timestamp::Config for Test {

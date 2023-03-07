@@ -11,6 +11,7 @@ pub use pallet::*;
 pub mod pallet {
 	use codec::{Decode, Encode};
 	use cumulus_primitives_core::ParaId;
+	use fixed::{types::extra::U16, FixedU128};
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
@@ -26,12 +27,14 @@ pub mod pallet {
 	use scale_info::TypeInfo;
 	use sp_runtime::traits::AccountIdConversion;
 	use sp_std::{boxed::Box, cmp, convert::From, vec, vec::Vec};
+	use sygma_traits::{DecimalConverter, DomainID, ResourceId as SygmaResourceId};
 	use xcm::latest::{prelude::*, AssetId as XcmAssetId, MultiLocation};
+	use xcm_executor::traits::FilterAssetLocation;
 
 	/// Const used to indicate chainbridge path. str "cb"
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
-	/// const used to indicate celerbridge path. str "cr"
-	pub const CR_PATH_KEY: &[u8] = &[0x63, 0x72];
+	/// const used to indicate sygma bridge path. str "sygma"
+	pub const SYGMA_PATH_KEY: &[u8] = &[0x73, 0x79, 0x67, 0x6d, 0x61];
 	/// Account that would be reserved when register an asset
 	pub const ASSETS_REGISTRY_ID: PalletId = PalletId(*b"phala/ar");
 
@@ -42,6 +45,11 @@ pub mod pallet {
 			chain_id: u8,
 			resource_id: [u8; 32],
 			reserve_account: [u8; 32],
+			is_mintable: bool,
+		},
+		SygmaBridge {
+			dest_domain: DomainID,
+			resource_id: SygmaResourceId,
 			is_mintable: bool,
 		},
 		// Potential other bridge solutions
@@ -97,10 +105,17 @@ pub mod pallet {
 	impl ExtractReserveLocation for Junctions {
 		fn reserve_location(&self) -> Option<MultiLocation> {
 			match (self.at(0), self.at(1)) {
-				(Some(GeneralKey(cb_key)), Some(GeneralIndex(chain_id)))
-					if cb_key.clone().into_inner() == CB_ASSET_KEY.to_vec() =>
+				(Some(GeneralKey(bridge_key)), Some(GeneralIndex(chain_id)))
+					if (bridge_key.clone().into_inner() == CB_ASSET_KEY.to_vec())
+						|| (bridge_key.clone().into_inner() == SYGMA_PATH_KEY.to_vec()) =>
 				{
-					Some((0, X2(GeneralKey(cb_key.clone()), GeneralIndex(*chain_id))).into())
+					Some(
+						(
+							0,
+							X2(GeneralKey(bridge_key.clone()), GeneralIndex(*chain_id)),
+						)
+							.into(),
+					)
 				}
 				_ => None,
 			}
@@ -258,6 +273,153 @@ pub mod pallet {
 		}
 	}
 
+	pub struct SygmaAssetReserveChecker<T>(PhantomData<T>);
+	impl<T: Get<ParaId>> FilterAssetLocation for SygmaAssetReserveChecker<T> {
+		fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
+			if let Some(ref id) = Self::origin(asset) {
+				if id == origin {
+					return true;
+				}
+			}
+			false
+		}
+	}
+
+	impl<T: Get<ParaId>> SygmaAssetReserveChecker<T> {
+		pub fn id(asset: &MultiAsset) -> Option<MultiLocation> {
+			match (&asset.id, &asset.fun) {
+				(Concrete(id), Fungible(_)) => Some(id.clone()),
+				_ => None,
+			}
+		}
+
+		pub fn origin(asset: &MultiAsset) -> Option<MultiLocation> {
+			Self::id(asset).and_then(|id| {
+				match (id.parents, id.first_interior()) {
+					// Sibling parachain
+					(1, Some(Parachain(id))) => {
+						if *id == u32::from(T::get()) {
+							// The registered foreign assets actually reserved on EVM chains, so when
+							// transfer back to EVM chains, they should be treated as non-reserve assets
+							// relative to current chain.
+							Some(MultiLocation::new(
+								0,
+								X1(GeneralKey(
+									b"sygma"
+										.to_vec()
+										.try_into()
+										.expect("less than length limit; qed"),
+								)),
+							))
+						} else {
+							// Other parachain assets should be treat as reserve asset when transfered
+							// to outside EVM chains
+							Some(MultiLocation::here())
+						}
+					}
+					// Parent assets should be treat as reserve asset when transfered to outside EVM
+					// chains
+					(1, _) => Some(MultiLocation::here()),
+					// Children parachain
+					(0, Some(Parachain(id))) => Some(MultiLocation::new(0, X1(Parachain(*id)))),
+					// Local: (0, Here)
+					(0, None) => Some(id),
+					_ => None,
+				}
+			})
+		}
+	}
+
+	pub struct SygmaDecimalConverter<DecimalPairs>(PhantomData<DecimalPairs>);
+	impl<DecimalPairs: Get<Vec<(XcmAssetId, u8)>>> DecimalConverter
+		for SygmaDecimalConverter<DecimalPairs>
+	{
+		fn convert_to(asset: &MultiAsset) -> Option<u128> {
+			match (&asset.fun, &asset.id) {
+				(Fungible(amount), _) => {
+					for (asset_id, decimal) in DecimalPairs::get().iter() {
+						if *asset_id == asset.id {
+							return if *decimal == 18 {
+								Some(*amount)
+							} else {
+								type U112F16 = FixedU128<U16>;
+								if *decimal > 18 {
+									let a = U112F16::from_num(
+										10u128.saturating_pow(*decimal as u32 - 18),
+									);
+									let b = U112F16::from_num(*amount).checked_div(a);
+									let r: u128 =
+										b.unwrap_or_else(|| U112F16::from_num(0)).to_num();
+									if r == 0 {
+										return None;
+									}
+									Some(r)
+								} else {
+									// Max is 5192296858534827628530496329220095
+									// if source asset decimal is 12, the max amount sending to sygma
+									// relayer is 5192296858534827.628530496329
+									if *amount > U112F16::MAX {
+										return None;
+									}
+									let a = U112F16::from_num(
+										10u128.saturating_pow(18 - *decimal as u32),
+									);
+									let b = U112F16::from_num(*amount).saturating_mul(a);
+									Some(b.to_num())
+								}
+							};
+						}
+					}
+					None
+				}
+				_ => None,
+			}
+		}
+
+		fn convert_from(asset: &MultiAsset) -> Option<MultiAsset> {
+			match (&asset.fun, &asset.id) {
+				(Fungible(amount), _) => {
+					for (asset_id, decimal) in DecimalPairs::get().iter() {
+						if *asset_id == asset.id {
+							return if *decimal == 18 {
+								Some((asset.id.clone(), *amount).into())
+							} else {
+								type U112F16 = FixedU128<U16>;
+								if *decimal > 18 {
+									// Max is 5192296858534827628530496329220095
+									// if dest asset decimal is 24, the max amount coming from sygma
+									// relayer is 5192296858.534827628530496329
+									if *amount > U112F16::MAX {
+										return None;
+									}
+									let a = U112F16::from_num(
+										10u128.saturating_pow(*decimal as u32 - 18),
+									);
+									let b = U112F16::from_num(*amount).saturating_mul(a);
+									let r: u128 = b.to_num();
+									Some((asset.id.clone(), r).into())
+								} else {
+									let a = U112F16::from_num(
+										10u128.saturating_pow(18 - *decimal as u32),
+									);
+									let b = U112F16::from_num(*amount).checked_div(a);
+									let r: u128 =
+										b.unwrap_or_else(|| U112F16::from_num(0)).to_num();
+									if r == 0 {
+										return None;
+									}
+									Some((asset.id.clone(), r).into())
+								}
+							};
+						}
+					}
+					None
+				}
+				_ => None,
+			}
+		}
+	}
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
@@ -277,6 +439,10 @@ pub mod pallet {
 		type ReserveAssetChecker: ReserveAssetChecker;
 		#[pallet::constant]
 		type ResourceIdGenerationSalt: Get<Option<u128>>;
+		#[pallet::constant]
+		type NativeAssetLocation: Get<MultiLocation>;
+		#[pallet::constant]
+		type NativeAssetSygmaResourceId: Get<[u8; 32]>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
@@ -326,6 +492,18 @@ pub mod pallet {
 		ChainbridgeDisabled {
 			asset_id: <T as pallet_assets::Config>::AssetId,
 			chain_id: u8,
+			resource_id: [u8; 32],
+		},
+		/// Asset enabled sygmabridge.
+		SygmabridgeEnabled {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			domain_id: DomainID,
+			resource_id: [u8; 32],
+		},
+		/// Asset disabled sygmabridge.
+		SygmabridgeDisabled {
+			asset_id: <T as pallet_assets::Config>::AssetId,
+			domain_id: DomainID,
 			resource_id: [u8; 32],
 		},
 		/// Force mint asset to an certain account.
@@ -482,6 +660,18 @@ pub mod pallet {
 						target: LOG_TARGET,
 						"Found enabled chainbridge, chain_id ${:?}.",
 						chain_id,
+					);
+					IdByResourceId::<T>::remove(&resource_id);
+				} else if let XBridgeConfig::SygmaBridge {
+					dest_domain,
+					resource_id,
+					..
+				} = bridge.config
+				{
+					log::trace!(
+						target: LOG_TARGET,
+						"Found enabled sygmabridge, dest_domain ${:?}.",
+						dest_domain,
 					);
 					IdByResourceId::<T>::remove(&resource_id);
 				}
@@ -736,6 +926,87 @@ pub mod pallet {
 			});
 			Ok(())
 		}
+
+		#[pallet::call_index(10)]
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_enable_sygmabridge(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			resource_id: [u8; 32],
+			domain_id: DomainID,
+			is_mintable: bool,
+			metadata: Box<Vec<u8>>,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+
+			ensure!(
+				IdByResourceId::<T>::get(&resource_id) == None,
+				Error::<T>::BridgeAlreadyEnabled,
+			);
+			IdByResourceId::<T>::insert(&resource_id, &asset_id);
+			info.enabled_bridges.push(XBridge {
+				config: XBridgeConfig::SygmaBridge {
+					dest_domain: domain_id,
+					resource_id: resource_id.clone(),
+					is_mintable,
+				},
+				metadata,
+			});
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
+
+			Self::deposit_event(Event::SygmabridgeEnabled {
+				asset_id,
+				domain_id,
+				resource_id,
+			});
+			Ok(())
+		}
+
+		#[pallet::call_index(11)]
+		#[pallet::weight(195_000_000)]
+		#[transactional]
+		pub fn force_disable_sygmabridge(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			resource_id: [u8; 32],
+			domain_id: DomainID,
+		) -> DispatchResult {
+			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
+			let mut info =
+				RegistryInfoByIds::<T>::get(&asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+
+			ensure!(
+				IdByResourceId::<T>::get(&resource_id).is_some(),
+				Error::<T>::BridgeAlreadyDisabled,
+			);
+			// Unbind resource id and asset id
+			IdByResourceId::<T>::remove(&resource_id);
+			// Remove sygmabridge info
+			if let Some(idx) = info
+				.enabled_bridges
+				.iter()
+				.position(|item| match item.config {
+					XBridgeConfig::SygmaBridge {
+						dest_domain: did,
+						resource_id: rid,
+						..
+					} => did == domain_id && rid == resource_id,
+					_ => false,
+				}) {
+				info.enabled_bridges.remove(idx);
+			}
+			RegistryInfoByIds::<T>::insert(&asset_id, &info);
+
+			Self::deposit_event(Event::SygmabridgeDisabled {
+				asset_id,
+				domain_id,
+				resource_id,
+			});
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T>
@@ -820,17 +1091,69 @@ pub mod pallet {
 		}
 	}
 
+	// Return (asset_id, sygma_resource_id) pair from registried assets
+	impl<T: Config> Get<Vec<(XcmAssetId, SygmaResourceId)>> for Pallet<T> {
+		fn get() -> Vec<(XcmAssetId, SygmaResourceId)> {
+			let mut pairs: Vec<(XcmAssetId, SygmaResourceId)> = vec![(
+				Concrete(T::NativeAssetLocation::get()).into(),
+				T::NativeAssetSygmaResourceId::get(),
+			)];
+
+			// Lookup RegistryInfoByIds find all assets that enabled Sygmabridge transfering
+			let _ = RegistryInfoByIds::<T>::iter().for_each(|(_, info)| {
+				let _ = info
+					.enabled_bridges
+					.iter()
+					.for_each(|item| match item.config {
+						XBridgeConfig::SygmaBridge {
+							resource_id: rid, ..
+						} => {
+							pairs.push((Concrete(info.location.clone()).into(), rid.into()));
+						}
+						_ => return,
+					});
+			});
+			log::trace!(target: LOG_TARGET, "Get sygma asset pairs: ${:?}.", &pairs,);
+			pairs
+		}
+	}
+
+	// Return (asset_id, asset decimal) pair from registried assets
+	impl<T: Config> Get<Vec<(XcmAssetId, u8)>> for Pallet<T> {
+		fn get() -> Vec<(XcmAssetId, u8)> {
+			let mut decimals: Vec<(XcmAssetId, u8)> =
+				vec![(Concrete(T::NativeAssetLocation::get()).into(), 12)];
+
+			// Lookup RegistryInfoByIds find all assets' decimal
+			let _ = RegistryInfoByIds::<T>::iter().for_each(|(_, info)| {
+				decimals.push((
+					Concrete(info.location.clone()).into(),
+					info.properties.decimals,
+				));
+			});
+			log::trace!(
+				target: LOG_TARGET,
+				"Get all asset decimal pairs: ${:?}.",
+				&decimals,
+			);
+			decimals
+		}
+	}
+
 	#[cfg(test)]
 	mod tests {
 		use crate as assets_registry;
 		use assets_registry::{
-			mock::{RuntimeOrigin as Origin, RuntimeEvent as Event, *},
-			AccountId32Conversion, AssetProperties, ExtractReserveLocation,
-			GetAssetRegistryInfo, IntoResourceId, ASSETS_REGISTRY_ID,
+			mock::{RuntimeEvent as Event, RuntimeOrigin as Origin, *},
+			AccountId32Conversion, AssetProperties, ExtractReserveLocation, GetAssetRegistryInfo,
+			IntoResourceId, ASSETS_REGISTRY_ID,
 		};
 		use frame_support::{assert_noop, assert_ok};
 		use phala_pallet_common::WrapSlice;
+		use sp_core::Get;
 		use sp_runtime::{traits::AccountIdConversion, AccountId32, DispatchError};
+		use sygma_traits::ResourceId as SygmaResourceId;
+		use xcm::latest::{AssetId as XcmAssetId, MultiLocation};
 
 		#[test]
 		fn test_withdraw_fund_of_pha() {
@@ -1387,6 +1710,102 @@ pub mod pallet {
 					para_b_location
 				);
 			});
+		}
+
+		#[test]
+		fn test_get_sygma_pair_should_work() {
+			new_test_ext().execute_with(|| {
+				let para_a_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(1)),
+				};
+				let para_b_location: MultiLocation = MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(2)),
+				};
+
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_a_location.clone().into(),
+					0,
+					AssetProperties {
+						name: b"ParaAAsset".to_vec(),
+						symbol: b"PAA".to_vec(),
+						decimals: 12,
+					},
+				));
+				assert_ok!(AssetsRegistry::force_register_asset(
+					Origin::root(),
+					para_b_location.clone().into(),
+					1,
+					AssetProperties {
+						name: b"ParaBAsset".to_vec(),
+						symbol: b"PBA".to_vec(),
+						decimals: 12,
+					},
+				));
+				assert_ok!(AssetsRegistry::force_enable_sygmabridge(
+					Origin::root(),
+					// asset id
+					0,
+					// rid
+					[0; 32],
+					// dest domain
+					0,
+					false,
+					Box::new(Vec::new()),
+				));
+				assert_ok!(AssetsRegistry::force_enable_sygmabridge(
+					Origin::root(),
+					// asset id
+					1,
+					// rid
+					[1; 32],
+					// dest domain
+					0,
+					false,
+					Box::new(Vec::new()),
+				));
+
+				let mut pairs: Vec<(XcmAssetId, SygmaResourceId)> = AssetsRegistry::get();
+				assert_eq!(pairs.len(), 3);
+				assert_eq!(
+					pairs[0],
+					(
+						Concrete(NativeAssetLocation::get()).into(),
+						NativeAssetSygmaResourceId::get()
+					)
+				);
+				assert_eq!(
+					pairs.contains(&(Concrete(para_a_location.clone()).into(), [0; 32])),
+					true
+				);
+				assert_eq!(
+					pairs.contains(&(Concrete(para_b_location.clone()).into(), [1; 32])),
+					true
+				);
+
+				assert_ok!(AssetsRegistry::force_disable_sygmabridge(
+					Origin::root(),
+					// asset id
+					1,
+					// rid
+					[1; 32],
+					// dest domain
+					0,
+				));
+				pairs = AssetsRegistry::get();
+				assert_eq!(
+					pairs,
+					vec![
+						(
+							Concrete(NativeAssetLocation::get()).into(),
+							NativeAssetSygmaResourceId::get()
+						),
+						(Concrete(para_a_location.clone()).into(), [0; 32]),
+					]
+				);
+			})
 		}
 
 		#[test]

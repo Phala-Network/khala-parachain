@@ -332,6 +332,7 @@ dependencies = [
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
+ "fixed",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -355,6 +356,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "sygma-traits",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -626,7 +628,7 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bc2832c24239b0141d5674bb9174f9d68a8b5b3f2753311927c172ca46f7e9c"
 dependencies = [
- "funty",
+ "funty 2.0.0",
  "radium",
  "tap",
  "wyz",
@@ -2473,6 +2475,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "ethabi"
+version = "18.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7413c5f74cc903ea37386a8965a936cbeb334bd270862fdece542c1b2dcbc898"
+dependencies = [
+ "ethereum-types",
+ "hex",
+ "serde",
+ "sha3",
+ "thiserror",
+ "uint",
+]
+
+[[package]]
+name = "ethbloom"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c22d4b5885b6aa2fe5e8b9329fb8d232bf739e434e6b87347c63bdd00c120f60"
+dependencies = [
+ "crunchy",
+ "fixed-hash",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "ethereum-types"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02d215cbf040552efcbe99a38372fe80ab9d00268e20012b79fcd0f073edd8ee"
+dependencies = [
+ "ethbloom",
+ "fixed-hash",
+ "primitive-types",
+ "uint",
+]
+
+[[package]]
 name = "event-listener"
 version = "2.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3066,6 +3105,12 @@ name = "funty"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6d5a32815ae3f33302d95fdcb2ce17862f8c65363dcfd29360480ba1001fc9c"
+
+[[package]]
+name = "funty"
+version = "3.0.0-rc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa590387383a574eb0a02370ad4b29c72e6ddd6b0afc2f6e2890bdb4be6d3a92"
 
 [[package]]
 name = "futures"
@@ -4085,6 +4130,8 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "substrate-prometheus-endpoint",
+ "sygma-rpc",
+ "sygma-runtime-api",
  "thala-parachain-runtime",
  "thiserror",
  "try-runtime-cli",
@@ -4174,6 +4221,8 @@ dependencies = [
  "static_assertions",
  "subbridge-pallets",
  "substrate-wasm-builder",
+ "sygma-runtime-api",
+ "sygma-traits",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -7286,6 +7335,8 @@ dependencies = [
  "static_assertions",
  "subbridge-pallets",
  "substrate-wasm-builder",
+ "sygma-runtime-api",
+ "sygma-traits",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -9171,6 +9222,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
+ "hex",
  "hex-literal",
  "log",
  "pallet-assets",
@@ -9215,6 +9267,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "primitive-types",
  "rmrk-traits",
  "scale-info",
  "smallvec",
@@ -9233,6 +9286,12 @@ dependencies = [
  "static_assertions",
  "subbridge-pallets",
  "substrate-wasm-builder",
+ "sygma-access-segregator",
+ "sygma-basic-feehandler",
+ "sygma-bridge",
+ "sygma-fee-handler-router",
+ "sygma-runtime-api",
+ "sygma-traits",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -12042,6 +12101,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "funty 3.0.0-rc2",
  "hex-literal",
  "impl-trait-for-tuples",
  "log",
@@ -12062,6 +12122,8 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "sygma-bridge",
+ "sygma-traits",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -12185,6 +12247,124 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
+name = "sygma-access-segregator"
+version = "0.1.0"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-std",
+]
+
+[[package]]
+name = "sygma-basic-feehandler"
+version = "0.1.0"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-std",
+ "sygma-access-segregator",
+ "sygma-traits",
+ "xcm",
+ "xcm-builder",
+]
+
+[[package]]
+name = "sygma-bridge"
+version = "0.1.0"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
+dependencies = [
+ "arrayref",
+ "ethabi",
+ "fixed",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "funty 3.0.0-rc2",
+ "hex",
+ "log",
+ "pallet-assets",
+ "pallet-balances",
+ "parity-scale-codec",
+ "primitive-types",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sygma-access-segregator",
+ "sygma-traits",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
+]
+
+[[package]]
+name = "sygma-fee-handler-router"
+version = "0.1.0"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-std",
+ "sygma-access-segregator",
+ "sygma-basic-feehandler",
+ "sygma-traits",
+ "xcm",
+ "xcm-builder",
+]
+
+[[package]]
+name = "sygma-rpc"
+version = "0.1.0"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
+dependencies = [
+ "jsonrpsee",
+ "parity-scale-codec",
+ "sc-client-api",
+ "sc-rpc",
+ "scale-info",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+ "sygma-runtime-api",
+ "sygma-traits",
+]
+
+[[package]]
+name = "sygma-runtime-api"
+version = "0.1.0"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
+dependencies = [
+ "sp-api",
+ "sygma-bridge",
+ "sygma-traits",
+]
+
+[[package]]
+name = "sygma-traits"
+version = "0.1.0"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=main#c3a008f9c3632051562c9a663d48b535f71cf2df"
+dependencies = [
+ "ethabi",
+ "frame-support",
+ "parity-scale-codec",
+ "primitive-types",
+ "scale-info",
+ "sp-std",
+ "xcm",
+ "xcm-builder",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12289,6 +12469,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
+ "hex",
  "hex-literal",
  "log",
  "pallet-assets",
@@ -12333,6 +12514,7 @@ dependencies = [
  "phala-types",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "primitive-types",
  "rmrk-traits",
  "scale-info",
  "smallvec",
@@ -12351,6 +12533,12 @@ dependencies = [
  "static_assertions",
  "subbridge-pallets",
  "substrate-wasm-builder",
+ "sygma-access-segregator",
+ "sygma-basic-feehandler",
+ "sygma-bridge",
+ "sygma-fee-handler-router",
+ "sygma-runtime-api",
+ "sygma-traits",
  "xcm",
  "xcm-builder",
  "xcm-executor",

@@ -82,6 +82,10 @@ xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "releas
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.37", default-features = false }
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.37", default-features = false }
 
+# Sygma
+sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
+sygma-runtime-api = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
+
 # Local dependencies
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
@@ -189,6 +193,7 @@ std = [
 	"pallet-parachain-info/std",
 	"assets-registry/std",
 	"subbridge-pallets/std",
+	"sygma-runtime-api/std",
 ]
 
 try-runtime = [

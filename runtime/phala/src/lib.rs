@@ -103,6 +103,7 @@ pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
     xcmbridge, xtransfer,
 };
+use sygma_traits::{DepositNonce, DomainID};
 
 pub use parachains_common::Index;
 pub use parachains_common::*;
@@ -1289,6 +1290,10 @@ impl xcmbridge::Config for Runtime {
     type AssetsRegistry = AssetsRegistry;
 }
 
+parameter_types! {
+    pub PHALocation: MultiLocation = MultiLocation::here();
+    pub PHASygmaResourceId: [u8; 32] = hex_literal::hex!("0000000000000000000000000000000000000000000000000000000000000001");
+}
 impl assets_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RegistryCommitteeOrigin = EnsureRootOrHalfCouncil;
@@ -1301,6 +1306,8 @@ impl assets_registry::Config for Runtime {
         assets_registry::NativeAssetFilter<ParachainInfo>,
     >;
     type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
+    type NativeAssetLocation = PHALocation;
+    type NativeAssetSygmaResourceId = PHASygmaResourceId;
 }
 
 parameter_types! {
@@ -1480,6 +1487,13 @@ impl_runtime_apis! {
             ParachainSystem::collect_collation_info(header)
         }
     }
+
+    impl sygma_runtime_api::SygmaBridgeApi<Block> for Runtime {
+		fn is_proposal_executed(nonce: DepositNonce, domain_id: DomainID) -> bool {
+            // TODO: enable Sygma
+			false
+		}
+	}
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
