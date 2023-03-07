@@ -90,5 +90,8 @@ fn genesis(
         parachain_info: shell_parachain_runtime::ParachainInfoConfig { parachain_id },
         parachain_system: Default::default(),
         sudo: shell_parachain_runtime::SudoConfig { key: Some(root_key) },
+        polkadot_xcm: shell_parachain_runtime::PolkadotXcmConfig {
+            safe_xcm_version: Some(2),
+        },
     }
 }
