@@ -1215,7 +1215,7 @@ impl xcmbridge::Config for Runtime {
 
 parameter_types! {
     pub PHALocation: MultiLocation = MultiLocation::here();
-    pub PHASygmaResourceId: [u8; 32] = hex_literal::hex!("0000000000000000000000000000000000000000000000000000000000000100");
+    pub PHASygmaResourceId: [u8; 32] = hex_literal::hex!("0000000000000000000000000000000000000000000000000000000000001000");
 }
 impl assets_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
