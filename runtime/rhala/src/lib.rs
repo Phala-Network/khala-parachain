@@ -168,7 +168,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("rhala"),
     impl_name: create_runtime_str!("rhala"),
     authoring_version: 1,
-    spec_version: 1209,
+    spec_version: 1210,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -1215,7 +1215,7 @@ impl xcmbridge::Config for Runtime {
 
 parameter_types! {
     pub PHALocation: MultiLocation = MultiLocation::here();
-    pub PHASygmaResourceId: [u8; 32] = hex_literal::hex!("0000000000000000000000000000000000000000000000000000000000000100");
+    pub PHASygmaResourceId: [u8; 32] = hex_literal::hex!("0000000000000000000000000000000000000000000000000000000000001000");
 }
 impl assets_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
