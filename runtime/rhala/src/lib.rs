@@ -1587,6 +1587,9 @@ parameter_types! {
         (SygmaBridgePalletIndex::get(), b"set_mpc_address".to_vec()),
         (SygmaBridgePalletIndex::get(), b"pause_bridge".to_vec()),
         (SygmaBridgePalletIndex::get(), b"unpause_bridge".to_vec()),
+        (SygmaBridgePalletIndex::get(), b"register_domain".to_vec()),
+        (SygmaBridgePalletIndex::get(), b"unregister_domain".to_vec()),
+        (SygmaBridgePalletIndex::get(), b"retry".to_vec()),
         (SygmaFeeHandlerRouterPalletIndex::get(), b"set_fee_handler".to_vec()),
     ].to_vec();
     pub const SygmaBridgePalletId: PalletId = PalletId(*b"sygma/01");
