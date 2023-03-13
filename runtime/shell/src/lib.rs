@@ -66,7 +66,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("shell"),
     authoring_version: 1,
-    spec_version: 2,
+    spec_version: 100,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -190,16 +190,17 @@ construct_runtime! {
         NodeBlock = generic::Block<Header, sp_runtime::OpaqueExtrinsic>,
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
-        System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+        System: frame_system::{Pallet, Call, Storage, Config, Event<T>} = 0,
+
+        ParachainInfo: parachain_info::{Pallet, Storage, Config} = 20,
         ParachainSystem: cumulus_pallet_parachain_system::{
             Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
-        },
-        ParachainInfo: parachain_info::{Pallet, Storage, Config},
+        } = 21,
 
         // DMP handler.
-        CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin},
+        CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin} = 31,
         // XCM utility
-        PolkadotXcm: pallet_xcm::{Pallet, Storage, Call, Event<T>, Origin, Config},
+        PolkadotXcm: pallet_xcm::{Pallet, Storage, Call, Event<T>, Origin, Config} = 33,
 
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 255,
     }
