@@ -14,3 +14,7 @@ mkdir -p tmp/kernels
 ./target/production/khala-node build-spec --raw --disable-default-bootnode --chain rhala-staging > ./tmp/kernels/rhala-staging-raw-spec.json
 ./target/production/khala-node export-genesis-wasm -r --chain rhala-staging > ./tmp/kernels/rhala-staging-code.wasm
 ./target/production/khala-node export-genesis-state --chain rhala-staging > ./tmp/kernels/rhala-staging-state.hex
+
+./target/production/khala-node build-spec --raw --disable-default-bootnode --chain shell-staging > ./tmp/kernels/shell-staging-raw-spec.json
+./target/production/khala-node export-genesis-wasm -r --chain shell-staging > ./tmp/kernels/shell-staging-code.wasm
+./target/production/khala-node export-genesis-state --chain shell-staging > ./tmp/kernels/shell-staging-state.hex
