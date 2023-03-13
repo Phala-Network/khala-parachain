@@ -63,7 +63,7 @@ pub fn staging_config() -> ChainSpec {
         "Shell",
         "shell",
         ChainType::Live,
-        move || genesis(2111u32.into(), genesis_info.root_key.clone()),
+        move || genesis(2264u32.into(), genesis_info.root_key.clone()),
         Vec::new(),
         None,
         None,
@@ -71,7 +71,7 @@ pub fn staging_config() -> ChainSpec {
         None,
         Extensions {
             relay_chain: "kusama".into(),
-            para_id: 2111u32.into(),
+            para_id: 2264u32.into(),
             runtime: "shell".to_string(),
         },
     )
