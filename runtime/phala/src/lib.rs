@@ -294,6 +294,8 @@ construct_runtime! {
         PhalaVault: pallet_vault::{Pallet, Call, Event<T>, Storage} = 90,
         PhalaWrappedBalances: pallet_wrapped_balances::{Pallet, Call, Event<T>, Storage} = 91,
         PhalaBasePool: pallet_base_pool::{Pallet, Call, Event<T>, Storage} = 92,
+        PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 93,
+        PhalaFatTokenomic: pallet_fat_tokenomic::{Pallet, Call, Event<T>, Storage} = 94,
         // `sudo` has been removed on production
         // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 255,
 
@@ -405,7 +407,8 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
             RuntimeCall::PhalaComputation { .. } |
             RuntimeCall::PhalaStakePoolv2 { .. } | RuntimeCall::PhalaBasePool { .. } |
-            RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. }
+            RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
+            RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } 
         )
     }
 }
@@ -1621,6 +1624,17 @@ impl pallet_base_pool::Config for Runtime {
 }
 
 impl phala_pallets::PhalaConfig for Runtime {
+    type Currency = Balances;
+}
+
+impl pallet_fat::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type InkCodeSizeLimit = ConstU32<{1024*1024*2}>;
+    type SidevmCodeSizeLimit = ConstU32<{1024*1024*8}>;
+    type Currency = Balances;
+}
+impl pallet_fat_tokenomic::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
 }
 
