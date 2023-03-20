@@ -232,7 +232,7 @@ construct_runtime! {
         // System support stuff
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 0,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 1,
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage} = 2,
+        RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip::{Pallet, Storage} = 2,
         Utility: pallet_utility::{Pallet, Call, Event} = 3,
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 4,
         Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 5,
@@ -485,7 +485,7 @@ impl frame_system::Config for Runtime {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl pallet_randomness_collective_flip::Config for Runtime {}
+impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
 
 impl pallet_utility::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
