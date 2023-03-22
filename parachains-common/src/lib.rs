@@ -15,10 +15,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#![allow(clippy::identity_op)]
-
+pub mod impls;
 pub mod xcm_config;
-
 pub use constants::*;
 pub use opaque::*;
 pub use types::*;
@@ -53,8 +51,18 @@ mod types {
 	/// Digest item type.
 	pub type DigestItem = sp_runtime::generic::DigestItem;
 
-	/// Aura consensus authority.
+	// Aura consensus authority.
 	pub type AuraId = sp_consensus_aura::sr25519::AuthorityId;
+
+	// Aura consensus authority used by Statemint.
+	//
+	// Because of registering the authorities with an ed25519 key before switching from Shell
+	// to Statemint, we were required to deploy a hotfix that changed Statemint to ed22519.
+	// In the future that may change again.
+	pub type StatemintAuraId = sp_consensus_aura::ed25519::AuthorityId;
+
+	// Id used for identifying assets.
+	pub type AssetIdForTrustBackedAssets = u32;
 
 	pub mod uniques {
 		use sp_runtime::traits::ConstU32;
@@ -84,7 +92,6 @@ mod constants {
 	use super::types::BlockNumber;
 	use frame_support::weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight};
 	use sp_runtime::Perbill;
-
 	/// This determines the average expected block time that we are targeting. Blocks will be
 	/// produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is picked up by
 	/// `pallet_timestamp` which is in turn picked up by `pallet_aura` to implement `fn
@@ -92,11 +99,10 @@ mod constants {
 	///
 	/// Change this to adjust the block time.
 	pub const MILLISECS_PER_BLOCK: u64 = 12000;
-	pub const SECS_PER_BLOCK: u64 = MILLISECS_PER_BLOCK / 1000;
 	pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
 	// Time is measured by number of blocks.
-	pub const MINUTES: BlockNumber = 60 / (SECS_PER_BLOCK as BlockNumber);
+	pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 	pub const HOURS: BlockNumber = MINUTES * 60;
 	pub const DAYS: BlockNumber = HOURS * 24;
 
@@ -110,7 +116,7 @@ mod constants {
 	/// We allow for 0.5 seconds of compute with a 6 second average block time.
 	pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 		WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
-		polkadot_primitives::v2::MAX_POV_SIZE as u64,
+		polkadot_primitives::MAX_POV_SIZE as u64,
 	);
 }
 
@@ -123,8 +129,6 @@ pub mod opaque {
 	use sp_runtime::{generic, traits::BlakeTwo256};
 
 	pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
-	/// Hash algorithm.
-	pub type Hasher = sp_runtime::traits::BlakeTwo256;
 	/// Opaque block header type.
 	pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 	/// Opaque block type.

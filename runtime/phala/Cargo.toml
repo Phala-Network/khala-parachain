@@ -83,8 +83,8 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "relea
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", default-features = false }
 
 # Sygma
-sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
-sygma-runtime-api = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
+sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.39", default-features = false }
+sygma-runtime-api = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.39", default-features = false }
 
 # Local dependencies
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
