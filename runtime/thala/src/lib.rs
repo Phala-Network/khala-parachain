@@ -894,7 +894,7 @@ impl pallet_uniques::Config for Runtime {
     type Currency = Balances;
     type ForceOrigin = EnsureRoot<AccountId>;
     type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
-    type Locker = ();
+    type Locker = RmrkCore;
     type CollectionDeposit = CollectionDeposit;
     type ItemDeposit = ItemDeposit;
     type MetadataDepositBase = ZeroDeposit;
