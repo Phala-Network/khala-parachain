@@ -99,6 +99,7 @@ mod constants {
 	///
 	/// Change this to adjust the block time.
 	pub const MILLISECS_PER_BLOCK: u64 = 12000;
+	pub const SECS_PER_BLOCK: u64 = MILLISECS_PER_BLOCK / 1000;
 	pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
 	// Time is measured by number of blocks.
@@ -129,8 +130,9 @@ pub mod opaque {
 	use sp_runtime::{generic, traits::BlakeTwo256};
 
 	pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+	pub type Hasher = BlakeTwo256;
 	/// Opaque block header type.
-	pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+	pub type Header = generic::Header<BlockNumber, Hasher>;
 	/// Opaque block type.
 	pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 	/// Opaque block identifier type.

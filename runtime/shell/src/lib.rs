@@ -23,7 +23,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod xcm_config;
-
+mod weights;
 use codec::{Decode, Encode};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use frame_support::unsigned::TransactionValidityError;
@@ -46,7 +46,7 @@ pub use frame_support::{
     construct_runtime,
     dispatch::DispatchClass,
     match_types, parameter_types,
-    traits::{Contains, Everything, IsInVec, Randomness},
+    traits::{Contains, ConstU32, Everything, IsInVec, Randomness},
     weights::{
         constants::{
             BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND,
@@ -147,7 +147,7 @@ impl frame_system::Config for Runtime {
     type Version = Version;
     /// Converts a module to an index of this module in the runtime.
     type PalletInfo = PalletInfo;
-    type AccountData = ();
+    type AccountData = pallet_balances::AccountData<u128>;
     type OnNewAccount = ();
     type OnKilledAccount = ();
     type DbWeight = ();
@@ -184,6 +184,23 @@ impl pallet_sudo::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
 }
 
+parameter_types! {
+	pub const ExistentialDeposit: u128 = 10_000_000_000;
+}
+impl pallet_balances::Config for Runtime {
+	type MaxLocks = ConstU32<50>;
+	/// The type for recording an account's balance.
+	type Balance = u128;
+	/// The ubiquitous event type.
+	type RuntimeEvent = RuntimeEvent;
+	type DustRemoval = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = frame_system::Pallet<Runtime>;
+	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+	type MaxReserves = ConstU32<50>;
+	type ReserveIdentifier = [u8; 8];
+}
+
 construct_runtime! {
     pub enum Runtime where
         Block = Block,
@@ -191,7 +208,7 @@ construct_runtime! {
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>} = 0,
-
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
         ParachainInfo: parachain_info::{Pallet, Storage, Config} = 20,
         ParachainSystem: cumulus_pallet_parachain_system::{
             Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,

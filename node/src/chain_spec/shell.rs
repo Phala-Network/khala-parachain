@@ -93,5 +93,8 @@ fn genesis(
         polkadot_xcm: shell_parachain_runtime::PolkadotXcmConfig {
             safe_xcm_version: Some(2),
         },
+        balances: shell_parachain_runtime::BalancesConfig {
+            balances: vec![],
+        },
     }
 }

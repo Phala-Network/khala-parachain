@@ -4,6 +4,7 @@ pub mod chainbridge;
 pub mod dynamic_trader;
 pub mod fungible_adapter;
 pub mod helper;
+#[cfg(test)]
 mod mock;
 pub mod sygma_wrapper;
 pub mod traits;

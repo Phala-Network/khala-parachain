@@ -151,13 +151,13 @@ pub mod pallet {
 			// TODO: Handle the sitution when forwarding failed. Maybe need to have something like `AssesTrap`
 			// and `AssetsClaim`.
 			let temporary_account =
-				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"bridge_transfer").into())))
+				MultiLocation::new(0, X1(WrapSlice(b"bridge_transfer").into_generalkey()))
 					.into_account();
 			Self::do_transfer(
 				temporary_account.into(),
 				what.clone(),
 				who.clone(),
-				6_000_000_000u64.into(),
+				Some(XCMWeight::from_ref_time(6_000_000_000u64)),
 			)?;
 			Self::deposit_event(Event::Forwarded { what, who, memo });
 			// TODO: Should we support forward generic message in the future?
@@ -199,7 +199,7 @@ pub mod pallet {
 			TestNet::reset();
 
 			let unregistered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"unregistered").into())));
+				MultiLocation::new(0, X1(WrapSlice(b"unregistered").into_generalkey()));
 
 			ParaA::execute_with(|| {
 				// To parachains via Xcm(according to the dest)
@@ -214,7 +214,7 @@ pub mod pallet {
 								.into()
 						),
 						Box::new(MultiLocation::new(1, X1(Parachain(2)))),
-						Some(6_000_000_000u64),
+						Some(6_000_000_000u64.into()),
 					),
 					// Both XcmBridge and ChainBridge will failed with "CannotDepositAsset", however XcmBridge
 					// will run first, then ChainBridge will run according to our mock runtime definition.
@@ -229,7 +229,7 @@ pub mod pallet {
 			TestNet::reset();
 
 			let unregistered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"unregistered").into())));
+				MultiLocation::new(0, X1(WrapSlice(b"unregistered").into_generalkey()));
 
 			ParaA::execute_with(|| {
 				// To solo chains via Chainbridge(according to the dest)
@@ -240,9 +240,9 @@ pub mod pallet {
 						Box::new(MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(WrapSlice(b"cb").into()),
+								WrapSlice(b"cb").into_generalkey(),
 								GeneralIndex(0),
-								GeneralKey(WrapSlice(b"recipient").into())
+								WrapSlice(b"recipient").into_generalkey(),
 							)
 						)),
 						None,
@@ -257,7 +257,7 @@ pub mod pallet {
 			TestNet::reset();
 
 			let registered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"registered").into())));
+				MultiLocation::new(0, X1(WrapSlice(b"registered").into_generalkey()));
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -279,9 +279,9 @@ pub mod pallet {
 						Box::new(MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(WrapSlice(b"cb").into()),
+								WrapSlice(b"cb").into_generalkey(),
 								GeneralIndex(0),
-								GeneralKey(WrapSlice(b"recipient").into())
+								WrapSlice(b"recipient").into_generalkey(),
 							)
 						)),
 						None,
@@ -296,7 +296,7 @@ pub mod pallet {
 			TestNet::reset();
 
 			let registered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"registered").into())));
+				MultiLocation::new(0, X1(WrapSlice(b"registered").into_generalkey()));
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -327,9 +327,9 @@ pub mod pallet {
 						Box::new(MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(WrapSlice(b"cb").into()),
+								WrapSlice(b"cb").into_generalkey(),
 								GeneralIndex(0),
-								GeneralKey(WrapSlice(b"recipient").into())
+								WrapSlice(b"recipient").into_generalkey(),
 							)
 						)),
 						None,
@@ -344,7 +344,7 @@ pub mod pallet {
 			TestNet::reset();
 
 			let registered_asset_location =
-				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"registered").into())));
+				MultiLocation::new(0, X1(WrapSlice(b"registered").into_generalkey()));
 			ParaA::execute_with(|| {
 				// Register asset
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -366,7 +366,7 @@ pub mod pallet {
 						Box::new(MultiLocation::new(
 							0,
 							X1(Junction::AccountId32 {
-								network: NetworkId::Any,
+								network: None,
 								id: ALICE.into(),
 							})
 						)),
@@ -398,9 +398,9 @@ pub mod pallet {
 					Box::new(MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(WrapSlice(b"cb").into()),
+							WrapSlice(b"cb").into_generalkey(),
 							GeneralIndex(0),
-							GeneralKey(WrapSlice(b"recipient").into())
+							WrapSlice(b"recipient").into_generalkey(),
 						)
 					)),
 					None,
@@ -431,9 +431,9 @@ pub mod pallet {
 			let dest = MultiLocation::new(
 				0,
 				X3(
-					GeneralKey(WrapSlice(b"cb").into()),
+					WrapSlice(b"cb").into_generalkey(),
 					GeneralIndex(0),
-					GeneralKey(WrapSlice(b"recipient").into()),
+					WrapSlice(b"recipient").into_generalkey(),
 				),
 			);
 
@@ -542,12 +542,12 @@ pub mod pallet {
 						X2(
 							Parachain(2),
 							Junction::AccountId32 {
-								network: NetworkId::Any,
+								network: None,
 								id: BOB.into()
 							}
 						)
 					)),
-					Some(1),
+					Some(1u64.into()),
 				));
 
 				assert_eq!(ParaBalances::free_balance(&ALICE), ENDOWED_BALANCE - 100);
@@ -594,12 +594,12 @@ pub mod pallet {
 						X2(
 							Parachain(2u32.into()),
 							Junction::AccountId32 {
-								network: NetworkId::Any,
+								network: None,
 								id: BOB.into()
 							}
 						)
 					),
-					Some(1),
+					Some(1u64.into()),
 				));
 
 				assert_eq!(ParaBalances::free_balance(&ALICE), ENDOWED_BALANCE - 10);
@@ -621,12 +621,12 @@ pub mod pallet {
 						X2(
 							Parachain(1u32.into()),
 							Junction::AccountId32 {
-								network: NetworkId::Any,
+								network: None,
 								id: ALICE.into()
 							}
 						)
 					)),
-					Some(1),
+					Some(1u64.into()),
 				));
 
 				assert_eq!(Assets::balance(0u32.into(), &BOB), 9 - 5);

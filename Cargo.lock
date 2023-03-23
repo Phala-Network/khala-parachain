@@ -7326,6 +7326,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "xcm",
 ]
 
 [[package]]
@@ -11193,6 +11194,7 @@ dependencies = [
  "frame-system",
  "frame-try-runtime",
  "log",
+ "pallet-balances",
  "pallet-sudo",
  "pallet-xcm",
  "parachain-info",

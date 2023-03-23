@@ -20,6 +20,9 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkad
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39", default-features = false }
 
+# Polkadot
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", default-features = false }
+
 [dev-dependencies]
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39" }
@@ -27,6 +30,8 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39" }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39" }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39" }
+# Polkadot
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39" }
 
 [features]
 default = ["std"]
@@ -39,4 +44,5 @@ std = [
 	"sp-runtime/std",
 	"frame-support/std",
 	"frame-system/std",
+	"xcm/std",
 ]

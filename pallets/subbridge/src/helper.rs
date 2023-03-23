@@ -1,5 +1,5 @@
 use assets_registry::{GetAssetRegistryInfo, NativeAssetChecker};
-use frame_support::pallet_prelude::*;
+use frame_support::{pallet_prelude::*, traits::ContainsPair};
 use sp_runtime::traits::CheckedConversion;
 use sp_std::{
 	convert::{Into, TryFrom, TryInto},
@@ -10,9 +10,7 @@ use xcm::latest::{
 	prelude::*, AssetId::Concrete, Fungibility::Fungible, MultiAsset, MultiLocation,
 };
 use xcm_builder::TakeRevenue;
-use xcm_executor::traits::{
-	Error as MatchError, FilterAssetLocation, MatchesFungible, MatchesFungibles, TransactAsset,
-};
+use xcm_executor::traits::{Error as MatchError, MatchesFungible, MatchesFungibles, TransactAsset};
 
 pub struct NativeAssetMatcher<C>(PhantomData<C>);
 impl<C: NativeAssetChecker, B: TryFrom<u128>> MatchesFungible<B> for NativeAssetMatcher<C> {
@@ -48,8 +46,8 @@ impl<AssetId, Balance: Clone + From<u128>, AssetsInfo: GetAssetRegistryInfo<Asse
 // We only trust the origin to send us assets that they identify as their
 // sovereign assets.
 pub struct AssetOriginFilter;
-impl FilterAssetLocation for AssetOriginFilter {
-	fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
+impl ContainsPair<MultiAsset, MultiLocation> for AssetOriginFilter {
+	fn contains(asset: &MultiAsset, origin: &MultiLocation) -> bool {
 		if let Some(ref id) = ConcrateAsset::origin(asset) {
 			if id == origin {
 				return true;
@@ -89,20 +87,22 @@ impl ConcrateAsset {
 pub struct XTransferTakeRevenue<Adapter, AccountId, Beneficiary>(
 	PhantomData<(Adapter, AccountId, Beneficiary)>,
 );
-impl<
-		Adapter: TransactAsset,
-		AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone,
-		Beneficiary: Get<AccountId>,
-	> TakeRevenue for XTransferTakeRevenue<Adapter, AccountId, Beneficiary>
+impl<Adapter: TransactAsset, AccountId: Into<[u8; 32]> + Clone, Beneficiary: Get<AccountId>>
+	TakeRevenue for XTransferTakeRevenue<Adapter, AccountId, Beneficiary>
 {
 	fn take_revenue(revenue: MultiAsset) {
 		let beneficiary = MultiLocation::new(
 			0,
 			X1(AccountId32 {
-				network: NetworkId::Any,
+				network: None,
 				id: Beneficiary::get().into(),
 			}),
 		);
-		let _ = Adapter::deposit_asset(&revenue, &beneficiary);
+		let _ = Adapter::deposit_asset(
+			&revenue,
+			&beneficiary,
+			// Put empty message hash here because we are not sending XCM message
+			&XcmContext::with_message_hash([0; 32]),
+		);
 	}
 }

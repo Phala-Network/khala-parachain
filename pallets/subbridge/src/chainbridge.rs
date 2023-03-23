@@ -496,14 +496,13 @@ pub mod pallet {
 
 			// For solo chain assets, we encode solo chain id as the first byte of resourceId
 			let src_chainid: BridgeChainId = Self::get_chainid(&rid);
-			let src_reserve_location: MultiLocation = (
+			let src_reserve_location = MultiLocation::new(
 				0,
 				X2(
-					GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
+					WrapSlice(CB_ASSET_KEY).into_generalkey(),
 					GeneralIndex(src_chainid.into()),
 				),
-			)
-				.into();
+			);
 			let dest_location: MultiLocation =
 				Decode::decode(&mut dest.as_slice()).map_err(|_| Error::<T>::DestUnrecognized)?;
 			let asset_location = Self::rid_to_location(&rid)?;
@@ -536,10 +535,11 @@ pub mod pallet {
 				T::FungibleAdapter::withdraw_asset(
 					&(asset_location.clone(), amount.into()).into(),
 					&Junction::AccountId32 {
-						network: NetworkId::Any,
+						network: None,
 						id: reserve_account.into(),
 					}
 					.into(),
+					None,
 				)
 				.map_err(|_| Error::<T>::TransactFailed)?;
 				log::trace!(
@@ -552,6 +552,8 @@ pub mod pallet {
 			T::FungibleAdapter::deposit_asset(
 				&(asset_location.clone(), amount.into()).into(),
 				&dest_location,
+				// Put empty message hash here because we are not sending XCM message
+				&XcmContext::with_message_hash([0; 32]),
 			)
 			.map_err(|_| Error::<T>::TransactFailed)?;
 
@@ -754,16 +756,22 @@ pub mod pallet {
 				(
 					0,
 					Junctions::X3(
-						GeneralKey(cb_key),
+						GeneralKey {
+							length: key_len,
+							data: cb_key,
+						},
 						GeneralIndex(chain_id),
-						GeneralKey(recipient),
+						GeneralKey {
+							length: recipient_len,
+							data: recipient,
+						},
 					),
 				) => {
-					if cb_key.clone().into_inner() != CB_ASSET_KEY.to_vec() {
+					if &cb_key[..*key_len as usize] != CB_ASSET_KEY {
 						return None;
 					}
 					if let Some(chain_id) = TryInto::<BridgeChainId>::try_into(*chain_id).ok() {
-						Some((chain_id, recipient.to_vec()))
+						Some((chain_id, recipient[..*recipient_len as usize].to_vec()))
 					} else {
 						None
 					}
@@ -985,10 +993,11 @@ pub mod pallet {
 			T::FungibleAdapter::withdraw_asset(
 				&(asset.id.clone(), Fungible(amount.into())).into(),
 				&Junction::AccountId32 {
-					network: NetworkId::Any,
+					network: None,
 					id: sender,
 				}
 				.into(),
+				None,
 			)
 			.map_err(|_| Error::<T>::TransactFailed)?;
 
@@ -996,22 +1005,23 @@ pub mod pallet {
 			T::FungibleAdapter::deposit_asset(
 				&(asset.id.clone(), Fungible(fee.into())).into(),
 				&Junction::AccountId32 {
-					network: NetworkId::Any,
+					network: None,
 					id: T::TreasuryAccount::get().into(),
 				}
 				.into(),
+				// Put empty message hash here because we are not sending XCM message
+				&XcmContext::with_message_hash([0; 32]),
 			)
 			.map_err(|_| Error::<T>::TransactFailed)?;
 
 			// Deposit `amount - fee` of asset to reserve account if asset is not reserved in dest.
-			let dest_reserve_location: MultiLocation = (
+			let dest_reserve_location = MultiLocation::new(
 				0,
 				X2(
-					GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
+					WrapSlice(CB_ASSET_KEY).into_generalkey(),
 					GeneralIndex(dest_id.into()),
 				),
-			)
-				.into();
+			);
 			let asset_reserve_location = asset_location
 				.clone()
 				.reserve_location()
@@ -1027,10 +1037,12 @@ pub mod pallet {
 				T::FungibleAdapter::deposit_asset(
 					&(asset.id.clone(), Fungible((amount - fee).into())).into(),
 					&Junction::AccountId32 {
-						network: NetworkId::Any,
+						network: None,
 						id: reserve_account.into(),
 					}
 					.into(),
+					// Put empty message hash here because we are not sending XCM message
+					&XcmContext::with_message_hash([0; 32]),
 				)
 				.map_err(|_| Error::<T>::TransactFailed)?;
 			}
@@ -1250,9 +1262,9 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(WrapSlice(b"cb").into()),
+								WrapSlice(b"cb").into_generalkey(),
 								GeneralIndex(bad_dest_id.into()),
-								GeneralKey(WrapSlice(b"recipient").into())
+								WrapSlice(b"recipient").into_generalkey()
 							)
 						),
 						None,
@@ -1308,7 +1320,7 @@ pub mod pallet {
 		fn create_sucessful_proposal() {
 			let src_id = 1;
 			let r_id = IntoResourceId::<ParaResourceIdGenSalt>::into_rid(
-				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"remark").into()))),
+				MultiLocation::new(1, X1(WrapSlice(b"remark").into_generalkey())),
 				src_id,
 			);
 
@@ -1381,7 +1393,7 @@ pub mod pallet {
 		fn create_unsucessful_proposal() {
 			let src_id = 1;
 			let r_id = IntoResourceId::<ParaResourceIdGenSalt>::into_rid(
-				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"transfer").into()))),
+				MultiLocation::new(1, X1(WrapSlice(b"transfer").into_generalkey())),
 				src_id,
 			);
 			new_test_ext_initialized(src_id, r_id, b"System.remark".to_vec()).execute_with(|| {
@@ -1458,7 +1470,7 @@ pub mod pallet {
 		fn execute_after_threshold_change() {
 			let src_id = 1;
 			let r_id = IntoResourceId::<ParaResourceIdGenSalt>::into_rid(
-				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"transfer").into()))),
+				MultiLocation::new(1, X1(WrapSlice(b"transfer").into_generalkey())),
 				src_id,
 			);
 
@@ -1522,7 +1534,7 @@ pub mod pallet {
 		fn proposal_expires() {
 			let src_id = 1;
 			let r_id = IntoResourceId::<ParaResourceIdGenSalt>::into_rid(
-				MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"remark").into()))),
+				MultiLocation::new(1, X1(WrapSlice(b"remark").into_generalkey())),
 				src_id,
 			);
 
@@ -1617,9 +1629,9 @@ pub mod pallet {
 					1,
 					X4(
 						Parachain(2004),
-						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
+						WrapSlice(CB_ASSET_KEY).into_generalkey(),
 						GeneralIndex(0),
-						GeneralKey(WrapSlice(b"an asset").into()),
+						WrapSlice(b"an asset").into_generalkey(),
 					),
 				);
 				let amount: Balance = 100;
@@ -1635,9 +1647,9 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(WrapSlice(b"cb").into()),
+								WrapSlice(b"cb").into_generalkey(),
 								GeneralIndex(dest_chain.into()),
-								GeneralKey(WrapSlice(b"recipient").into())
+								WrapSlice(b"recipient").into_generalkey()
 							)
 						),
 						None,
@@ -1658,9 +1670,9 @@ pub mod pallet {
 					1,
 					X4(
 						Parachain(2004),
-						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
+						WrapSlice(CB_ASSET_KEY).into_generalkey(),
 						GeneralIndex(0),
-						GeneralKey(WrapSlice(b"an asset").into()),
+						WrapSlice(b"an asset").into_generalkey(),
 					),
 				);
 				let amount: Balance = 100;
@@ -1698,9 +1710,9 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(WrapSlice(b"cb").into()),
+								WrapSlice(b"cb").into_generalkey(),
 								GeneralIndex(dest_chain.into()),
-								GeneralKey(WrapSlice(b"recipient").into()),
+								WrapSlice(b"recipient").into_generalkey(),
 							)
 						),
 						None,
@@ -1716,14 +1728,13 @@ pub mod pallet {
 
 			ParaA::execute_with(|| {
 				let dest_chain: u8 = 2;
-				let dest_reserve_location: MultiLocation = (
+				let dest_reserve_location = MultiLocation::new(
 					0,
 					X2(
-						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
+						WrapSlice(CB_ASSET_KEY).into_generalkey(),
 						GeneralIndex(dest_chain.into()),
 					),
-				)
-					.into();
+				);
 				let bridge_asset_location = SoloChain0AssetLocation::get();
 				let amount: Balance = 100;
 
@@ -1767,9 +1778,9 @@ pub mod pallet {
 					MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(WrapSlice(b"cb").into()),
+							WrapSlice(b"cb").into_generalkey(),
 							GeneralIndex(dest_chain.into()),
-							GeneralKey(WrapSlice(b"recipient").into())
+							WrapSlice(b"recipient").into_generalkey()
 						)
 					),
 					None,
@@ -1794,14 +1805,13 @@ pub mod pallet {
 
 			ParaA::execute_with(|| {
 				let dest_chain: u8 = 2;
-				let dest_reserve_location: MultiLocation = (
+				let dest_reserve_location = MultiLocation::new(
 					0,
 					X2(
-						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
+						WrapSlice(CB_ASSET_KEY).into_generalkey(),
 						GeneralIndex(dest_chain.into()),
 					),
-				)
-					.into();
+				);
 				let bridge_asset_location = SoloChain2AssetLocation::get();
 				let amount: Balance = 100;
 
@@ -1851,9 +1861,9 @@ pub mod pallet {
 					MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(WrapSlice(b"cb").into()),
+							WrapSlice(b"cb").into_generalkey(),
 							GeneralIndex(dest_chain.into()),
-							GeneralKey(WrapSlice(b"recipient").into())
+							WrapSlice(b"recipient").into_generalkey()
 						)
 					),
 					None,
@@ -1898,9 +1908,9 @@ pub mod pallet {
 						MultiLocation::new(
 							0,
 							X3(
-								GeneralKey(WrapSlice(b"cb").into()),
+								WrapSlice(b"cb").into_generalkey(),
 								GeneralIndex(dest_chain.into()),
-								GeneralKey(WrapSlice(b"recipient").into())
+								WrapSlice(b"recipient").into_generalkey()
 							)
 						),
 						None,
@@ -1915,9 +1925,9 @@ pub mod pallet {
 					MultiLocation::new(
 						0,
 						X3(
-							GeneralKey(WrapSlice(b"cb").into()),
+							WrapSlice(b"cb").into_generalkey(),
 							GeneralIndex(dest_chain.into()),
-							GeneralKey(WrapSlice(b"recipient").into())
+							WrapSlice(b"recipient").into_generalkey()
 						)
 					),
 					None,
@@ -1951,7 +1961,7 @@ pub mod pallet {
 				let relayer_location = MultiLocation::new(
 					0,
 					X1(AccountId32 {
-						network: NetworkId::Any,
+						network: None,
 						id: RELAYER_A.into(),
 					}),
 				);
@@ -1978,7 +1988,7 @@ pub mod pallet {
 					Event::XTransfer(crate::xtransfer::Event::Withdrawn {
 						what: (Concrete(MultiLocation::new(0, Here)), Fungible(10u128)).into(),
 						who: Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: ChainBridge::account_id().into(),
 						}
 						.into(),
@@ -1992,7 +2002,7 @@ pub mod pallet {
 					Event::XTransfer(crate::xtransfer::Event::Deposited {
 						what: (Concrete(MultiLocation::new(0, Here)), Fungible(10u128)).into(),
 						who: Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: RELAYER_A.into(),
 						}
 						.into(),
@@ -2012,9 +2022,9 @@ pub mod pallet {
 					1,
 					X4(
 						Parachain(2004),
-						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
+						WrapSlice(CB_ASSET_KEY).into_generalkey(),
 						GeneralIndex(src_chainid.into()),
-						GeneralKey(WrapSlice(b"an asset").into()),
+						WrapSlice(b"an asset").into_generalkey(),
 					),
 				);
 				let r_id = IntoResourceId::<ParaResourceIdGenSalt>::into_rid(
@@ -2026,19 +2036,18 @@ pub mod pallet {
 				let alice_location = MultiLocation::new(
 					0,
 					X1(AccountId32 {
-						network: NetworkId::Any,
+						network: None,
 						id: ALICE.into(),
 					}),
 				);
 
-				let src_reserve_location: MultiLocation = (
+				let src_reserve_location = MultiLocation::new(
 					0,
 					X2(
-						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
+						WrapSlice(CB_ASSET_KEY).into_generalkey(),
 						GeneralIndex(src_chainid.into()),
 					),
-				)
-					.into();
+				);
 
 				// Register asset, id = 0
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -2081,12 +2090,12 @@ pub mod pallet {
 					Event::Assets(pallet_assets::Event::Issued {
 						asset_id: 0,
 						owner: ALICE,
-						total_supply: amount,
+						amount,
 					}),
 					Event::XTransfer(crate::xtransfer::Event::Deposited {
 						what: (Concrete(bridge_asset_location), Fungible(amount)).into(),
 						who: Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: ALICE.into(),
 						}
 						.into(),
@@ -2106,25 +2115,24 @@ pub mod pallet {
 					1,
 					X2(
 						Parachain(2000),
-						GeneralKey(WrapSlice(b"an asset from karura").into()),
+						WrapSlice(b"an asset from karura").into_generalkey(),
 					),
 				);
 				let amount: Balance = 100;
 				let alice_location = MultiLocation::new(
 					0,
 					X1(AccountId32 {
-						network: NetworkId::Any,
+						network: None,
 						id: ALICE.into(),
 					}),
 				);
-				let src_reserve_location: MultiLocation = (
+				let src_reserve_location = MultiLocation::new(
 					0,
 					X2(
-						GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
+						WrapSlice(CB_ASSET_KEY).into_generalkey(),
 						GeneralIndex(src_chainid.into()),
 					),
-				)
-					.into();
+				);
 
 				// Register asset, id = 0
 				assert_ok!(AssetsRegistry::force_register_asset(
@@ -2165,7 +2173,7 @@ pub mod pallet {
 					Event::Assets(pallet_assets::Event::Issued {
 						asset_id: 0,
 						owner: src_reserve_location.clone().into_account().into(),
-						total_supply: amount * 2,
+						amount: amount * 2,
 					}),
 				]);
 
@@ -2197,7 +2205,7 @@ pub mod pallet {
 					Event::XTransfer(crate::xtransfer::Event::Withdrawn {
 						what: (Concrete(para_asset_location.clone()), Fungible(amount)).into(),
 						who: Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: src_reserve_location.into_account().into(),
 						}
 						.into(),
@@ -2207,12 +2215,12 @@ pub mod pallet {
 					Event::Assets(pallet_assets::Event::Issued {
 						asset_id: 0,
 						owner: ALICE,
-						total_supply: amount,
+						amount,
 					}),
 					Event::XTransfer(crate::xtransfer::Event::Deposited {
 						what: (Concrete(para_asset_location), Fungible(amount)).into(),
 						who: Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: ALICE.into(),
 						}
 						.into(),
@@ -2233,7 +2241,7 @@ pub mod pallet {
 				let relayer_location = MultiLocation::new(
 					0,
 					X1(AccountId32 {
-						network: NetworkId::Any,
+						network: None,
 						id: RELAYER_A.into(),
 					}),
 				);
@@ -2315,7 +2323,7 @@ pub mod pallet {
 					Event::XTransfer(crate::xtransfer::Event::Withdrawn {
 						what: (Concrete(MultiLocation::new(0, Here)), Fungible(10u128)).into(),
 						who: Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: ChainBridge::account_id().into(),
 						}
 						.into(),
@@ -2329,7 +2337,7 @@ pub mod pallet {
 					Event::XTransfer(crate::xtransfer::Event::Deposited {
 						what: (Concrete(MultiLocation::new(0, Here)), Fungible(10u128)).into(),
 						who: Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: RELAYER_A.into(),
 						}
 						.into(),
@@ -2348,9 +2356,9 @@ pub mod pallet {
 				let dest_chain: u8 = 2;
 				let bridge_fee = 2;
 				let test_asset_location =
-					MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"test").into())));
+					MultiLocation::new(1, X1(WrapSlice(b"test").into_generalkey()));
 				let unregistered_asset_location =
-					MultiLocation::new(1, X1(GeneralKey(WrapSlice(b"unregistered").into())));
+					MultiLocation::new(1, X1(WrapSlice(b"unregistered").into_generalkey()));
 
 				// Register asset, decimals: 18, rate with pha: 1 : 1
 				assert_ok!(AssetsRegistry::force_register_asset(
