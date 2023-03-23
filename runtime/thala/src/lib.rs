@@ -55,7 +55,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         AccountIdConversion, AccountIdLookup, Block as BlockT, Bounded, ConvertInto,
-        TrailingZeroInput, BlakeTwo256,
+        TrailingZeroInput,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     AccountId32, ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill,

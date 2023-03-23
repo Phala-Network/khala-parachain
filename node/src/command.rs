@@ -633,6 +633,9 @@ pub fn run() -> Result<()> {
         Some(Subcommand::Key(cmd)) => Ok(cmd.run(&cli)?),
         #[cfg(feature = "try-runtime")]
         Some(Subcommand::TryRuntime(cmd)) => {
+            use sc_executor::{sp_wasm_interface::ExtendedHostFunctions, NativeExecutionDispatch};
+            use try_runtime_cli::block_building_info::timestamp_with_aura_info;
+
             // grab the task manager.
             let runner = cli.create_runner(cmd)?;
             let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
@@ -640,17 +643,20 @@ pub fn run() -> Result<()> {
                 sc_service::TaskManager::new(runner.config().tokio_handle.clone(), *registry)
                     .map_err(|e| format!("Error: {:?}", e))?;
 
-            use sc_executor::{sp_wasm_interface::ExtendedHostFunctions, NativeExecutionDispatch};
             type HostFunctionsOf<E> = ExtendedHostFunctions<
                 sp_io::SubstrateHostFunctions,
                 <E as NativeExecutionDispatch>::ExtendHostFunctions,
             >;
 
+            let info_provider = timestamp_with_aura_info(6000);
+
             #[cfg(feature = "phala-native")]
             if runner.config().chain_spec.is_phala() {
                 return runner.async_run(|_config| {
                     Ok((
-                        cmd.run::<Block, HostFunctionsOf<crate::service::phala::RuntimeExecutor>>(),
+                        cmd.run::<Block, HostFunctionsOf<crate::service::phala::RuntimeExecutor>, _>(Some(
+                            info_provider,
+                        )),
                         task_manager,
                     ))
                 })
@@ -660,8 +666,10 @@ pub fn run() -> Result<()> {
             if runner.config().chain_spec.is_khala() {
                 return runner.async_run(|_config| {
                     Ok((
-                       cmd.run::<Block, HostFunctionsOf<crate::service::khala::RuntimeExecutor>>(),
-                       task_manager,
+                        cmd.run::<Block, HostFunctionsOf<crate::service::khala::RuntimeExecutor>, _>(Some(
+                            info_provider,
+                        )),
+                        task_manager,
                     ))
                 })
             }
@@ -670,8 +678,10 @@ pub fn run() -> Result<()> {
             if runner.config().chain_spec.is_rhala() {
                 return runner.async_run(|_config| {
                     Ok((
-                       cmd.run::<Block, HostFunctionsOf<crate::service::rhala::RuntimeExecutor>>(),
-                       task_manager,
+                        cmd.run::<Block, HostFunctionsOf<crate::service::rhala::RuntimeExecutor>, _>(Some(
+                            info_provider,
+                        )),
+                        task_manager,
                     ))
                 })
             }
@@ -680,8 +690,10 @@ pub fn run() -> Result<()> {
             if runner.config().chain_spec.is_thala() {
                 return runner.async_run(|_config| {
                     Ok((
-                       cmd.run::<Block, HostFunctionsOf<crate::service::thala::RuntimeExecutor>>(),
-                       task_manager,
+                        cmd.run::<Block, HostFunctionsOf<crate::service::thala::RuntimeExecutor>, _>(Some(
+                            info_provider,
+                        )),
+                        task_manager,
                     ))
                 })
             }
@@ -724,7 +736,7 @@ pub fn run() -> Result<()> {
                 let id = ParaId::from(para_id);
 
                 let parachain_account =
-                    AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account_truncating(&id);
+                    AccountIdConversion::<polkadot_primitives::AccountId>::into_account_truncating(&id);
 
                 let state_version = Cli::native_runtime_version(&config.chain_spec).state_version();
                 let block: Block = generate_genesis_block(&*config.chain_spec, state_version)

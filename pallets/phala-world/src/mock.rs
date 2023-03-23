@@ -6,7 +6,6 @@ use frame_support::{
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
-use pallet_rmrk_market::types::MarketplaceHooks;
 use sp_core::{crypto::AccountId32, H256};
 
 use sp_runtime::{
