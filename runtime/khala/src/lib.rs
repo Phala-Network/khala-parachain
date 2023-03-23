@@ -1264,9 +1264,9 @@ parameter_types! {
     pub const TermDuration: BlockNumber = 24 * HOURS;
     pub const DesiredMembers: u32 = 8;
     pub const DesiredRunnersUp: u32 = 8;
-	pub const MaxVotesPerVoter: u32 = 16;
-    pub const MaxVoters: u32 = 10 * 1000;
-    pub const MaxCandidates: u32 = 1000;
+    pub const MaxVotesPerVoter: u32 = 16;
+    pub const MaxVoters: u32 = 500;
+    pub const MaxCandidates: u32 = 20;
     pub const PhragmenElectionPalletId: LockIdentifier = *b"phrelect";
 }
 
