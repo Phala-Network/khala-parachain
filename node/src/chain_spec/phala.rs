@@ -235,7 +235,7 @@ fn genesis(
         democracy: Default::default(),
         phragmen_election: Default::default(),
         polkadot_xcm: phala_parachain_runtime::PolkadotXcmConfig {
-            safe_xcm_version: Some(2),
+            safe_xcm_version: Some(3),
         },
     }
 }

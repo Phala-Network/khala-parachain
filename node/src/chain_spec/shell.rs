@@ -91,7 +91,7 @@ fn genesis(
         parachain_system: Default::default(),
         sudo: shell_parachain_runtime::SudoConfig { key: Some(root_key) },
         polkadot_xcm: shell_parachain_runtime::PolkadotXcmConfig {
-            safe_xcm_version: Some(2),
+            safe_xcm_version: Some(3),
         },
         balances: shell_parachain_runtime::BalancesConfig {
             balances: vec![],
