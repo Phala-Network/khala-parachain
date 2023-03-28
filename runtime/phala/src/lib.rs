@@ -205,7 +205,7 @@ type EnsureRootOrHalfCouncil = EitherOfDiverse<
 >;
 
 construct_runtime! {
-    pub enum Runtime where
+    pub struct Runtime where
         Block = Block,
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
@@ -1142,7 +1142,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<RuntimeOrigin>,
 );
 parameter_types! {
-    pub UnitWeightCost: XCMWeight = XCMWeight::from_ref_time(200_000_000u64);
+    pub UnitWeightCost: XCMWeight = XCMWeight::from_parts(200_000_000u64, 0);
     pub const MaxInstructions: u32 = 100;
     pub PhalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
 	pub CheckingAccountForCurrencyAdapter: Option<(AccountId, MintLocation)> = None;

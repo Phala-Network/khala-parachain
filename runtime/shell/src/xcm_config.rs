@@ -57,7 +57,7 @@ match_types! {
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
 parameter_types! {
-    pub UnitWeightCost: XCMWeight = XCMWeight::from_ref_time(200_000_000u64);
+    pub UnitWeightCost: XCMWeight = XCMWeight::from_parts(200_000_000u64, 0);
     pub const MaxInstructions: u32 = 100;
 }
 

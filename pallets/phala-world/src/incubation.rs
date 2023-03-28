@@ -57,7 +57,6 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
-	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
 	/// Info on Origin of Shells that the Owner has fed and the number of food left to feed other
@@ -216,7 +215,7 @@ pub mod pallet {
 		/// - collection_id: The collection id of the Origin of Shell RMRK NFT
 		/// - nft_id: The NFT id of the Origin of Shell RMRK NFT
 		#[pallet::call_index(0)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn start_incubation(
 			origin: OriginFor<T>,
@@ -272,7 +271,7 @@ pub mod pallet {
 		/// - collection_id: The collection id of the Origin of Shell.
 		/// - nft_id: The NFT id of the Origin of Shell.
 		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn feed_origin_of_shell(
 			origin: OriginFor<T>,
@@ -373,7 +372,7 @@ pub mod pallet {
 		/// - `default_shell_metadata`: File resource URI in decentralized storage for Shell NFT
 		///	parts that render the Shell NFT
 		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn hatch_origin_of_shell(
 			origin: OriginFor<T>,

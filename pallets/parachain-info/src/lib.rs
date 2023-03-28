@@ -27,7 +27,6 @@ pub mod pallet {
 	use cumulus_primitives_core::ParaId;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 

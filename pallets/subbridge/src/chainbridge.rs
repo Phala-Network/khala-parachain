@@ -117,7 +117,6 @@ pub mod pallet {
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
@@ -412,7 +411,7 @@ pub mod pallet {
 		#[pallet::call_index(5)]
 		#[pallet::weight({
 			let dispatch_info = call.get_dispatch_info();
-			(dispatch_info.weight.saturating_add(Weight::from_ref_time(195_000_000)), dispatch_info.class, Pays::Yes)
+			(dispatch_info.weight.saturating_add(Weight::from_parts(195_000_000, 0)), dispatch_info.class, Pays::Yes)
 		})]
 		#[transactional]
 		pub fn acknowledge_proposal(
@@ -468,7 +467,7 @@ pub mod pallet {
 		#[pallet::call_index(7)]
 		#[pallet::weight({
 			let dispatch_info = prop.get_dispatch_info();
-			(dispatch_info.weight.saturating_add(Weight::from_ref_time(195_000_000)), dispatch_info.class, Pays::Yes)
+			(dispatch_info.weight.saturating_add(Weight::from_parts(195_000_000, 0)), dispatch_info.class, Pays::Yes)
 		})]
 		#[transactional]
 		pub fn eval_vote_state(

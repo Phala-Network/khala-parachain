@@ -33,9 +33,9 @@ impl<AssetId, Balance: Clone + From<u128>, AssetsInfo: GetAssetRegistryInfo<Asse
 	fn matches_fungibles(a: &MultiAsset) -> result::Result<(AssetId, Balance), MatchError> {
 		let (&amount, location) = match (&a.fun, &a.id) {
 			(Fungible(ref amount), Concrete(ref id)) => (amount, id),
-			_ => return Err(MatchError::AssetNotFound),
+			_ => return Err(MatchError::AssetNotHandled),
 		};
-		let asset_id: AssetId = AssetsInfo::id(&location).ok_or(MatchError::AssetNotFound)?;
+		let asset_id: AssetId = AssetsInfo::id(&location).ok_or(MatchError::AssetNotHandled)?;
 		let amount = amount
 			.try_into()
 			.map_err(|_| MatchError::AmountToBalanceConversionFailed)?;

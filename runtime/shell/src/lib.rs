@@ -202,7 +202,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 construct_runtime! {
-    pub enum Runtime where
+    pub struct Runtime where
         Block = Block,
         NodeBlock = generic::Block<Header, sp_runtime::OpaqueExtrinsic>,
         UncheckedExtrinsic = UncheckedExtrinsic,
