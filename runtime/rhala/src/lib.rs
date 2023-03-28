@@ -168,7 +168,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("rhala"),
     impl_name: create_runtime_str!("rhala"),
     authoring_version: 1,
-    spec_version: 1220,
+    spec_version: 1225,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -221,10 +221,7 @@ pub type Executive = frame_executive::Executive<
 
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`.
-type Migrations = (
-    pallet_xcm::migration::v1::MigrateToV1<Runtime>,
-    assets_registry::migration::AssetsRegistryToV3Location<Runtime>,
-);
+type Migrations = ();
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,

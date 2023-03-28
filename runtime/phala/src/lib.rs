@@ -145,7 +145,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("phala"),
     impl_name: create_runtime_str!("phala"),
     authoring_version: 1,
-    spec_version: 1221,
+    spec_version: 1225,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 5,
@@ -197,20 +197,7 @@ pub type Executive = frame_executive::Executive<
 
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`.
-type Migrations = (
-    // FIXME: We should double check the CheckingAccount
-    // 9320
-    // "Bound uses of call" <https://github.com/paritytech/polkadot/pull/5729>
-    pallet_preimage::migration::v1::Migration<Runtime>,
-    migrations::PalletSchedulerMigration,
-    pallet_democracy::migrations::v1::Migration<Runtime>,
-    pallet_multisig::migrations::v1::MigrateToV1<Runtime>,
-    //
-    pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccountForFungibleAdapter>,
-    pallet_assets::migration::v1::MigrateToV1<Runtime>,
-    pallet_xcm::migration::v1::MigrateToV1<Runtime>,
-    assets_registry::migration::AssetsRegistryToV3Location<Runtime>,
-);
+type Migrations = ();
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
