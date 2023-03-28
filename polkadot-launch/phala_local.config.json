@@ -56,7 +56,7 @@
   "parachains": [
     {
       "bin": "./bin/khala-node",
-      "chain": "phala-local-2004",
+      "chain": "phala-local-2035",
       "balance": "1000000000000000000000",
       "nodes": [
         {
