@@ -73,7 +73,6 @@ pub mod pallet {
 	}
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
 	/// Next available Collection ID
@@ -452,7 +451,7 @@ pub mod pallet {
 		/// Parameters:
 		/// - origin: The origin of the extrinsic.
 		#[pallet::call_index(0)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn claim_spirit(origin: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
@@ -482,7 +481,7 @@ pub mod pallet {
 		/// Parameters:
 		/// - origin: The origin of the extrinsic.
 		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn redeem_spirit(
 			origin: OriginFor<T>,
@@ -517,7 +516,7 @@ pub mod pallet {
 		/// - career: The career of the origin_of_shell chosen by the user or auto-generated based
 		///   on metadata
 		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn buy_rare_origin_of_shell(
 			origin: OriginFor<T>,
@@ -563,7 +562,7 @@ pub mod pallet {
 		/// - race: The race that the user has chosen (limited # of races)
 		/// - career: The career that the user has chosen (unlimited careers)
 		#[pallet::call_index(3)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn buy_prime_origin_of_shell(
 			origin: OriginFor<T>,
@@ -615,7 +614,7 @@ pub mod pallet {
 		/// - race: The race that the user has chosen (limited # of races)
 		/// - career: The career that the user has chosen (limited # of careers)
 		#[pallet::call_index(4)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn preorder_origin_of_shell(
 			origin: OriginFor<T>,
@@ -690,7 +689,7 @@ pub mod pallet {
 		/// `origin`: Expected to come from Overlord admin account
 		/// `preorders`: Vec of Preorder IDs that were `Chosen`
 		#[pallet::call_index(5)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn mint_chosen_preorders(
 			origin: OriginFor<T>,
@@ -759,7 +758,7 @@ pub mod pallet {
 		/// `origin`: Expected to come from Overlord admin account
 		/// `preorders`: Preorder ids of the not chosen preorders
 		#[pallet::call_index(6)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn refund_not_chosen_preorders(
 			origin: OriginFor<T>,
@@ -817,7 +816,7 @@ pub mod pallet {
 		///   on metadata
 		/// - `nft_sale_type`: Either a `NftSaleType::Giveaway` or `NftSaleType::Reserved`
 		#[pallet::call_index(7)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn mint_gift_origin_of_shell(
 			origin: OriginFor<T>,
@@ -1080,7 +1079,7 @@ pub mod pallet {
 		/// - `max`: Optional max u32 for the size of the collection
 		/// - `symbol`: BoundedString of the collection's symbol i.e 'OVRLD'
 		#[pallet::call_index(15)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
 		#[transactional]
 		pub fn pw_create_collection(
 			origin: OriginFor<T>,

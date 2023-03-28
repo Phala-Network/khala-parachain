@@ -24,7 +24,7 @@ where
 	R: TakeRevenue,
 {
 	fn new() -> Self {
-		Self(XCMWeight::from_ref_time(0u64), 0, None, PhantomData)
+		Self(XCMWeight::from_parts(0u64, 0), 0, None, PhantomData)
 	}
 
 	fn buy_weight(&mut self, weight: XCMWeight, payment: Assets) -> Result<Assets, XcmError> {
