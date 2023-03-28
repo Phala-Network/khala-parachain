@@ -237,6 +237,7 @@ std = [
 
 try-runtime = [
 	"frame-executive/try-runtime",
+	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
 	"pallet-aura/try-runtime",
@@ -273,6 +274,10 @@ try-runtime = [
 	"cumulus-pallet-xcmp-queue/try-runtime",
 	"cumulus-pallet-xcm/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
+	"sygma-basic-feehandler/try-runtime",
+	"sygma-bridge/try-runtime",
+	"sygma-access-segregator/try-runtime",
+	"sygma-fee-handler-router/try-runtime",
 	"rmrk-traits/try-runtime",
 	"pallet-rmrk-core/try-runtime",
 	"pallet-rmrk-equip/try-runtime",
