@@ -201,7 +201,6 @@ type Migrations = (
     // FIXME: We should double check the CheckingAccount
     pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccountForFungibleAdapter>,
     pallet_assets::migration::v1::MigrateToV1<Runtime>,
-    pallet_scheduler::migration::v4::CleanupAgendas<Runtime>,
     pallet_xcm::migration::v1::MigrateToV1<Runtime>,
     assets_registry::migration::AssetsRegistryToV3Location<Runtime>,
 );
