@@ -1301,7 +1301,7 @@ impl pallet_elections_phragmen::Config for Runtime {
     type TermDuration = TermDuration;
     type MaxVoters = MaxVoters;
     type MaxCandidates = MaxCandidates;
-	type MaxVotesPerVoter = MaxVotesPerVoter;
+    type MaxVotesPerVoter = MaxVotesPerVoter;
     type PalletId = PhragmenElectionPalletId;
     type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
 }

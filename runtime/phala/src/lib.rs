@@ -201,6 +201,9 @@ type Migrations = (
     // FIXME: We should double check the CheckingAccount
     pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccountForFungibleAdapter>,
     pallet_assets::migration::v1::MigrateToV1<Runtime>,
+    pallet_scheduler::migration::v4::CleanupAgendas<Runtime>,
+    pallet_xcm::migration::v1::MigrateToV1<Runtime>,
+    assets_registry::migration::AssetsRegistryToV3Location<Runtime>,
 );
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
@@ -851,7 +854,7 @@ impl pallet_elections_phragmen::Config for Runtime {
     type TermDuration = TermDuration;
     type MaxVoters = MaxVoters;
     type MaxCandidates = MaxCandidates;
-	type MaxVotesPerVoter = MaxVotesPerVoter;
+    type MaxVotesPerVoter = MaxVotesPerVoter;
     type PalletId = PhragmenElectionPalletId;
     type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
 }

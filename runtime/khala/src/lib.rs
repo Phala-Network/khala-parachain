@@ -216,7 +216,11 @@ pub type Executive = frame_executive::Executive<
 >;
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`.
-type Migrations = ();
+type Migrations = (
+    pallet_scheduler::migration::v4::CleanupAgendas<Runtime>,
+    pallet_xcm::migration::v1::MigrateToV1<Runtime>,
+    assets_registry::migration::AssetsRegistryToV3Location<Runtime>,
+);
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,

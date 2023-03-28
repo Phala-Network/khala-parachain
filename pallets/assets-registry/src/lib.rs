@@ -444,7 +444,7 @@ pub mod pallet {
 		type NativeAssetSygmaResourceId: Get<[u8; 32]>;
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
 	const LOG_TARGET: &str = "runtime::asset-registry";
 
 	type BalanceOf<T> =
