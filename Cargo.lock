@@ -12525,7 +12525,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "sygma-access-segregator"
 version = "0.1.0"
-source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#48b4864bd095b3bd2bcff53ae1c7075b0760c5a4"
+source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#29cf92d7efa714f107e4739a40b442673b84e00b"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -12537,7 +12537,7 @@ dependencies = [
 [[package]]
 name = "sygma-basic-feehandler"
 version = "0.1.0"
-source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#48b4864bd095b3bd2bcff53ae1c7075b0760c5a4"
+source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#29cf92d7efa714f107e4739a40b442673b84e00b"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -12553,7 +12553,7 @@ dependencies = [
 [[package]]
 name = "sygma-bridge"
 version = "0.1.0"
-source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#48b4864bd095b3bd2bcff53ae1c7075b0760c5a4"
+source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#29cf92d7efa714f107e4739a40b442673b84e00b"
 dependencies = [
  "arrayref",
  "bounded-collections",
@@ -12585,7 +12585,7 @@ dependencies = [
 [[package]]
 name = "sygma-fee-handler-router"
 version = "0.1.0"
-source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#48b4864bd095b3bd2bcff53ae1c7075b0760c5a4"
+source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#29cf92d7efa714f107e4739a40b442673b84e00b"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -12602,7 +12602,7 @@ dependencies = [
 [[package]]
 name = "sygma-rpc"
 version = "0.1.0"
-source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#48b4864bd095b3bd2bcff53ae1c7075b0760c5a4"
+source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#29cf92d7efa714f107e4739a40b442673b84e00b"
 dependencies = [
  "jsonrpsee",
  "parity-scale-codec",
@@ -12619,7 +12619,7 @@ dependencies = [
 [[package]]
 name = "sygma-runtime-api"
 version = "0.1.0"
-source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#48b4864bd095b3bd2bcff53ae1c7075b0760c5a4"
+source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#29cf92d7efa714f107e4739a40b442673b84e00b"
 dependencies = [
  "sp-api",
  "sygma-bridge",
@@ -12629,7 +12629,7 @@ dependencies = [
 [[package]]
 name = "sygma-traits"
 version = "0.1.0"
-source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#48b4864bd095b3bd2bcff53ae1c7075b0760c5a4"
+source = "git+https://github.com/phala-network/sygma-substrate-pallets?branch=polkadot-v0.9.40#29cf92d7efa714f107e4739a40b442673b84e00b"
 dependencies = [
  "ethabi",
  "frame-support",
@@ -13410,7 +13410,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.6",
- "rand 0.7.3",
+ "rand 0.8.5",
  "static_assertions",
 ]
 
