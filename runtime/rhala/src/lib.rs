@@ -36,7 +36,7 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 
 // Defaults helpers used in chain spec
 pub mod defaults;
-
+mod weights;
 // Constant values used within the runtime.
 pub mod constants;
 use constants::{
@@ -101,11 +101,11 @@ use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
-    FungiblesAdapter, LocationInverter, ParentIsPreset, RelayChainAsNative,
+    FungiblesAdapter, ParentIsPreset, RelayChainAsNative, NoChecking, MintLocation,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
     SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{Config, XcmExecutor, traits::WithOriginFilter};
 
 use pallet_rmrk_core::{CollectionInfoOf, InstanceInfoOf, PropertyInfoOf, ResourceInfoOf};
 use pallet_rmrk_equip::{BaseInfoOf, BoundedThemeOf, PartTypeOf};
@@ -168,7 +168,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("rhala"),
     impl_name: create_runtime_str!("rhala"),
     authoring_version: 1,
-    spec_version: 1210,
+    spec_version: 1215,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -221,7 +221,10 @@ pub type Executive = frame_executive::Executive<
 
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`.
-type Migrations = ();
+type Migrations = (
+    pallet_xcm::migration::v1::MigrateToV1<Runtime>,
+    assets_registry::migration::AssetsRegistryToV3Location<Runtime>,
+);
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
@@ -237,7 +240,7 @@ construct_runtime! {
         // System support stuff
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 0,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 1,
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage} = 2,
+        RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip::{Pallet, Storage} = 2,
         Utility: pallet_utility::{Pallet, Call, Event} = 3,
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 4,
         Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 5,
@@ -260,7 +263,7 @@ construct_runtime! {
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 41,
 
         // Collator support. the order of these 5 are important and shall not change.
-        Authorship: pallet_authorship::{Pallet, Call, Storage} = 50,
+        Authorship: pallet_authorship::{Pallet, Storage} = 50,
         CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 52,
         Aura: pallet_aura::{Pallet, Storage, Config<T>} = 53,
@@ -405,7 +408,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::SygmaBridge { .. } |
             RuntimeCall::XTransfer { .. } |
             // Collator
-            RuntimeCall::Authorship(_) | RuntimeCall::CollatorSelection(_) | RuntimeCall::Session(_) |
+            RuntimeCall::CollatorSelection(_) | RuntimeCall::Session(_) |
             // XCM
             RuntimeCall::XcmpQueue { .. } |
             RuntimeCall::DmpQueue { .. } |
@@ -493,7 +496,7 @@ impl frame_system::Config for Runtime {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl pallet_randomness_collective_flip::Config for Runtime {}
+impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
 
 impl pallet_utility::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -1015,8 +1018,9 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
     pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub UniversalLocation: InteriorMultiLocation =
+		X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
     pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
-    pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -1052,10 +1056,11 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<RuntimeOrigin>,
 );
 parameter_types! {
-    pub UnitWeightCost: XCMWeight = 200_000_000;
+    pub UnitWeightCost: XCMWeight = XCMWeight::from_ref_time(200_000_000u64);
     pub const MaxInstructions: u32 = 100;
     pub RhalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
-    pub CheckingAccount: AccountId = PalletId(*b"checking").into_account_truncating();
+	pub CheckingAccountForCurrencyAdapter: Option<(AccountId, MintLocation)> = None;
+	pub CheckingAccountForFungibleAdapter: AccountId = PalletId(*b"checking").into_account_truncating();
 }
 
 pub type Barrier = (
@@ -1078,15 +1083,8 @@ pub type CurrencyTransactor = CurrencyAdapter<
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     // We don't track any teleports of `Balances`.
-    CheckingAccount,
+    CheckingAccountForCurrencyAdapter,
 >;
-
-pub struct AssetChecker;
-impl Contains<u32> for AssetChecker {
-    fn contains(_: &u32) -> bool {
-        false
-    }
-}
 
 /// Means for transacting assets besides the native currency on this chain.
 pub type FungiblesTransactor = FungiblesAdapter<
@@ -1103,14 +1101,14 @@ pub type FungiblesTransactor = FungiblesAdapter<
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     // We do not support teleport assets
-    AssetChecker,
+    NoChecking,
     // We do not support teleport assets
-    CheckingAccount,
+    CheckingAccountForFungibleAdapter,
 >;
 
 parameter_types! {
     pub NativeExecutionPrice: u128 = pha_per_second();
-    pub WeightPerSecond: XCMWeight = WEIGHT_REF_TIME_PER_SECOND;
+    pub WeightPerSecond: u64 = WEIGHT_REF_TIME_PER_SECOND;
 }
 
 pub struct XcmConfig;
@@ -1131,7 +1129,7 @@ impl Config for XcmConfig {
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = helper::AssetOriginFilter;
     type IsTeleporter = ();
-    type LocationInverter = LocationInverter<Ancestry>;
+    type UniversalLocation = UniversalLocation;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
     type Trader = DynamicWeightTrader<
@@ -1144,6 +1142,15 @@ impl Config for XcmConfig {
     type AssetTrap = PolkadotXcm;
     type AssetClaims = PolkadotXcm;
     type SubscriptionService = PolkadotXcm;
+	type PalletInstancesInfo = AllPalletsWithSystem;
+	type MaxAssetsIntoHolding = ConstU32<64>;
+	type AssetLocker = ();
+	type AssetExchanger = ();
+	type FeeManager = ();
+	type MessageExporter = ();
+	type UniversalAliases = Nothing;
+	type CallDispatcher = WithOriginFilter<BaseCallFilter>;
+	type SafeCallFilter = BaseCallFilter;
 }
 parameter_types! {
     pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
@@ -1154,7 +1161,7 @@ pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, R
 /// queues.
 pub type XcmRouter = (
     // Two routers - use UMP to communicate with the relay chain:
-    cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm>,
+    cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm, ()>,
     // ..and XCMP to communicate with the sibling chains.
     XcmpQueue,
 );
@@ -1172,6 +1179,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
     type ControllerOrigin = EnsureRoot<AccountId>;
     type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
     type WeightInfo = cumulus_pallet_xcmp_queue::weights::SubstrateWeight<Runtime>;
+    type PriceForSiblingDelivery = ();
 }
 impl cumulus_pallet_dmp_queue::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -1179,6 +1187,10 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+}
 impl pallet_xcm::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     /// No local origins on this chain are allowed to dispatch XCM sends.
@@ -1190,11 +1202,19 @@ impl pallet_xcm::Config for Runtime {
     type XcmTeleportFilter = Nothing;
     type XcmReserveTransferFilter = Everything;
     type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
-    type LocationInverter = LocationInverter<Ancestry>;
+    type UniversalLocation = UniversalLocation;
     type RuntimeOrigin = RuntimeOrigin;
     type RuntimeCall = RuntimeCall;
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
+	type Currency = Balances;
+	type CurrencyMatcher = ();
+	type TrustedLockers = ();
+	type SovereignAccountOf = ();
+	type MaxLockers = ConstU32<8>;
+	type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type ReachableDest = ReachableDest;
 }
 
 impl xcmbridge::Config for Runtime {
@@ -1205,7 +1225,7 @@ impl xcmbridge::Config for Runtime {
     type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
-    type LocationInverter = LocationInverter<Ancestry>;
+    type UniversalLocation = UniversalLocation;
     type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
     type AssetsRegistry = AssetsRegistry;
 }
@@ -1245,6 +1265,7 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
     type MaxProposals = CouncilMaxProposals;
     type MaxMembers = CouncilMaxMembers;
     type DefaultVote = pallet_collective::PrimeDefaultVote;
+    type SetMembersOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1258,8 +1279,9 @@ parameter_types! {
     pub const TermDuration: BlockNumber = 24 * HOURS;
     pub const DesiredMembers: u32 = 5;
     pub const DesiredRunnersUp: u32 = 5;
-    pub const MaxVoters: u32 = 10 * 1000;
-    pub const MaxCandidates: u32 = 1000;
+    pub const MaxVotesPerVoter: u32 = 16;
+    pub const MaxVoters: u32 = 500;
+    pub const MaxCandidates: u32 = 20;
     pub const PhragmenElectionPalletId: LockIdentifier = *b"phrelect";
 }
 
@@ -1282,6 +1304,7 @@ impl pallet_elections_phragmen::Config for Runtime {
     type TermDuration = TermDuration;
     type MaxVoters = MaxVoters;
     type MaxCandidates = MaxCandidates;
+    type MaxVotesPerVoter = MaxVotesPerVoter;
     type PalletId = PhragmenElectionPalletId;
     type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
 }
@@ -1301,6 +1324,7 @@ impl pallet_collective::Config<TechnicalCollective> for Runtime {
     type MaxProposals = TechnicalMaxProposals;
     type MaxMembers = TechnicalMaxMembers;
     type DefaultVote = pallet_collective::PrimeDefaultVote;
+    type SetMembersOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1421,6 +1445,7 @@ impl pallet_democracy::Config for Runtime {
         pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>,
         frame_system::EnsureRoot<AccountId>,
     >;
+    type SubmitOrigin = frame_system::EnsureSigned<AccountId>;
     /// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
     type ExternalMajorityOrigin = EitherOfDiverse<
         pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>,
@@ -1487,8 +1512,6 @@ parameter_types! {
 
 impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
-    type UncleGenerations = UncleGenerations;
-    type FilterUncle = ();
     type EventHandler = CollatorSelection;
 }
 
@@ -1931,6 +1954,12 @@ impl_runtime_apis! {
         fn query_fee_details(uxt: <Block as BlockT>::Extrinsic, len: u32) -> pallet_transaction_payment_rpc_runtime_api::FeeDetails<Balance> {
             TransactionPayment::query_fee_details(uxt, len)
         }
+        fn query_weight_to_fee(weight: Weight) -> Balance {
+			TransactionPayment::weight_to_fee(weight)
+		}
+		fn query_length_to_fee(length: u32) -> Balance {
+			TransactionPayment::length_to_fee(length)
+		}
     }
 
     impl pallet_mq_runtime_api::MqApi<Block> for Runtime {

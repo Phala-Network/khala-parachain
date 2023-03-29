@@ -24,7 +24,7 @@ where
 	R: TakeRevenue,
 {
 	fn new() -> Self {
-		Self(0, 0, None, PhantomData)
+		Self(XCMWeight::from_ref_time(0u64), 0, None, PhantomData)
 	}
 
 	fn buy_weight(&mut self, weight: XCMWeight, payment: Assets) -> Result<Assets, XcmError> {
@@ -41,8 +41,8 @@ where
 				(Concrete(ref location), Fungible(_)) => {
 					// We found an asset that can be pay as fee from the registered asset list
 					if let Some((id, units_per_second)) = FungibleAssetsInfo::price(&location) {
-						let amount =
-							units_per_second * (weight as u128) / (WeightPerSecond::get() as u128);
+						let amount = units_per_second * (weight.ref_time() as u128)
+							/ (WeightPerSecond::get() as u128);
 						if amount == 0 {
 							return Ok(payment.clone());
 						}
@@ -81,7 +81,8 @@ where
 		// If we have deducted some fee from payment assets
 		if let Some((id, units_per_second)) = &self.2 {
 			let weight = weight.min(self.0);
-			let amount = units_per_second * (weight as u128) / (WeightPerSecond::get() as u128);
+			let amount =
+				units_per_second * (weight.ref_time() as u128) / (WeightPerSecond::get() as u128);
 			self.0 -= weight;
 			self.1 = self.1.saturating_sub(amount);
 			if amount > 0 {

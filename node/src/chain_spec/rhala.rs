@@ -251,7 +251,7 @@ fn genesis(
         ),
         phala_computation: Default::default(),
         polkadot_xcm: rhala_parachain_runtime::PolkadotXcmConfig {
-            safe_xcm_version: Some(2),
+            safe_xcm_version: Some(3),
         },
     }
 }

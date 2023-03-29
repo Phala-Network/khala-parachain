@@ -17,7 +17,7 @@ pub mod pallet {
 	use xcm::latest::{
 		prelude::*, Fungibility::Fungible, MultiAsset, MultiLocation, Weight as XCMWeight,
 	};
-	use xcm_executor::traits::{InvertLocation, WeightBounds};
+	use xcm_executor::traits::WeightBounds;
 
 	/// The logging target.
 	const LOG_TARGET: &str = "runtime::xcm-transfer";
@@ -52,8 +52,8 @@ pub mod pallet {
 		/// Means of measuring the weight consumed by an XCM message locally.
 		type Weigher: WeightBounds<Self::RuntimeCall>;
 
-		/// Means of inverting a location.
-		type LocationInverter: InvertLocation;
+		/// This chain's Universal Location.
+		type UniversalLocation: Get<InteriorMultiLocation>;
 
 		/// Filter native asset
 		type NativeAssetChecker: NativeAssetChecker;
@@ -138,16 +138,14 @@ pub mod pallet {
 			&self,
 			location: &MultiLocation,
 		) -> Result<Instruction<()>, DispatchError> {
-			let ancestry = T::LocationInverter::ancestry();
-
-			let fees = self
-				.fee
-				.clone()
-				.reanchored(&location, &ancestry)
+			let reanchor_context = T::UniversalLocation::get();
+			let mut reanchored_fee = self.fee.clone();
+			reanchored_fee
+				.reanchor(&location, reanchor_context)
 				.map_err(|_| Error::<T>::CannotReanchor)?;
 
 			Ok(BuyExecution {
-				fees,
+				fees: reanchored_fee,
 				weight_limit: WeightLimit::Limited(self.dest_weight),
 			})
 		}
@@ -161,7 +159,7 @@ pub mod pallet {
 			location: MultiLocation,
 		) -> MultiLocation {
 			if reserve == MultiLocation::parent() {
-				(0, location.interior().clone()).into()
+				MultiLocation::new(0, location.interior().clone())
 			} else {
 				location
 			}
@@ -181,9 +179,12 @@ pub mod pallet {
 		fn execute(&self, message: &mut Xcm<T::RuntimeCall>) -> DispatchResult {
 			let weight =
 				T::Weigher::weight(message).map_err(|()| Error::<T>::UnweighableMessage)?;
+			let hash = message.using_encoded(sp_io::hashing::blake2_256);
+
 			T::XcmExecutor::execute_xcm_in_credit(
 				self.origin.clone(),
 				message.clone(),
+				hash,
 				weight,
 				weight,
 			)
@@ -205,8 +206,7 @@ pub mod pallet {
 			};
 
 			let deposit_asset = DepositAsset {
-				assets: Wild(All),
-				max_assets,
+				assets: Wild(AllCounted(max_assets)),
 				beneficiary: self.beneficiary.clone(),
 			};
 
@@ -216,8 +216,7 @@ pub mod pallet {
 				TransferType::FromNative => Xcm(vec![
 					withdraw_asset,
 					DepositReserveAsset {
-						assets: Wild(All),
-						max_assets,
+						assets: Wild(AllCounted(max_assets)),
 						dest: self.dest_location.clone(),
 						xcm: Xcm(vec![
 							self.buy_execution_on(&self.dest_location)?,
@@ -230,7 +229,7 @@ pub mod pallet {
 					Xcm(vec![
 						withdraw_asset,
 						InitiateReserveWithdraw {
-							assets: Wild(All),
+							assets: Wild(AllCounted(max_assets)),
 							reserve: asset_reserve_location,
 							xcm: Xcm(vec![
 								self.buy_execution_on(&self.dest_location)?,
@@ -244,13 +243,12 @@ pub mod pallet {
 						Xcm(vec![
 							withdraw_asset,
 							InitiateReserveWithdraw {
-								assets: Wild(All),
+								assets: Wild(AllCounted(max_assets)),
 								reserve: asset_reserve_location.clone(),
 								xcm: Xcm(vec![
 									self.buy_execution_on(&asset_reserve_location)?,
 									DepositReserveAsset {
-										assets: Wild(All),
-										max_assets,
+										assets: Wild(AllCounted(max_assets)),
 										dest: self.invert_based_reserve(
 											asset_reserve_location.clone(),
 											self.dest_location.clone(),
@@ -361,8 +359,8 @@ pub mod pallet {
 				Error::<T>::CannotDepositAsset
 			);
 
-			let origin_location = Junction::AccountId32 {
-				network: NetworkId::Any,
+			let origin_location: MultiLocation = Junction::AccountId32 {
+				network: None,
 				id: sender,
 			}
 			.into();
@@ -378,7 +376,7 @@ pub mod pallet {
 				origin: origin_location.clone(),
 				dest_location,
 				beneficiary,
-				dest_weight: max_weight.unwrap_or(6_000_000_000u64.into()),
+				dest_weight: max_weight.unwrap_or(XCMWeight::from_ref_time(6_000_000_000u64)),
 				_marker: PhantomData,
 			};
 			let mut msg = xcm_session.message()?;
@@ -485,12 +483,12 @@ pub mod pallet {
 						X2(
 							Parachain(2u32.into()),
 							Junction::AccountId32 {
-								network: NetworkId::Any,
+								network: None,
 								id: BOB.into()
 							}
 						)
 					),
-					Some(1),
+					Some(1u64.into()),
 				));
 
 				assert_eq!(ParaBalances::free_balance(&ALICE), ENDOWED_BALANCE - 10);
@@ -542,12 +540,12 @@ pub mod pallet {
 						X2(
 							Parachain(2u32.into()),
 							Junction::AccountId32 {
-								network: NetworkId::Any,
+								network: None,
 								id: BOB.into()
 							}
 						)
 					),
-					Some(1),
+					Some(1u64.into()),
 				));
 
 				assert_eq!(ParaBalances::free_balance(&ALICE), ENDOWED_BALANCE - 10);
@@ -570,12 +568,12 @@ pub mod pallet {
 						X2(
 							Parachain(1u32.into()),
 							Junction::AccountId32 {
-								network: NetworkId::Any,
+								network: None,
 								id: ALICE.into()
 							}
 						)
 					),
-					Some(1),
+					Some(1u64.into()),
 				));
 
 				assert_eq!(Assets::balance(0u32.into(), &BOB), 9 - 5);

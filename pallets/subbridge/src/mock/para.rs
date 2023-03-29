@@ -7,29 +7,29 @@ use crate::{
 use assets_registry;
 use frame_support::{
 	construct_runtime, match_types, parameter_types,
-	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32, Contains, Everything},
+	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32, Everything, Nothing},
 	weights::Weight,
 	PalletId,
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
-use sp_core::H256;
+use sp_core::{crypto::AccountId32, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
-	AccountId32,
 };
 
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
+use phala_pallet_common::WrapSlice;
 use polkadot_parachain::primitives::Sibling;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
-	EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, LocationInverter, NativeAsset,
-	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, NativeAsset, NoChecking, ParentIsPreset,
+	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, MintLocation,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{traits::WithOriginFilter, Config, XcmExecutor};
 
 pub use parachains_common::Index;
 pub use parachains_common::*;
@@ -161,8 +161,9 @@ parameter_types! {
 	pub const ResourceIdGenerationSalt: Option<u128> = Some(5);
 	pub const ProposalLifetime: u64 = 100;
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+	pub UniversalLocation: InteriorMultiLocation =
+		X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
-	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 
 	pub TREASURY: AccountId32 = AccountId32::new([4u8; 32]);
 		// We define two test assets to simulate tranfer assets to reserve location and unreserve location,
@@ -171,18 +172,18 @@ parameter_types! {
 		1,
 		X4(
 			Parachain(2004),
-			GeneralKey(assets_registry::CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+			WrapSlice(assets_registry::CB_ASSET_KEY).into_generalkey(),
 			GeneralIndex(0),
-			GeneralKey(b"an asset".to_vec().try_into().expect("less than length limit; qed")),
+			WrapSlice(b"an asset").into_generalkey(),
 		),
 	);
 	pub SoloChain2AssetLocation: MultiLocation = MultiLocation::new(
 		1,
 		X4(
 			Parachain(2004),
-			GeneralKey(assets_registry::CB_ASSET_KEY.to_vec().try_into().expect("less than length limit; qed")),
+			WrapSlice(assets_registry::CB_ASSET_KEY).into_generalkey(),
 			GeneralIndex(2),
-			GeneralKey(b"an asset".to_vec().try_into().expect("less than length limit; qed")),
+			WrapSlice(b"an asset").into_generalkey(),
 		),
 	);
 	pub NativeExecutionPrice: u128 = 1;
@@ -205,10 +206,11 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 parameter_types! {
 	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
-	pub UnitWeightCost: XCMWeight = 1;
+	pub UnitWeightCost: XCMWeight = 1u64.into();
 	pub const MaxInstructions: u32 = 100;
 	pub ParaTreasuryAccount: AccountId = PalletId(*b"py/trsry").into_account_truncating();
-	pub ParaCheckingAccount: AccountId = PalletId(*b"py/check").into_account_truncating();
+	pub CheckingAccountForCurrencyAdapter: Option<(AccountId, MintLocation)> = None;
+	pub CheckingAccountForFungibleAdapter: AccountId = PalletId(*b"checking").into_account_truncating();
 }
 match_types! {
 	pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
@@ -233,15 +235,8 @@ pub type CurrencyTransactor = CurrencyAdapter<
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
 	// We don't track any teleports of `Balances`.
-	ParaCheckingAccount,
+	CheckingAccountForCurrencyAdapter,
 >;
-
-pub struct AssetChecker;
-impl Contains<u32> for AssetChecker {
-	fn contains(_: &u32) -> bool {
-		false
-	}
-}
 
 /// Means for transacting assets besides the native currency on this chain.
 pub type FungiblesTransactor = FungiblesAdapter<
@@ -258,9 +253,9 @@ pub type FungiblesTransactor = FungiblesAdapter<
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
 	// We do not support teleport assets
-	AssetChecker,
+	NoChecking,
 	// We do not support teleport assets
-	ParaCheckingAccount,
+	CheckingAccountForFungibleAdapter,
 >;
 
 pub struct XcmConfig;
@@ -280,19 +275,28 @@ impl Config for XcmConfig {
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;
 	type IsTeleporter = ();
-	type LocationInverter = LocationInverter<Ancestry>;
+	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type Trader = DynamicWeightTrader<
 		WeightPerSecond,
 		<Runtime as pallet_assets::Config>::AssetId,
 		AssetsRegistry,
-		helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, TREASURY>,
+		helper::XTransferTakeRevenue<Self::AssetTransactor, AccountId, ParaTreasuryAccount>,
 	>;
 	type ResponseHandler = ();
 	type AssetTrap = ();
 	type AssetClaims = ();
 	type SubscriptionService = ();
+	type PalletInstancesInfo = AllPalletsWithSystem;
+	type MaxAssetsIntoHolding = ConstU32<64>;
+	type AssetLocker = ();
+	type AssetExchanger = ();
+	type FeeManager = ();
+	type MessageExporter = ();
+	type UniversalAliases = Nothing;
+	type CallDispatcher = WithOriginFilter<Everything>;
+	type SafeCallFilter = Everything;
 }
 parameter_types! {
 	pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
@@ -324,6 +328,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type ControllerOrigin = EnsureRoot<AccountId>;
 	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
 	type WeightInfo = ();
+	type PriceForSiblingDelivery = ();
 }
 impl cumulus_pallet_dmp_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -339,7 +344,7 @@ impl xcmbridge::Config for Runtime {
 	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
-	type LocationInverter = LocationInverter<Ancestry>;
+	type UniversalLocation = UniversalLocation;
 	type NativeAssetChecker = assets_registry::NativeAssetFilter<ParachainInfo>;
 	type AssetsRegistry = AssetsRegistry;
 }

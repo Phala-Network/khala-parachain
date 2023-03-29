@@ -7,7 +7,6 @@ pub mod pallet {
 	use crate::traits::*;
 	use assets_registry::SYGMA_PATH_KEY;
 	use frame_support::{dispatch::RawOrigin, pallet_prelude::*, transactional};
-	use funty::Fundamental;
 	use sp_std::{boxed::Box, vec::Vec};
 	use sygma_traits::{DomainID, ExtractDestinationData};
 	use xcm::latest::{prelude::*, MultiLocation, Weight as XCMWeight};
@@ -50,13 +49,22 @@ pub mod pallet {
 				(
 					0,
 					Junctions::X3(
-						GeneralKey(sygma_path),
+						GeneralKey {
+							length: path_len,
+							data: sygma_path,
+						},
 						GeneralIndex(dest_domain_id),
-						GeneralKey(recipient),
+						GeneralKey {
+							length: recipient_len,
+							data: recipient,
+						},
 					),
 				) => {
-					if sygma_path.clone().into_inner() == SYGMA_PATH_KEY.to_vec() {
-						return Some((recipient.to_vec(), dest_domain_id.as_u8()));
+					if &sygma_path[..*path_len as usize] == SYGMA_PATH_KEY {
+						return Some((
+							recipient[..*recipient_len as usize].to_vec(),
+							*dest_domain_id as u8,
+						));
 					}
 					None
 				}
@@ -117,7 +125,7 @@ pub mod pallet {
 				&dest,
 			);
 			let origin_location = Junction::AccountId32 {
-				network: NetworkId::Any,
+				network: None,
 				id: sender,
 			}
 			.into();

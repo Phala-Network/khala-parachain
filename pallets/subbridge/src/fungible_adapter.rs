@@ -1,5 +1,6 @@
 use crate::traits::*;
 use assets_registry::{AccountId32Conversion, NativeAssetChecker, ReserveAssetChecker};
+use phala_pallet_common::WrapSlice;
 use sp_std::{convert::Into, marker::PhantomData, result, vec::Vec};
 use xcm::latest::{prelude::*, Error as XcmError, MultiAsset, MultiLocation, Result as XcmResult};
 use xcm_executor::{traits::TransactAsset, Assets};
@@ -25,7 +26,7 @@ impl<
 	> TransactAsset
 	for XTransferAdapter<NativeAdapter, AssetsAdapter, Transactor, NativeChecker, ReserveChecker>
 {
-	fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult {
+	fn deposit_asset(what: &MultiAsset, who: &MultiLocation, context: &XcmContext) -> XcmResult {
 		// In case we got a local consensus location within asset, which may cause unexpected behaviors on EVM birdges,
 		// always try to convert asset location into gloable consensus location first. But it's ok if conversion faild, because
 		// only reserve assets (exclude PHA) need to do these stuff.
@@ -46,9 +47,9 @@ impl<
 					who,
 				);
 				if NativeChecker::is_native_asset(what) {
-					NativeAdapter::deposit_asset(what, who)?;
+					NativeAdapter::deposit_asset(what, who, context)?;
 				} else {
-					AssetsAdapter::deposit_asset(what, who)?;
+					AssetsAdapter::deposit_asset(what, who, context)?;
 				}
 				Transactor::on_deposited(what.clone(), who.clone(), Vec::new())
 					.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
@@ -63,33 +64,28 @@ impl<
 				);
 
 				// Deposit asset into temporary account, then forward through other bridges
-				let temporary_account = MultiLocation::new(
-					0,
-					X1(GeneralKey(
-						b"bridge_transfer"
-							.to_vec()
-							.try_into()
-							.expect("less than length limit; qed"),
-					)),
-				)
-				.into_account();
+				let temporary_account =
+					MultiLocation::new(0, X1(WrapSlice(b"bridge_transfer").into_generalkey()))
+						.into_account();
 				if NativeChecker::is_native_asset(what) {
 					NativeAdapter::deposit_asset(
 						what,
 						&Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: temporary_account,
 						}
 						.into(),
+						context,
 					)?;
 				} else {
 					AssetsAdapter::deposit_asset(
 						what,
 						&Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: temporary_account,
 						}
 						.into(),
+						context,
 					)?;
 				}
 
@@ -101,7 +97,11 @@ impl<
 		Ok(())
 	}
 
-	fn withdraw_asset(what: &MultiAsset, who: &MultiLocation) -> result::Result<Assets, XcmError> {
+	fn withdraw_asset(
+		what: &MultiAsset,
+		who: &MultiLocation,
+		maybe_context: Option<&XcmContext>,
+	) -> result::Result<Assets, XcmError> {
 		// In case we got a local consensus location within asset, which may cause unexpected behaviors on EVM birdges,
 		// always try to convert asset location into gloable consensus location first. But it's ok if conversion faild, because
 		// only reserve assets (exclude PHA) need to do these stuff.
@@ -119,9 +119,9 @@ impl<
 			&who,
 		);
 		let assets = if NativeChecker::is_native_asset(what) {
-			NativeAdapter::withdraw_asset(what, who)?
+			NativeAdapter::withdraw_asset(what, who, maybe_context)?
 		} else {
-			AssetsAdapter::withdraw_asset(what, who)?
+			AssetsAdapter::withdraw_asset(what, who, maybe_context)?
 		};
 		Transactor::on_withdrawn(what.clone(), who.clone(), Vec::new())
 			.map_err(|e| return XcmError::FailedToTransactAsset(e.into()))?;

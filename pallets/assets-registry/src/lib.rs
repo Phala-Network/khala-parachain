@@ -15,9 +15,12 @@ pub mod pallet {
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
-		traits::tokens::fungibles::{
-			metadata::Mutate as MetaMutate, Create as FungibleCerate, Mutate as FungibleMutate,
-			Transfer as FungibleTransfer,
+		traits::{
+			tokens::fungibles::{
+				metadata::Mutate as MetaMutate, Create as FungibleCerate, Mutate as FungibleMutate,
+				Transfer as FungibleTransfer,
+			},
+			ContainsPair,
 		},
 		traits::{Currency, ExistenceRequirement, StorageVersion},
 		transactional, PalletId,
@@ -29,7 +32,6 @@ pub mod pallet {
 	use sp_std::{boxed::Box, cmp, convert::From, vec, vec::Vec};
 	use sygma_traits::{DecimalConverter, DomainID, ResourceId as SygmaResourceId};
 	use xcm::latest::{prelude::*, AssetId as XcmAssetId, MultiLocation};
-	use xcm_executor::traits::FilterAssetLocation;
 
 	/// Const used to indicate chainbridge path. str "cb"
 	pub const CB_ASSET_KEY: &[u8] = &[0x63, 0x62];
@@ -105,17 +107,19 @@ pub mod pallet {
 	impl ExtractReserveLocation for Junctions {
 		fn reserve_location(&self) -> Option<MultiLocation> {
 			match (self.at(0), self.at(1)) {
-				(Some(GeneralKey(bridge_key)), Some(GeneralIndex(chain_id)))
-					if (bridge_key.clone().into_inner() == CB_ASSET_KEY.to_vec())
-						|| (bridge_key.clone().into_inner() == SYGMA_PATH_KEY.to_vec()) =>
+				(
+					Some(GeneralKey {
+						length: bridge_key_len,
+						data: bridge_key,
+					}),
+					Some(GeneralIndex(_chain_id)),
+				) if (&bridge_key[..*bridge_key_len as usize] == CB_ASSET_KEY)
+					|| (bridge_key[..*bridge_key_len as usize] == SYGMA_PATH_KEY.to_vec()) =>
 				{
-					Some(
-						(
-							0,
-							X2(GeneralKey(bridge_key.clone()), GeneralIndex(*chain_id)),
-						)
-							.into(),
-					)
+					Some(MultiLocation::new(
+						0,
+						X2(*self.at(0).unwrap(), *self.at(1).unwrap()),
+					))
 				}
 				_ => None,
 			}
@@ -193,13 +197,13 @@ pub mod pallet {
 		fn is_native_asset_location(id: &MultiLocation) -> bool {
 			let native_locations = [
 				MultiLocation::here(),
-				(1, X1(Parachain(T::get().into()))).into(),
+				MultiLocation::new(1, X1(Parachain(T::get().into()))),
 			];
 			native_locations.contains(id)
 		}
 
 		fn native_asset_location() -> MultiLocation {
-			(1, X1(Parachain(T::get().into()))).into()
+			MultiLocation::new(1, X1(Parachain(T::get().into())))
 		}
 	}
 
@@ -240,7 +244,7 @@ pub mod pallet {
 		fn to_globalconsensus_location(location: &MultiLocation) -> Option<MultiLocation> {
 			match (location.parents, location.first_interior()) {
 				// We should handle (0, Here) specially case we can not push interior front directly
-				(0, None) => Some((1, Parachain(T::get().into())).into()),
+				(0, None) => Some(MultiLocation::new(1, Parachain(T::get().into()))),
 				(0, Some(_)) => {
 					let mut origin_location = location.clone();
 					origin_location.parents = 1;
@@ -274,8 +278,8 @@ pub mod pallet {
 	}
 
 	pub struct SygmaAssetReserveChecker<T>(PhantomData<T>);
-	impl<T: Get<ParaId>> FilterAssetLocation for SygmaAssetReserveChecker<T> {
-		fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
+	impl<T: Get<ParaId>> ContainsPair<MultiAsset, MultiLocation> for SygmaAssetReserveChecker<T> {
+		fn contains(asset: &MultiAsset, origin: &MultiLocation) -> bool {
 			if let Some(ref id) = Self::origin(asset) {
 				if id == origin {
 					return true;
@@ -304,12 +308,7 @@ pub mod pallet {
 							// relative to current chain.
 							Some(MultiLocation::new(
 								0,
-								X1(GeneralKey(
-									b"sygma"
-										.to_vec()
-										.try_into()
-										.expect("less than length limit; qed"),
-								)),
+								X1(WrapSlice(b"sygma").into_generalkey()),
 							))
 						} else {
 							// Other parachain assets should be treat as reserve asset when transfered
@@ -445,7 +444,7 @@ pub mod pallet {
 		type NativeAssetSygmaResourceId: Get<[u8; 32]>;
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
 	const LOG_TARGET: &str = "runtime::asset-registry";
 
 	type BalanceOf<T> =
@@ -854,14 +853,13 @@ pub mod pallet {
 			);
 			IdByResourceId::<T>::insert(&resource_id, &asset_id);
 			// Save into registry info, here save chain id can not be added more than twice
-			let reserve_location: MultiLocation = (
-				0,
-				X2(
-					GeneralKey(WrapSlice(CB_ASSET_KEY).into()),
+			let reserve_location = MultiLocation {
+				parents: 0,
+				interior: X2(
+					WrapSlice(CB_ASSET_KEY).into_generalkey(),
 					GeneralIndex(chain_id as u128),
 				),
-			)
-				.into();
+			};
 			info.enabled_bridges.push(XBridge {
 				config: XBridgeConfig::ChainBridge {
 					chain_id,
@@ -1158,7 +1156,7 @@ pub mod pallet {
 		#[test]
 		fn test_withdraw_fund_of_pha() {
 			let recipient: AccountId32 =
-				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"recipient").into())))
+				MultiLocation::new(0, X1(WrapSlice(b"recipient").into_generalkey()))
 					.into_account()
 					.into();
 			new_test_ext().execute_with(|| {
@@ -1183,7 +1181,7 @@ pub mod pallet {
 		#[test]
 		fn test_withdraw_fund_of_asset() {
 			let recipient: AccountId32 =
-				MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"recipient").into())))
+				MultiLocation::new(0, X1(WrapSlice(b"recipient").into_generalkey()))
 					.into_account()
 					.into();
 			let fund_account: <Test as frame_system::Config>::AccountId =
@@ -1225,7 +1223,7 @@ pub mod pallet {
 		fn test_force_mint_burn_asset() {
 			new_test_ext().execute_with(|| {
 				let recipient: AccountId32 =
-					MultiLocation::new(0, X1(GeneralKey(WrapSlice(b"recipient").into())))
+					MultiLocation::new(0, X1(WrapSlice(b"recipient").into_generalkey()))
 						.into_account()
 						.into();
 				let asset_location = MultiLocation::new(1, Here);
