@@ -25,7 +25,7 @@ pub mod pallet {
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
-	pub type RequestId = [u8; 32];
+	pub type TaskId = [u8; 32];
 	pub const MODULE_ID: PalletId = PalletId(*b"index/ac");
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
@@ -39,7 +39,7 @@ pub mod pallet {
 		/// Recipient address on dest chain
 		pub recipient: Vec<u8>,
 		/// Encoded execution plan produced by Solver
-		pub request: Vec<u8>,
+		pub task: Vec<u8>,
 	}
 
 	#[pallet::config]
@@ -59,17 +59,17 @@ pub mod pallet {
 	#[pallet::getter(fn executors)]
 	pub type Workers<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, bool, ValueQuery>;
 
-	/// Mapping request_id to the full deposit data
+	/// Mapping task_id to the full deposit data
 	#[pallet::storage]
 	#[pallet::getter(fn deposit_records)]
 	pub type DepositRecords<T: Config> =
-		StorageMap<_, Twox64Concat, RequestId, DepositInfo<T::AccountId>>;
+		StorageMap<_, Twox64Concat, TaskId, DepositInfo<T::AccountId>>;
 
 	/// Mapping the worker account and its actived task queue
 	#[pallet::storage]
-	#[pallet::getter(fn actived_requests)]
-	pub type ActivedRequests<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, Vec<RequestId>, ValueQuery>;
+	#[pallet::getter(fn actived_tasks)]
+	pub type ActivedTasks<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, Vec<TaskId>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -78,13 +78,13 @@ pub mod pallet {
 		WorkerAdd { worker: T::AccountId },
 		/// Worker is set.
 		WorkerRemove { worker: T::AccountId },
-		/// New reqeust saved.
-		NewRequest {
+		/// New task saved.
+		NewTask {
 			/// Record
 			deposit_info: DepositInfo<T::AccountId>,
 		},
 		/// Task has been claimed.
-		Claimed { requests: Vec<RequestId> },
+		Claimed { tasks: Vec<TaskId> },
 	}
 
 	#[pallet::error]
@@ -93,7 +93,7 @@ pub mod pallet {
 		WorkerAlreadySet,
 		WorkerNotSet,
 		WorkerMismatch,
-		RequestAlreadyExist,
+		TaskAlreadyExist,
 		NotFoundInTaskQueue,
 		TaskQueueEmpty,
 		TransactFailed,
@@ -138,8 +138,8 @@ pub mod pallet {
 			amount: u128,
 			recipient: Vec<u8>,
 			worker: T::AccountId,
-			request_id: RequestId,
-			request: Vec<u8>,
+			task_id: TaskId,
+			task: Vec<u8>,
 		) -> DispatchResult {
 			let sender: T::AccountId = ensure_signed(origin)?;
 
@@ -160,29 +160,29 @@ pub mod pallet {
 
 			// Check if record already exist
 			ensure!(
-				DepositRecords::<T>::get(&request_id).is_none(),
-				Error::<T>::RequestAlreadyExist
+				DepositRecords::<T>::get(&task_id).is_none(),
+				Error::<T>::TaskAlreadyExist
 			);
 
 			// Save record to corresponding worker task queue
-			let mut worker_task_queue = ActivedRequests::<T>::get(&worker);
-			worker_task_queue.push(request_id);
-			ActivedRequests::<T>::insert(&worker, &worker_task_queue);
+			let mut worker_task_queue = ActivedTasks::<T>::get(&worker);
+			worker_task_queue.push(task_id);
+			ActivedTasks::<T>::insert(&worker, &worker_task_queue);
 			// Save record data
 			let deposit_info = DepositInfo {
 				sender: sender.clone(),
 				asset: asset.clone(),
 				amount,
 				recipient,
-				request,
+				task,
 			};
-			DepositRecords::<T>::insert(&request_id, &deposit_info);
+			DepositRecords::<T>::insert(&task_id, &deposit_info);
 
 			// Deposit into module account
 			let module_account: T::AccountId = MODULE_ID.into_account_truncating();
 			Self::do_asset_transact(asset.clone(), sender.clone(), module_account, amount)?;
 
-			Self::deposit_event(Event::NewRequest { deposit_info });
+			Self::deposit_event(Event::NewTask { deposit_info });
 			Ok(())
 		}
 
@@ -190,7 +190,7 @@ pub mod pallet {
 		#[pallet::weight(195_000_000)]
 		#[pallet::call_index(3)]
 		#[transactional]
-		pub fn claim_task(origin: OriginFor<T>, request_id: RequestId) -> DispatchResult {
+		pub fn claim_task(origin: OriginFor<T>, task_id: TaskId) -> DispatchResult {
 			// Check origin, must be the worker
 			let worker: T::AccountId = ensure_signed(origin)?;
 			ensure!(
@@ -198,19 +198,19 @@ pub mod pallet {
 				Error::<T>::WorkerMismatch
 			);
 
-			let worker_task_queue = ActivedRequests::<T>::get(&worker);
+			let worker_task_queue = ActivedTasks::<T>::get(&worker);
 			// Check reqeust exist in actived task queue
 			ensure!(
-				worker_task_queue.contains(&request_id),
+				worker_task_queue.contains(&task_id),
 				Error::<T>::NotFoundInTaskQueue
 			);
 			// Remove the specific task from worker task queue
-			let new_task_queue: Vec<RequestId> = worker_task_queue
+			let new_task_queue: Vec<TaskId> = worker_task_queue
 				.into_iter()
-				.filter(|item| *item != request_id)
+				.filter(|item| *item != task_id)
 				.collect();
-			ActivedRequests::<T>::insert(&worker, &new_task_queue);
-			let deposit_info = DepositRecords::<T>::get(&request_id).unwrap();
+			ActivedTasks::<T>::insert(&worker, &new_task_queue);
+			let deposit_info = DepositRecords::<T>::get(&task_id).unwrap();
 
 			// Withdraw from module account
 			let module_account: T::AccountId = MODULE_ID.into_account_truncating();
@@ -222,10 +222,10 @@ pub mod pallet {
 			)?;
 
 			// Delete deposit record
-			DepositRecords::<T>::remove(&request_id);
+			DepositRecords::<T>::remove(&task_id);
 
 			Self::deposit_event(Event::Claimed {
-				requests: vec![request_id],
+				tasks: vec![task_id],
 			});
 			Ok(())
 		}
@@ -242,11 +242,11 @@ pub mod pallet {
 			);
 
 			// Take the task queue of the worker
-			let worker_task_queue = ActivedRequests::<T>::take(&worker);
+			let worker_task_queue = ActivedTasks::<T>::take(&worker);
 			// Check reqeust exist in actived task queue
 			ensure!(worker_task_queue.len() > 0, Error::<T>::NotFoundInTaskQueue);
-			for request_id in worker_task_queue.iter() {
-				let deposit_info = DepositRecords::<T>::get(&request_id).unwrap();
+			for task_id in worker_task_queue.iter() {
+				let deposit_info = DepositRecords::<T>::get(&task_id).unwrap();
 
 				// Withdraw from module account
 				let module_account: T::AccountId = MODULE_ID.into_account_truncating();
@@ -258,11 +258,11 @@ pub mod pallet {
 				)?;
 
 				// Delete deposit record
-				DepositRecords::<T>::remove(&request_id);
+				DepositRecords::<T>::remove(&task_id);
 			}
 
 			Self::deposit_event(Event::Claimed {
-				requests: worker_task_queue.into(),
+				tasks: worker_task_queue.into(),
 			});
 			Ok(())
 		}
@@ -305,9 +305,7 @@ pub mod pallet {
 	#[cfg(test)]
 	mod tests {
 		use crate as pallet_index;
-		use crate::{
-			ActivedRequests, DepositRecords, Event as PalletIndexEvent, Workers, MODULE_ID,
-		};
+		use crate::{ActivedTasks, DepositRecords, Event as PalletIndexEvent, Workers, MODULE_ID};
 		use frame_support::{assert_noop, assert_ok};
 		use pallet_index::mock::{
 			assert_events, new_test_ext, Assets, AssetsRegistry, Balances, PalletIndex,
@@ -333,7 +331,7 @@ pub mod pallet {
 		#[test]
 		fn test_deposit_task_should_work() {
 			new_test_ext().execute_with(|| {
-				let request_id = [2; 32];
+				let task_id = [2; 32];
 				let module_account: <Test as frame_system::Config>::AccountId =
 					MODULE_ID.into_account_truncating();
 
@@ -359,16 +357,13 @@ pub mod pallet {
 					100u128,
 					[1, 2, 3].to_vec(),
 					BOB,
-					request_id,
+					task_id,
 					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 				));
 				assert_eq!(Balances::free_balance(ALICE), ENDOWED_BALANCE - 100);
 				assert_eq!(Balances::free_balance(module_account.clone()), 100);
-				assert_eq!(ActivedRequests::<Test>::get(&BOB), [request_id].to_vec());
-				assert_eq!(
-					DepositRecords::<Test>::get(&request_id).unwrap().sender,
-					ALICE
-				);
+				assert_eq!(ActivedTasks::<Test>::get(&BOB), [task_id].to_vec());
+				assert_eq!(DepositRecords::<Test>::get(&task_id).unwrap().sender, ALICE);
 
 				assert_noop!(
 					PalletIndex::deposit_task(
@@ -380,7 +375,7 @@ pub mod pallet {
 						[2; 32],
 						[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 					),
-					pallet_index::Error::<Test>::RequestAlreadyExist
+					pallet_index::Error::<Test>::TaskAlreadyExist
 				);
 
 				// Should fail if foreign asset not registered
