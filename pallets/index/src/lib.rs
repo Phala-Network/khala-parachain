@@ -29,9 +29,9 @@ pub mod pallet {
 	pub const MODULE_ID: PalletId = PalletId(*b"index/ac");
 
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
-	pub struct DepositInfo {
-		/// Sender address on source chain
-		pub sender: [u8; 32],
+	pub struct DepositInfo<AccountId> {
+		/// Sender address on current chain
+		pub sender: AccountId,
 		/// Deposit asset
 		pub asset: XcmAssetId,
 		/// Deposit amount
@@ -54,21 +54,22 @@ pub mod pallet {
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
-	/// Pre-set index worker sr25519 pubkey
+	/// Pre-set index worker account
 	#[pallet::storage]
 	#[pallet::getter(fn executors)]
-	pub type Workers<T: Config> = StorageMap<_, Twox64Concat, [u8; 32], bool, ValueQuery>;
+	pub type Workers<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, bool, ValueQuery>;
 
 	/// Mapping request_id to the full deposit data
 	#[pallet::storage]
 	#[pallet::getter(fn deposit_records)]
-	pub type DepositRecords<T: Config> = StorageMap<_, Twox64Concat, RequestId, DepositInfo>;
+	pub type DepositRecords<T: Config> =
+		StorageMap<_, Twox64Concat, RequestId, DepositInfo<T::AccountId>>;
 
-	/// Mapping the worker sr25519 pubkey and its actived task queue
+	/// Mapping the worker account and its actived task queue
 	#[pallet::storage]
 	#[pallet::getter(fn actived_requests)]
 	pub type ActivedRequests<T: Config> =
-		StorageMap<_, Twox64Concat, [u8; 32], VecDeque<RequestId>, ValueQuery>;
+		StorageMap<_, Twox64Concat, T::AccountId, VecDeque<RequestId>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -80,7 +81,7 @@ pub mod pallet {
 		/// New reqeust saved.
 		NewRequest {
 			/// Record
-			deposit_info: DepositInfo,
+			deposit_info: DepositInfo<T::AccountId>,
 		},
 		/// Task has been claimed.
 		Claimed { requests: Vec<RequestId> },
@@ -109,10 +110,10 @@ pub mod pallet {
 		pub fn force_add_worker(origin: OriginFor<T>, worker: T::AccountId) -> DispatchResult {
 			T::CommitteeOrigin::ensure_origin(origin)?;
 			ensure!(
-				Workers::<T>::get(&worker.clone().into()) == false,
+				Workers::<T>::get(&worker) == false,
 				Error::<T>::WorkerAlreadySet
 			);
-			Workers::<T>::insert(&worker.clone().into(), true);
+			Workers::<T>::insert(&worker, true);
 			Self::deposit_event(Event::WorkerAdd { worker });
 			Ok(())
 		}
@@ -122,11 +123,8 @@ pub mod pallet {
 		#[transactional]
 		pub fn force_remove_worker(origin: OriginFor<T>, worker: T::AccountId) -> DispatchResult {
 			T::CommitteeOrigin::ensure_origin(origin)?;
-			ensure!(
-				Workers::<T>::get(&worker.clone().into()),
-				Error::<T>::WorkerNotSet
-			);
-			Workers::<T>::insert(&worker.clone().into(), false);
+			ensure!(Workers::<T>::get(&worker), Error::<T>::WorkerNotSet);
+			Workers::<T>::insert(&worker, false);
 			Self::deposit_event(Event::WorkerAdd { worker });
 			Ok(())
 		}
@@ -139,11 +137,11 @@ pub mod pallet {
 			asset: XcmAssetId,
 			amount: u128,
 			recipient: Vec<u8>,
-			worker: [u8; 32],
+			worker: T::AccountId,
 			request_id: RequestId,
 			request: Vec<u8>,
 		) -> DispatchResult {
-			let sender: [u8; 32] = ensure_signed(origin)?.into();
+			let sender: T::AccountId = ensure_signed(origin)?;
 
 			// Ensure given worker was registered
 			ensure!(Workers::<T>::get(&worker), Error::<T>::WorkerNotSet);
@@ -172,7 +170,7 @@ pub mod pallet {
 			ActivedRequests::<T>::insert(&worker, &worker_task_queue);
 			// Save record data
 			let deposit_info = DepositInfo {
-				sender,
+				sender: sender.clone(),
 				asset: asset.clone(),
 				amount,
 				recipient,
@@ -212,7 +210,7 @@ pub mod pallet {
 		#[transactional]
 		pub fn claim_task(origin: OriginFor<T>, request_id: RequestId) -> DispatchResult {
 			// Check origin, must be the worker
-			let worker: [u8; 32] = ensure_signed(origin)?.into();
+			let worker: T::AccountId = ensure_signed(origin)?;
 			ensure!(
 				Workers::<T>::get(&worker) == true,
 				Error::<T>::WorkerMismatch
@@ -247,7 +245,7 @@ pub mod pallet {
 				&(deposit_info.asset.clone(), deposit_info.amount).into(),
 				&Junction::AccountId32 {
 					network: NetworkId::Any,
-					id: worker,
+					id: worker.into(),
 				}
 				.into(),
 			)
@@ -266,7 +264,7 @@ pub mod pallet {
 		#[transactional]
 		pub fn claim_all_task(origin: OriginFor<T>) -> DispatchResult {
 			// Check origin, must be the worker
-			let worker: [u8; 32] = ensure_signed(origin)?.into();
+			let worker: T::AccountId = ensure_signed(origin)?;
 			ensure!(
 				Workers::<T>::get(&worker) == true,
 				Error::<T>::WorkerMismatch
@@ -295,7 +293,7 @@ pub mod pallet {
 					&(deposit_info.asset.clone(), deposit_info.amount).into(),
 					&Junction::AccountId32 {
 						network: NetworkId::Any,
-						id: worker,
+						id: worker.clone().into(),
 					}
 					.into(),
 				)
@@ -324,30 +322,24 @@ pub mod pallet {
 			TestAssetLocation, ALICE, BOB, ENDOWED_BALANCE,
 		};
 		use sp_runtime::traits::AccountIdConversion;
-		use xcm::latest::{prelude::*, MultiLocation};
+		use xcm::latest::MultiLocation;
 
 		#[test]
 		fn test_add_executor_should_work() {
 			new_test_ext().execute_with(|| {
-				let bob_key: [u8; 32] = BOB.into();
-				assert_ok!(PalletIndex::force_add_worker(Origin::root(), BOB.clone()));
-				assert_eq!(Workers::<Test>::get(bob_key), true);
+				assert_ok!(PalletIndex::force_add_worker(Origin::root(), BOB));
+				assert_eq!(Workers::<Test>::get(&BOB), true);
 				assert_events(vec![Event::PalletIndex(PalletIndexEvent::WorkerAdd {
 					worker: BOB,
 				})]);
-				assert_ok!(PalletIndex::force_remove_worker(
-					Origin::root(),
-					BOB.clone()
-				));
-				assert_eq!(Workers::<Test>::get(bob_key), false);
+				assert_ok!(PalletIndex::force_remove_worker(Origin::root(), BOB));
+				assert_eq!(Workers::<Test>::get(&BOB), false);
 			});
 		}
 
 		#[test]
 		fn test_deposit_task_should_work() {
 			new_test_ext().execute_with(|| {
-				let alice_key: [u8; 32] = ALICE.into();
-				let bob_key: [u8; 32] = BOB.into();
 				let request_id = [2; 32];
 				let module_account: <Test as frame_system::Config>::AccountId =
 					MODULE_ID.into_account_truncating();
@@ -358,14 +350,14 @@ pub mod pallet {
 						MultiLocation::here().into(),
 						100u128,
 						[1, 2, 3].to_vec(),
-						bob_key,
+						BOB,
 						[2; 32],
 						[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 					),
 					pallet_index::Error::<Test>::WorkerNotSet
 				);
 
-				assert_ok!(PalletIndex::force_add_worker(Origin::root(), BOB.clone()));
+				assert_ok!(PalletIndex::force_add_worker(Origin::root(), BOB));
 				assert_eq!(Balances::free_balance(ALICE), ENDOWED_BALANCE);
 				assert_eq!(Balances::free_balance(module_account.clone()), 0);
 				assert_ok!(PalletIndex::deposit_task(
@@ -373,19 +365,16 @@ pub mod pallet {
 					MultiLocation::here().into(),
 					100u128,
 					[1, 2, 3].to_vec(),
-					bob_key,
+					BOB,
 					request_id,
 					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 				));
 				assert_eq!(Balances::free_balance(ALICE), ENDOWED_BALANCE - 100);
 				assert_eq!(Balances::free_balance(module_account.clone()), 100);
-				assert_eq!(
-					ActivedRequests::<Test>::get(&bob_key),
-					[request_id].to_vec()
-				);
+				assert_eq!(ActivedRequests::<Test>::get(&BOB), [request_id].to_vec());
 				assert_eq!(
 					DepositRecords::<Test>::get(&request_id).unwrap().sender,
-					alice_key
+					ALICE
 				);
 
 				assert_noop!(
@@ -394,7 +383,7 @@ pub mod pallet {
 						MultiLocation::here().into(),
 						100u128,
 						[1, 2, 3].to_vec(),
-						bob_key,
+						BOB,
 						[2; 32],
 						[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 					),
@@ -408,7 +397,7 @@ pub mod pallet {
 						TestAssetLocation::get().into(),
 						100u128,
 						[1, 2, 3].to_vec(),
-						bob_key,
+						BOB,
 						[3; 32],
 						[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 					),
@@ -441,7 +430,7 @@ pub mod pallet {
 					TestAssetLocation::get().into(),
 					100u128,
 					[1, 2, 3].to_vec(),
-					bob_key,
+					BOB,
 					[3; 32],
 					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 				));
@@ -459,7 +448,6 @@ pub mod pallet {
 		#[test]
 		fn test_claim_task_should_work() {
 			new_test_ext().execute_with(|| {
-				let bob_key: [u8; 32] = BOB.into();
 				let request_id_1 = [1; 32];
 				let request_id_2 = [2; 32];
 				let request_id_3 = [3; 32];
@@ -472,7 +460,7 @@ pub mod pallet {
 					MultiLocation::here().into(),
 					100u128,
 					[1, 2, 3].to_vec(),
-					bob_key,
+					BOB,
 					request_id_1,
 					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 				));
@@ -481,7 +469,7 @@ pub mod pallet {
 					MultiLocation::here().into(),
 					200u128,
 					[1, 2, 3].to_vec(),
-					bob_key,
+					BOB,
 					request_id_2,
 					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 				));
@@ -490,7 +478,7 @@ pub mod pallet {
 					MultiLocation::here().into(),
 					300u128,
 					[1, 2, 3].to_vec(),
-					bob_key,
+					BOB,
 					request_id_3,
 					[1, 2, 3, 4, 5, 6, 7, 8].to_vec(),
 				));
