@@ -15,7 +15,7 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use sp_runtime::traits::AccountIdConversion;
-	use sp_std::{collections::vec_deque::VecDeque, vec, vec::Vec};
+	use sp_std::{vec, vec::Vec};
 	use xcm::latest::{prelude::*, AssetId as XcmAssetId};
 	use xcm_executor::traits::TransactAsset;
 
@@ -69,7 +69,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn actived_requests)]
 	pub type ActivedRequests<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, VecDeque<RequestId>, ValueQuery>;
+		StorageMap<_, Twox64Concat, T::AccountId, Vec<RequestId>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -166,7 +166,7 @@ pub mod pallet {
 
 			// Save record to corresponding worker task queue
 			let mut worker_task_queue = ActivedRequests::<T>::get(&worker);
-			worker_task_queue.push_back(request_id);
+			worker_task_queue.push(request_id);
 			ActivedRequests::<T>::insert(&worker, &worker_task_queue);
 			// Save record data
 			let deposit_info = DepositInfo {
@@ -178,27 +178,9 @@ pub mod pallet {
 			};
 			DepositRecords::<T>::insert(&request_id, &deposit_info);
 
-			// Withdraw from sender account
-			T::AssetTransactor::withdraw_asset(
-				&(asset.clone(), amount).into(),
-				&Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: sender.into(),
-				}
-				.into(),
-			)
-			.map_err(|_| Error::<T>::TransactFailed)?;
 			// Deposit into module account
 			let module_account: T::AccountId = MODULE_ID.into_account_truncating();
-			T::AssetTransactor::deposit_asset(
-				&(asset.clone(), amount).into(),
-				&Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: module_account.into(),
-				}
-				.into(),
-			)
-			.map_err(|_| Error::<T>::TransactFailed)?;
+			Self::do_asset_transact(asset.clone(), sender.clone(), module_account, amount)?;
 
 			Self::deposit_event(Event::NewRequest { deposit_info });
 			Ok(())
@@ -216,40 +198,29 @@ pub mod pallet {
 				Error::<T>::WorkerMismatch
 			);
 
-			let mut worker_task_queue = ActivedRequests::<T>::get(&worker);
+			let worker_task_queue = ActivedRequests::<T>::get(&worker);
 			// Check reqeust exist in actived task queue
 			ensure!(
 				worker_task_queue.contains(&request_id),
 				Error::<T>::NotFoundInTaskQueue
 			);
-			// Pop the oldest task from worker task queue
-			let _ = worker_task_queue
-				.pop_front()
-				.ok_or(Error::<T>::TaskQueueEmpty)?;
-			ActivedRequests::<T>::insert(&worker, &worker_task_queue);
+			// Remove the specific task from worker task queue
+			let new_task_queue: Vec<RequestId> = worker_task_queue
+				.into_iter()
+				.filter(|item| *item != request_id)
+				.collect();
+			ActivedRequests::<T>::insert(&worker, &new_task_queue);
 			let deposit_info = DepositRecords::<T>::get(&request_id).unwrap();
 
 			// Withdraw from module account
 			let module_account: T::AccountId = MODULE_ID.into_account_truncating();
-			T::AssetTransactor::withdraw_asset(
-				&(deposit_info.asset.clone(), deposit_info.amount).into(),
-				&Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: module_account.into(),
-				}
-				.into(),
-			)
-			.map_err(|_| Error::<T>::TransactFailed)?;
-			// Deposit into worker account
-			T::AssetTransactor::deposit_asset(
-				&(deposit_info.asset.clone(), deposit_info.amount).into(),
-				&Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: worker.into(),
-				}
-				.into(),
-			)
-			.map_err(|_| Error::<T>::TransactFailed)?;
+			Self::do_asset_transact(
+				deposit_info.asset.clone(),
+				module_account,
+				worker,
+				deposit_info.amount,
+			)?;
+
 			// Delete deposit record
 			DepositRecords::<T>::remove(&request_id);
 
@@ -270,34 +241,22 @@ pub mod pallet {
 				Error::<T>::WorkerMismatch
 			);
 
-			let worker_task_queue = ActivedRequests::<T>::get(&worker);
+			// Take the task queue of the worker
+			let worker_task_queue = ActivedRequests::<T>::take(&worker);
 			// Check reqeust exist in actived task queue
 			ensure!(worker_task_queue.len() > 0, Error::<T>::NotFoundInTaskQueue);
-			// Put an empty task queue
-			ActivedRequests::<T>::insert(&worker, &VecDeque::<RequestId>::new());
 			for request_id in worker_task_queue.iter() {
 				let deposit_info = DepositRecords::<T>::get(&request_id).unwrap();
+
 				// Withdraw from module account
 				let module_account: T::AccountId = MODULE_ID.into_account_truncating();
-				T::AssetTransactor::withdraw_asset(
-					&(deposit_info.asset.clone(), deposit_info.amount).into(),
-					&Junction::AccountId32 {
-						network: NetworkId::Any,
-						id: module_account.into(),
-					}
-					.into(),
-				)
-				.map_err(|_| Error::<T>::TransactFailed)?;
-				// Deposit into worker account
-				T::AssetTransactor::deposit_asset(
-					&(deposit_info.asset.clone(), deposit_info.amount).into(),
-					&Junction::AccountId32 {
-						network: NetworkId::Any,
-						id: worker.clone().into(),
-					}
-					.into(),
-				)
-				.map_err(|_| Error::<T>::TransactFailed)?;
+				Self::do_asset_transact(
+					deposit_info.asset.clone(),
+					module_account,
+					worker.clone(),
+					deposit_info.amount,
+				)?;
+
 				// Delete deposit record
 				DepositRecords::<T>::remove(&request_id);
 			}
@@ -305,6 +264,40 @@ pub mod pallet {
 			Self::deposit_event(Event::Claimed {
 				requests: worker_task_queue.into(),
 			});
+			Ok(())
+		}
+	}
+
+	impl<T: Config> Pallet<T>
+	where
+		T::AccountId: Into<[u8; 32]> + From<[u8; 32]>,
+	{
+		fn do_asset_transact(
+			asset: XcmAssetId,
+			sender: T::AccountId,
+			recipient: T::AccountId,
+			amount: u128,
+		) -> DispatchResult {
+			T::AssetTransactor::withdraw_asset(
+				&(asset.clone(), amount).into(),
+				&Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: sender.into(),
+				}
+				.into(),
+			)
+			.or(Err(Error::<T>::TransactFailed))?;
+			// Deposit into worker account
+			T::AssetTransactor::deposit_asset(
+				&(asset, amount).into(),
+				&Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: recipient.into(),
+				}
+				.into(),
+			)
+			.or(Err(Error::<T>::TransactFailed))?;
+
 			Ok(())
 		}
 	}
