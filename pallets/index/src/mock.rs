@@ -20,8 +20,8 @@ type Block = frame_system::mocking::MockBlock<Test>;
 use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, CurrencyAdapter, FungiblesAdapter, ParentIsPreset,
-	SiblingParachainConvertsVia,
+	AccountId32Aliases, CurrencyAdapter, FungiblesAdapter, MintLocation, NoChecking,
+	ParentIsPreset, SiblingParachainConvertsVia,
 };
 use xcm_executor::traits::{Error as MatchError, MatchesFungible, MatchesFungibles};
 
@@ -132,6 +132,8 @@ impl pallet_assets::Config for Test {
 parameter_types! {
 	pub NativeExecutionPrice: u128 = 1;
 	pub ResourceIdGenerationSalt: Option<u128> = Some(3);
+	pub NativeAssetLocation: MultiLocation = MultiLocation::here();
+	pub NativeAssetSygmaResourceId: [u8; 32] = [0; 32];
 }
 impl assets_registry::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
@@ -145,12 +147,15 @@ impl assets_registry::Config for Test {
 		assets_registry::NativeAssetFilter<ParachainInfo>,
 	>;
 	type ResourceIdGenerationSalt = ResourceIdGenerationSalt;
+	type NativeAssetLocation = NativeAssetLocation;
+	type NativeAssetSygmaResourceId = NativeAssetSygmaResourceId;
 }
 impl pallet_parachain_info::Config for Test {}
 
 parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
-	pub ParaCheckingAccount: AccountId32 = PalletId(*b"py/check").into_account_truncating();
+	pub CheckingAccountForCurrencyAdapter: Option<(AccountId32, MintLocation)> = None;
+	pub CheckingAccountForFungibleAdapter: AccountId32 = PalletId(*b"checking").into_account_truncating();
 	pub TestAssetLocation: MultiLocation = MultiLocation::new(1, X1(GeneralIndex(123)));
 	pub TestAssetAssetId: AssetId = 0;
 }
@@ -203,7 +208,7 @@ pub type CurrencyTransactor = CurrencyAdapter<
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId32,
 	// We don't track any teleports of `Balances`.
-	ParaCheckingAccount,
+	CheckingAccountForCurrencyAdapter,
 >;
 
 pub struct AssetChecker;
@@ -223,9 +228,9 @@ pub type FungiblesTransactor = FungiblesAdapter<
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId32,
 	// We do not support teleport assets
-	AssetChecker,
+	NoChecking,
 	// We do not support teleport assets
-	ParaCheckingAccount,
+	CheckingAccountForFungibleAdapter,
 >;
 
 pub type AssetTransactors = (CurrencyTransactor, FungiblesTransactor);

@@ -281,20 +281,23 @@ pub mod pallet {
 			T::AssetTransactor::withdraw_asset(
 				&(asset.clone(), amount).into(),
 				&Junction::AccountId32 {
-					network: NetworkId::Any,
+					network: None,
 					id: sender.into(),
 				}
 				.into(),
+				None,
 			)
 			.or(Err(Error::<T>::TransactFailed))?;
 			// Deposit into worker account
 			T::AssetTransactor::deposit_asset(
 				&(asset, amount).into(),
 				&Junction::AccountId32 {
-					network: NetworkId::Any,
+					network: None,
 					id: recipient.into(),
 				}
 				.into(),
+				// Put empty message hash here because we are not sending XCM message
+				&XcmContext::with_message_hash([0; 32]),
 			)
 			.or(Err(Error::<T>::TransactFailed))?;
 

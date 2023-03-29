@@ -425,8 +425,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
             RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
             // Phala World
-            RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. } | RuntimeCall::PWMarketplace { .. }
-            RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. } |
+            RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. } | RuntimeCall::PWMarketplace { .. } |
             // inDEX
             RuntimeCall::PalletIndex { .. }
         )

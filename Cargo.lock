@@ -6246,6 +6246,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-index"
+version = "0.1.0"
+dependencies = [
+ "assert_matches",
+ "assets-registry",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex-literal",
+ "log",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-parachain-info",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "polkadot-parachain",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
+]
+
+[[package]]
 name = "pallet-indices"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.39#1837f423b494254e1d27834b1c9da34b2c0c2375"
@@ -12638,6 +12666,7 @@ dependencies = [
  "pallet-democracy",
  "pallet-elections-phragmen",
  "pallet-identity",
+ "pallet-index",
  "pallet-insecure-randomness-collective-flip",
  "pallet-lottery",
  "pallet-membership",
