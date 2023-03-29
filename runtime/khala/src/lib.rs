@@ -78,7 +78,7 @@ pub use frame_support::{
         tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency,
         EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
         KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
-        WithdrawReasons,
+        WithdrawReasons, SortedMembers, 
     },
     weights::{
         constants::{
@@ -91,7 +91,7 @@ pub use frame_support::{
 
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureRoot, EnsureSigned,
+    EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
 
 use pallet_xcm::XcmPassthrough;
@@ -1623,6 +1623,15 @@ impl pallet_mq::Config for Runtime {
     type QueueNotifyConfig = msg_routing::MessageRouteConfig;
     type CallMatcher = MqCallMatcher;
 }
+
+pub struct SetBudgetMembers;
+
+impl SortedMembers<AccountId> for SetBudgetMembers {
+    fn sorted_members() -> Vec<AccountId> {
+        [pallet_computation::pallet::ContractAccount::<Runtime>::get()].to_vec()
+    }
+}
+
 impl pallet_computation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
@@ -1633,6 +1642,8 @@ impl pallet_computation::Config for Runtime {
     type OnStopped = PhalaStakePoolv2;
     type OnTreasurySettled = Treasury;
     type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
+    type SetBudgetOrigins = EnsureSignedBy<SetBudgetMembers, AccountId>;
+    type SetContractRootOrigins = EnsureRootOrHalfCouncil;
 }
 impl pallet_stake_pool_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
