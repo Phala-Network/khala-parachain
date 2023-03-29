@@ -106,7 +106,7 @@ where
     use frame_rpc_system::{System, SystemApiServer};
     use pallet_rmrk_rpc::{Rmrk, RmrkApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
-	use sygma_rpc::{SygmaBridgeRpcServer, SygmaBridgeStorage};
+    use sygma_rpc::{SygmaBridgeRpcServer, SygmaBridgeStorage};
 
     let mut module = RpcExtension::new(());
     let FullDeps {
@@ -120,7 +120,7 @@ where
     module.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
     module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
     module.merge(Rmrk::new(client.clone()).into_rpc())?;
-	module.merge(SygmaBridgeStorage::new(client.clone()).into_rpc())?;
+    module.merge(SygmaBridgeStorage::new(client.clone()).into_rpc())?;
 
     phala_node_rpc_ext::extend_rpc(
         &mut module,
@@ -140,7 +140,9 @@ pub fn create_phala_full<C, B, P>(
 ) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>
+        + StorageProvider<Block, B>
         + HeaderBackend<Block>
+        + BlockBackend<Block>
         + AuxStore
         + HeaderMetadata<Block, Error = BlockChainError>
         + Send
@@ -149,22 +151,35 @@ where
     C::Api: frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: BlockBuilder<Block>,
+    C::Api: sp_api::Metadata<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<B, Block>>,
+    C::Api: pallet_mq_runtime_api::MqApi<Block>,
+    C::Api: sygma_runtime_api::SygmaBridgeApi<Block>,
+    B: Backend<Block> + 'static,
     P: TransactionPool + Sync + Send + 'static,
 {
     use frame_rpc_system::{System, SystemApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
+    use sygma_rpc::{SygmaBridgeRpcServer, SygmaBridgeStorage};
 
     let mut module = RpcExtension::new(());
     let FullDeps {
         client,
         pool,
         deny_unsafe,
-        backend: _,
-        archive_enabled: _,
+        backend,
+        archive_enabled,
     } = deps;
 
-    module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
+    module.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
     module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
+    module.merge(SygmaBridgeStorage::new(client.clone()).into_rpc())?;
+    phala_node_rpc_ext::extend_rpc(
+        &mut module,
+        client.clone(),
+        backend.clone(),
+        archive_enabled,
+        pool.clone(),
+    );
 
     Ok(module)
 }
