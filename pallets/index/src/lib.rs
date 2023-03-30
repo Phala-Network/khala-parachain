@@ -145,7 +145,7 @@ pub mod pallet {
 
 			// Ensure given worker was registered
 			ensure!(Workers::<T>::get(&worker), Error::<T>::WorkerNotSet);
-			// Check if foreign asset was registered on our chain
+			// Check if asset was registered on our chain
 			if &asset != &MultiLocation::here().into() {
 				let asset_location = match &asset {
 					Concrete(location) => Some(location),
@@ -381,7 +381,7 @@ pub mod pallet {
 					pallet_index::Error::<Test>::TaskAlreadyExist
 				);
 
-				// Should fail if foreign asset not registered
+				// Should fail if asset not registered
 				assert_noop!(
 					PalletIndex::deposit_task(
 						Origin::signed(ALICE),
