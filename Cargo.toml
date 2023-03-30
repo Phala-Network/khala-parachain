@@ -44,6 +44,7 @@ members = [
 	"pallets/subbridge",
 	"pallets/parachain-info",
 	"pallets/phala-world",
+	"pallets/index",
 	"runtime/phala",
 	"runtime/khala",
 	"runtime/rhala",
