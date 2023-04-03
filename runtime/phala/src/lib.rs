@@ -1108,6 +1108,7 @@ parameter_types! {
     pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
     pub const MaximumReasonLength: u32 = 16384;
     pub const MaxApprovals: u32 = 100;
+    pub const MaxBalance: Balance = Balance::max_value();
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -1132,7 +1133,13 @@ impl pallet_treasury::Config for Runtime {
     type SpendFunds = Bounties;
     type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
     type MaxApprovals = MaxApprovals;
-    type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u128>;
+    type SpendOrigin = frame_system::EnsureWithSuccess<
+        frame_support::traits::EitherOf<
+            EnsureRoot<AccountId>,
+            pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
+        >,
+        AccountId, MaxBalance,
+    >;
 }
 
 parameter_types! {
