@@ -184,10 +184,10 @@ impl MatchesFungibles<AssetId, Balance> for SimpleForeignAssetMatcher {
 				if id == &TestAssetLocation::get() {
 					Ok((TestAssetAssetId::get(), *amount))
 				} else {
-					Err(MatchError::AssetNotFound)
+					Err(MatchError::AssetNotHandled)
 				}
 			}
-			_ => Err(MatchError::AssetNotFound),
+			_ => Err(MatchError::AssetNotHandled),
 		}
 	}
 }
