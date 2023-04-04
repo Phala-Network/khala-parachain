@@ -13,8 +13,8 @@ pub mod pallet {
 		dispatch::DispatchResult,
 		pallet_prelude::*,
 		traits::{
-			ConstBool, Currency, ConstU128, ExistenceRequirement::KeepAlive, OnUnbalanced, Randomness,
-			StorageVersion, UnixTime,
+			ConstBool, ConstU128, Currency, ExistenceRequirement::KeepAlive, OnUnbalanced,
+			Randomness, StorageVersion, UnixTime,
 		},
 		PalletId,
 	};
@@ -311,7 +311,9 @@ pub mod pallet {
 		/// Cool down expiration changed (in sec).
 		///
 		/// Indicates a change in [`CoolDownPeriod`].
-		CoolDownExpirationChanged { period: u64 },
+		CoolDownExpirationChanged {
+			period: u64,
+		},
 		/// A worker starts computing.
 		///
 		/// Affected states:
@@ -329,7 +331,9 @@ pub mod pallet {
 		/// Affected states:
 		/// - the worker info at [`Sessions`] is updated with `WorkerCoolingDown` state
 		/// - [`OnlineWorkers`] is decremented
-		WorkerStopped { session: T::AccountId },
+		WorkerStopped {
+			session: T::AccountId,
+		},
 		/// Worker is reclaimed, with its slash settled.
 		WorkerReclaimed {
 			session: T::AccountId,
@@ -359,12 +363,16 @@ pub mod pallet {
 		///
 		/// Affected states:
 		/// - the worker info at [`Sessions`] is updated from `WorkerIdle` to `WorkerUnresponsive`
-		WorkerEnterUnresponsive { session: T::AccountId },
+		WorkerEnterUnresponsive {
+			session: T::AccountId,
+		},
 		/// Worker returns to responsive state.
 		///
 		/// Affected states:
 		/// - the worker info at [`Sessions`] is updated from `WorkerUnresponsive` to `WorkerIdle`
-		WorkerExitUnresponsive { session: T::AccountId },
+		WorkerExitUnresponsive {
+			session: T::AccountId,
+		},
 		/// Worker settled successfully.
 		///
 		/// It results in the v in [`Sessions`] being updated. It also indicates the downstream
@@ -376,7 +384,9 @@ pub mod pallet {
 			payout_bits: u128,
 		},
 		/// Some internal error happened when settling a worker's ledger.
-		InternalErrorWorkerSettleFailed { worker: WorkerPublicKey },
+		InternalErrorWorkerSettleFailed {
+			worker: WorkerPublicKey,
+		},
 		/// Block subsidy halved by 25%.
 		///
 		/// This event will be followed by a [`TokenomicParametersChanged`](#variant.TokenomicParametersChanged)
@@ -403,7 +413,6 @@ pub mod pallet {
 			session: T::AccountId,
 			p_instant: u32,
 		},
-
 		BudgetUpdated {
 			nonce: u64,
 			budget: u128,
