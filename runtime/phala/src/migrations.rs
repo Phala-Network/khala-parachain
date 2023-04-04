@@ -19,3 +19,9 @@ use frame_support::traits::OnRuntimeUpgrade;
 // pre_upgrade checks and confirmed that only the prefix checks are skipped. All the other checks
 // are still performed in an offline try-runtime test.
 
+pub struct PalletSchedulerMigration;
+impl OnRuntimeUpgrade for PalletSchedulerMigration {
+	fn on_runtime_upgrade() -> frame_support::weights::Weight {
+		Scheduler::migrate_v1_to_v4()
+	}
+}
