@@ -199,6 +199,13 @@ pub type Executive = frame_executive::Executive<
 /// `OnRuntimeUpgrade`.
 type Migrations = (
     // FIXME: We should double check the CheckingAccount
+    // 9320
+    // "Bound uses of call" <https://github.com/paritytech/polkadot/pull/5729>
+    pallet_preimage::migration::v1::Migration<Runtime>,
+    migrations::PalletSchedulerMigration,
+    pallet_democracy::migrations::v1::Migration<Runtime>,
+    pallet_multisig::migrations::v1::MigrateToV1<Runtime>,
+    //
     pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccountForFungibleAdapter>,
     pallet_assets::migration::v1::MigrateToV1<Runtime>,
     pallet_xcm::migration::v1::MigrateToV1<Runtime>,
