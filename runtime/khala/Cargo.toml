@@ -103,6 +103,7 @@ phala-pallets = { path = "../../pallets/phala", default-features = false }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }
 subbridge-pallets = { path = "../../pallets/subbridge", default-features = false }
 pallet-phala-world = { path = "../../pallets/phala-world", default-features = false }
+pallet-index = { path = "../../pallets/index", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.40", optional = true }
@@ -219,6 +220,7 @@ std = [
 	"pallet-rmrk-rpc-runtime-api/std",
 	"pallet-phala-world/std",
 	"sygma-runtime-api/std",
+	"pallet-index/std",
 ]
 
 try-runtime = [
@@ -267,6 +269,7 @@ try-runtime = [
 	"subbridge-pallets/try-runtime",
 	"assets-registry/try-runtime",
 	"phala-pallets/try-runtime",
+	"pallet-index/try-runtime",
 ]
 
 # A feature that should be enabled when the runtime should be build for on-chain

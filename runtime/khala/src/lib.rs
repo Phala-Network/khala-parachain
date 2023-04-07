@@ -316,6 +316,11 @@ construct_runtime! {
         PWNftSale: pallet_pw_nft_sale::{Pallet, Call, Storage, Event<T>} = 105,
         PWIncubation: pallet_pw_incubation::{Pallet, Call, Storage, Event<T>} = 106,
         PWMarketplace: pallet_pw_marketplace::{Pallet, Call, Event<T>} = 107,
+
+        // 11x kept for Sygma bridge
+
+        // inDEX
+        PalletIndex: pallet_index::{Pallet, Call, Storage, Event<T>} = 121,
     }
 }
 
@@ -422,7 +427,9 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
             // RuntimeCall::PhalaPhatContracts { .. } | RuntimeCall::PhalaPhatTokenomic { .. } |
             // Phala World
-            RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. } | RuntimeCall::PWMarketplace { .. }
+            RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. } | RuntimeCall::PWMarketplace { .. } |
+            // inDEX
+            RuntimeCall::PalletIndex { .. }
         )
     }
 }
@@ -1729,6 +1736,13 @@ impl phala_pallets::PhalaConfig for Runtime {
 //     type RuntimeEvent = RuntimeEvent;
 //     type Currency = Balances;
 // }
+
+impl pallet_index::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type CommitteeOrigin = EnsureRootOrHalfCouncil;
+    type AssetTransactor = (CurrencyTransactor, FungiblesTransactor);
+    type AssetsRegistry = AssetsRegistry;
+}
 
 #[cfg(feature = "runtime-benchmarks")]
 #[macro_use]

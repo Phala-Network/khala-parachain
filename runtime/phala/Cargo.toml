@@ -102,6 +102,7 @@ pallet-parachain-info = { path = "../../pallets/parachain-info", default-feature
 phala-pallets = { path = "../../pallets/phala", default-features = false }
 pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-features = false }
 subbridge-pallets = { path = "../../pallets/subbridge", default-features = false }
+pallet-index = { path = "../../pallets/index", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.40", optional = true }
@@ -217,12 +218,13 @@ std = [
 	"pallet-rmrk-equip/std",
 	"rmrk-traits/std",
 	"pallet-rmrk-rpc-runtime-api/std",
+	"pallet-index/std",
 ]
 
 try-runtime = [
 	"frame-executive/try-runtime",
-	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"frame-support/try-runtime",
 	"frame-try-runtime/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
@@ -259,11 +261,12 @@ try-runtime = [
 	"cumulus-pallet-parachain-system/try-runtime",
 	"rmrk-traits/try-runtime",
 	"pallet-rmrk-core/try-runtime",
-	"pallet-rmrk-rpc-runtime-api/std",
+	"pallet-rmrk-equip/try-runtime",
 	"pallet-rmrk-market/try-runtime",
 	"subbridge-pallets/try-runtime",
 	"assets-registry/try-runtime",
 	"phala-pallets/try-runtime",
+	"pallet-index/try-runtime",
 ]
 
 # A feature that should be enabled when the runtime should be build for on-chain
