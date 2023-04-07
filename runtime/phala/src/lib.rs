@@ -302,6 +302,11 @@ construct_runtime! {
         RmrkCore: pallet_rmrk_core::{Pallet, Call, Event<T>, Storage} = 102,
         RmrkEquip: pallet_rmrk_equip::{Pallet, Call, Event<T>, Storage} = 103,
         RmrkMarket: pallet_rmrk_market::{Pallet, Call, Storage, Event<T>} = 104,
+
+        // 11x kept for Sygma bridge
+
+        // inDEX
+        PalletIndex: pallet_index::{Pallet, Call, Storage, Event<T>} = 121,
     }
 }
 
@@ -406,7 +411,9 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::PhalaComputation { .. } |
             RuntimeCall::PhalaStakePoolv2 { .. } | RuntimeCall::PhalaBasePool { .. } |
             RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
-            RuntimeCall::PhalaPhatContracts { .. } | RuntimeCall::PhalaPhatTokenomic { .. }
+            RuntimeCall::PhalaPhatContracts { .. } | RuntimeCall::PhalaPhatTokenomic { .. } |
+            // inDEX
+            RuntimeCall::PalletIndex { .. }
         )
     }
 }
@@ -1687,6 +1694,13 @@ impl pallet_phat::Config for Runtime {
 impl pallet_phat_tokenomic::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
+}
+
+impl pallet_index::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type CommitteeOrigin = EnsureRootOrHalfCouncil;
+    type AssetTransactor = (CurrencyTransactor, FungiblesTransactor);
+    type AssetsRegistry = AssetsRegistry;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
