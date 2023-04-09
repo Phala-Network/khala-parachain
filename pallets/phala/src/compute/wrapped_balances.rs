@@ -289,7 +289,11 @@ pub mod pallet {
 			VoteAccountMap::<T>::insert(vote_id, &user, (aye_amount, nay_amount));
 			AccountVoteMap::<T>::insert(&user, vote_id, ());
 			let account_vote = Self::accumulate_account_vote(vote_id);
-			pallet_democracy::Pallet::<T>::vote(origin, vote_id, account_vote)?;
+			pallet_democracy::Pallet::<T>::vote(
+				RawOrigin::Signed(T::WrappedBalancesAccountId::get().clone()).into(),
+				vote_id,
+				account_vote,
+			)?;
 			Self::update_user_locked(user.clone())?;
 			Self::deposit_event(Event::<T>::Voted {
 				user,
