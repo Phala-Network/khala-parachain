@@ -1274,7 +1274,7 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
     type MaxProposals = CouncilMaxProposals;
     type MaxMembers = CouncilMaxMembers;
     type DefaultVote = pallet_collective::PrimeDefaultVote;
-    type SetMembersOrigin = EnsureRoot<AccountId>;
+    type SetMembersOrigin = EnsureRoot<Self::AccountId>;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
