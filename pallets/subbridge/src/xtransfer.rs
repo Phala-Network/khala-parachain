@@ -15,7 +15,6 @@ pub mod pallet {
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T>(_);
 
@@ -157,7 +156,7 @@ pub mod pallet {
 				temporary_account.into(),
 				what.clone(),
 				who.clone(),
-				Some(XCMWeight::from_ref_time(6_000_000_000u64)),
+				Some(XCMWeight::from_parts(6_000_000_000u64, 0)),
 			)?;
 			Self::deposit_event(Event::Forwarded { what, who, memo });
 			// TODO: Should we support forward generic message in the future?

@@ -19,7 +19,7 @@ pub mod pallet {
 			OnUnbalanced, StorageVersion,
 		},
 	};
-	use frame_system::pallet_prelude::*;
+	use frame_system::{pallet_prelude::*, RawOrigin};
 	use pallet_democracy::{AccountVote, ReferendumIndex, ReferendumInfo};
 	pub use rmrk_traits::primitives::{CollectionId, NftId};
 	use scale_info::TypeInfo;
@@ -62,7 +62,6 @@ pub mod pallet {
 	const MAX_ITERRATIONS: u32 = 100;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
@@ -143,11 +142,16 @@ pub mod pallet {
 		T: pallet_democracy::Config<Currency = <T as crate::PhalaConfig>::Currency>,
 		T: Config + vault::Config,
 	{
-		fn pre_check(_sender: &T::AccountId, _recipient: &T::AccountId, collection_id: &CollectionId, _nft_id: &NftId) -> bool {
+		fn pre_check(
+			_sender: &T::AccountId,
+			_recipient: &T::AccountId,
+			collection_id: &CollectionId,
+			_nft_id: &NftId,
+		) -> bool {
 			if base_pool::pallet::PoolCollections::<T>::get(collection_id).is_some() {
 				// Forbid any delegation transfer before delegation nft transfer and sell is fully prepared.
 				// TODO(mingxuan): reopen pre_check function.
-				return false
+				return false;
 			}
 
 			true
@@ -289,7 +293,11 @@ pub mod pallet {
 			VoteAccountMap::<T>::insert(vote_id, &user, (aye_amount, nay_amount));
 			AccountVoteMap::<T>::insert(&user, vote_id, ());
 			let account_vote = Self::accumulate_account_vote(vote_id);
-			pallet_democracy::Pallet::<T>::vote(origin, vote_id, account_vote)?;
+			pallet_democracy::Pallet::<T>::vote(
+				RawOrigin::Signed(T::WrappedBalancesAccountId::get()).into(),
+				vote_id,
+				account_vote,
+			)?;
 			Self::update_user_locked(user.clone())?;
 			Self::deposit_event(Event::<T>::Voted {
 				user,
@@ -383,8 +391,7 @@ pub mod pallet {
 			pid: u64,
 			cid: CollectionId,
 		) -> DispatchResult {
-			let mut account_status =
-				StakerAccounts::<T>::get(who).unwrap_or_default();
+			let mut account_status = StakerAccounts::<T>::get(who).unwrap_or_default();
 
 			if !account_status.invest_pools.contains(&(pid, cid)) {
 				account_status.invest_pools.push((pid, cid));

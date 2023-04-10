@@ -78,7 +78,7 @@ pub use frame_support::{
         tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency,
         EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
         KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
-        WithdrawReasons,
+        WithdrawReasons, SortedMembers, 
     },
     weights::{
         constants::{
@@ -91,7 +91,7 @@ pub use frame_support::{
 
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureRoot, EnsureSigned,
+    EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
 
 use pallet_xcm::XcmPassthrough;
@@ -124,7 +124,7 @@ pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_marketplace, pallet
 #[cfg(any(feature = "std", test))]
 pub use pallet_timestamp::Call as TimestampCall;
 pub use phala_pallets::{
-    pallet_base_pool, pallet_computation, pallet_fat, pallet_fat_tokenomic, pallet_mq,
+    pallet_base_pool, pallet_computation, pallet_mq,
     pallet_registry, pallet_stake_pool, pallet_stake_pool_v2, pallet_vault,
     pallet_wrapped_balances,
 };
@@ -164,7 +164,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 1220,
+    spec_version: 1225,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -217,8 +217,13 @@ pub type Executive = frame_executive::Executive<
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`.
 type Migrations = (
-    pallet_xcm::migration::v1::MigrateToV1<Runtime>,
-    assets_registry::migration::AssetsRegistryToV3Location<Runtime>,
+    // 9320
+    // "Bound uses of call" <https://github.com/paritytech/polkadot/pull/5729>
+    pallet_preimage::migration::v1::Migration<Runtime>,
+    migrations::PalletSchedulerMigration,
+    pallet_democracy::migrations::v1::Migration<Runtime>,
+    pallet_multisig::migrations::v1::MigrateToV1<Runtime>,
+    //
 );
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
@@ -227,7 +232,7 @@ type EnsureRootOrHalfCouncil = EitherOfDiverse<
 >;
 
 construct_runtime! {
-    pub enum Runtime where
+    pub struct Runtime where
         Block = Block,
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
@@ -291,8 +296,8 @@ construct_runtime! {
         PhalaStakePool: pallet_stake_pool::{Pallet, Event<T>, Storage} = 88,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
-        // PhalaFatContracts: pallet_fat::{Pallet, Call, Event<T>, Storage} = 91,
-        // PhalaFatTokenomic: pallet_fat_tokenomic::{Pallet, Call, Event<T>, Storage} = 92,
+        // PhalaPhatContracts: pallet_phat::{Pallet, Call, Event<T>, Storage} = 91,
+        // PhalaPhatTokenomic: pallet_phat_tokenomic::{Pallet, Call, Event<T>, Storage} = 92,
         PhalaStakePoolv2: pallet_stake_pool_v2::{Pallet, Call, Event<T>, Storage} = 93,
         PhalaVault: pallet_vault::{Pallet, Call, Event<T>, Storage} = 94,
         PhalaWrappedBalances: pallet_wrapped_balances::{Pallet, Call, Event<T>, Storage} = 95,
@@ -311,6 +316,11 @@ construct_runtime! {
         PWNftSale: pallet_pw_nft_sale::{Pallet, Call, Storage, Event<T>} = 105,
         PWIncubation: pallet_pw_incubation::{Pallet, Call, Storage, Event<T>} = 106,
         PWMarketplace: pallet_pw_marketplace::{Pallet, Call, Event<T>} = 107,
+
+        // 11x kept for Sygma bridge
+
+        // inDEX
+        PalletIndex: pallet_index::{Pallet, Call, Storage, Event<T>} = 121,
     }
 }
 
@@ -415,9 +425,11 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::PhalaComputation { .. } |
             RuntimeCall::PhalaStakePoolv2 { .. } | RuntimeCall::PhalaBasePool { .. } |
             RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
-            // RuntimeCall::PhalaFatContracts { .. } | RuntimeCall::PhalaFatTokenomic { .. } |
+            // RuntimeCall::PhalaPhatContracts { .. } | RuntimeCall::PhalaPhatTokenomic { .. } |
             // Phala World
-            RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. } | RuntimeCall::PWMarketplace { .. }
+            RuntimeCall::PWNftSale { .. } | RuntimeCall::PWIncubation { .. } | RuntimeCall::PWMarketplace { .. } |
+            // inDEX
+            RuntimeCall::PalletIndex { .. }
         )
     }
 }
@@ -1043,7 +1055,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<RuntimeOrigin>,
 );
 parameter_types! {
-    pub UnitWeightCost: XCMWeight = XCMWeight::from_ref_time(200_000_000u64);
+    pub UnitWeightCost: XCMWeight = XCMWeight::from_parts(200_000_000u64, 0);
     pub const MaxInstructions: u32 = 100;
     pub KhalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
 	pub CheckingAccountForCurrencyAdapter: Option<(AccountId, MintLocation)> = None;
@@ -1379,6 +1391,7 @@ parameter_types! {
     pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
     pub const MaximumReasonLength: u32 = 16384;
     pub const MaxApprovals: u32 = 100;
+    pub const MaxBalance: Balance = Balance::max_value();
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -1403,7 +1416,13 @@ impl pallet_treasury::Config for Runtime {
     type SpendFunds = Bounties;
     type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
     type MaxApprovals = MaxApprovals;
-    type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u128>;
+    type SpendOrigin = frame_system::EnsureWithSuccess<
+        frame_support::traits::EitherOf<
+            EnsureRoot<AccountId>,
+            pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
+        >,
+        AccountId, MaxBalance,
+    >;
 }
 
 parameter_types! {
@@ -1626,6 +1645,15 @@ impl pallet_mq::Config for Runtime {
     type QueueNotifyConfig = msg_routing::MessageRouteConfig;
     type CallMatcher = MqCallMatcher;
 }
+
+pub struct SetBudgetMembers;
+
+impl SortedMembers<AccountId> for SetBudgetMembers {
+    fn sorted_members() -> Vec<AccountId> {
+        [pallet_computation::pallet::ContractAccount::<Runtime>::get()].to_vec()
+    }
+}
+
 impl pallet_computation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ExpectedBlockTimeSec = ExpectedBlockTimeSec;
@@ -1636,6 +1664,8 @@ impl pallet_computation::Config for Runtime {
     type OnStopped = PhalaStakePoolv2;
     type OnTreasurySettled = Treasury;
     type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
+    type SetBudgetOrigins = EnsureSignedBy<SetBudgetMembers, AccountId>;
+    type SetContractRootOrigins = EnsureRootOrHalfCouncil;
 }
 impl pallet_stake_pool_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -1696,16 +1726,23 @@ impl pallet_base_pool::Config for Runtime {
 impl phala_pallets::PhalaConfig for Runtime {
     type Currency = Balances;
 }
-// impl pallet_fat::Config for Runtime {
+// impl pallet_phat::Config for Runtime {
 //     type RuntimeEvent = RuntimeEvent;
 //     type InkCodeSizeLimit = ConstU32<{1024*1024*2}>;
 //     type SidevmCodeSizeLimit = ConstU32<{1024*1024*8}>;
 //     type Currency = Balances;
 // }
-// impl pallet_fat_tokenomic::Config for Runtime {
+// impl pallet_phat_tokenomic::Config for Runtime {
 //     type RuntimeEvent = RuntimeEvent;
 //     type Currency = Balances;
 // }
+
+impl pallet_index::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type CommitteeOrigin = EnsureRootOrHalfCouncil;
+    type AssetTransactor = (CurrencyTransactor, FungiblesTransactor);
+    type AssetsRegistry = AssetsRegistry;
+}
 
 #[cfg(feature = "runtime-benchmarks")]
 #[macro_use]

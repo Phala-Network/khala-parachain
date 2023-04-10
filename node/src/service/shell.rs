@@ -12,8 +12,8 @@ use cumulus_relay_chain_interface::RelayChainInterface;
 pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
 
 use sc_consensus::ImportQueue;
-use sc_network::NetworkService;
-use sc_network_common::service::NetworkBlock;
+use sc_network::NetworkBlock;
+use sc_network_sync::SyncingService;
 use sc_service::{
     Configuration, TFullBackend, TaskManager,
 };
@@ -119,7 +119,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             &TaskManager,
             Arc<dyn RelayChainInterface>,
             Arc<sc_transaction_pool::FullPool<Block, ParachainClient<RuntimeApi>>>,
-            Arc<NetworkService<Block, Hash>>,
+            Arc<SyncingService<Block>>,
             SyncCryptoStorePtr,
             bool,
         ) -> Result<Box<dyn ParachainConsensus<Block>>, sc_service::Error>,
@@ -151,7 +151,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
     let transaction_pool = params.transaction_pool.clone();
     let import_queue_service = params.import_queue.service();
 
-    let (network, system_rpc_tx, tx_handler_controller, start_network) =
+    let (network, system_rpc_tx, tx_handler_controller, start_network, sync_service) =
         build_network(BuildNetworkParams {
             parachain_config: &parachain_config,
             client: client.clone(),
@@ -175,6 +175,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         keystore: params.keystore_container.sync_keystore(),
         backend: backend.clone(),
         network: network.clone(),
+        sync_service: sync_service.clone(),
         system_rpc_tx,
         tx_handler_controller,
         telemetry: telemetry.as_mut(),
@@ -194,8 +195,8 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
     }
 
     let announce_block = {
-        let network = network.clone();
-        Arc::new(move |hash, data| network.announce_block(hash, data))
+        let sync_service = sync_service.clone();
+        Arc::new(move |hash, data| sync_service.announce_block(hash, data))
     };
 
     let relay_chain_slot_duration = Duration::from_secs(6);
@@ -213,7 +214,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             &task_manager,
             relay_chain_interface.clone(),
             transaction_pool,
-            network,
+            sync_service,
             params.keystore_container.sync_keystore(),
             force_authoring,
         )?;

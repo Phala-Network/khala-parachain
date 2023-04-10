@@ -17,8 +17,8 @@ pub mod migrations;
 pub mod utils;
 
 pub mod compute;
-pub mod fat;
 pub mod mq;
+pub mod phat;
 pub mod puppets;
 pub mod registry;
 pub mod stake_pool;
@@ -45,12 +45,12 @@ pub use compute::computation as pallet_computation;
 pub use compute::stake_pool_v2 as pallet_stake_pool_v2;
 pub use compute::vault as pallet_vault;
 pub use compute::wrapped_balances as pallet_wrapped_balances;
-pub use fat as pallet_fat;
-pub use fat_tokenomic as pallet_fat_tokenomic;
 pub use mq as pallet_mq;
+pub use phat as pallet_phat;
+pub use phat_tokenomic as pallet_phat_tokenomic;
 pub use registry as pallet_registry;
 pub use stake_pool as pallet_stake_pool;
-pub mod fat_tokenomic;
+pub mod phat_tokenomic;
 
 #[cfg(feature = "native")]
 use sp_core::hashing;

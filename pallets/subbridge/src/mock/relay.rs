@@ -95,7 +95,7 @@ type LocalOriginConverter = (
 );
 
 parameter_types! {
-	pub const BaseXcmWeight: XCMWeight = XCMWeight::from_ref_time(10);
+	pub const BaseXcmWeight: XCMWeight = XCMWeight::from_parts(10, 0);
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }

@@ -49,7 +49,6 @@ pub mod pallet {
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(7);
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
@@ -442,11 +441,8 @@ pub mod pallet {
 			.ok_or(Error::<T>::AssetAccountNotExist)?;
 			ensure!(free >= a, Error::<T>::InsufficientBalance);
 
-			let shares = base_pool::Pallet::<T>::contribute(
-				&mut pool_info.basepool,
-				who.clone(),
-				amount,
-			)?;
+			let shares =
+				base_pool::Pallet::<T>::contribute(&mut pool_info.basepool, who.clone(), amount)?;
 
 			// We have new free stake now, try to handle the waiting withdraw queue
 
