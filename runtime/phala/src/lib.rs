@@ -970,16 +970,6 @@ parameter_types! {
     pub const CouncilMaxMembers: u32 = 100;
 }
 
-pub struct SetMemberOrigin;
-
-impl SortedMembers<AccountId> for SetMemberOrigin {
-    fn sorted_members() -> Vec<AccountId> {
-        let account1: [u8; 32] =
-            hex_literal::hex!("9e6399cd577e8ac536bdc017675f747b2d1893ad9cc8c69fd17eef73d4e6e51e");
-        [account1.into()].to_vec()
-    }
-}
-
 type CouncilCollective = pallet_collective::Instance1;
 impl pallet_collective::Config<CouncilCollective> for Runtime {
     type RuntimeOrigin = RuntimeOrigin;
@@ -989,7 +979,7 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
     type MaxProposals = CouncilMaxProposals;
     type MaxMembers = CouncilMaxMembers;
     type DefaultVote = pallet_collective::PrimeDefaultVote;
-    type SetMembersOrigin = EnsureSignedBy<SetMemberOrigin, AccountId>;
+    type SetMembersOrigin = EnsureRoot<Self::AccountId>;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
