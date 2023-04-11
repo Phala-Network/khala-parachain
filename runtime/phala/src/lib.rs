@@ -383,6 +383,41 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             };
         }
 
+        if let RuntimeCall::PhalaRegistry(phala_registry_method) = call {
+            return match phala_registry_method {
+                pallet_registry::Call::register_worker { .. }
+                | pallet_registry::Call::remove_relaychain_genesis_block_hash { .. }
+                | pallet_registry::Call::set_minimum_pruntime_version { .. }
+                | pallet_registry::Call::set_pruntime_consensus_version { .. }
+                | pallet_registry::Call::add_relaychain_genesis_block_hash { .. }
+                | pallet_registry::Call::add_pruntime { .. }
+                | pallet_registry::Call::force_set_benchmark_duration { .. }
+                | pallet_registry::Call::register_gatekeeper { .. }
+                | pallet_registry::Call::__Ignore { .. } => true,
+                _ => false,
+            };
+        }
+
+        if let RuntimeCall::PhalaComputation(phala_computation_method) = call {
+            return match phala_computation_method {
+                pallet_computation::Call::update_contract_root { .. }
+                | pallet_computation::Call::set_cool_down_expiration { .. }
+                | pallet_computation::Call::set_heartbeat_paused { .. }
+                | pallet_computation::Call::update_tokenomic { .. }
+                | pallet_computation::Call::force_heartbeat { .. }
+                | pallet_computation::Call::__Ignore { .. } => true,
+                _ => false,
+            };
+        }
+
+        if let RuntimeCall::PhalaStakePoolv2(phala_stakepoolv2_method) = call {
+            return match phala_stakepoolv2_method {
+                pallet_stake_pool_v2::Call::set_working_enabled { .. }
+                | pallet_stake_pool_v2::Call::__Ignore { .. } => true,
+                _ => false,
+            };
+        }
+
         matches!(
             call,
             // System
