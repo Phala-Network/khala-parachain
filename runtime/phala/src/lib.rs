@@ -319,8 +319,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 | pallet_xcm::Call::teleport_assets { .. }
                 | pallet_xcm::Call::reserve_transfer_assets { .. }
                 | pallet_xcm::Call::limited_reserve_transfer_assets { .. }
-                | pallet_xcm::Call::limited_teleport_assets { .. }
-                | pallet_xcm::Call::__Ignore { .. } => false,
+                | pallet_xcm::Call::limited_teleport_assets { .. } => false,
                 pallet_xcm::Call::force_xcm_version { .. }
                 | pallet_xcm::Call::force_default_xcm_version { .. }
                 | pallet_xcm::Call::force_subscribe_version_notify { .. }
@@ -332,8 +331,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
         if let RuntimeCall::AssetsRegistry(ar_method) = call {
             return match ar_method {
                 assets_registry::Call::force_mint { .. }
-                | assets_registry::Call::force_burn { .. }
-                | assets_registry::Call::__Ignore { .. } => false,
+                | assets_registry::Call::force_burn { .. } => false,
                 _ => true,
             };
         }
@@ -343,8 +341,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 pallet_assets::Call::create { .. }
                 | pallet_assets::Call::force_create { .. }
                 | pallet_assets::Call::set_metadata { .. }
-                | pallet_assets::Call::force_set_metadata { .. }
-                | pallet_assets::Call::__Ignore { .. } => false,
+                | pallet_assets::Call::force_set_metadata { .. } => false,
                 _ => true,
             };
         }
@@ -354,8 +351,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 pallet_uniques::Call::freeze { .. }
                 | pallet_uniques::Call::thaw { .. }
                 | pallet_uniques::Call::set_team { .. }
-                | pallet_uniques::Call::set_accept_ownership { .. }
-                | pallet_uniques::Call::__Ignore { .. } => true,
+                | pallet_uniques::Call::set_accept_ownership { .. } => true,
                 _ => false,
             };
         }
@@ -367,8 +363,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 | pallet_rmrk_core::Call::accept_resource { .. }
                 | pallet_rmrk_core::Call::remove_resource { .. }
                 | pallet_rmrk_core::Call::accept_resource_removal { .. }
-                | pallet_rmrk_core::Call::send { .. }
-                | pallet_rmrk_core::Call::__Ignore { .. } => true,
+                | pallet_rmrk_core::Call::send { .. } => true,
                 _ => false,
             };
         }
@@ -377,8 +372,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             return match rmrk_market_method {
                 pallet_rmrk_market::Call::buy { .. }
                 | pallet_rmrk_market::Call::list { .. }
-                | pallet_rmrk_market::Call::unlist { .. }
-                | pallet_rmrk_market::Call::__Ignore { .. } => true,
+                | pallet_rmrk_market::Call::unlist { .. } => true,
                 _ => false,
             };
         }
@@ -392,8 +386,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 | pallet_registry::Call::add_relaychain_genesis_block_hash { .. }
                 | pallet_registry::Call::add_pruntime { .. }
                 | pallet_registry::Call::force_set_benchmark_duration { .. }
-                | pallet_registry::Call::register_gatekeeper { .. }
-                | pallet_registry::Call::__Ignore { .. } => true,
+                | pallet_registry::Call::register_gatekeeper { .. } => true,
                 _ => false,
             };
         }
@@ -404,16 +397,14 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 | pallet_computation::Call::set_cool_down_expiration { .. }
                 | pallet_computation::Call::set_heartbeat_paused { .. }
                 | pallet_computation::Call::update_tokenomic { .. }
-                | pallet_computation::Call::force_heartbeat { .. }
-                | pallet_computation::Call::__Ignore { .. } => true,
+                | pallet_computation::Call::force_heartbeat { .. } => true,
                 _ => false,
             };
         }
 
         if let RuntimeCall::PhalaStakePoolv2(phala_stakepoolv2_method) = call {
             return match phala_stakepoolv2_method {
-                pallet_stake_pool_v2::Call::set_working_enabled { .. }
-                | pallet_stake_pool_v2::Call::__Ignore { .. } => true,
+                pallet_stake_pool_v2::Call::set_working_enabled { .. } => true,
                 _ => false,
             };
         }
