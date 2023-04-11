@@ -343,8 +343,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 pallet_assets::Call::create { .. }
                 | pallet_assets::Call::force_create { .. }
                 | pallet_assets::Call::set_metadata { .. }
-                | pallet_assets::Call::force_set_metadata { .. }
-                | pallet_assets::Call::__Ignore { .. } => false,
+                | pallet_assets::Call::force_set_metadata { .. } => false,
                 _ => true,
             };
         }
@@ -354,8 +353,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 pallet_uniques::Call::freeze { .. }
                 | pallet_uniques::Call::thaw { .. }
                 | pallet_uniques::Call::set_team { .. }
-                | pallet_uniques::Call::set_accept_ownership { .. }
-                | pallet_uniques::Call::__Ignore { .. } => true,
+                | pallet_uniques::Call::set_accept_ownership { .. } => true,
                 _ => false,
             };
         }
@@ -367,8 +365,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 | pallet_rmrk_core::Call::accept_resource { .. }
                 | pallet_rmrk_core::Call::remove_resource { .. }
                 | pallet_rmrk_core::Call::accept_resource_removal { .. }
-                | pallet_rmrk_core::Call::send { .. }
-                | pallet_rmrk_core::Call::__Ignore { .. } => true,
+                | pallet_rmrk_core::Call::send { .. } => true,
                 _ => false,
             };
         }
@@ -377,8 +374,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             return match rmrk_market_method {
                 pallet_rmrk_market::Call::buy { .. }
                 | pallet_rmrk_market::Call::list { .. }
-                | pallet_rmrk_market::Call::unlist { .. }
-                | pallet_rmrk_market::Call::__Ignore { .. } => true,
+                | pallet_rmrk_market::Call::unlist { .. } => true,
                 _ => false,
             };
         }
