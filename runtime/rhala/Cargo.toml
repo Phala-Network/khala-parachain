@@ -111,6 +111,9 @@ pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-f
 subbridge-pallets = { path = "../../pallets/subbridge", default-features = false }
 pallet-phala-world = { path = "../../pallets/phala-world", default-features = false }
 
+# InvArch Tinkernet Multisig dependencies
+invarch-xcm-builder = { git = "https://github.com/InvArch/InvArch-XCM-Builder", branch = "polkadot-v0.9.40", default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.40", optional = true }
 

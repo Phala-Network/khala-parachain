@@ -49,6 +49,7 @@ mod msg_routing;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
+use primitive_types::U256;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -66,7 +67,6 @@ use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use static_assertions::const_assert;
-use primitive_types::U256;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
@@ -78,8 +78,8 @@ pub use frame_support::{
     traits::{
         tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency,
         EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
-        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
-        WithdrawReasons, SortedMembers, 
+        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, SortedMembers,
+        U128CurrencyToVote, WithdrawReasons,
     },
     weights::{
         constants::{
@@ -101,11 +101,11 @@ use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
-    FungiblesAdapter, ParentIsPreset, RelayChainAsNative, NoChecking, MintLocation,
+    FungiblesAdapter, MintLocation, NoChecking, ParentIsPreset, RelayChainAsNative,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, WithComputedOrigin,
 };
-use xcm_executor::{Config, XcmExecutor, traits::WithOriginFilter};
+use xcm_executor::{traits::WithOriginFilter, Config, XcmExecutor};
 
 use pallet_rmrk_core::{CollectionInfoOf, InstanceInfoOf, PropertyInfoOf, ResourceInfoOf};
 use pallet_rmrk_equip::{BaseInfoOf, BoundedThemeOf, PartTypeOf};
@@ -119,7 +119,7 @@ pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_marketplace, pallet_pw_nft_sale};
 pub use phala_pallets::{
-    pallet_base_pool, pallet_computation, pallet_phat, pallet_phat_tokenomic, pallet_mq,
+    pallet_base_pool, pallet_computation, pallet_mq, pallet_phat, pallet_phat_tokenomic,
     pallet_registry, pallet_stake_pool, pallet_stake_pool_v2, pallet_vault,
     pallet_wrapped_balances,
 };
@@ -221,9 +221,7 @@ pub type Executive = frame_executive::Executive<
 
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`.
-type Migrations = (
-    sygma_bridge::migration::FixMpcAddress<Runtime>,
-);
+type Migrations = (sygma_bridge::migration::FixMpcAddress<Runtime>,);
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
@@ -1018,7 +1016,7 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 parameter_types! {
     pub const RelayNetwork: NetworkId = NetworkId::Kusama;
     pub UniversalLocation: InteriorMultiLocation =
-		X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
+        X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
     pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 }
 
@@ -1032,6 +1030,8 @@ pub type LocationToAccountId = (
     SiblingParachainConvertsVia<Sibling, AccountId>,
     // Straight up local `AccountId32` origins just alias directly to `AccountId`.
     AccountId32Aliases<RelayNetwork, AccountId>,
+    // Mapping Tinkernet multisig to the correctly derived AccountId32.
+    invarch_xcm_builder::TinkernetMultisigAsAccountId<AccountId>,
 );
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -1051,6 +1051,8 @@ pub type XcmOriginToTransactDispatchOrigin = (
     // Native signed account converter; this just converts an `AccountId32` origin into a normal
     // `Origin::Signed` origin of the same 32-byte value.
     SignedAccountId32AsNative<RelayNetwork, RuntimeOrigin>,
+    // Derives signed AccountId32 origins for Tinkernet multisigs.
+    invarch_xcm_builder::DeriveOriginFromTinkernetMultisig<RuntimeOrigin>,
     // Xcm origins can be represented natively under the Xcm pallet's Xcm origin.
     XcmPassthrough<RuntimeOrigin>,
 );
@@ -1058,8 +1060,8 @@ parameter_types! {
     pub UnitWeightCost: XCMWeight = XCMWeight::from_parts(200_000_000u64, 0);
     pub const MaxInstructions: u32 = 100;
     pub RhalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
-	pub CheckingAccountForCurrencyAdapter: Option<(AccountId, MintLocation)> = None;
-	pub CheckingAccountForFungibleAdapter: AccountId = PalletId(*b"checking").into_account_truncating();
+    pub CheckingAccountForCurrencyAdapter: Option<(AccountId, MintLocation)> = None;
+    pub CheckingAccountForFungibleAdapter: AccountId = PalletId(*b"checking").into_account_truncating();
 }
 
 pub type Barrier = (
@@ -1069,6 +1071,11 @@ pub type Barrier = (
     AllowKnownQueryResponses<PolkadotXcm>,
     // Subscriptions for version tracking are OK.
     AllowSubscriptionsFrom<Everything>,
+    WithComputedOrigin<
+        AllowTopLevelPaidExecutionFrom<invarch_xcm_builder::TinkernetMultisigMultiLocation>,
+        UniversalLocation,
+        ConstU32<8>,
+    >,
 );
 
 /// Means for transacting the native currency on this chain.
@@ -1141,15 +1148,15 @@ impl Config for XcmConfig {
     type AssetTrap = PolkadotXcm;
     type AssetClaims = PolkadotXcm;
     type SubscriptionService = PolkadotXcm;
-	type PalletInstancesInfo = AllPalletsWithSystem;
-	type MaxAssetsIntoHolding = ConstU32<64>;
-	type AssetLocker = ();
-	type AssetExchanger = ();
-	type FeeManager = ();
-	type MessageExporter = ();
-	type UniversalAliases = Nothing;
-	type CallDispatcher = WithOriginFilter<BaseCallFilter>;
-	type SafeCallFilter = BaseCallFilter;
+    type PalletInstancesInfo = AllPalletsWithSystem;
+    type MaxAssetsIntoHolding = ConstU32<64>;
+    type AssetLocker = ();
+    type AssetExchanger = ();
+    type FeeManager = ();
+    type MessageExporter = ();
+    type UniversalAliases = Nothing;
+    type CallDispatcher = WithOriginFilter<BaseCallFilter>;
+    type SafeCallFilter = BaseCallFilter;
 }
 parameter_types! {
     pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
@@ -1188,7 +1195,7 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
-	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+    pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
 }
 impl pallet_xcm::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -1206,14 +1213,14 @@ impl pallet_xcm::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
-	type Currency = Balances;
-	type CurrencyMatcher = ();
-	type TrustedLockers = ();
-	type SovereignAccountOf = ();
-	type MaxLockers = ConstU32<8>;
-	type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ReachableDest = ReachableDest;
+    type Currency = Balances;
+    type CurrencyMatcher = ();
+    type TrustedLockers = ();
+    type SovereignAccountOf = ();
+    type MaxLockers = ConstU32<8>;
+    type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type ReachableDest = ReachableDest;
 }
 
 impl xcmbridge::Config for Runtime {
@@ -1420,7 +1427,8 @@ impl pallet_treasury::Config for Runtime {
             EnsureRoot<AccountId>,
             pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
         >,
-        AccountId, MaxBalance,
+        AccountId,
+        MaxBalance,
     >;
 }
 
@@ -1972,11 +1980,11 @@ impl_runtime_apis! {
             TransactionPayment::query_fee_details(uxt, len)
         }
         fn query_weight_to_fee(weight: Weight) -> Balance {
-			TransactionPayment::weight_to_fee(weight)
-		}
-		fn query_length_to_fee(length: u32) -> Balance {
-			TransactionPayment::length_to_fee(length)
-		}
+            TransactionPayment::weight_to_fee(weight)
+        }
+        fn query_length_to_fee(length: u32) -> Balance {
+            TransactionPayment::length_to_fee(length)
+        }
     }
 
     impl pallet_mq_runtime_api::MqApi<Block> for Runtime {
@@ -2091,11 +2099,11 @@ impl_runtime_apis! {
         }
     }
 
-	impl sygma_runtime_api::SygmaBridgeApi<Block> for Runtime {
-		fn is_proposal_executed(nonce: DepositNonce, domain_id: DomainID) -> bool {
-			SygmaBridge::is_proposal_executed(nonce, domain_id)
-		}
-	}
+    impl sygma_runtime_api::SygmaBridgeApi<Block> for Runtime {
+        fn is_proposal_executed(nonce: DepositNonce, domain_id: DomainID) -> bool {
+            SygmaBridge::is_proposal_executed(nonce, domain_id)
+        }
+    }
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
@@ -2105,15 +2113,15 @@ impl_runtime_apis! {
         }
 
         fn execute_block(
-			block: Block,
-			state_root_check: bool,
-			signature_check: bool,
-			select: frame_try_runtime::TryStateSelect,
-		) -> Weight {
-			// NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
-			// have a backtrace here.
-			Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
-		}
+            block: Block,
+            state_root_check: bool,
+            signature_check: bool,
+            select: frame_try_runtime::TryStateSelect,
+        ) -> Weight {
+            // NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
+            // have a backtrace here.
+            Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
+        }
     }
 
     #[cfg(feature = "runtime-benchmarks")]
