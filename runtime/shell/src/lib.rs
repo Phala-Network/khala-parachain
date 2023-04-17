@@ -185,20 +185,20 @@ impl pallet_sudo::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u128 = 10_000_000_000;
+    pub const ExistentialDeposit: u128 = 10_000_000_000;
 }
 impl pallet_balances::Config for Runtime {
-	type MaxLocks = ConstU32<50>;
-	/// The type for recording an account's balance.
-	type Balance = u128;
-	/// The ubiquitous event type.
-	type RuntimeEvent = RuntimeEvent;
-	type DustRemoval = ();
-	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = frame_system::Pallet<Runtime>;
-	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
-	type MaxReserves = ConstU32<50>;
-	type ReserveIdentifier = [u8; 8];
+    type MaxLocks = ConstU32<50>;
+    /// The type for recording an account's balance.
+    type Balance = u128;
+    /// The ubiquitous event type.
+    type RuntimeEvent = RuntimeEvent;
+    type DustRemoval = ();
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = frame_system::Pallet<Runtime>;
+    type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+    type MaxReserves = ConstU32<50>;
+    type ReserveIdentifier = [u8; 8];
 }
 
 construct_runtime! {

@@ -1306,7 +1306,7 @@ parameter_types! {
     pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
     pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
     pub UniversalLocation: InteriorMultiLocation =
-		X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
+        X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -1345,8 +1345,8 @@ parameter_types! {
     pub UnitWeightCost: XCMWeight = XCMWeight::from_parts(200_000_000u64, 0);
     pub const MaxInstructions: u32 = 100;
     pub PhalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
-	pub CheckingAccountForCurrencyAdapter: Option<(AccountId, MintLocation)> = None;
-	pub CheckingAccountForFungibleAdapter: AccountId = PalletId(*b"checking").into_account_truncating();
+    pub CheckingAccountForCurrencyAdapter: Option<(AccountId, MintLocation)> = None;
+    pub CheckingAccountForFungibleAdapter: AccountId = PalletId(*b"checking").into_account_truncating();
 }
 
 pub type Barrier = (
@@ -1428,15 +1428,15 @@ impl Config for XcmConfig {
     type AssetTrap = PolkadotXcm;
     type AssetClaims = PolkadotXcm;
     type SubscriptionService = PolkadotXcm;
-	type PalletInstancesInfo = AllPalletsWithSystem;
+    type PalletInstancesInfo = AllPalletsWithSystem;
     type MaxAssetsIntoHolding = ConstU32<64>;
-	type AssetLocker = ();
-	type AssetExchanger = ();
-	type FeeManager = ();
-	type MessageExporter = ();
-	type UniversalAliases = Nothing;
-	type CallDispatcher = WithOriginFilter<BaseCallFilter>;
-	type SafeCallFilter = BaseCallFilter;
+    type AssetLocker = ();
+    type AssetExchanger = ();
+    type FeeManager = ();
+    type MessageExporter = ();
+    type UniversalAliases = Nothing;
+    type CallDispatcher = WithOriginFilter<BaseCallFilter>;
+    type SafeCallFilter = BaseCallFilter;
 }
 parameter_types! {
     pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
@@ -1476,7 +1476,7 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
-	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+    pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
 }
 impl pallet_xcm::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -1494,14 +1494,14 @@ impl pallet_xcm::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
-	type Currency = Balances;
-	type CurrencyMatcher = ();
-	type TrustedLockers = ();
-	type SovereignAccountOf = ();
-	type MaxLockers = ConstU32<8>;
-	type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ReachableDest = ReachableDest;
+    type Currency = Balances;
+    type CurrencyMatcher = ();
+    type TrustedLockers = ();
+    type SovereignAccountOf = ();
+    type MaxLockers = ConstU32<8>;
+    type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type ReachableDest = ReachableDest;
 }
 
 impl xcmbridge::Config for Runtime {
@@ -1863,12 +1863,12 @@ impl_runtime_apis! {
         fn query_fee_details(uxt: <Block as BlockT>::Extrinsic, len: u32) -> pallet_transaction_payment_rpc_runtime_api::FeeDetails<Balance> {
             TransactionPayment::query_fee_details(uxt, len)
         }
-		fn query_weight_to_fee(weight: Weight) -> Balance {
-			TransactionPayment::weight_to_fee(weight)
-		}
-		fn query_length_to_fee(length: u32) -> Balance {
-			TransactionPayment::length_to_fee(length)
-		}
+        fn query_weight_to_fee(weight: Weight) -> Balance {
+            TransactionPayment::weight_to_fee(weight)
+        }
+        fn query_length_to_fee(length: u32) -> Balance {
+            TransactionPayment::length_to_fee(length)
+        }
     }
 
     impl pallet_mq_runtime_api::MqApi<Block> for Runtime {
@@ -1984,11 +1984,11 @@ impl_runtime_apis! {
     }
 
     impl sygma_runtime_api::SygmaBridgeApi<Block> for Runtime {
-		fn is_proposal_executed(nonce: DepositNonce, domain_id: DomainID) -> bool {
+        fn is_proposal_executed(nonce: DepositNonce, domain_id: DomainID) -> bool {
             // TODO: enable Sygma
-			false
-		}
-	}
+            false
+        }
+    }
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
@@ -1998,15 +1998,15 @@ impl_runtime_apis! {
         }
 
         fn execute_block(
-			block: Block,
-			state_root_check: bool,
-			signature_check: bool,
-			select: frame_try_runtime::TryStateSelect,
-		) -> Weight {
-			// NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
-			// have a backtrace here.
-			Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
-		}
+            block: Block,
+            state_root_check: bool,
+            signature_check: bool,
+            select: frame_try_runtime::TryStateSelect,
+        ) -> Weight {
+            // NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
+            // have a backtrace here.
+            Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
+        }
     }
 
     #[cfg(feature = "runtime-benchmarks")]

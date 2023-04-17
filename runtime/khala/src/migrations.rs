@@ -21,7 +21,7 @@ use frame_support::traits::OnRuntimeUpgrade;
 
 pub struct PalletSchedulerMigration;
 impl OnRuntimeUpgrade for PalletSchedulerMigration {
-	fn on_runtime_upgrade() -> frame_support::weights::Weight {
-		Scheduler::migrate_v1_to_v4()
-	}
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        Scheduler::migrate_v1_to_v4()
+    }
 }
