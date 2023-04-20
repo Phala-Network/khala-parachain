@@ -25,6 +25,7 @@ exclude = [
 	"vendor/webpki",
 	"vendor/ring",
 	"polkadot/node/service",
+	"cumulus/client/consensus/common",
 ]
 
 members = [
@@ -54,3 +55,7 @@ members = [
 
 [patch."https://github.com/paritytech/polkadot"]
 polkadot-service = { path = "polkadot/node/service" }
+
+# TODO: Remove after upgrade to Polkdaot v0.9.42
+[patch."https://github.com/paritytech/cumulus"]
+cumulus-client-consensus-common = { path = "cumulus/client/consensus/common" }
