@@ -168,7 +168,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("thala"),
     impl_name: create_runtime_str!("thala"),
     authoring_version: 1,
-    spec_version: 1225,
+    spec_version: 1241,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -330,17 +330,12 @@ impl Contains<RuntimeCall> for BaseCallFilter {
     fn contains(call: &RuntimeCall) -> bool {
         if let RuntimeCall::PolkadotXcm(xcm_method) = call {
             return match xcm_method {
-                pallet_xcm::Call::execute { .. }
-                | pallet_xcm::Call::teleport_assets { .. }
-                | pallet_xcm::Call::reserve_transfer_assets { .. }
-                | pallet_xcm::Call::limited_reserve_transfer_assets { .. }
-                | pallet_xcm::Call::limited_teleport_assets { .. }
-                | pallet_xcm::Call::__Ignore { .. } => false,
                 pallet_xcm::Call::force_xcm_version { .. }
                 | pallet_xcm::Call::force_default_xcm_version { .. }
                 | pallet_xcm::Call::force_subscribe_version_notify { .. }
                 | pallet_xcm::Call::force_unsubscribe_version_notify { .. }
                 | pallet_xcm::Call::send { .. } => true,
+                _ => false,
             };
         }
 
@@ -349,8 +344,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 pallet_assets::Call::create { .. }
                 | pallet_assets::Call::force_create { .. }
                 | pallet_assets::Call::set_metadata { .. }
-                | pallet_assets::Call::force_set_metadata { .. }
-                | pallet_assets::Call::__Ignore { .. } => false,
+                | pallet_assets::Call::force_set_metadata { .. } => false,
                 _ => true,
             };
         }
@@ -360,8 +354,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 pallet_uniques::Call::freeze { .. }
                 | pallet_uniques::Call::thaw { .. }
                 | pallet_uniques::Call::set_team { .. }
-                | pallet_uniques::Call::set_accept_ownership { .. }
-                | pallet_uniques::Call::__Ignore { .. } => true,
+                | pallet_uniques::Call::set_accept_ownership { .. } => true,
                 _ => false,
             };
         }
@@ -373,8 +366,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 | pallet_rmrk_core::Call::accept_resource { .. }
                 | pallet_rmrk_core::Call::remove_resource { .. }
                 | pallet_rmrk_core::Call::accept_resource_removal { .. }
-                | pallet_rmrk_core::Call::send { .. }
-                | pallet_rmrk_core::Call::__Ignore { .. } => true,
+                | pallet_rmrk_core::Call::send { .. } => true,
                 _ => false,
             };
         }
@@ -383,8 +375,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             return match rmrk_market_method {
                 pallet_rmrk_market::Call::buy { .. }
                 | pallet_rmrk_market::Call::list { .. }
-                | pallet_rmrk_market::Call::unlist { .. }
-                | pallet_rmrk_market::Call::__Ignore { .. } => true,
+                | pallet_rmrk_market::Call::unlist { .. } => true,
                 _ => false,
             };
         }
@@ -1022,7 +1013,7 @@ parameter_types! {
     pub const RelayNetwork: NetworkId = NetworkId::Kusama;
     pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
     pub UniversalLocation: InteriorMultiLocation =
-		X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
+        X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -1061,8 +1052,8 @@ parameter_types! {
     pub UnitWeightCost: XCMWeight = XCMWeight::from_parts(200_000_000u64, 0);
     pub const MaxInstructions: u32 = 100;
     pub ThalaTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
-	pub CheckingAccountForCurrencyAdapter: Option<(AccountId, MintLocation)> = None;
-	pub CheckingAccountForFungibleAdapter: AccountId = PalletId(*b"checking").into_account_truncating();
+    pub CheckingAccountForCurrencyAdapter: Option<(AccountId, MintLocation)> = None;
+    pub CheckingAccountForFungibleAdapter: AccountId = PalletId(*b"checking").into_account_truncating();
 }
 match_types! {
     pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
@@ -1150,15 +1141,15 @@ impl Config for XcmConfig {
     type AssetTrap = PolkadotXcm;
     type AssetClaims = PolkadotXcm;
     type SubscriptionService = PolkadotXcm;
-	type PalletInstancesInfo = AllPalletsWithSystem;
+    type PalletInstancesInfo = AllPalletsWithSystem;
     type MaxAssetsIntoHolding = ConstU32<64>;
-	type AssetLocker = ();
-	type AssetExchanger = ();
-	type FeeManager = ();
-	type MessageExporter = ();
-	type UniversalAliases = Nothing;
-	type CallDispatcher = WithOriginFilter<BaseCallFilter>;
-	type SafeCallFilter = BaseCallFilter;
+    type AssetLocker = ();
+    type AssetExchanger = ();
+    type FeeManager = ();
+    type MessageExporter = ();
+    type UniversalAliases = Nothing;
+    type CallDispatcher = WithOriginFilter<BaseCallFilter>;
+    type SafeCallFilter = BaseCallFilter;
 }
 parameter_types! {
     pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
@@ -1198,7 +1189,7 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
-	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+    pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
 }
 impl pallet_xcm::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -1216,14 +1207,14 @@ impl pallet_xcm::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
-	type Currency = Balances;
-	type CurrencyMatcher = ();
-	type TrustedLockers = ();
-	type SovereignAccountOf = ();
-	type MaxLockers = ConstU32<8>;
-	type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ReachableDest = ReachableDest;
+    type Currency = Balances;
+    type CurrencyMatcher = ();
+    type TrustedLockers = ();
+    type SovereignAccountOf = ();
+    type MaxLockers = ConstU32<8>;
+    type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type ReachableDest = ReachableDest;
 }
 
 impl xcmbridge::Config for Runtime {
@@ -1313,7 +1304,7 @@ impl pallet_elections_phragmen::Config for Runtime {
     type TermDuration = TermDuration;
     type MaxVoters = MaxVoters;
     type MaxCandidates = MaxCandidates;
-	type MaxVotesPerVoter = MaxVotesPerVoter;
+    type MaxVotesPerVoter = MaxVotesPerVoter;
     type PalletId = PhragmenElectionPalletId;
     type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
 }
@@ -1985,12 +1976,12 @@ impl_runtime_apis! {
         fn query_fee_details(uxt: <Block as BlockT>::Extrinsic, len: u32) -> pallet_transaction_payment_rpc_runtime_api::FeeDetails<Balance> {
             TransactionPayment::query_fee_details(uxt, len)
         }
-		fn query_weight_to_fee(weight: Weight) -> Balance {
-			TransactionPayment::weight_to_fee(weight)
-		}
-		fn query_length_to_fee(length: u32) -> Balance {
-			TransactionPayment::length_to_fee(length)
-		}
+        fn query_weight_to_fee(weight: Weight) -> Balance {
+            TransactionPayment::weight_to_fee(weight)
+        }
+        fn query_length_to_fee(length: u32) -> Balance {
+            TransactionPayment::length_to_fee(length)
+        }
     }
 
     impl pallet_mq_runtime_api::MqApi<Block> for Runtime {
@@ -2105,11 +2096,11 @@ impl_runtime_apis! {
         }
     }
 
-	impl sygma_runtime_api::SygmaBridgeApi<Block> for Runtime {
-		fn is_proposal_executed(nonce: DepositNonce, domain_id: DomainID) -> bool {
-			SygmaBridge::is_proposal_executed(nonce, domain_id)
-		}
-	}
+    impl sygma_runtime_api::SygmaBridgeApi<Block> for Runtime {
+        fn is_proposal_executed(nonce: DepositNonce, domain_id: DomainID) -> bool {
+            SygmaBridge::is_proposal_executed(nonce, domain_id)
+        }
+    }
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
@@ -2119,15 +2110,15 @@ impl_runtime_apis! {
         }
 
         fn execute_block(
-			block: Block,
-			state_root_check: bool,
-			signature_check: bool,
-			select: frame_try_runtime::TryStateSelect,
-		) -> Weight {
-			// NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
-			// have a backtrace here.
-			Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
-		}
+            block: Block,
+            state_root_check: bool,
+            signature_check: bool,
+            select: frame_try_runtime::TryStateSelect,
+        ) -> Weight {
+            // NOTE: intentional unwrap: we don't want to propagate the error backwards, and want to
+            // have a backtrace here.
+            Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
+        }
     }
 
     #[cfg(feature = "runtime-benchmarks")]

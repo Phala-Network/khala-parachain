@@ -168,7 +168,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("rhala"),
     impl_name: create_runtime_str!("rhala"),
     authoring_version: 1,
-    spec_version: 1225,
+    spec_version: 1241,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -221,7 +221,7 @@ pub type Executive = frame_executive::Executive<
 
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`.
-type Migrations = (sygma_bridge::migration::FixMpcAddress<Runtime>,);
+type Migrations = ();
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
@@ -327,17 +327,12 @@ impl Contains<RuntimeCall> for BaseCallFilter {
     fn contains(call: &RuntimeCall) -> bool {
         if let RuntimeCall::PolkadotXcm(xcm_method) = call {
             return match xcm_method {
-                pallet_xcm::Call::execute { .. }
-                | pallet_xcm::Call::teleport_assets { .. }
-                | pallet_xcm::Call::reserve_transfer_assets { .. }
-                | pallet_xcm::Call::limited_reserve_transfer_assets { .. }
-                | pallet_xcm::Call::limited_teleport_assets { .. }
-                | pallet_xcm::Call::__Ignore { .. } => false,
                 pallet_xcm::Call::force_xcm_version { .. }
                 | pallet_xcm::Call::force_default_xcm_version { .. }
                 | pallet_xcm::Call::force_subscribe_version_notify { .. }
                 | pallet_xcm::Call::force_unsubscribe_version_notify { .. }
                 | pallet_xcm::Call::send { .. } => true,
+                _ => false,
             };
         }
 
@@ -346,8 +341,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 pallet_assets::Call::create { .. }
                 | pallet_assets::Call::force_create { .. }
                 | pallet_assets::Call::set_metadata { .. }
-                | pallet_assets::Call::force_set_metadata { .. }
-                | pallet_assets::Call::__Ignore { .. } => false,
+                | pallet_assets::Call::force_set_metadata { .. } => false,
                 _ => true,
             };
         }
@@ -357,8 +351,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 pallet_uniques::Call::freeze { .. }
                 | pallet_uniques::Call::thaw { .. }
                 | pallet_uniques::Call::set_team { .. }
-                | pallet_uniques::Call::set_accept_ownership { .. }
-                | pallet_uniques::Call::__Ignore { .. } => true,
+                | pallet_uniques::Call::set_accept_ownership { .. } => true,
                 _ => false,
             };
         }
@@ -370,8 +363,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 | pallet_rmrk_core::Call::accept_resource { .. }
                 | pallet_rmrk_core::Call::remove_resource { .. }
                 | pallet_rmrk_core::Call::accept_resource_removal { .. }
-                | pallet_rmrk_core::Call::send { .. }
-                | pallet_rmrk_core::Call::__Ignore { .. } => true,
+                | pallet_rmrk_core::Call::send { .. } => true,
                 _ => false,
             };
         }
@@ -380,8 +372,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             return match rmrk_market_method {
                 pallet_rmrk_market::Call::buy { .. }
                 | pallet_rmrk_market::Call::list { .. }
-                | pallet_rmrk_market::Call::unlist { .. }
-                | pallet_rmrk_market::Call::__Ignore { .. } => true,
+                | pallet_rmrk_market::Call::unlist { .. } => true,
                 _ => false,
             };
         }

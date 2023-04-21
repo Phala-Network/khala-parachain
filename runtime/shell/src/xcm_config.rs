@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// 	http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -77,15 +77,15 @@ impl xcm_executor::Config for XcmConfig {
     type AssetTrap = (); // don't trap for now
     type AssetClaims = (); // don't claim for now
     type SubscriptionService = (); // don't handle subscriptions for now
-	type PalletInstancesInfo = crate::AllPalletsWithSystem;
-	type MaxAssetsIntoHolding = ConstU32<64>;
-	type AssetLocker = ();
-	type AssetExchanger = ();
-	type FeeManager = ();
-	type MessageExporter = ();
-	type UniversalAliases = Nothing;
-	type CallDispatcher = WithOriginFilter<Everything>;
-	type SafeCallFilter = Everything;
+    type PalletInstancesInfo = crate::AllPalletsWithSystem;
+    type MaxAssetsIntoHolding = ConstU32<64>;
+    type AssetLocker = ();
+    type AssetExchanger = ();
+    type FeeManager = ();
+    type MessageExporter = ();
+    type UniversalAliases = Nothing;
+    type CallDispatcher = WithOriginFilter<Everything>;
+    type SafeCallFilter = Everything;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
@@ -95,7 +95,7 @@ impl cumulus_pallet_xcm::Config for Runtime {
 
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
-	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+    pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
 }
 impl pallet_xcm::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -113,12 +113,12 @@ impl pallet_xcm::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
-	type Currency = crate::Balances;
-	type CurrencyMatcher = ();
-	type TrustedLockers = ();
-	type SovereignAccountOf = ();
-	type MaxLockers = ConstU32<8>;
-	type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ReachableDest = ReachableDest;
+    type Currency = crate::Balances;
+    type CurrencyMatcher = ();
+    type TrustedLockers = ();
+    type SovereignAccountOf = ();
+    type MaxLockers = ConstU32<8>;
+    type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type ReachableDest = ReachableDest;
 }
