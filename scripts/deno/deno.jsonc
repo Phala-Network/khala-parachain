@@ -1,4 +1,5 @@
 {
+  "lock": false,
   "tasks": {
     "remove_unused_rmrk_locks": "deno run --allow-net remove_unused_rmrk_locks.ts",
     "try_withdraw_stake_pools": "deno run --allow-net try_withdraw_stake_pools.ts",

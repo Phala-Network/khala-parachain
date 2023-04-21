@@ -1,6 +1,6 @@
 import { parse } from "https://deno.land/std/flags/mod.ts";
 
-import { ApiPromise, HttpProvider, Keyring, WsProvider } from "https://deno.land/x/polkadot/api/mod.ts";
+import { ApiPromise, HttpProvider, WsProvider } from "https://deno.land/x/polkadot/api/mod.ts";
 import { cryptoWaitReady } from "https://deno.land/x/polkadot/util-crypto/mod.ts";
 
 const parsedArgs = parse(Deno.args, {
