@@ -376,6 +376,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
         if let RuntimeCall::PhalaRegistry(phala_registry_method) = call {
             return match phala_registry_method {
                 pallet_registry::Call::register_worker { .. }
+                | pallet_registry::Call::register_worker_v2 { .. }
                 | pallet_registry::Call::remove_relaychain_genesis_block_hash { .. }
                 | pallet_registry::Call::set_minimum_pruntime_version { .. }
                 | pallet_registry::Call::set_pruntime_consensus_version { .. }
