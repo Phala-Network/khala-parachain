@@ -164,7 +164,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("phala"),
     impl_name: create_runtime_str!("phala"),
     authoring_version: 1,
-    spec_version: 1242,
+    spec_version: 1243,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 5,
@@ -373,39 +373,6 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             };
         }
 
-        if let RuntimeCall::PhalaRegistry(phala_registry_method) = call {
-            return match phala_registry_method {
-                pallet_registry::Call::register_worker { .. }
-                | pallet_registry::Call::register_worker_v2 { .. }
-                | pallet_registry::Call::remove_relaychain_genesis_block_hash { .. }
-                | pallet_registry::Call::set_minimum_pruntime_version { .. }
-                | pallet_registry::Call::set_pruntime_consensus_version { .. }
-                | pallet_registry::Call::add_relaychain_genesis_block_hash { .. }
-                | pallet_registry::Call::add_pruntime { .. }
-                | pallet_registry::Call::force_set_benchmark_duration { .. }
-                | pallet_registry::Call::register_gatekeeper { .. } => true,
-                _ => false,
-            };
-        }
-
-        if let RuntimeCall::PhalaComputation(phala_computation_method) = call {
-            return match phala_computation_method {
-                pallet_computation::Call::update_contract_root { .. }
-                | pallet_computation::Call::set_cool_down_expiration { .. }
-                | pallet_computation::Call::set_heartbeat_paused { .. }
-                | pallet_computation::Call::update_tokenomic { .. }
-                | pallet_computation::Call::force_heartbeat { .. } => true,
-                _ => false,
-            };
-        }
-
-        if let RuntimeCall::PhalaStakePoolv2(phala_stakepoolv2_method) = call {
-            return match phala_stakepoolv2_method {
-                pallet_stake_pool_v2::Call::set_working_enabled { .. } => true,
-                _ => false,
-            };
-        }
-
         matches!(
             call,
             // System
@@ -430,11 +397,11 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::Bounties { .. } | RuntimeCall::ChildBounties { .. } |
             RuntimeCall::Lottery { .. } | RuntimeCall::Tips { .. } |
             // Phala
-            //RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
-            //RuntimeCall::PhalaComputation { .. } |
-            //RuntimeCall::PhalaStakePoolv2 { .. } | RuntimeCall::PhalaBasePool { .. } |
-            //RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
-            //RuntimeCall::PhalaPhatContracts { .. } | RuntimeCall::PhalaPhatTokenomic { .. } |
+            RuntimeCall::PhalaMq { .. } | RuntimeCall::PhalaRegistry { .. } |
+            RuntimeCall::PhalaComputation { .. } |
+            RuntimeCall::PhalaStakePoolv2 { .. } | RuntimeCall::PhalaBasePool { .. } |
+            RuntimeCall::PhalaWrappedBalances { .. } | RuntimeCall::PhalaVault { .. } |
+            RuntimeCall::PhalaPhatContracts { .. } | RuntimeCall::PhalaPhatTokenomic { .. } |
             // inDEX
             RuntimeCall::PalletIndex { .. }
         )
