@@ -1757,9 +1757,7 @@ impl pallet_stake_pool_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type MinContribution = MinContribution;
     type GracePeriod = WorkingGracePeriod;
-    type ComputingEnabledByDefault = ComputingEnabledByDefault;
     type MaxPoolWorkers = MaxPoolWorkers;
-    type ComputingSwitchOrigin = EnsureRootOrHalfCouncil;
 }
 impl pallet_stake_pool::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
