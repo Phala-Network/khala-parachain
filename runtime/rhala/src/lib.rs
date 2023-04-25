@@ -49,6 +49,7 @@ mod msg_routing;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
+use primitive_types::U256;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -66,7 +67,6 @@ use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use static_assertions::const_assert;
-use primitive_types::U256;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
@@ -78,8 +78,8 @@ pub use frame_support::{
     traits::{
         tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency,
         EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
-        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
-        WithdrawReasons, SortedMembers, 
+        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, SortedMembers,
+        U128CurrencyToVote, WithdrawReasons,
     },
     weights::{
         constants::{
@@ -101,11 +101,11 @@ use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
-    FungiblesAdapter, ParentIsPreset, RelayChainAsNative, NoChecking, MintLocation,
+    FungiblesAdapter, MintLocation, NoChecking, ParentIsPreset, RelayChainAsNative,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, WithComputedOrigin,
 };
-use xcm_executor::{Config, XcmExecutor, traits::WithOriginFilter};
+use xcm_executor::{traits::WithOriginFilter, Config, XcmExecutor};
 
 use pallet_rmrk_core::{CollectionInfoOf, InstanceInfoOf, PropertyInfoOf, ResourceInfoOf};
 use pallet_rmrk_equip::{BaseInfoOf, BoundedThemeOf, PartTypeOf};
@@ -119,7 +119,7 @@ pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_marketplace, pallet_pw_nft_sale};
 pub use phala_pallets::{
-    pallet_base_pool, pallet_computation, pallet_phat, pallet_phat_tokenomic, pallet_mq,
+    pallet_base_pool, pallet_computation, pallet_mq, pallet_phat, pallet_phat_tokenomic,
     pallet_registry, pallet_stake_pool, pallet_stake_pool_v2, pallet_vault,
     pallet_wrapped_balances,
 };
@@ -1021,6 +1021,8 @@ pub type LocationToAccountId = (
     SiblingParachainConvertsVia<Sibling, AccountId>,
     // Straight up local `AccountId32` origins just alias directly to `AccountId`.
     AccountId32Aliases<RelayNetwork, AccountId>,
+    // Mapping Tinkernet multisig to the correctly derived AccountId32.
+    invarch_xcm_builder::TinkernetMultisigAsAccountId<AccountId>,
 );
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -1040,6 +1042,8 @@ pub type XcmOriginToTransactDispatchOrigin = (
     // Native signed account converter; this just converts an `AccountId32` origin into a normal
     // `Origin::Signed` origin of the same 32-byte value.
     SignedAccountId32AsNative<RelayNetwork, RuntimeOrigin>,
+    // Derives signed AccountId32 origins for Tinkernet multisigs.
+    invarch_xcm_builder::DeriveOriginFromTinkernetMultisig<RuntimeOrigin>,
     // Xcm origins can be represented natively under the Xcm pallet's Xcm origin.
     XcmPassthrough<RuntimeOrigin>,
 );
@@ -1058,6 +1062,11 @@ pub type Barrier = (
     AllowKnownQueryResponses<PolkadotXcm>,
     // Subscriptions for version tracking are OK.
     AllowSubscriptionsFrom<Everything>,
+    WithComputedOrigin<
+        AllowTopLevelPaidExecutionFrom<invarch_xcm_builder::TinkernetMultisigMultiLocation>,
+        UniversalLocation,
+        ConstU32<8>,
+    >,
 );
 
 /// Means for transacting the native currency on this chain.
@@ -1409,7 +1418,8 @@ impl pallet_treasury::Config for Runtime {
             EnsureRoot<AccountId>,
             pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
         >,
-        AccountId, MaxBalance,
+        AccountId,
+        MaxBalance,
     >;
 }
 
