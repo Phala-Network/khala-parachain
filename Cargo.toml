@@ -64,3 +64,4 @@ cumulus-client-consensus-common = { path = "cumulus/client/consensus/common" }
 # TODO: Remove after upgrade to Polkdaot v0.9.42
 [patch."https://github.com/paritytech/substrate"]
 sc-network-sync = { path = "substrate/client/network/sync" }
+sc-consensus = { path = "substrate/client/consensus/common" }
