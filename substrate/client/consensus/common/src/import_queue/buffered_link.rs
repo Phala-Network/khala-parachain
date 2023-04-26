@@ -38,7 +38,7 @@
 //! });
 //! ```
 
-use crate::import_queue::{Link, RuntimeOrigin};
+use crate::import_queue::{Link, RuntimeOrigin, LOG_TARGET};
 use futures::prelude::*;
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use sp_runtime::traits::{Block as BlockT, NumberFor};
@@ -95,6 +95,7 @@ impl<B: BlockT> Link<B> for BufferedLinkSender<B> {
 		count: usize,
 		results: Vec<(BlockImportResult<B>, B::Hash)>,
 	) {
+		log::debug!(target: LOG_TARGET, "send results to block import worker {imported} {count}",);
 		let _ = self
 			.tx
 			.unbounded_send(BlockImportWorkerMsg::BlocksProcessed(imported, count, results));
@@ -127,8 +128,13 @@ impl<B: BlockT> BufferedLinkReceiver<B> {
 	/// Send action for the synchronization to perform.
 	pub fn send_actions(&mut self, msg: BlockImportWorkerMsg<B>, link: &mut dyn Link<B>) {
 		match msg {
-			BlockImportWorkerMsg::BlocksProcessed(imported, count, results) =>
-				link.blocks_processed(imported, count, results),
+			BlockImportWorkerMsg::BlocksProcessed(imported, count, results) => {
+				log::debug!(
+					target: LOG_TARGET,
+					"send results to chainsyncservice {imported} {count}",
+				);
+				link.blocks_processed(imported, count, results)
+			},
 			BlockImportWorkerMsg::JustificationImported(who, hash, number, success) =>
 				link.justification_imported(who, &hash, number, success),
 			BlockImportWorkerMsg::RequestJustification(hash, number) =>

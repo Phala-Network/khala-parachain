@@ -662,6 +662,7 @@ where
 				ToServiceCommand::ClearJustificationRequests =>
 					self.chain_sync.clear_justification_requests(),
 				ToServiceCommand::BlocksProcessed(imported, count, results) => {
+					log::debug!(target: "sync", "syncingengine on_blocks_processed {imported} {count}");
 					for result in self.chain_sync.on_blocks_processed(imported, count, results) {
 						match result {
 							Ok((id, req)) => self.chain_sync.send_block_request(id, req),

@@ -206,6 +206,7 @@ impl<B: BlockT> Link<B> for SyncingService<B> {
 		count: usize,
 		results: Vec<(Result<BlockImportStatus<NumberFor<B>>, BlockImportError>, B::Hash)>,
 	) {
+		log::debug!(target: "sync", "send results to syncingengine {imported} {count}");
 		let _ = self
 			.tx
 			.unbounded_send(ToServiceCommand::BlocksProcessed(imported, count, results));

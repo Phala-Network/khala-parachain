@@ -2683,7 +2683,7 @@ where
 		count: usize,
 		results: Vec<(Result<BlockImportStatus<NumberFor<B>>, BlockImportError>, B::Hash)>,
 	) -> Box<dyn Iterator<Item = Result<(PeerId, BlockRequest<B>), BadPeer>>> {
-		trace!(target: "sync", "Imported {} of {}", imported, count);
+		trace!(target: "sync", "Imported {} of {} {}", imported, count, self.queue_blocks.len());
 
 		let mut output = Vec::new();
 
@@ -2695,6 +2695,7 @@ where
 				gap_sync.blocks.clear_queued(hash);
 			}
 		}
+		trace!(target: "sync", "queue cleared {}", self.queue_blocks.len());
 		for (result, hash) in results {
 			if has_error {
 				break

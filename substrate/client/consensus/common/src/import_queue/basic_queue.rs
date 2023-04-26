@@ -251,6 +251,12 @@ async fn block_import_process<B: BlockT, Transaction: Send + 'static>(
 		)
 		.await;
 
+		log::debug!(
+			target: LOG_TARGET,
+			"send block import results to buffered link {:?} {:?}",
+			res.imported,
+			res.block_count,
+		);
 		result_sender.blocks_processed(res.imported, res.block_count, res.results);
 	}
 }
