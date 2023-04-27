@@ -8062,7 +8062,6 @@ dependencies = [
 [[package]]
 name = "polkadot-node-core-dispute-coordinator"
 version = "0.9.41"
-source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.41#e203bfb396ed949f102720debf32fb98166787af"
 dependencies = [
  "fatality",
  "futures",

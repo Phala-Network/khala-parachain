@@ -56,6 +56,8 @@ members = [
 
 [patch."https://github.com/paritytech/polkadot"]
 polkadot-service = { path = "polkadot/node/service" }
+# TODO: Remove after upgrade to Polkdaot v0.9.42
+polkadot-node-core-dispute-coordinator = { path = "polkadot/node/core/dispute-coordinator" }
 
 # TODO: Remove after upgrade to Polkdaot v0.9.42
 [patch."https://github.com/paritytech/cumulus"]
