@@ -632,6 +632,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
                     )
                     | RuntimeCall::PhalaStakePoolv2(pallet_stake_pool_v2::Call::create { .. })
                     | RuntimeCall::PhalaRegistry(pallet_registry::Call::register_worker { .. })
+                    | RuntimeCall::PhalaRegistry(pallet_registry::Call::register_worker_v2 { .. })
                     | RuntimeCall::PhalaMq(pallet_mq::Call::sync_offchain_message { .. })
             ),
         }
