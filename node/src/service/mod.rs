@@ -150,6 +150,13 @@ where
         telemetry
     });
 
+    sc_storage_monitor::StorageMonitorService::try_spawn(
+        sc_storage_monitor::StorageMonitorParams::default(),
+        config.database.clone(),
+        &task_manager.spawn_essential_handle(),
+    )
+    .map_err(|e| sc_service::Error::Application(e.into()))?;
+
     let transaction_pool = sc_transaction_pool::BasicPool::new_full(
         config.transaction_pool.clone(),
         config.role.is_authority().into(),
