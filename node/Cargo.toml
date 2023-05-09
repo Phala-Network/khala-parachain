@@ -62,6 +62,7 @@ sc-cli = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v
 sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.41" }
 sc-consensus = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.41" }
 sc-sysinfo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.41" }
+sc-storage-monitor = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.41" }
 sc-executor = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.41" }
 sc-network = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.41" }
 sc-network-sync = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.41" }
