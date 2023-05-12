@@ -738,6 +738,7 @@ pub mod pallet {
 			pool: &BasePool<T::AccountId, BalanceOf<T>>,
 			now: u64,
 			grace_period: u64,
+			maybe_vault_queue_period: Option<u64>,
 			releasing_stake: BalanceOf<T>,
 		) -> bool {
 			// If the pool is bankrupt, or there's no share, we just skip this pool.
@@ -747,6 +748,11 @@ pub mod pallet {
 			};
 			let mut budget = pool.get_free_stakes::<T>() + releasing_stake;
 			for request in &pool.withdraw_queue {
+				if let Some(vault_period) = maybe_vault_queue_period {
+					if now - request.start_time > vault_period {
+						return true;
+					}
+				}
 				let nft_guard = Self::get_nft_attr_guard(pool.cid, request.nft_id)
 					.expect("get nftattr should always success; qed.");
 				let withdraw_nft = nft_guard.attr.clone();
@@ -1020,7 +1026,12 @@ pub mod pallet {
 			pool_info: &mut BasePool<T::AccountId, BalanceOf<T>>,
 			nft: &NftAttr<BalanceOf<T>>,
 		) -> bool {
-			if is_nondust_balance(nft.shares) {
+			let price = match pool_info.share_price() {
+				Some(price) => price,
+				None => return false,
+			};
+			let current_balance = bmul(nft.shares, &price);
+			if current_balance > T::WPhaMinBalance::get() {
 				return false;
 			}
 			pool_info.total_shares -= nft.shares;
@@ -1063,6 +1074,12 @@ pub mod pallet {
 						Self::get_nft_attr_guard(pool_info.cid, withdraw.nft_id)
 							.expect("get nftattr should always success; qed.");
 					let mut withdraw_nft = withdraw_nft_guard.attr.clone();
+					if Self::maybe_remove_dust(pool_info, &withdraw_nft) {
+						pool_info.withdraw_queue.pop_front();
+						Self::burn_nft(&pallet_id(), pool_info.cid, withdraw.nft_id)
+							.expect("burn nft should always success");
+						continue;
+					}
 					// Try to fulfill the withdraw requests as much as possible
 					let free_shares = if price == fp!(0) {
 						withdraw_nft.shares // 100% slashed

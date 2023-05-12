@@ -44,6 +44,8 @@ pub mod pallet {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		#[pallet::constant]
 		type InitialPriceCheckPoint: Get<BalanceOf<Self>>;
+		#[pallet::constant]
+		type VaultQueuePeriod: Get<u64>;
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(7);
@@ -377,6 +379,7 @@ pub mod pallet {
 				&vault.basepool,
 				now,
 				grace_period,
+				Some(T::VaultQueuePeriod::get()),
 				releasing_stake,
 			) {
 				for pid in vault.invest_pools.iter() {
@@ -407,8 +410,19 @@ pub mod pallet {
 						)
 						.expect("get nft should not fail: qed.");
 						let property = &property_guard.attr;
+						if !base_pool::is_nondust_balance(property.shares) {
+							let _ = base_pool::Pallet::<T>::burn_nft(
+								&base_pool::pallet_id::<T::AccountId>(),
+								stake_pool.basepool.cid,
+								nftid,
+							);
+							return;
+						}
 						total_shares += property.shares;
 					});
+					if !base_pool::is_nondust_balance(total_shares) {
+						continue;
+					}
 					stake_pool_v2::Pallet::<T>::withdraw(
 						Origin::<T>::Signed(vault.basepool.owner.clone()).into(),
 						stake_pool.basepool.pid,
@@ -537,6 +551,16 @@ pub mod pallet {
 			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::Vault(pool_info));
 
 			Ok(())
+		}
+
+		#[pallet::call_index(7)]
+		#[pallet::weight(0)]
+		#[frame_support::transactional]
+		pub fn refresh_vault_lock_and_check(origin: OriginFor<T>, pid: u64) -> DispatchResult {
+			let who = ensure_signed(origin.clone())?;
+			base_pool::Pallet::<T>::ensure_migration_root(who)?;
+			VaultLocks::<T>::remove(pid);
+			Self::check_and_maybe_force_withdraw(origin, pid)
 		}
 	}
 }
