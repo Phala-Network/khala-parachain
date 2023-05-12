@@ -1524,6 +1524,7 @@ dependencies = [
 [[package]]
 name = "cumulus-client-consensus-common"
 version = "0.1.0"
+source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.41#ae4e75b077c220bdf29b299b36a63b87ccb46b4c"
 dependencies = [
  "async-trait",
  "cumulus-client-pov-recovery",
@@ -8063,6 +8064,7 @@ dependencies = [
 [[package]]
 name = "polkadot-node-core-dispute-coordinator"
 version = "0.9.41"
+source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.41#e203bfb396ed949f102720debf32fb98166787af"
 dependencies = [
  "fatality",
  "futures",
@@ -10587,6 +10589,7 @@ dependencies = [
 [[package]]
 name = "sc-network-sync"
 version = "0.10.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.41#3bd809d59c31c7205a0f36c6ddcba603e43051fc"
 dependencies = [
  "array-bytes 4.2.0",
  "async-trait",
@@ -13435,7 +13438,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.6",
- "rand 0.7.3",
+ "rand 0.8.5",
  "static_assertions",
 ]
 
