@@ -1708,6 +1708,7 @@ parameter_types! {
     pub const MinWorkingStaking: Balance = 1 * DOLLARS;
     pub const MinContribution: Balance = 1 * CENTS;
     pub const WorkingGracePeriod: u64 = 7 * 24 * 3600;
+    pub const VaultQueuePeriod: u64 = 21 * 24 * 3600;
     pub const MinInitP: u32 = 50;
     pub const ComputingEnabledByDefault: bool = true;
     pub const MaxPoolWorkers: u32 = 200;
@@ -1773,6 +1774,7 @@ parameter_types! {
 impl pallet_vault::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type InitialPriceCheckPoint = InitialPriceCheckPoint;
+    type VaultQueuePeriod = VaultQueuePeriod;
 }
 
 pub struct WrappedBalancesPalletAccount;
