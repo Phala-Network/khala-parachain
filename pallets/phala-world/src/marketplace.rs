@@ -76,7 +76,7 @@ pub mod pallet {
 		/// - `origin`: Expected to be called by Overlord admin account.
 		/// - `new_marketplace_owner`: New `T::AccountId` of the new martketplace owner.
 		#[pallet::call_index(0)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})]
 		pub fn set_marketplace_owner(
 			origin: OriginFor<T>,
 			new_marketplace_owner: T::AccountId,
@@ -107,7 +107,7 @@ pub mod pallet {
 		/// - `collection_id`: `T::CollectionId` of the PhalaWorld NFT collection.
 		/// - `nft_ids`: `BoundedVec` NFT IDs to update in a collection bounded by T::IterLimit.
 		#[pallet::call_index(1)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})]
 		pub fn set_nfts_royalty_info(
 			origin: OriginFor<T>,
 			royalty_info: RoyaltyInfo<T::AccountId, Permill>,

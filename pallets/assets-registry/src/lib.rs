@@ -18,13 +18,13 @@ pub mod pallet {
 		traits::{
 			tokens::fungibles::{
 				metadata::Mutate as MetaMutate, Create as FungibleCerate, Mutate as FungibleMutate,
-				Transfer as FungibleTransfer,
 			},
 			ContainsPair,
 		},
 		traits::{Currency, ExistenceRequirement, StorageVersion},
 		transactional, PalletId,
 	};
+	use frame_support::traits::tokens::{Fortitude, Precision, Preservation};
 	use frame_system::pallet_prelude::*;
 	use phala_pallet_common::WrapSlice;
 	use scale_info::TypeInfo;
@@ -539,7 +539,7 @@ pub mod pallet {
 		/// Force withdraw some amount of assets from ASSETS_REGISTRY_ID, if the given asset_id is None,
 		/// would performance withdraw PHA from this account
 		#[pallet::call_index(0)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_withdraw_fund(
 			origin: OriginFor<T>,
@@ -550,12 +550,12 @@ pub mod pallet {
 			T::RegistryCommitteeOrigin::ensure_origin(origin)?;
 			let fund_account = ASSETS_REGISTRY_ID.into_account_truncating();
 			if let Some(asset_id) = asset_id {
-				<pallet_assets::pallet::Pallet<T> as FungibleTransfer<T::AccountId>>::transfer(
+				<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::transfer(
 					asset_id,
 					&fund_account,
 					&recipient,
 					amount.into(),
-					true,
+					Preservation::Expendable,
 				)
 				.map_err(|_| Error::<T>::FailedToTransactAsset)?;
 			} else {
@@ -570,7 +570,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_register_asset(
 			origin: OriginFor<T>,
@@ -634,7 +634,7 @@ pub mod pallet {
 		/// will not success anymore, we should call pallet_assets::destory() manually
 		/// if we want to delete this asset from our chain
 		#[pallet::call_index(2)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_unregister_asset(
 			origin: OriginFor<T>,
@@ -685,7 +685,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_set_metadata(
 			origin: OriginFor<T>,
@@ -710,7 +710,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_mint(
 			origin: OriginFor<T>,
@@ -734,7 +734,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(5)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_burn(
 			origin: OriginFor<T>,
@@ -745,7 +745,7 @@ pub mod pallet {
 			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
 
 			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::burn_from(
-				asset_id, &who, amount,
+				asset_id, &who, amount, Precision::BestEffort, Fortitude::Force
 			)?;
 			Self::deposit_event(Event::ForceBurnt {
 				asset_id,
@@ -756,7 +756,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(6)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_set_price(
 			origin: OriginFor<T>,
@@ -773,7 +773,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(7)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_set_location(
 			origin: OriginFor<T>,
@@ -829,7 +829,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(8)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_enable_chainbridge(
 			origin: OriginFor<T>,
@@ -879,7 +879,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(9)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_disable_chainbridge(
 			origin: OriginFor<T>,
@@ -925,7 +925,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(10)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_enable_sygmabridge(
 			origin: OriginFor<T>,
@@ -963,7 +963,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(11)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn force_disable_sygmabridge(
 			origin: OriginFor<T>,

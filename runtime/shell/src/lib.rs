@@ -199,6 +199,10 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
     type MaxReserves = ConstU32<50>;
     type ReserveIdentifier = [u8; 8];
+    type HoldIdentifier = ();
+    type FreezeIdentifier = ();
+    type MaxHolds = ConstU32<0>;
+    type MaxFreezes = ConstU32<0>;
 }
 
 construct_runtime! {
@@ -323,6 +327,14 @@ impl_runtime_apis! {
         fn metadata() -> OpaqueMetadata {
             OpaqueMetadata::new(Runtime::metadata().into())
         }
+
+        fn metadata_at_version(version: u32) -> Option<OpaqueMetadata> {
+            Runtime::metadata_at_version(version)
+        }
+
+        fn metadata_versions() -> sp_std::vec::Vec<u32> {
+            Runtime::metadata_versions()
+        }
     }
 
     impl sp_block_builder::BlockBuilder<Block> for Runtime {
@@ -400,17 +412,12 @@ impl Contains<RuntimeCall> for BaseCallFilter {
     fn contains(call: &RuntimeCall) -> bool {
         if let RuntimeCall::PolkadotXcm(xcm_method) = call {
             return match xcm_method {
-                pallet_xcm::Call::execute { .. }
-                | pallet_xcm::Call::teleport_assets { .. }
-                | pallet_xcm::Call::reserve_transfer_assets { .. }
-                | pallet_xcm::Call::limited_reserve_transfer_assets { .. }
-                | pallet_xcm::Call::limited_teleport_assets { .. }
-                | pallet_xcm::Call::__Ignore { .. } => false,
                 pallet_xcm::Call::force_xcm_version { .. }
                 | pallet_xcm::Call::force_default_xcm_version { .. }
                 | pallet_xcm::Call::force_subscribe_version_notify { .. }
                 | pallet_xcm::Call::force_unsubscribe_version_notify { .. }
                 | pallet_xcm::Call::send { .. } => true,
+                _ => false,
             };
         }
 

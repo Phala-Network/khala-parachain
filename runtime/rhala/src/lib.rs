@@ -442,6 +442,7 @@ parameter_types! {
         .avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
         .build_or_panic();
     pub const SS58Prefix: u16 = 30;
+    pub MaxCollectivesProposalWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
 }
 
 impl frame_system::Config for Runtime {
@@ -725,6 +726,10 @@ impl pallet_balances::Config for Runtime {
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = frame_system::Pallet<Runtime>;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+    type HoldIdentifier = ();
+    type FreezeIdentifier = ();
+    type MaxHolds = ConstU32<0>;
+    type MaxFreezes = ConstU32<0>;
 }
 
 parameter_types! {
@@ -1213,6 +1218,7 @@ impl pallet_xcm::Config for Runtime {
     type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type ReachableDest = ReachableDest;
+    type AdminOrigin = EnsureRootOrHalfCouncil;
 }
 
 impl xcmbridge::Config for Runtime {
@@ -1265,6 +1271,7 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
     type DefaultVote = pallet_collective::PrimeDefaultVote;
     type SetMembersOrigin = EnsureRoot<Self::AccountId>;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+    type MaxProposalWeight = MaxCollectivesProposalWeight;
 }
 
 parameter_types! {
@@ -1324,6 +1331,7 @@ impl pallet_collective::Config<TechnicalCollective> for Runtime {
     type DefaultVote = pallet_collective::PrimeDefaultVote;
     type SetMembersOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+    type MaxProposalWeight = MaxCollectivesProposalWeight;
 }
 
 impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
@@ -1638,12 +1646,14 @@ impl sygma_access_segregator::Config for Runtime {
     type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type PalletIndex = SygmaAccessSegregatorPalletIndex;
     type Extrinsics = RegisteredExtrinsics;
+    type WeightInfo = sygma_access_segregator::weights::SygmaWeightInfo<Runtime>;
 }
 
 impl sygma_basic_feehandler::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type PalletIndex = SygmaBasicFeeHandlerPalletIndex;
+    type WeightInfo = sygma_basic_feehandler::weights::SygmaWeightInfo<Runtime>;
 }
 
 impl sygma_fee_handler_router::Config for Runtime {
@@ -1652,6 +1662,7 @@ impl sygma_fee_handler_router::Config for Runtime {
     type BasicFeeHandler = SygmaBasicFeeHandler;
     type DynamicFeeHandler = ();
     type PalletIndex = SygmaFeeHandlerRouterPalletIndex;
+    type WeightInfo = sygma_fee_handler_router::weights::SygmaWeightInfo<Runtime>;
 }
 
 impl sygma_bridge::Config for Runtime {
@@ -1678,6 +1689,7 @@ impl sygma_bridge::Config for Runtime {
     type PalletId = SygmaBridgePalletId;
     type PalletIndex = SygmaBridgePalletIndex;
     type DecimalConverter = assets_registry::SygmaDecimalConverter<AssetsRegistry>;
+    type WeightInfo = sygma_bridge::weights::SygmaWeightInfo<Runtime>;
 }
 
 impl sygma_wrapper::Config for Runtime {
@@ -1904,6 +1916,14 @@ impl_runtime_apis! {
     impl sp_api::Metadata<Block> for Runtime {
         fn metadata() -> OpaqueMetadata {
             OpaqueMetadata::new(Runtime::metadata().into())
+        }
+
+        fn metadata_at_version(version: u32) -> Option<OpaqueMetadata> {
+            Runtime::metadata_at_version(version)
+        }
+
+        fn metadata_versions() -> sp_std::vec::Vec<u32> {
+            Runtime::metadata_versions()
         }
     }
 

@@ -2,7 +2,9 @@ use crate::impls::AccountIdOf;
 use core::marker::PhantomData;
 use frame_support::{
 	log,
-	traits::{fungibles::Inspect, tokens::BalanceConversion, ContainsPair},
+	traits::{
+		fungibles::Inspect, tokens::ConversionToAssetBalance, ContainsPair, ProcessMessageError,
+	},
 	weights::{Weight, WeightToFee, WeightToFeePolynomial},
 };
 use sp_runtime::traits::Get;
@@ -18,16 +20,16 @@ where
 	Allow: ShouldExecute;
 
 impl<Deny, Allow> ShouldExecute for DenyThenTry<Deny, Allow>
-where
-	Deny: ShouldExecute,
-	Allow: ShouldExecute,
+	where
+		Deny: ShouldExecute,
+		Allow: ShouldExecute,
 {
 	fn should_execute<RuntimeCall>(
 		origin: &MultiLocation,
 		message: &mut [Instruction<RuntimeCall>],
 		max_weight: Weight,
 		weight_credit: &mut Weight,
-	) -> Result<(), ()> {
+	) -> Result<(), ProcessMessageError> {
 		Deny::should_execute(origin, message, max_weight, weight_credit)?;
 		Allow::should_execute(origin, message, max_weight, weight_credit)
 	}
@@ -41,7 +43,7 @@ impl ShouldExecute for DenyReserveTransferToRelayChain {
 		message: &mut [Instruction<RuntimeCall>],
 		_max_weight: Weight,
 		_weight_credit: &mut Weight,
-	) -> Result<(), ()> {
+	) -> Result<(), ProcessMessageError> {
 		if message.iter().any(|inst| {
 			matches!(
 				inst,
@@ -55,7 +57,7 @@ impl ShouldExecute for DenyReserveTransferToRelayChain {
 					}
 			)
 		}) {
-			return Err(()) // Deny
+			return Err(ProcessMessageError::Unsupported) // Deny
 		}
 
 		// An unexpected reserve transfer has arrived from the Relay Chain. Generally, `IsReserve`
@@ -90,7 +92,7 @@ impl<CurrencyBalance, Runtime, WeightToFee, BalanceConverter, AssetInstance>
 where
 	Runtime: pallet_assets::Config<AssetInstance>,
 	WeightToFee: WeightToFeePolynomial<Balance = CurrencyBalance>,
-	BalanceConverter: BalanceConversion<
+	BalanceConverter: ConversionToAssetBalance<
 		CurrencyBalance,
 		<Runtime as pallet_assets::Config<AssetInstance>>::AssetId,
 		<Runtime as pallet_assets::Config<AssetInstance>>::Balance,
