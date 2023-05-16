@@ -13,6 +13,9 @@ serde = { version = "1.0.132", optional = true, features = ["derive"] }
 smallvec = "1.6.1"
 static_assertions = "1.1.0"
 
+primitive-types = { version = "0.12", default-features = false, features = ["scale-info", "serde_no_std"] }
+hex = { version = "0.4.3", default-features = false }
+
 phala-types = { path = "../../crates/phala-types", default-features = false }
 parachains-common = { path = "../../parachains-common", default-features = false }
 
@@ -92,9 +95,13 @@ pallet-rmrk-market = { git = "https://github.com/Phala-Network/rmrk-substrate", 
 rmrk-traits = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.42", default-features = false }
 pallet-rmrk-rpc-runtime-api = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.42", default-features = false }
 
-# Sygma
-sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.42", default-features = false }
-sygma-runtime-api = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.42", default-features = false }
+# Sygma dependencies
+sygma-traits = { git = "https://github.com/Phala-Network/sygma-substrate-pallets", branch = "polkadot-v0.9.42", default-features = false }
+sygma-basic-feehandler = { git = "https://github.com/Phala-Network/sygma-substrate-pallets", branch = "polkadot-v0.9.42", default-features = false }
+sygma-bridge = { git = "https://github.com/Phala-Network/sygma-substrate-pallets", branch = "polkadot-v0.9.42", default-features = false }
+sygma-access-segregator = { git = "https://github.com/Phala-Network/sygma-substrate-pallets", branch = "polkadot-v0.9.42", default-features = false }
+sygma-fee-handler-router = { git = "https://github.com/Phala-Network/sygma-substrate-pallets", branch = "polkadot-v0.9.42", default-features = false }
+sygma-runtime-api = { git = "https://github.com/Phala-Network/sygma-substrate-pallets", branch = "polkadot-v0.9.42", default-features = false }
 
 # Local dependencies
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
@@ -219,8 +226,14 @@ std = [
 	"rmrk-traits/std",
 	"pallet-rmrk-rpc-runtime-api/std",
 	"pallet-phala-world/std",
-	"sygma-runtime-api/std",
 	"pallet-index/std",
+	"sygma-basic-feehandler/std",
+	"sygma-traits/std",
+	"sygma-bridge/std",
+	"sygma-access-segregator/std",
+	"sygma-fee-handler-router/std",
+	"sygma-runtime-api/std",
+	"primitive-types/std",
 ]
 
 try-runtime = [
@@ -270,6 +283,10 @@ try-runtime = [
 	"assets-registry/try-runtime",
 	"phala-pallets/try-runtime",
 	"pallet-index/try-runtime",
+	"sygma-basic-feehandler/try-runtime",
+	"sygma-bridge/try-runtime",
+	"sygma-access-segregator/try-runtime",
+	"sygma-fee-handler-router/try-runtime",
 ]
 
 # A feature that should be enabled when the runtime should be build for on-chain
