@@ -96,7 +96,7 @@ export async function getParachainIdFromSpec(
 	});
 
 	const spec = JSON.parse(data);
-	return spec.para_id;
+	return spec.para_id || spec.paraId;
 }
 
 // Spawn a new relay chain node.
