@@ -1,0 +1,127 @@
+{
+    "relaychain": {
+      "bin": "./bin/polkadot",
+      "chain": "rococo-local",
+      "nodes": [
+        {
+          "name": "alice",
+          "wsPort": 19944,
+          "port": 10333,
+          "nodeKey": "807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
+          "basePath": "data/rococo_alice",
+          "flags": [
+            "--rpc-cors=all"
+          ]
+        },
+        {
+          "name": "bob",
+          "wsPort": 19244,
+          "port": 12333,
+          "basePath": "data/rococo_bob"
+        },
+        {
+          "name": "charlie",
+          "wsPort": 19344,
+          "port": 13333,
+          "basePath": "data/rococo_charlie"
+        },
+        {
+          "name": "dave",
+          "wsPort": 19444,
+          "port": 14333,
+          "basePath": "data/rococo_dave"
+        }
+      ],
+      "genesis": {
+        "runtime": {
+          "runtime_genesis_config": {
+            "configuration": {
+              "config": {
+                "validation_upgrade_frequency": 10,
+                "validation_upgrade_delay": 10
+              }
+            }
+          },
+          "session_length_in_blocks": 500
+        }
+      }
+    },
+    "parachains": [
+      {
+        "bin": "./bin/khala-node",
+        "chain": "rhala-dev-2004",
+        "balance": "1000000000000000000000",
+        "nodes": [
+          {
+            "name": "alice",
+            "wsPort": 9144,
+            "rpcPort": 9133,
+            "port": 31333,
+            "nodeKey": "81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
+            "basePath": "data/rhala_alice",
+            "flags": [
+              "--rpc-cors=all",
+              "--",
+              "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
+              "--port=31334",
+              "--rpc-port=9134",
+              "--ws-port=9145"
+            ]
+          },
+          {
+            "name": "bob",
+            "wsPort": 9244,
+            "port": 32333,
+            "basePath": "data/rhala_bob"
+          }
+        ]
+      },
+      {
+          "bin": "./bin/astar-collator",
+          "chain": "shibuya-dev",
+          "balance": "1000000000000000000000",
+          "nodeKey": "7b111f101e0e606c3a745f25a8b166de2e557660b2a6e2984a30229553c37252",
+          "basePath": "data/shibuya_alice",
+          "nodes": [
+            {
+              "name": "alice",
+              "wsPort": 9344,
+              "rpcPort": 9333,
+              "port": 33333,
+              "flags": [
+                "--rpc-cors=all",
+                "--",
+                "--node-key=9ad8595d81d5851a5d5c920d3346881e262b2a720b5878714ee38c919514bcea",
+                "--port=32334",
+                "--rpc-port=9234",
+                "--ws-port=9245"
+              ]
+            },
+            {
+              "name": "bob",
+              "wsPort": 9444,
+              "port": 34444,
+              "basePath": "data/shibuya_bob"
+            }
+          ]
+        }
+    ],
+    "simpleParachains": [],
+    "hrmpChannels": [
+      {
+          "sender": 2004,
+          "recipient": 2006,
+          "maxCapacity": 8,
+          "maxMessageSize": 512
+      },
+      {
+          "sender": 2006,
+          "recipient": 2004,
+          "maxCapacity": 8,
+          "maxMessageSize": 512
+      }
+    ],
+    "types": {},
+    "finalization": false
+  }
+  
