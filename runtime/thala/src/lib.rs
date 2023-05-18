@@ -1716,6 +1716,7 @@ parameter_types! {
     pub const VerifyPRuntime: bool = false;
     pub const VerifyRelaychainGenesisBlockHash: bool = false;
     pub ParachainId: u32 = ParachainInfo::parachain_id().into();
+    pub const CheckWorkerRegisterTime: bool = true;
 }
 
 impl pallet_registry::Config for Runtime {
@@ -1754,6 +1755,7 @@ impl pallet_computation::Config for Runtime {
     type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
     type SetBudgetOrigins = EnsureSignedBy<SetBudgetMembers, AccountId>;
     type SetContractRootOrigins = EnsureRootOrHalfCouncil;
+    type CheckWorkerRegisterTime = CheckWorkerRegisterTime;
 }
 impl pallet_stake_pool_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
