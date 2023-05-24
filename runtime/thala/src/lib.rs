@@ -1648,14 +1648,12 @@ impl sygma_access_segregator::Config for Runtime {
 
 impl sygma_basic_feehandler::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type PalletIndex = SygmaBasicFeeHandlerPalletIndex;
     type WeightInfo = sygma_basic_feehandler::weights::SygmaWeightInfo<Runtime>;
 }
 
 impl sygma_fee_handler_router::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type BasicFeeHandler = SygmaBasicFeeHandler;
     type DynamicFeeHandler = ();
     type PalletIndex = SygmaFeeHandlerRouterPalletIndex;
@@ -1667,7 +1665,6 @@ const DEST_VERIFYING_CONTRACT_ADDRESS: &str = "6CdE2Cd82a4F8B74693Ff5e194c19CA08
 
 impl sygma_bridge::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type TransferReserveAccount = SygmaBridgeAccount;
     type FeeReserveAccount = ThalaTreasuryAccount;
     type EIP712ChainID = EIP712ChainID;
