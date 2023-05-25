@@ -1004,6 +1004,7 @@ impl pallet_pw_incubation::Config for Runtime {
 
 impl pallet_pw_marketplace::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type StakingListHook = ();
 }
 
 impl pallet_parachain_info::Config for Runtime {}
