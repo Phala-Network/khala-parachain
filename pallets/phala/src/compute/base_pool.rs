@@ -71,7 +71,6 @@ pub mod pallet {
 	{
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type MigrationAccountId: Get<Self::AccountId>;
-		type WPhaMinBalance: Get<BalanceOf<Self>>;
 	}
 
 	#[derive(Encode, Decode, TypeInfo, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -1031,7 +1030,8 @@ pub mod pallet {
 				None => return false,
 			};
 			let current_balance = bmul(nft.shares, &price);
-			if current_balance > T::WPhaMinBalance::get() {
+			let wpha_min = wrapped_balances::Pallet::<T>::min_balance();
+			if current_balance > wpha_min {
 				return false;
 			}
 			pool_info.total_shares -= nft.shares;
@@ -1067,7 +1067,8 @@ pub mod pallet {
 				None => return,
 			};
 
-			while pool_info.get_free_stakes::<T>() > T::WPhaMinBalance::get() {
+			let wpha_min = wrapped_balances::Pallet::<T>::min_balance();
+			while pool_info.get_free_stakes::<T>() > wpha_min {
 				if let Some(withdraw) = pool_info.withdraw_queue.front().cloned() {
 					// Must clear the pending reward before any stake change
 					let mut withdraw_nft_guard =

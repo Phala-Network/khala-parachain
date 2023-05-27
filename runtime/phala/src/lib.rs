@@ -1663,7 +1663,6 @@ impl Get<AccountId32> for MigrationAccount {
 impl pallet_base_pool::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type MigrationAccountId = MigrationAccount;
-    type WPhaMinBalance = WPhaMinBalance;
 }
 
 impl phala_pallets::PhalaConfig for Runtime {
