@@ -1,10 +1,10 @@
 #!/bin/bash
 
 REV=$(git rev-parse HEAD)
+NAME="${1:-$REV}"
 
-rm -rf "./tmp/wasm/$REV"
-mkdir -p "./tmp/wasm/$REV/release"
-mkdir -p "./tmp/wasm/$REV/production"
+rm -rf "./tmp/wasm/$NAME"
+mkdir -p "./tmp/wasm/$NAME/release"
+mkdir -p "./tmp/wasm/$NAME/production"
 
-cp ./target/release/wbuild/*-runtime/*.compressed.wasm "./tmp/wasm/$REV/release/"
-cp ./target/production/wbuild/*-runtime/*.compressed.wasm "./tmp/wasm/$REV/production/"
+cp ./target/production/wbuild/*-runtime/*.compressed.wasm "./tmp/wasm/$NAME/production/"
