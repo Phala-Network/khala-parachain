@@ -164,7 +164,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("phala"),
     impl_name: create_runtime_str!("phala"),
     authoring_version: 1,
-    spec_version: 1246,
+    spec_version: 1247,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 5,
@@ -197,6 +197,7 @@ pub type SignedExtra = (
     frame_system::CheckEra<Runtime>,
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
+    pallet_mq::CheckMqSequence<Runtime>,
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
@@ -1577,6 +1578,7 @@ parameter_types! {
     pub const VerifyPRuntime: bool = true;
     pub const VerifyRelaychainGenesisBlockHash: bool = true;
     pub ParachainId: u32 = ParachainInfo::parachain_id().into();
+    pub const CheckWorkerRegisterTime: bool = true;
 }
 
 impl pallet_registry::Config for Runtime {
@@ -1615,6 +1617,7 @@ impl pallet_computation::Config for Runtime {
     type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
     type SetBudgetOrigins = EnsureSignedBy<SetBudgetMembers, AccountId>;
     type SetContractRootOrigins = EnsureRootOrHalfCouncil;
+    type CheckWorkerRegisterTime = CheckWorkerRegisterTime;
 }
 impl pallet_stake_pool_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;

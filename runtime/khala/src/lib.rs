@@ -164,7 +164,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("khala"),
     impl_name: create_runtime_str!("khala"),
     authoring_version: 1,
-    spec_version: 1246,
+    spec_version: 1247,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -1620,6 +1620,7 @@ parameter_types! {
     pub const VerifyPRuntime: bool = true;
     pub const VerifyRelaychainGenesisBlockHash: bool = true;
     pub ParachainId: u32 = ParachainInfo::parachain_id().into();
+    pub const CheckWorkerRegisterTime: bool = false;
 }
 
 impl pallet_registry::Config for Runtime {
@@ -1658,6 +1659,7 @@ impl pallet_computation::Config for Runtime {
     type UpdateTokenomicOrigin = EnsureRootOrHalfCouncil;
     type SetBudgetOrigins = EnsureSignedBy<SetBudgetMembers, AccountId>;
     type SetContractRootOrigins = EnsureRootOrHalfCouncil;
+    type CheckWorkerRegisterTime = CheckWorkerRegisterTime;
 }
 impl pallet_stake_pool_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
