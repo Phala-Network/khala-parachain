@@ -155,7 +155,10 @@ where
     });
 
     sc_storage_monitor::StorageMonitorService::try_spawn(
-        sc_storage_monitor::StorageMonitorParams::default(),
+        sc_storage_monitor::StorageMonitorParams {
+            threshold: 1024,
+            polling_period: 12,
+        },
         config.database.clone(),
         &task_manager.spawn_essential_handle(),
     )
