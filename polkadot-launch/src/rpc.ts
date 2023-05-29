@@ -160,7 +160,7 @@ export async function setBalance(
 			`--- Submitting extrinsic to set balance of ${who} to ${value}. (nonce: ${nonce}) ---`
 		);
 		const unsub = await api.tx.sudo
-			.sudo(api.tx.balances.setBalance(who, value, 0))
+			.sudo(api.tx.balances.forceSetBalance(who, value))
 			.signAndSend(alice, { nonce: nonce, era: 0 }, (result) => {
 				console.log(`Current status is ${result.status}`);
 				if (result.status.isInBlock) {
