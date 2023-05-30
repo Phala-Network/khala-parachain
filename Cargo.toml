@@ -25,8 +25,6 @@ exclude = [
 	"vendor/webpki",
 	"vendor/ring",
 	"polkadot/node/service",
-	"cumulus/client/consensus/common",
-	"substrate/client/network/sync",
 ]
 
 members = [
@@ -56,13 +54,3 @@ members = [
 
 [patch."https://github.com/paritytech/polkadot"]
 polkadot-service = { path = "polkadot/node/service" }
-# TODO: Remove after upgrade to Polkdaot v0.9.42
-polkadot-node-core-dispute-coordinator = { path = "polkadot/node/core/dispute-coordinator" }
-
-# TODO: Remove after upgrade to Polkdaot v0.9.42
-[patch."https://github.com/paritytech/cumulus"]
-cumulus-client-consensus-common = { path = "cumulus/client/consensus/common" }
-
-# TODO: Remove after upgrade to Polkdaot v0.9.42
-[patch."https://github.com/paritytech/substrate"]
-sc-network-sync = { path = "substrate/client/network/sync" }

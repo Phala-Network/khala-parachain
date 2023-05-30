@@ -14,6 +14,7 @@ pub mod pallet {
 		traits::{tokens::fungibles::Inspect, Currency, StorageVersion},
 		transactional, PalletId, Parameter,
 	};
+	use frame_support::traits::tokens::{Fortitude, Preservation};
 	use frame_system::{self as system, pallet_prelude::*};
 	use phala_pallet_common::WrapSlice;
 	use scale_info::TypeInfo;
@@ -336,7 +337,7 @@ pub mod pallet {
 		/// - O(1) lookup and insert
 		/// # </weight>
 		#[pallet::call_index(0)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		pub fn set_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
 			Self::set_relayer_threshold(threshold)
@@ -348,7 +349,7 @@ pub mod pallet {
 		/// - O(1) lookup and insert
 		/// # </weight>
 		#[pallet::call_index(1)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		pub fn whitelist_chain(origin: OriginFor<T>, id: BridgeChainId) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
 			Self::whitelist(id)
@@ -360,7 +361,7 @@ pub mod pallet {
 		/// - O(1) lookup and insert
 		/// # </weight>
 		#[pallet::call_index(2)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		pub fn add_relayer(origin: OriginFor<T>, v: T::AccountId) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
 			Self::register_relayer(v)
@@ -372,7 +373,7 @@ pub mod pallet {
 		/// - O(1) lookup and removal
 		/// # </weight>
 		#[pallet::call_index(3)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		pub fn remove_relayer(origin: OriginFor<T>, v: T::AccountId) -> DispatchResult {
 			T::BridgeCommitteeOrigin::ensure_origin(origin)?;
 			Self::unregister_relayer(v)
@@ -384,7 +385,7 @@ pub mod pallet {
 		/// - O(1) lookup and insert
 		/// # </weight>
 		#[pallet::call_index(4)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		pub fn update_fee(
 			origin: OriginFor<T>,
 			fee: u128,
@@ -437,7 +438,7 @@ pub mod pallet {
 		/// - Fixed, since execution of proposal should not be included
 		/// # </weight>
 		#[pallet::call_index(6)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn reject_proposal(
 			origin: OriginFor<T>,
@@ -483,7 +484,7 @@ pub mod pallet {
 
 		/// Triggered by a initial transfer on source chain, executed by relayer when proposal was resolved.
 		#[pallet::call_index(8)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn handle_fungible_transfer(
 			origin: OriginFor<T>,
@@ -859,7 +860,8 @@ pub mod pallet {
 				let reducible_balance = <pallet_assets::pallet::Pallet<T>>::reducible_balance(
 					asset_id.into(),
 					&sender,
-					false,
+					Preservation::Expendable,
+					Fortitude::Polite,
 				);
 				reducible_balance.into()
 			};

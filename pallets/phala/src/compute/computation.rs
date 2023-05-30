@@ -487,7 +487,7 @@ pub mod pallet {
 		///
 		/// Can only be called by root.
 		#[pallet::call_index(0)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})]
 		pub fn set_cool_down_expiration(origin: OriginFor<T>, period: u64) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -501,7 +501,7 @@ pub mod pallet {
 		/// It will trigger a force stop of computing if the worker is still in computing state. Anyone
 		/// can call it.
 		#[pallet::call_index(1)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})]
 		pub fn unbind(origin: OriginFor<T>, session: T::AccountId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let pubkey = Self::ensure_session_bound(&session)?;
@@ -517,7 +517,7 @@ pub mod pallet {
 		///
 		/// Only for integration test.
 		#[pallet::call_index(2)]
-		#[pallet::weight(1)]
+		#[pallet::weight(Weight::from_parts(1, 0))]
 		pub fn force_heartbeat(origin: OriginFor<T>) -> DispatchResult {
 			ensure_root(origin)?;
 			Self::push_message(SystemEvent::HeartbeatChallenge(HeartbeatChallenge {
@@ -531,7 +531,7 @@ pub mod pallet {
 		///
 		/// Only for integration test.
 		#[pallet::call_index(3)]
-		#[pallet::weight(1)]
+		#[pallet::weight(Weight::from_parts(1, 0))]
 		pub fn force_start_computing(
 			origin: OriginFor<T>,
 			session: T::AccountId,
@@ -546,7 +546,7 @@ pub mod pallet {
 		///
 		/// Only for integration test.
 		#[pallet::call_index(4)]
-		#[pallet::weight(1)]
+		#[pallet::weight(Weight::from_parts(1, 0))]
 		pub fn force_stop_computing(origin: OriginFor<T>, session: T::AccountId) -> DispatchResult {
 			ensure_root(origin)?;
 			Self::stop_computing(session)?;
@@ -557,7 +557,7 @@ pub mod pallet {
 		///
 		/// Can only be called by the tokenomic admin.
 		#[pallet::call_index(5)]
-		#[pallet::weight(1)]
+		#[pallet::weight(Weight::from_parts(1, 0))]
 		pub fn update_tokenomic(
 			origin: OriginFor<T>,
 			new_params: TokenomicParams,
@@ -575,7 +575,7 @@ pub mod pallet {
 		///
 		/// Can only be called by root.
 		#[pallet::call_index(6)]
-		#[pallet::weight(1)]
+		#[pallet::weight(Weight::from_parts(1, 0))]
 		pub fn set_heartbeat_paused(origin: OriginFor<T>, paused: bool) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 			HeartbeatPaused::<T>::put(paused);
@@ -583,7 +583,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(7)]
-		#[pallet::weight(1)]
+		#[pallet::weight(Weight::from_parts(1, 0))]
 		#[frame_support::transactional]
 		pub fn set_budget_per_block(
 			origin: OriginFor<T>,
@@ -616,7 +616,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(8)]
-		#[pallet::weight(1)]
+		#[pallet::weight(Weight::from_parts(1, 0))]
 		pub fn update_contract_root(
 			origin: OriginFor<T>,
 			account_id: AccountId32,

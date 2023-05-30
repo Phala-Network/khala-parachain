@@ -103,7 +103,7 @@ pub mod pallet {
 	where
 		T::AccountId: Into<[u8; 32]> + From<[u8; 32]>,
 	{
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[pallet::call_index(0)]
 		#[transactional]
 		pub fn force_add_worker(origin: OriginFor<T>, worker: T::AccountId) -> DispatchResult {
@@ -117,7 +117,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[pallet::call_index(1)]
 		#[transactional]
 		pub fn force_remove_worker(origin: OriginFor<T>, worker: T::AccountId) -> DispatchResult {
@@ -128,7 +128,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[pallet::call_index(2)]
 		#[transactional]
 		pub fn deposit_task(
@@ -186,7 +186,7 @@ pub mod pallet {
 		}
 
 		/// Claim the oldest task that saved in actived task queue
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[pallet::call_index(3)]
 		#[transactional]
 		pub fn claim_task(origin: OriginFor<T>, task_id: TaskId) -> DispatchResult {
@@ -229,7 +229,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[pallet::call_index(4)]
 		#[transactional]
 		pub fn claim_all_task(origin: OriginFor<T>) -> DispatchResult {

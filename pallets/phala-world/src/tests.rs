@@ -10,7 +10,7 @@ use frame_support::bounded_vec;
 use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::Currency};
 use rmrk_traits::RoyaltyInfo;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
-use sp_runtime::{BoundedVec, Permill};
+use sp_runtime::{DispatchError::Token, TokenError::FundsUnavailable, BoundedVec, Permill};
 
 use crate::incubation::{ShellPartInfoOf, ShellPartsOf};
 use crate::traits::{
@@ -557,7 +557,7 @@ fn purchase_rare_origin_of_shell_works() {
 				RaceType::Cyborg,
 				CareerType::HardwareDruid,
 			),
-			pallet_balances::Error::<Test>::InsufficientBalance
+			Token(FundsUnavailable)
 		);
 		// BOB purchases Magic Origin of Shell
 		assert_ok!(PWNftSale::buy_rare_origin_of_shell(

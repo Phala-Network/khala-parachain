@@ -557,7 +557,7 @@ pub mod pallet {
 		/// `origin`: Expected to be the `Overlord` account
 		/// `status`: `bool` value to set for the status in storage
 		#[pallet::call_index(3)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})]
 		pub fn set_can_start_incubation_status(
 			origin: OriginFor<T>,
 			status: bool,
@@ -589,7 +589,7 @@ pub mod pallet {
 		/// - `origin` - Expected Overlord admin account to set the Shell Collection ID
 		/// - `collection_id` - Collection ID of the Shell Collection
 		#[pallet::call_index(4)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})]
 		pub fn set_shell_collection_id(
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
@@ -615,7 +615,7 @@ pub mod pallet {
 		/// - `origin` - Expected Overlord admin account to set the Shell Parts Collection ID
 		/// - `collection_id` - Collection ID of the Shell Parts Collection
 		#[pallet::call_index(5)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})]
 		pub fn set_shell_parts_collection_id(
 			origin: OriginFor<T>,
 			collection_id: CollectionId,
@@ -643,7 +643,7 @@ pub mod pallet {
 		/// - `nft_id` - NFT ID of the Origin of Shell
 		/// - `chosen_parts` - Shell parts to be stored in Storage
 		#[pallet::call_index(6)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})]
 		pub fn set_origin_of_shell_chosen_parts(
 			origin: OriginFor<T>,
 			collection_id: CollectionId,

@@ -21,6 +21,7 @@ use frame_support::{
     match_types, parameter_types,
     traits::{ConstU32, Everything, Nothing},
 };
+use frame_system::EnsureRoot;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
     AllowUnpaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds,
@@ -121,4 +122,5 @@ impl pallet_xcm::Config for Runtime {
     type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type ReachableDest = ReachableDest;
+    type AdminOrigin = EnsureRoot<AccountId>;
 }

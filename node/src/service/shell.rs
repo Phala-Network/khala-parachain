@@ -19,7 +19,7 @@ use sc_service::{
 };
 use sc_telemetry::TelemetryHandle;
 use sp_api::ConstructRuntimeApi;
-use sp_keystore::SyncCryptoStorePtr;
+use sp_keystore::KeystorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use substrate_prometheus_endpoint::Registry;
 
@@ -120,7 +120,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             Arc<dyn RelayChainInterface>,
             Arc<sc_transaction_pool::FullPool<Block, ParachainClient<RuntimeApi>>>,
             Arc<SyncingService<Block>>,
-            SyncCryptoStorePtr,
+            KeystorePtr,
             bool,
         ) -> Result<Box<dyn ParachainConsensus<Block>>, sc_service::Error>,
 {
@@ -172,7 +172,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         transaction_pool: transaction_pool.clone(),
         task_manager: &mut task_manager,
         config: parachain_config,
-        keystore: params.keystore_container.sync_keystore(),
+        keystore: params.keystore_container.keystore(),
         backend: backend.clone(),
         network: network.clone(),
         sync_service: sync_service.clone(),
@@ -214,8 +214,8 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             &task_manager,
             relay_chain_interface.clone(),
             transaction_pool,
-            sync_service,
-            params.keystore_container.sync_keystore(),
+            sync_service.clone(),
+            params.keystore_container.keystore(),
             force_authoring,
         )?;
 
@@ -234,6 +234,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             collator_key: collator_key.expect("Command line arguments do not allow this. qed"),
             relay_chain_slot_duration,
             recovery_handle: Box::new(overseer_handle),
+            sync_service,
         };
 
         start_collator(params).await?;
@@ -247,6 +248,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             relay_chain_slot_duration,
             import_queue: import_queue_service,
             recovery_handle: Box::new(overseer_handle),
+            sync_service,
         };
 
         start_full_node(params)?;

@@ -61,7 +61,7 @@ pub mod pallet {
 		T::AccountId: Into<[u8; 32]> + From<[u8; 32]>,
 	{
 		#[pallet::call_index(0)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn transfer(
 			origin: OriginFor<T>,
@@ -75,7 +75,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(195_000_000)]
+		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[transactional]
 		pub fn transfer_generic(
 			origin: OriginFor<T>,
