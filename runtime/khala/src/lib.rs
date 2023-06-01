@@ -1640,25 +1640,25 @@ impl sygma_access_segregator::Config for Runtime {
     type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type PalletIndex = SygmaAccessSegregatorPalletIndex;
     type Extrinsics = RegisteredExtrinsics;
+    type WeightInfo = sygma_access_segregator::weights::SygmaWeightInfo<Runtime>;
 }
 
 impl sygma_basic_feehandler::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type PalletIndex = SygmaBasicFeeHandlerPalletIndex;
+    type WeightInfo = sygma_basic_feehandler::weights::SygmaWeightInfo<Runtime>;
 }
 
 impl sygma_fee_handler_router::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type BasicFeeHandler = SygmaBasicFeeHandler;
     type DynamicFeeHandler = ();
     type PalletIndex = SygmaFeeHandlerRouterPalletIndex;
+    type WeightInfo = sygma_fee_handler_router::weights::SygmaWeightInfo<Runtime>;
 }
 
 impl sygma_bridge::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
     type TransferReserveAccount = SygmaBridgeAccount;
     type FeeReserveAccount = SygmaBridgeFeeAccount;
     type EIP712ChainID = EIP712ChainID;
@@ -1680,6 +1680,7 @@ impl sygma_bridge::Config for Runtime {
     type PalletId = SygmaBridgePalletId;
     type PalletIndex = SygmaBridgePalletIndex;
     type DecimalConverter = assets_registry::SygmaDecimalConverter<AssetsRegistry>;
+    type WeightInfo = sygma_bridge::weights::SygmaWeightInfo<Runtime>;
 }
 
 impl sygma_wrapper::Config for Runtime {
