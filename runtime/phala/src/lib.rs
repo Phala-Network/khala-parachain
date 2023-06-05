@@ -1585,6 +1585,9 @@ parameter_types! {
     // SygmaBridgeFeeAccountKey Address: 5FbR7ZkYSgsFsBMmqsdEpgAU7DkMdKpkGWSBZdhn6LAdesQ6
     pub SygmaBridgeFeeAccountKey: [u8; 32] = hex::decode("9c20f205595671c6f121b9d9bbfb9caa66380f8f3ad8d47d901b84b7fb757042").unwrap().try_into().unwrap();
     pub SygmaBridgeFeeAccount: AccountId = SygmaBridgeFeeAccountKey::get().into();
+    // SygmaBridgeAdminAccountKey Address: 43CLf23S1KsVhDn56SQfaAC8dbbnM24qS5A8jnbBixxqu3Cg
+    pub SygmaBridgeAdminAccountKey: [u8; 32] = hex::decode("720ef4138de57eff791ccfc14c249e58aa7718e71700892c2c59cec28a3900b9").unwrap().try_into().unwrap();
+    pub SygmaBridgeAdminAccount: AccountId = SygmaBridgeAdminAccountKey::get().into();
     // EIP712ChainID is the chainID that pallet is assigned with, used in EIP712 typed data domain
     pub EIP712ChainID: SygmaChainID = U256::from(5231);
     // DestVerifyingContractAddress is a H160 address that is used in proposal signature verification, specifically EIP712 typed data
@@ -1593,9 +1596,16 @@ parameter_types! {
     pub DestVerifyingContractAddress: VerifyingContractAddress = primitive_types::H160::from_slice(hex::decode(DEST_VERIFYING_CONTRACT_ADDRESS).ok().unwrap().as_slice());
 }
 
+pub struct SygmaAdminMembers;
+impl SortedMembers<AccountId> for SygmaAdminMembers {
+    fn sorted_members() -> Vec<AccountId> {
+        [SygmaBridgeAdminAccount::get()].to_vec()
+    }
+}
+
 impl sygma_access_segregator::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type BridgeCommitteeOrigin = EnsureRootOrHalfCouncil;
+    type BridgeCommitteeOrigin = EnsureSignedBy<SygmaAdminMembers, AccountId>;
     type PalletIndex = SygmaAccessSegregatorPalletIndex;
     type Extrinsics = RegisteredExtrinsics;
     type WeightInfo = sygma_access_segregator::weights::SygmaWeightInfo<Runtime>;
