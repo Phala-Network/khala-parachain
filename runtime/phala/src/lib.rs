@@ -1583,10 +1583,10 @@ parameter_types! {
     // SygmaBridgeAccount address: 5EYCAe5jLbHcAAMKvLFSXgCTbPrLgBJusvPwfKcaKzuf5X5e
     pub SygmaBridgeAccount: AccountId = SygmaBridgePalletId::get().into_account_truncating();
     // SygmaBridgeFeeAccountKey Address: 44NmbpHjqbz9FcXfVzFUbMFJh5q7qsKAcSTJvFAdYPqQ62Qv
-    pub SygmaBridgeFeeAccountKey: [u8; 32] = hex::decode("a63f9ccf857e1ab9e806366e3c46ae650de853503d772a987197ab7e22c8f88c").unwrap().try_into().unwrap();
+    pub SygmaBridgeFeeAccountKey: [u8; 32] = hex_literal::hex!("a63f9ccf857e1ab9e806366e3c46ae650de853503d772a987197ab7e22c8f88c");
     pub SygmaBridgeFeeAccount: AccountId = SygmaBridgeFeeAccountKey::get().into();
     // SygmaBridgeAdminAccountKey Address: 44NmbpHjqbz9FcXfVzFUbMFJh5q7qsKAcSTJvFAdYPqQ62Qv
-    pub SygmaBridgeAdminAccountKey: [u8; 32] = hex::decode("a63f9ccf857e1ab9e806366e3c46ae650de853503d772a987197ab7e22c8f88c").unwrap().try_into().unwrap();
+    pub SygmaBridgeAdminAccountKey: [u8; 32] = hex_literal::hex!("a63f9ccf857e1ab9e806366e3c46ae650de853503d772a987197ab7e22c8f88c");
     pub SygmaBridgeAdminAccount: AccountId = SygmaBridgeAdminAccountKey::get().into();
     // EIP712ChainID is the chainID that pallet is assigned with, used in EIP712 typed data domain
     pub EIP712ChainID: SygmaChainID = U256::from(5231);
