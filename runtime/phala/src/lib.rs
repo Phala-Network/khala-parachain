@@ -1589,7 +1589,7 @@ parameter_types! {
     pub SygmaBridgeAdminAccountKey: [u8; 32] = hex_literal::hex!("a63f9ccf857e1ab9e806366e3c46ae650de853503d772a987197ab7e22c8f88c");
     pub SygmaBridgeAdminAccount: AccountId = SygmaBridgeAdminAccountKey::get().into();
     // EIP712ChainID is the chainID that pallet is assigned with, used in EIP712 typed data domain
-    pub EIP712ChainID: SygmaChainID = U256::from(5231);
+    pub EIP712ChainID: SygmaChainID = U256::from(5233);
     // DestVerifyingContractAddress is a H160 address that is used in proposal signature verification, specifically EIP712 typed data
     // When relayers signing, this address will be included in the EIP712Domain
     // As long as the relayer and pallet configured with the same address, EIP712Domain should be recognized properly.
