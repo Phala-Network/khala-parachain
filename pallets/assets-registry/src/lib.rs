@@ -12,6 +12,7 @@ pub mod pallet {
 	use codec::{Decode, Encode};
 	use cumulus_primitives_core::ParaId;
 	use fixed::{types::extra::U16, FixedU128};
+	use frame_support::traits::tokens::{Fortitude, Precision, Preservation};
 	use frame_support::{
 		dispatch::DispatchResult,
 		pallet_prelude::*,
@@ -24,7 +25,6 @@ pub mod pallet {
 		traits::{Currency, ExistenceRequirement, StorageVersion},
 		transactional, PalletId,
 	};
-	use frame_support::traits::tokens::{Fortitude, Precision, Preservation};
 	use frame_system::pallet_prelude::*;
 	use phala_pallet_common::WrapSlice;
 	use scale_info::TypeInfo;
@@ -597,14 +597,14 @@ pub mod pallet {
 			);
 			// Set bridge account as asset's owner/issuer/admin/freezer
 			<pallet_assets::pallet::Pallet<T> as FungibleCerate<T::AccountId>>::create(
-				asset_id,
+				asset_id.clone(),
 				ASSETS_REGISTRY_ID.into_account_truncating(),
 				true,
 				Self::default_asset_ed(properties.decimals),
 			)?;
-			IdByLocations::<T>::insert(&location, asset_id);
+			IdByLocations::<T>::insert(&location, asset_id.clone());
 			RegistryInfoByIds::<T>::insert(
-				asset_id,
+				asset_id.clone(),
 				AssetRegistryInfo {
 					location: location.clone(),
 					reserve_location: location.clone().reserve_location(),
@@ -618,7 +618,7 @@ pub mod pallet {
 				},
 			);
 			<pallet_assets::pallet::Pallet<T> as MetaMutate<T::AccountId>>::set(
-				asset_id,
+				asset_id.clone(),
 				&ASSETS_REGISTRY_ID.into_account_truncating(),
 				properties.name,
 				properties.symbol,
@@ -721,7 +721,7 @@ pub mod pallet {
 			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
 
 			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::mint_into(
-				asset_id,
+				asset_id.clone(),
 				&beneficiary,
 				amount,
 			)?;
@@ -745,7 +745,11 @@ pub mod pallet {
 			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
 
 			<pallet_assets::pallet::Pallet<T> as FungibleMutate<T::AccountId>>::burn_from(
-				asset_id, &who, amount, Precision::BestEffort, Fortitude::Force
+				asset_id.clone(),
+				&who,
+				amount,
+				Precision::BestEffort,
+				Fortitude::Force,
 			)?;
 			Self::deposit_event(Event::ForceBurnt {
 				asset_id,
@@ -818,7 +822,7 @@ pub mod pallet {
 
 			// Migratte storage IDByLocations
 			IdByLocations::<T>::remove(&info.location);
-			IdByLocations::<T>::insert(&location, asset_id);
+			IdByLocations::<T>::insert(&location, asset_id.clone());
 
 			// Migrate other registry info
 			info.location = location.clone();
