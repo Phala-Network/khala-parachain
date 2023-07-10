@@ -103,6 +103,9 @@ sygma-access-segregator = { git = "https://github.com/sygmaprotocol/sygma-substr
 sygma-fee-handler-router = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.43", default-features = false }
 sygma-runtime-api = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.43", default-features = false }
 
+# InvArch Tinkernet Multisig dependencies
+invarch-xcm-builder = { git = "https://github.com/InvArch/InvArch-XCM-Builder", branch = "polkadot-v0.9.43", default-features = false }
+
 # Local dependencies
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
