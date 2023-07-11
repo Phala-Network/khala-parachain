@@ -5,8 +5,7 @@
     "nodes": [
       {
         "name": "alice",
-        "wsPort": 19944,
-        "rpcPort": 19933,
+        "rpcPort": 19944,
         "port": 10333,
         "nodeKey": "807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
         "basePath": "data/relay_alice",
@@ -16,24 +15,21 @@
       },
       {
         "name": "bob",
-        "wsPort": 19244,
-        "rpcPort": 19233,
+        "rpcPort": 19244,
         "port": 12333,
         "nodeKey": "7b111f101e0e606c3a745f25a8b166de2e557660b2a6e2984a30229553c37252",
         "basePath": "data/relay_bob"
       },
       {
         "name": "charlie",
-        "wsPort": 19344,
-        "rpcPort": 19333,
+        "rpcPort": 19344,
         "port": 13333,
         "nodeKey": "9ccd6ab34e54926e5182e7c1cab70aab5fe2ea5d47705d4edde10ba49017cef9",
         "basePath": "data/relay_charlie"
       },
       {
         "name": "dave",
-        "wsPort": 19444,
-        "rpcPort": 19433,
+        "rpcPort": 19444,
         "port": 14333,
         "nodeKey": "6e15793131000ba9c880eebb031a36fa04275b2ec03b6a974c6d38144584ae0e",
         "basePath": "data/relay_dave"
@@ -61,8 +57,7 @@
       "nodes": [
         {
           "name": "alice",
-          "wsPort": 9144,
-          "rpcPort": 9133,
+          "rpcPort": 9144,
           "port": 31333,
           "nodeKey": "81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
           "basePath": "data/para_alice",
@@ -71,14 +66,12 @@
             "--",
             "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
             "--port=31334",
-            "--rpc-port=9134",
-            "--ws-port=9145"
+            "--rpc-port=9145"
           ]
         },
         {
           "name": "bob",
-          "wsPort": 9244,
-          "rpcPort": 9233,
+          "rpcPort": 9244,
           "port": 32333,
           "nodeKey": "49a38e23145509ce5e19d6399383a4fb51395a60c89b22a43c693c395acfb7c8",
           "basePath": "data/para_bob",
@@ -86,14 +79,12 @@
             "--rpc-cors=all",
             "--",
             "--port=32334",
-            "--rpc-port=9234",
-            "--ws-port=9245"
+            "--rpc-port=9245"
           ]
         },
         {
           "name": "charlie",
-          "wsPort": 9344,
-          "rpcPort": 9333,
+          "rpcPort": 9344,
           "port": 33333,
           "nodeKey": "90bd630dcb5a81ed521c8091fa65ca320e7ed42a60f24e6ebeb19debeb60512c",
           "basePath": "data/para_charlie",
@@ -101,8 +92,7 @@
             "--rpc-cors=all",
             "--",
             "--port=33334",
-            "--rpc-port=9334",
-            "--ws-port=9345"
+            "--rpc-port=9345"
           ]
         }
       ]

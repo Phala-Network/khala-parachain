@@ -75,7 +75,7 @@ These variable are fed directly into the Polkadot binary and used to spawn a nod
 <bin> \
     --chain=<chain>-raw.json \
     --tmp \
-    --ws-port=<wsPort> \
+    --rpc-port=<rpcPort> \
     --port=<port> \
     --<name> \
 ```
@@ -131,7 +131,7 @@ These variables are fed directly into the collator binary and used to spawn a no
 ```bash
 <bin> \
     --tmp \
-    --ws-port=<wsPort> \
+    --rpc-port=<rpcPort> \
     --port=<port> \
     --parachain-id=<id> \
     --validator \

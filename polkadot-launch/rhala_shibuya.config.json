@@ -5,7 +5,7 @@
       "nodes": [
         {
           "name": "alice",
-          "wsPort": 19944,
+          "rpcPort": 19944,
           "port": 10333,
           "nodeKey": "807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
           "basePath": "data/rococo_alice",
@@ -15,19 +15,19 @@
         },
         {
           "name": "bob",
-          "wsPort": 19244,
+          "rpcPort": 19244,
           "port": 12333,
           "basePath": "data/rococo_bob"
         },
         {
           "name": "charlie",
-          "wsPort": 19344,
+          "rpcPort": 19344,
           "port": 13333,
           "basePath": "data/rococo_charlie"
         },
         {
           "name": "dave",
-          "wsPort": 19444,
+          "rpcPort": 19444,
           "port": 14333,
           "basePath": "data/rococo_dave"
         }
@@ -54,27 +54,25 @@
         "nodes": [
           {
             "name": "alice",
-            "wsPort": 9144,
-            "rpcPort": 9133,
+            "rpcPort": 9144,
             "port": 31333,
             "nodeKey": "81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
             "basePath": "data/rhala_alice",
             "flags": [
-              "--ws-external",
               "--rpc-external",
               "--rpc-cors=all",
               "--rpc-methods=Unsafe",
               "--state-pruning=archive-canonical",
+              "--blocks-pruning=archive-canonical",
               "--",
               "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
               "--port=31334",
-              "--rpc-port=9134",
-              "--ws-port=9145"
+              "--rpc-port=9145"
             ]
           },
           {
             "name": "bob",
-            "wsPort": 9244,
+            "rpcPort": 9244,
             "port": 32333,
             "basePath": "data/rhala_bob"
           }
@@ -89,26 +87,23 @@
           "nodes": [
             {
               "name": "alice",
-              "wsPort": 9344,
-              "rpcPort": 9333,
+              "rpcPort": 9344,
               "port": 33333,
               "flags": [
-                "--ws-external",
                 "--rpc-external",
                 "--rpc-cors=all",
                 "--rpc-methods=Unsafe",
                 "--state-pruning=archive-canonical",
+                "--blocks-pruning=archive-canonical",
                 "--",
                 "--node-key=9ad8595d81d5851a5d5c920d3346881e262b2a720b5878714ee38c919514bcea",
                 "--port=32334",
-                "--rpc-port=9234",
-                "--ws-port=9245"
+                "--rpc-port=9245"
               ]
             },
             {
               "name": "bob",
               "wsPort": 9444,
-              "port": 34444,
               "basePath": "data/shibuya_bob"
             }
           ]
