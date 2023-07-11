@@ -79,7 +79,7 @@ pub use frame_support::{
         tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency,
         EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
         KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
-        WithdrawReasons, SortedMembers, 
+        WithdrawReasons, SortedMembers,
     },
     weights::{
         constants::{
@@ -168,7 +168,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("thala"),
     impl_name: create_runtime_str!("thala"),
     authoring_version: 1,
-    spec_version: 1250,
+    spec_version: 1256,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
