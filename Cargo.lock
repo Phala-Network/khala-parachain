@@ -12709,6 +12709,7 @@ dependencies = [
  "log",
  "pallet-assets",
  "pallet-balances",
+ "pallet-message-queue",
  "pallet-parachain-info",
  "pallet-timestamp",
  "pallet-xcm",

@@ -4,7 +4,7 @@ use frame_support::{traits::GenesisBuild, PalletId};
 use sp_io::TestExternalities;
 use sp_runtime::{traits::AccountIdConversion, AccountId32};
 
-use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
+use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt};
 
 pub mod para;
 pub mod relay;
@@ -47,7 +47,11 @@ decl_test_parachain! {
 decl_test_relay_chain! {
 	pub struct Relay {
 		Runtime = relay::Runtime,
+		RuntimeCall = relay::RuntimeCall,
+		RuntimeEvent = relay::RuntimeEvent,
 		XcmConfig = relay::XcmConfig,
+		MessageQueue = relay::MessageQueue,
+		System = relay::System,
 		new_ext = relay_ext(),
 	}
 }
