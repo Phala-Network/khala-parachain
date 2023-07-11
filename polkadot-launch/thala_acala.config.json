@@ -5,7 +5,7 @@
     "nodes": [
       {
         "name": "alice",
-        "wsPort": 19944,
+        "rpcPort": 19944,
         "port": 10333,
         "flags": [
           "--node-key=807e26fb3fd3d694b8b5f78a04d4bcff2e94a6f2e87bc809d9690e771bba8aca",
@@ -14,17 +14,17 @@
       },
       {
         "name": "bob",
-        "wsPort": 19244,
+        "rpcPort": 19244,
         "port": 12333
       },
       {
         "name": "charlie",
-        "wsPort": 19344,
+        "rpcPort": 19344,
         "port": 13333
       },
       {
         "name": "dave",
-        "wsPort": 19444,
+        "rpcPort": 19444,
         "port": 14333
       }
     ],
@@ -49,27 +49,26 @@
       "nodes": [
         {
           "name": "alice",
-          "wsPort": 9944,
+          "rpcPort": 9944,
           "port": 30333,
           "flags": [
             "--node-key=81bbf2ee046d4f57ab9ce02e822ac2a3192e4a7b38af757383f3dcb039c15e05",
-            "--ws-external",
             "--rpc-external",
             "--rpc-cors=all",
             "--rpc-methods=Unsafe",
             "--",
             "--node-key=1335ac151f2d804189bfc68bd0843a676a3dc2aa6a208326970a75e6c75d4226",
             "--port=30334",
-            "--ws-port=9945",
-            "--pruning=archive",
-            "--ws-external",
+            "--rpc-port=9945",
+            "--state-pruning=archive-canonical",
+            "--blocks-pruning=archive-canonical",
             "--rpc-external",
             "--rpc-cors=all"
           ]
         },
         {
           "name": "bob",
-          "wsPort": 9244,
+          "rpcPort": 9244,
           "port": 32333
         }
       ]
@@ -86,16 +85,15 @@
             "port": 30555,
             "flags": [
               "--node-key=03cf579968894332f07ac78990f418742a47888c56c9721d84250d349618ada5",
-              "--ws-external",
               "--rpc-external",
               "--rpc-cors=all",
               "--rpc-methods=Unsafe",
               "--",
               "--node-key=9ad8595d81d5851a5d5c920d3346881e262b2a720b5878714ee38c919514bcea",
               "--port=30334",
-              "--ws-port=9945",
-              "--pruning=archive",
-              "--ws-external",
+              "--rpc-port=9945",
+              "--state-pruning=archive-canonical",
+              "--blocks-pruning=archive-canonical",
               "--rpc-external",
               "--rpc-cors=all"
             ]

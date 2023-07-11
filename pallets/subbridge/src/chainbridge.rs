@@ -8,13 +8,13 @@ pub mod pallet {
 		NativeAssetChecker, CB_ASSET_KEY,
 	};
 	use codec::{Decode, Encode, EncodeLike};
+	use frame_support::traits::tokens::{Fortitude, Preservation};
 	pub use frame_support::{
 		dispatch::GetDispatchInfo,
 		pallet_prelude::*,
 		traits::{tokens::fungibles::Inspect, Currency, StorageVersion},
 		transactional, PalletId, Parameter,
 	};
-	use frame_support::traits::tokens::{Fortitude, Preservation};
 	use frame_system::{self as system, pallet_prelude::*};
 	use phala_pallet_common::WrapSlice;
 	use scale_info::TypeInfo;

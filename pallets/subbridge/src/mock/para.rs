@@ -25,8 +25,8 @@ use polkadot_parachain::primitives::Sibling;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
-	EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, NativeAsset, NoChecking, ParentIsPreset,
-	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, MintLocation,
+	EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, MintLocation, NativeAsset, NoChecking,
+	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
 use xcm_executor::{traits::WithOriginFilter, Config, XcmExecutor};

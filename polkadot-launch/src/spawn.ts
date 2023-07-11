@@ -104,8 +104,7 @@ export async function getParachainIdFromSpec(
 export function startNode(
 	bin: string,
 	name: string,
-	wsPort: number,
-	rpcPort: number | undefined,
+	rpcPort: number,
 	port: number,
 	nodeKey: string,
 	spec: string,
@@ -115,14 +114,11 @@ export function startNode(
 	// TODO: Make DB directory configurable rather than just `tmp`
 	let args = [
 		"--chain=" + spec,
-		"--ws-port=" + wsPort,
+		"--rpc-port=" + rpcPort,
 		"--port=" + port,
 		"--node-key=" + nodeKey,
 		"--" + name.toLowerCase(),
 	];
-	if (rpcPort) {
-		args.push("--rpc-port=" + rpcPort);
-	}
 
 	if (basePath) {
 		args.push("--base-path=" + basePath);
@@ -195,8 +191,7 @@ export async function exportGenesisState(
 export function startCollator(
 	bin: string,
 	id: string,
-	wsPort: number,
-	rpcPort: number | undefined,
+	rpcPort: number,
 	port: number,
 	nodeKey: string,
 	options: CollatorOptions
@@ -204,7 +199,7 @@ export function startCollator(
 	return new Promise<void>(function (resolve) {
 		// TODO: Make DB directory configurable rather than just `tmp`
 		let args = [
-			"--ws-port=" + wsPort,
+			"--rpc-port=" + rpcPort,
 			"--port=" + port,
 			"--node-key=" + nodeKey
 		];
@@ -218,10 +213,6 @@ export function startCollator(
 			spec,
 		} = options;
 
-		if (rpcPort) {
-			args.push("--rpc-port=" + rpcPort);
-			console.log(`Added --rpc-port=" + ${rpcPort}`);
-		}
 		args.push("--collator");
 
 		if (basePath) {
@@ -275,16 +266,16 @@ export function startCollator(
 
 		console.log(`Full args "${args}"`);
 
-		p[wsPort] = spawn(bin, args);
+		p[rpcPort] = spawn(bin, args);
 
-		let log = fs.createWriteStream(`${wsPort}.log`);
+		let log = fs.createWriteStream(`${rpcPort}.log`);
 
-		p[wsPort].stdout.pipe(log);
-		p[wsPort].stderr.on("data", function (chunk) {
+		p[rpcPort].stdout.pipe(log);
+		p[rpcPort].stderr.on("data", function (chunk) {
 			let message = chunk.toString();
 			let ready =
-				message.includes("Running JSON-RPC WS server:") ||
-				message.includes("Listening for new connections");
+				message.includes("Running JSON-RPC server:") ||
+				message.includes("Imported");
 			if (ready) {
 				resolve();
 			}
@@ -305,7 +296,6 @@ export function startSimpleCollator(
 			"--tmp",
 			"--port=" + port,
 			"--chain=" + spec,
-			"--execution=wasm",
 		];
 
 		if (!skip_id_arg) {

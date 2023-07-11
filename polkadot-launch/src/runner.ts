@@ -106,16 +106,15 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 
 	// First we launch each of the validators for the relay chain.
 	for (const node of config.relaychain.nodes) {
-		const { name, wsPort, rpcPort, port, flags, basePath, nodeKey } = node;
+		const { name, rpcPort, port, flags, basePath, nodeKey } = node;
 		console.log(
-			`Starting Relaychain Node ${name}... wsPort: ${wsPort} rpcPort: ${rpcPort} port: ${port} nodeKey: ${nodeKey}`
+			`Starting Relaychain Node ${name}... rpcPort: ${rpcPort} port: ${port} nodeKey: ${nodeKey}`
 		);
 		// We spawn a `child_process` starting a node, and then wait until we
 		// able to connect to it using PolkadotJS in order to know its running.
 		startNode(
 			relayChainBin,
 			name,
-			wsPort,
 			rpcPort,
 			port,
 			nodeKey!, // by the time the control flow gets here it should be assigned.
@@ -127,7 +126,7 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 
 	// Connect to the first relay chain node to submit the extrinsic.
 	let relayChainApi: ApiPromise = await connect(
-		config.relaychain.nodes[0].wsPort,
+		config.relaychain.nodes[0].rpcPort,
 		loadTypeDef(config.types)
 	);
 
@@ -167,12 +166,12 @@ export async function run(config_dir: string, rawConfig: LaunchConfig) {
 		let account = parachainAccount(resolvedId);
 
 		for (const node of parachain.nodes) {
-			const { wsPort, port, flags, name, basePath, rpcPort, nodeKey } = node;
+			const { port, flags, name, basePath, rpcPort, nodeKey } = node;
 			console.log(
-				`Starting a Collator for parachain ${resolvedId}: ${account}, Collator port : ${port} wsPort : ${wsPort} rpcPort : ${rpcPort} nodeKey: ${nodeKey}`
+				`Starting a Collator for parachain ${resolvedId}: ${account}, Collator port : ${port} rpcPort : ${rpcPort} nodeKey: ${nodeKey}`
 			);
 			const skip_id_arg = !id;
-			await startCollator(bin, resolvedId, wsPort, rpcPort, port, nodeKey!, {
+			await startCollator(bin, resolvedId, rpcPort, port, nodeKey!, {
 				name,
 				chain,
 				flags,

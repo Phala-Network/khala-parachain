@@ -20,15 +20,13 @@ export interface LaunchConfig {
 export interface RelayChainNodeConfig {
 	name: string;
 	basePath?: string;
-	wsPort: number;
-	rpcPort?: number;
+	rpcPort: number;
 	nodeKey?: string;
 	port: number;
 	flags?: string[];
 }
 export interface ParachainNodeConfig {
-	rpcPort?: number;
-	wsPort: number;
+	rpcPort: number;
 	nodeKey?: string;
 	port: number;
 	basePath?: string;
