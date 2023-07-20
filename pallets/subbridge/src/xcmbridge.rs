@@ -375,7 +375,8 @@ pub mod pallet {
 				origin: origin_location.clone(),
 				dest_location,
 				beneficiary,
-				dest_weight: max_weight.unwrap_or(XCMWeight::from_parts(6_000_000_000u64, 0)),
+				dest_weight: max_weight
+					.unwrap_or(XCMWeight::from_parts(6_000_000_000u64, 2_000_000u64)),
 				_marker: PhantomData,
 			};
 			let mut msg = xcm_session.message()?;
