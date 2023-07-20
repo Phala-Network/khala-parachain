@@ -156,7 +156,7 @@ pub mod pallet {
 				temporary_account.into(),
 				what.clone(),
 				who.clone(),
-				Some(XCMWeight::from_parts(6_000_000_000u64, 0)),
+				Some(XCMWeight::from_parts(6_000_000_000u64, 2_000_000u64)),
 			)?;
 			Self::deposit_event(Event::Forwarded { what, who, memo });
 			// TODO: Should we support forward generic message in the future?
