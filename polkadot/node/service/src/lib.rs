@@ -130,10 +130,6 @@ pub use {rococo_runtime, rococo_runtime_constants};
 #[cfg(feature = "westend-native")]
 pub use {westend_runtime, westend_runtime_constants};
 
-/// The minimum period of blocks on which justifications will be
-/// imported and generated.
-const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
-
 /// Provides the header and block number for a hash.
 ///
 /// Decouples `sc_client_api::Backend` and `sp_blockchain::HeaderBackend`.
@@ -515,7 +511,6 @@ where
 
 	let (grandpa_block_import, grandpa_link) = grandpa::block_import_with_authority_set_hard_forks(
 		client.clone(),
-        GRANDPA_JUSTIFICATION_PERIOD,
 		&(client.clone() as Arc<_>),
 		select_chain.clone(),
 		grandpa_hard_forks,
@@ -1191,7 +1186,7 @@ where
 		// Grandpa performance can be improved a bit by tuning this parameter, see:
 		// https://github.com/paritytech/polkadot/issues/5464
 		gossip_duration: Duration::from_millis(1000),
-        justification_generation_period: 1,
+		justification_period: 1,
 		name: Some(name),
 		observer_enabled: false,
 		keystore: keystore_opt,
