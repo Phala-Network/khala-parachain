@@ -60,9 +60,9 @@ pub mod pallet {
 					),
 				) => {
 					if &sygma_path[..*path_len as usize] == SYGMA_PATH_KEY {
-						TryInto::<DomainID>::try_into(*dest_domain_id).ok().map(|domain_id|
-							(recipient[..*recipient_len as usize].to_vec(), domain_id)
-						)
+						return TryInto::<DomainID>::try_into(*dest_domain_id).ok().map(
+							|domain_id| (recipient[..*recipient_len as usize].to_vec(), domain_id),
+						);
 					}
 					None
 				}
