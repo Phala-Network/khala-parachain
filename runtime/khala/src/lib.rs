@@ -1839,9 +1839,22 @@ impl phala_pallets::PhalaConfig for Runtime {
 //     type Currency = Balances;
 // }
 
+parameter_types! {
+    // IndexAdminAccount Address: 44vK3U1qdk1dbYEuECTme5LqKxSUaiz52jkLAgNtMgvCaEEZ
+    pub IndexAdminAccountPubKey: [u8; 32] = hex_literal::hex!("be4e106a4ef31469ef10df4e07b37a57f39820a5e5ca2f864006902731c84f6b");
+    pub IndexAdminAccount: AccountId = IndexAdminAccountPubKey::get().into();
+}
+
+pub struct IndexAdminMembers;
+impl SortedMembers<AccountId> for IndexAdminMembers {
+    fn sorted_members() -> Vec<AccountId> {
+        [IndexAdminAccount::get()].to_vec()
+    }
+}
+
 impl pallet_index::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type CommitteeOrigin = EnsureRootOrHalfCouncil;
+    type CommitteeOrigin = EnsureSignedBy<IndexAdminMembers, AccountId>;
     type AssetTransactor = (CurrencyTransactor, FungiblesTransactor);
     type AssetsRegistry = AssetsRegistry;
 }
