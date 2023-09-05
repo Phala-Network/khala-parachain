@@ -1840,21 +1840,21 @@ impl phala_pallets::PhalaConfig for Runtime {
 // }
 
 parameter_types! {
-    // IndexAdminAccount Address: 44vK3U1qdk1dbYEuECTme5LqKxSUaiz52jkLAgNtMgvCaEEZ
-    pub IndexAdminAccountPubKey: [u8; 32] = hex_literal::hex!("be4e106a4ef31469ef10df4e07b37a57f39820a5e5ca2f864006902731c84f6b");
-    pub IndexAdminAccount: AccountId = IndexAdminAccountPubKey::get().into();
+    // InDexAdminAccount Address: 41jWo4Q2ogXXHCHofUvkwrXjkxyWNdZdpCf92tdqdTB2ZeHP
+    pub InDexAdminAccountPubKey: [u8; 32] = hex_literal::hex!("315d3946332b2d1d9147634bd970b8b2503895ab9c877ed5d4dcd5fa528f6246");
+    pub InDexAdminAccount: AccountId = InDexAdminAccountPubKey::get().into();
 }
 
-pub struct IndexAdminMembers;
-impl SortedMembers<AccountId> for IndexAdminMembers {
+pub struct InDexAdminMembers;
+impl SortedMembers<AccountId> for InDexAdminMembers {
     fn sorted_members() -> Vec<AccountId> {
-        [IndexAdminAccount::get()].to_vec()
+        [InDexAdminAccount::get()].to_vec()
     }
 }
 
 impl pallet_index::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type CommitteeOrigin = EnsureSignedBy<IndexAdminMembers, AccountId>;
+    type CommitteeOrigin = EnsureSignedBy<InDexAdminMembers, AccountId>;
     type AssetTransactor = (CurrencyTransactor, FungiblesTransactor);
     type AssetsRegistry = AssetsRegistry;
 }
