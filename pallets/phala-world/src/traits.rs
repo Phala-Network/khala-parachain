@@ -199,3 +199,13 @@ pub fn property_value<V: Encode, ValueLimit: Get<u32>>(value: &V) -> BoundedVec<
 		.try_into()
 		.expect("assume value can fit into property; qed.")
 }
+
+pub trait MarketPlaceStakingListHook<CollectionId, NftId> {
+	fn can_list(collection_id: &CollectionId, nft_id: &NftId) -> bool;
+}
+
+impl<CollectionId, NftId> MarketPlaceStakingListHook<CollectionId, NftId> for () {
+	fn can_list(_collection_id: &CollectionId, _nft_id: &NftId) -> bool {
+		true
+	}
+}

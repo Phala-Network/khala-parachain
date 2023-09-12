@@ -2,7 +2,7 @@ use super::*;
 
 mod phala_world_migration_common {
 	use super::*;
-	use frame_support::{traits::StorageVersion};
+	use frame_support::traits::StorageVersion;
 
 	pub type Versions = (
 		// Version for NFT Sale pallet

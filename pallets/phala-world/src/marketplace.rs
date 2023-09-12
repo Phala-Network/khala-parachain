@@ -8,6 +8,7 @@ pub use pallet_rmrk_core::Nfts;
 pub use pallet_rmrk_market;
 
 use crate::nft_sale::BalanceOf;
+pub use crate::traits::MarketPlaceStakingListHook;
 pub use frame_support::pallet_prelude::*;
 pub use frame_system::pallet_prelude::*;
 pub use rmrk_traits::{primitives::*, RoyaltyInfo};
@@ -33,6 +34,7 @@ pub mod pallet {
 	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		type StakingListHook: MarketPlaceStakingListHook<Self::CollectionId, Self::ItemId>;
 	}
 
 	#[pallet::pallet]
@@ -150,8 +152,9 @@ where
 		}
 	}
 
-	fn can_sell_in_marketplace(collection_id: T::CollectionId, _nft_id: T::ItemId) -> bool {
+	fn can_sell_in_marketplace(collection_id: T::CollectionId, nft_id: T::ItemId) -> bool {
 		pallet_pw_incubation::ShellCollectionId::<T>::get() == Some(collection_id)
+			|| T::StakingListHook::can_list(&collection_id, &nft_id)
 	}
 }
 
