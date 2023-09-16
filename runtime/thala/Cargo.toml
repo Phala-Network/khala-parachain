@@ -95,12 +95,13 @@ rmrk-traits = { git = "https://github.com/Phala-Network/rmrk-substrate", branch 
 pallet-rmrk-rpc-runtime-api = { git = "https://github.com/Phala-Network/rmrk-substrate", branch = "polkadot-v0.9.43", default-features = false }
 
 # Sygma dependencies
-sygma-basic-feehandler = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.43", default-features = false }
-sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.43", default-features = false }
-sygma-bridge = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.43", default-features = false }
-sygma-access-segregator = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.43", default-features = false }
-sygma-fee-handler-router = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.43", default-features = false }
-sygma-runtime-api = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "polkadot-v0.9.43", default-features = false }
+sygma-basic-feehandler = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
+sygma-percentage-feehandler = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
+sygma-traits = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
+sygma-bridge = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
+sygma-access-segregator = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
+sygma-fee-handler-router = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
+sygma-runtime-api = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "main", default-features = false }
 
 # Local dependencies
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
@@ -229,6 +230,7 @@ std = [
 	"pallet-rmrk-rpc-runtime-api/std",
 	"pallet-phala-world/std",
 	"sygma-basic-feehandler/std",
+	"sygma-percentage-feehandler/std",
 	"sygma-traits/std",
 	"sygma-bridge/std",
 	"sygma-access-segregator/std",
