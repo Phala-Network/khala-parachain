@@ -6,7 +6,7 @@ use cumulus_client_consensus_aura::{
 };
 use cumulus_primitives_core::ParaId;
 
-pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
+pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Nonce};
 
 use sc_service::{
     Configuration, TaskManager,

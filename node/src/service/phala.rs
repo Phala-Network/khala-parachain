@@ -4,7 +4,7 @@ use cumulus_client_cli::CollatorOptions;
 use cumulus_client_consensus_aura::{AuraConsensus, BuildAuraConsensusParams, SlotProportion};
 use cumulus_primitives_core::ParaId;
 
-pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
+pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Nonce};
 
 use sc_service::{Configuration, TaskManager};
 use sc_telemetry::TelemetryHandle;

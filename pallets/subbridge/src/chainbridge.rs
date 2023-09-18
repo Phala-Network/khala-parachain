@@ -7,7 +7,7 @@ pub mod pallet {
 		AccountId32Conversion, ExtractReserveLocation, GetAssetRegistryInfo, IntoResourceId,
 		NativeAssetChecker, CB_ASSET_KEY,
 	};
-	use codec::{Decode, Encode, EncodeLike};
+	use codec::EncodeLike;
 	use frame_support::traits::tokens::{Fortitude, Preservation};
 	pub use frame_support::{
 		dispatch::GetDispatchInfo,
@@ -17,12 +17,8 @@ pub mod pallet {
 	};
 	use frame_system::{self as system, pallet_prelude::*};
 	use phala_pallet_common::WrapSlice;
-	use scale_info::TypeInfo;
 	pub use sp_core::U256;
-	use sp_runtime::{
-		traits::{AccountIdConversion, Dispatchable},
-		BoundedVec, RuntimeDebug,
-	};
+	use sp_runtime::traits::{AccountIdConversion, Dispatchable};
 
 	use sp_std::{
 		convert::{From, Into, TryInto},
@@ -141,7 +137,7 @@ pub mod pallet {
 		type Currency: Currency<Self::AccountId>;
 
 		#[pallet::constant]
-		type ProposalLifetime: Get<Self::BlockNumber>;
+		type ProposalLifetime: Get<BlockNumberFor<Self>>;
 
 		/// Check whether an asset is PHA
 		type NativeAssetChecker: NativeAssetChecker;
@@ -300,7 +296,7 @@ pub mod pallet {
 		BridgeChainId,
 		Blake2_256,
 		(DepositNonce, T::Proposal),
-		ProposalVotes<T::AccountId, T::BlockNumber>,
+		ProposalVotes<T::AccountId, BlockNumberFor<T>>,
 	>;
 
 	#[pallet::storage]
@@ -313,8 +309,8 @@ pub mod pallet {
 	pub type BridgeFee<T: Config> = StorageMap<_, Twox64Concat, BridgeChainId, u128>;
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_initialize(_n: T::BlockNumber) -> Weight {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			// Clear all bridge transfer data
 			BridgeEvents::<T>::kill();
 			Weight::zero()
@@ -553,7 +549,7 @@ pub mod pallet {
 				&(asset_location.clone(), amount.into()).into(),
 				&dest_location,
 				// Put empty message hash here because we are not sending XCM message
-				&XcmContext::with_message_hash([0; 32]),
+				&XcmContext::with_message_id([0; 32]),
 			)
 			.map_err(|_| Error::<T>::TransactFailed)?;
 
@@ -1011,7 +1007,7 @@ pub mod pallet {
 				}
 				.into(),
 				// Put empty message hash here because we are not sending XCM message
-				&XcmContext::with_message_hash([0; 32]),
+				&XcmContext::with_message_id([0; 32]),
 			)
 			.map_err(|_| Error::<T>::TransactFailed)?;
 
@@ -1043,7 +1039,7 @@ pub mod pallet {
 					}
 					.into(),
 					// Put empty message hash here because we are not sending XCM message
-					&XcmContext::with_message_hash([0; 32]),
+					&XcmContext::with_message_id([0; 32]),
 				)
 				.map_err(|_| Error::<T>::TransactFailed)?;
 			}

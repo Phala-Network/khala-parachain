@@ -296,7 +296,7 @@ pub mod pallet {
 				}
 				.into(),
 				// Put empty message hash here because we are not sending XCM message
-				&XcmContext::with_message_hash([0; 32]),
+				&XcmContext::with_message_id([0; 32]),
 			)
 			.or(Err(Error::<T>::TransactFailed))?;
 

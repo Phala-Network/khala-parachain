@@ -3,35 +3,26 @@
 use crate as assets_registry;
 use frame_support::{
 	ord_parameter_types, parameter_types,
-	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32, GenesisBuild},
+	traits::{AsEnsureOriginWithArg, ConstU128, ConstU32},
 };
 use frame_system::{self as system};
 use sp_core::H256;
-use sp_runtime::{
-	testing::Header,
-	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
-	AccountId32, Perbill,
-};
+use sp_runtime::{traits::{AccountIdConversion, BlakeTwo256, IdentityLookup}, AccountId32, Perbill, BuildStorage};
 
 pub use xcm::latest::{prelude::*, AssetId, MultiAsset, MultiLocation};
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
 pub(crate) type Balance = u128;
 
 frame_support::construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+	pub struct Test {
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
 		AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>},
-		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config},
+		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config<T>},
 	}
 );
 
@@ -47,13 +38,12 @@ impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
-	type Index = u64;
-	type BlockNumber = u64;
+	type Nonce = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId32;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = ();
@@ -88,10 +78,10 @@ impl pallet_balances::Config for Test {
 	type MaxLocks = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = [u8; 8];
-	type HoldIdentifier = ();
 	type FreezeIdentifier = ();
 	type MaxHolds = ConstU32<1>;
 	type MaxFreezes = ConstU32<1>;
+	type RuntimeHoldReason = ();
 }
 
 parameter_types! {
@@ -160,17 +150,13 @@ pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
 pub const ENDOWED_BALANCE: Balance = 100_000_000;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default()
-		.build_storage::<Test>()
-		.unwrap();
-	let parachain_info_config = pallet_parachain_info::GenesisConfig {
+	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+
+	pallet_parachain_info::GenesisConfig::<Test> {
+		_mark: Default::default(),
 		parachain_id: 2004u32.into(),
-	};
-	<pallet_parachain_info::GenesisConfig as GenesisBuild<Test, _>>::assimilate_storage(
-		&parachain_info_config,
-		&mut t,
-	)
-	.unwrap();
+	}.assimilate_storage(&mut t).unwrap();
+
 	let assets_registry_account = assets_registry::ASSETS_REGISTRY_ID.into_account_truncating();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
@@ -180,6 +166,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
+
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
 	ext

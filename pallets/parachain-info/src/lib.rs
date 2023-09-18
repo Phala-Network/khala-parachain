@@ -40,21 +40,22 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {}
 
 	#[pallet::genesis_config]
-	pub struct GenesisConfig {
+	pub struct GenesisConfig<T: Config> {
+        pub _mark: PhantomData<T>,
 		pub parachain_id: ParaId,
 	}
 
-	#[cfg(feature = "std")]
-	impl Default for GenesisConfig {
+	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self {
+                _mark: Default::default(),
 				parachain_id: 100.into()
 			}
 		}
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			<ParachainId<T>>::put(&self.parachain_id);
 		}

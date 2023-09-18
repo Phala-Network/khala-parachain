@@ -27,6 +27,8 @@ use rmrk_traits::primitives::*;
 
 pub type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+pub type CollectionIdOf<T> = <T as pallet_rmrk_core::Config>::CollectionId;
+pub type ItemIdOf<T> = <T as pallet_rmrk_core::Config>::ItemId;
 
 pub use self::pallet::*;
 
@@ -200,7 +202,7 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_finalize(_n: T::BlockNumber) {
+		fn on_finalize(_n: BlockNumberFor<T>) {
 			if let Some(zero_day) = <ZeroDay<T>>::get() {
 				let current_time = T::Time::now().as_secs();
 				if current_time > zero_day {
@@ -247,7 +249,6 @@ pub mod pallet {
 		pub is_origin_of_shells_inventory_set: bool,
 	}
 
-	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self {
@@ -267,7 +268,7 @@ pub mod pallet {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T>
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T>
 	where
 		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
 	{
@@ -312,8 +313,8 @@ pub mod pallet {
 		/// Spirit has been claimed
 		SpiritClaimed {
 			owner: T::AccountId,
-			collection_id: CollectionId,
-			nft_id: NftId,
+			collection_id: CollectionIdOf<T>,
+			nft_id: ItemIdOf<T>,
 		},
 		/// A chance to get an Origin of Shell through preorder
 		OriginOfShellPreordered {
@@ -325,17 +326,17 @@ pub mod pallet {
 		/// Origin of Shell minted from the preorder
 		OriginOfShellMinted {
 			rarity_type: RarityType,
-			collection_id: CollectionId,
-			nft_id: NftId,
+			collection_id: CollectionIdOf<T>,
+			nft_id: ItemIdOf<T>,
 			owner: T::AccountId,
 			race: RaceType,
 			career: CareerType,
 			generation_id: GenerationId,
 		},
 		/// Spirit collection id was set
-		SpiritCollectionIdSet { collection_id: CollectionId },
+		SpiritCollectionIdSet { collection_id: CollectionIdOf<T> },
 		/// Origin of Shell collection id was set
-		OriginOfShellCollectionIdSet { collection_id: CollectionId },
+		OriginOfShellCollectionIdSet { collection_id: CollectionIdOf<T> },
 		/// Origin of Shell inventory updated
 		OriginOfShellInventoryUpdated { rarity_type: RarityType },
 		/// Spirit Claims status has changed
@@ -738,7 +739,7 @@ pub mod pallet {
 					Self::deposit_event(Event::ChosenPreorderMinted {
 						preorder_id,
 						owner: preorder_owner,
-						nft_id: nft_id,
+						nft_id,
 					});
 					index += 1;
 				} else {
@@ -1025,7 +1026,7 @@ pub mod pallet {
 		#[pallet::weight({0})]
 		pub fn set_spirit_collection_id(
 			origin: OriginFor<T>,
-			collection_id: CollectionId,
+			collection_id: CollectionIdOf<T>,
 		) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
@@ -1035,7 +1036,7 @@ pub mod pallet {
 				SpiritCollectionId::<T>::get().is_none(),
 				Error::<T>::SpiritCollectionIdAlreadySet
 			);
-			<SpiritCollectionId<T>>::put(collection_id);
+			<SpiritCollectionId<T>>::put(collection_id.into());
 
 			Self::deposit_event(Event::SpiritCollectionIdSet { collection_id });
 
@@ -1051,7 +1052,7 @@ pub mod pallet {
 		#[pallet::weight({0})]
 		pub fn set_origin_of_shell_collection_id(
 			origin: OriginFor<T>,
-			collection_id: CollectionId,
+			collection_id: CollectionIdOf<T>,
 		) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
@@ -1062,7 +1063,7 @@ pub mod pallet {
 				OriginOfShellCollectionId::<T>::get().is_none(),
 				Error::<T>::OriginOfShellCollectionIdAlreadySet
 			);
-			<OriginOfShellCollectionId<T>>::put(collection_id);
+			<OriginOfShellCollectionId<T>>::put(collection_id.into());
 
 			Self::deposit_event(Event::OriginOfShellCollectionIdSet { collection_id });
 
@@ -1094,7 +1095,7 @@ pub mod pallet {
 			// Call the RMRK Core function
 			pallet_rmrk_core::Pallet::<T>::create_collection(
 				origin,
-				collection_id,
+				collection_id.into(),
 				metadata,
 				max,
 				symbol,
@@ -1469,8 +1470,8 @@ where
 		let (_, spirit_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
 			sender.clone(),
 			sender.clone(),
-			next_spirit_nft_id,
-			spirit_collection_id,
+			next_spirit_nft_id.into(),
+			spirit_collection_id.into(),
 			None,
 			None,
 			metadata,
@@ -1480,13 +1481,13 @@ where
 		// Freeze NFT so it cannot be transferred
 		pallet_uniques::Pallet::<T>::freeze(
 			Origin::<T>::Signed(overlord).into(),
-			spirit_collection_id,
-			spirit_nft_id,
+			spirit_collection_id.into(),
+			spirit_nft_id.into(),
 		)?;
 
 		Self::deposit_event(Event::SpiritClaimed {
 			owner: sender,
-			collection_id: spirit_collection_id,
+			collection_id: spirit_collection_id.into(),
 			nft_id: spirit_nft_id,
 		});
 
@@ -1546,8 +1547,8 @@ where
 		let (_, nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
 			sender.clone(),
 			sender.clone(),
-			next_nft_id,
-			origin_of_shell_collection_id,
+			next_nft_id.into(),
+			origin_of_shell_collection_id.into(),
 			Some(payee),
 			Some(Permill::from_percent(1)),
 			metadata,
@@ -1562,7 +1563,7 @@ where
 			("generation", property_value(&generation)),
 		];
 		// Set Rarity Type, Race and Career properties for NFT
-		Self::set_nft_properties(origin_of_shell_collection_id, nft_id, properties)?;
+		Self::set_nft_properties(origin_of_shell_collection_id.into(), nft_id, properties)?;
 		// Update storage
 		Self::decrement_race_type_left(rarity_type, race, nft_sale_type)?;
 		Self::increment_race_type(rarity_type, race)?;
@@ -1572,12 +1573,12 @@ where
 		pallet_uniques::Pallet::<T>::freeze(
 			Origin::<T>::Signed(overlord).into(),
 			origin_of_shell_collection_id,
-			nft_id,
+			nft_id.into(),
 		)?;
 
 		Self::deposit_event(Event::OriginOfShellMinted {
 			rarity_type,
-			collection_id: origin_of_shell_collection_id,
+			collection_id: origin_of_shell_collection_id.into(),
 			nft_id,
 			owner: sender,
 			race,
@@ -1585,7 +1586,7 @@ where
 			generation_id: generation,
 		});
 
-		Ok(nft_id)
+		Ok(nft_id.into())
 	}
 
 	/// Get the property for PhalaWorld NFT.
@@ -1595,8 +1596,8 @@ where
 	/// - `nft_id`: NFT id of the PhalaWorld NFT
 	/// - `key_str`: Key `&str` for the Key in Storage
 	pub(crate) fn get_nft_property(
-		collection_id: CollectionId,
-		nft_id: NftId,
+		collection_id: CollectionIdOf<T>,
+		nft_id: ItemIdOf<T>,
 		key_str: &str,
 	) -> Option<BoundedVec<u8, T::ValueLimit>> {
 		let key = Self::to_boundedvec_key(key_str).expect("should not fail");
@@ -1610,8 +1611,8 @@ where
 	/// - `nft_id`: NFT id of the PhalaWorld NFT
 	/// - `properties`: Properties vec of (key, value) to set
 	pub(crate) fn set_nft_properties(
-		collection_id: CollectionId,
-		nft_id: NftId,
+		collection_id: CollectionIdOf<T>,
+		nft_id: ItemIdOf<T>,
 		properties: Vec<(&str, BoundedVec<u8, T::ValueLimit>)>,
 	) -> DispatchResult {
 		// Iterate through and set properties
@@ -1642,7 +1643,7 @@ where
 		// Iterate through and remove properties
 		for (key_str, _) in properties {
 			let key = Self::to_boundedvec_key(key_str)?;
-			pallet_rmrk_core::Pallet::<T>::do_remove_property(collection_id, Some(nft_id), key)?;
+			pallet_rmrk_core::Pallet::<T>::do_remove_property(collection_id.into(), Some(nft_id.into()), key)?;
 		}
 
 		Ok(())

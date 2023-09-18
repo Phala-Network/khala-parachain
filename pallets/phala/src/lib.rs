@@ -4,10 +4,6 @@
 //!
 //! This is the central crate of Phala tightly-coupled pallets.
 
-#[cfg(target_arch = "wasm32")]
-extern crate webpki_wasm as webpki;
-
-#[cfg(not(feature = "std"))]
 extern crate alloc;
 
 // Re-export
@@ -26,9 +22,11 @@ pub mod stake_pool;
 use compute::{base_pool, computation, pool_proxy, stake_pool_v2, vault, wrapped_balances};
 
 use frame_support::traits::LockableCurrency;
+use frame_system::pallet_prelude::BlockNumberFor;
+
 /// The unified config of the compute pallets
 pub trait PhalaConfig: frame_system::Config {
-	type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+	type Currency: LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>;
 }
 /// The unified type Balance of pallets from the runtime T.
 type BalanceOf<T> = <<T as PhalaConfig>::Currency as frame_support::traits::Currency<

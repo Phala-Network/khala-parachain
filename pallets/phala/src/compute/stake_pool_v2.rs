@@ -4,10 +4,7 @@ pub use self::pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	#[cfg(not(feature = "std"))]
 	use alloc::format;
-	#[cfg(feature = "std")]
-	use std::format;
 
 	use crate::balance_convert::FixedPointConvert;
 	use crate::base_pool;
@@ -317,7 +314,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T>
 	where
 		BalanceOf<T>: sp_runtime::traits::AtLeast32BitUnsigned + Copy + FixedPointConvert + Display,
-		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
+		T: pallet_rmrk_core::Config<CollectionId = CollectionId, ItemId = NftId>,
 		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
 		T: Config + vault::Config,
 	{
@@ -992,7 +989,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T>
 	where
 		BalanceOf<T>: FixedPointConvert + Display,
-		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
+		T: pallet_rmrk_core::Config<CollectionId = CollectionId, ItemId = NftId>,
 		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
 		T: Config + vault::Config,
 	{
@@ -1204,7 +1201,7 @@ pub mod pallet {
 	impl<T: Config> computation::OnReward for Pallet<T>
 	where
 		BalanceOf<T>: FixedPointConvert + Display,
-		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
+		T: pallet_rmrk_core::Config<CollectionId = CollectionId, ItemId = NftId>,
 		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
 		T: Config + vault::Config,
 	{
@@ -1237,7 +1234,7 @@ pub mod pallet {
 	impl<T: Config> computation::OnUnbound for Pallet<T>
 	where
 		BalanceOf<T>: FixedPointConvert + Display,
-		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
+		T: pallet_rmrk_core::Config<CollectionId = CollectionId, ItemId = NftId>,
 		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
 		T: Config + vault::Config,
 	{
@@ -1259,7 +1256,6 @@ pub mod pallet {
 	impl<T: Config> computation::OnStopped<BalanceOf<T>> for Pallet<T>
 	where
 		BalanceOf<T>: FixedPointConvert + Display,
-		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
 		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
 		T: Config + vault::Config,
 	{

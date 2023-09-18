@@ -10,10 +10,7 @@ pub mod pallet {
 	use crate::vault;
 	use crate::wrapped_balances;
 	use crate::BalanceOf;
-	#[cfg(not(feature = "std"))]
 	use alloc::format;
-	#[cfg(feature = "std")]
-	use std::format;
 
 	pub use rmrk_traits::{
 		primitives::{CollectionId, NftId},
@@ -289,7 +286,7 @@ pub mod pallet {
 		/// Only way to save nft's attributes from outside the pallet
 		pub fn save(self) -> DispatchResult
 		where
-			T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
+			T: pallet_rmrk_core::Config<CollectionId = CollectionId, ItemId = NftId>,
 			BalanceOf<T>:
 				sp_runtime::traits::AtLeast32BitUnsigned + Copy + FixedPointConvert + Display,
 			T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
@@ -354,7 +351,7 @@ pub mod pallet {
 		// Warning: `total_reward` mustn't be zero.
 		pub fn distribute_reward<T: Config>(&mut self, rewards: Balance)
 		where
-			T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
+			T: pallet_rmrk_core::Config<CollectionId = CollectionId, ItemId = NftId>,
 			BalanceOf<T>:
 				sp_runtime::traits::AtLeast32BitUnsigned + Copy + FixedPointConvert + Display,
 			T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
@@ -420,7 +417,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T>
 	where
 		BalanceOf<T>: sp_runtime::traits::AtLeast32BitUnsigned + Copy + FixedPointConvert + Display,
-		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
+		T: pallet_rmrk_core::Config<CollectionId = CollectionId, ItemId = NftId>,
 		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
 		T: Config + vault::Config,
 	{
@@ -586,7 +583,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T>
 	where
 		BalanceOf<T>: sp_runtime::traits::AtLeast32BitUnsigned + Copy + FixedPointConvert + Display,
-		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
+		T: pallet_rmrk_core::Config<CollectionId = CollectionId, ItemId = NftId>,
 		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
 		T: Config + wrapped_balances::Config + vault::Config,
 	{

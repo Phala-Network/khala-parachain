@@ -25,7 +25,7 @@ use shell_parachain_runtime::AccountId;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec =
-    sc_service::GenericChainSpec<shell_parachain_runtime::GenesisConfig, Extensions>;
+    sc_service::GenericChainSpec<shell_parachain_runtime::RuntimeGenesisConfig, Extensions>;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -80,18 +80,23 @@ pub fn staging_config() -> ChainSpec {
 fn genesis(
     parachain_id: ParaId,
     root_key: AccountId,
-) -> shell_parachain_runtime::GenesisConfig {
-    shell_parachain_runtime::GenesisConfig {
+) -> shell_parachain_runtime::RuntimeGenesisConfig {
+    shell_parachain_runtime::RuntimeGenesisConfig {
         system: shell_parachain_runtime::SystemConfig {
             code: shell_parachain_runtime::WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
+            ..Default::default()
         },
-        parachain_info: shell_parachain_runtime::ParachainInfoConfig { parachain_id },
+        parachain_info: shell_parachain_runtime::ParachainInfoConfig {
+            parachain_id,
+            ..Default::default()
+        },
         parachain_system: Default::default(),
         sudo: shell_parachain_runtime::SudoConfig { key: Some(root_key) },
         polkadot_xcm: shell_parachain_runtime::PolkadotXcmConfig {
             safe_xcm_version: Some(3),
+            ..Default::default()
         },
         balances: shell_parachain_runtime::BalancesConfig {
             balances: vec![],

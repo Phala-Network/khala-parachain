@@ -9,7 +9,7 @@ use cumulus_client_service::{
 use cumulus_primitives_core::ParaId;
 use cumulus_relay_chain_interface::RelayChainInterface;
 
-pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
+pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Nonce};
 
 use sc_consensus::ImportQueue;
 use sc_network::{config::FullNetworkConfiguration, NetworkBlock};

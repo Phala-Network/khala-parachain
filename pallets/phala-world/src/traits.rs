@@ -141,7 +141,7 @@ pub struct NftSaleInfo {
 	pub race_reserved_count: u32,
 }
 
-/// Incubation Account Owner Food info  
+/// Incubation Account Owner Food info
 #[derive(Encode, Decode, Debug, Clone, TypeInfo)]
 pub struct FoodInfo {
 	/// Era that an account last fed food to another Origin of Shell.

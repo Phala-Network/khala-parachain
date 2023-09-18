@@ -102,7 +102,7 @@ impl<Adapter: TransactAsset, AccountId: Into<[u8; 32]> + Clone, Beneficiary: Get
 			&revenue,
 			&beneficiary,
 			// Put empty message hash here because we are not sending XCM message
-			&XcmContext::with_message_hash([0; 32]),
+			&XcmContext::with_message_id([0; 32]),
 		);
 	}
 }

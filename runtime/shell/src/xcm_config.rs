@@ -87,6 +87,7 @@ impl xcm_executor::Config for XcmConfig {
     type UniversalAliases = Nothing;
     type CallDispatcher = WithOriginFilter<Everything>;
     type SafeCallFilter = Everything;
+	type Aliasers = Nothing;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {

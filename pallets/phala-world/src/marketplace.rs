@@ -7,7 +7,7 @@ pub use pallet_rmrk_core::types::*;
 pub use pallet_rmrk_core::Nfts;
 pub use pallet_rmrk_market;
 
-use crate::nft_sale::BalanceOf;
+use crate::nft_sale::{BalanceOf, CollectionIdOf, ItemIdOf};
 pub use frame_support::pallet_prelude::*;
 pub use frame_system::pallet_prelude::*;
 pub use rmrk_traits::{primitives::*, RoyaltyInfo};
@@ -50,8 +50,8 @@ pub mod pallet {
 		},
 		/// RoyaltyInfo updated for a NFT.
 		RoyaltyInfoUpdated {
-			collection_id: T::CollectionId,
-			nft_id: T::ItemId,
+			collection_id: CollectionIdOf<T>,
+			nft_id: ItemIdOf<T>,
 			old_royalty_info: Option<RoyaltyInfoOf<T>>,
 			new_royalty_info: RoyaltyInfoOf<T>,
 		},
@@ -104,15 +104,15 @@ pub mod pallet {
 		/// Parameters:
 		/// - `origin`: Expected to be called by Overlord admin account.
 		/// - `royalty_info`: `RoyaltyInfo` to set the NFTs to.
-		/// - `collection_id`: `T::CollectionId` of the PhalaWorld NFT collection.
+		/// - `collection_id`: `CollectionIdOf<T>` of the PhalaWorld NFT collection.
 		/// - `nft_ids`: `BoundedVec` NFT IDs to update in a collection bounded by T::IterLimit.
 		#[pallet::call_index(1)]
 		#[pallet::weight({0})]
 		pub fn set_nfts_royalty_info(
 			origin: OriginFor<T>,
 			royalty_info: RoyaltyInfo<T::AccountId, Permill>,
-			collection_id: T::CollectionId,
-			nft_ids: BoundedVec<T::ItemId, T::IterLimit>,
+			collection_id: CollectionIdOf<T>,
+			nft_ids: BoundedVec<ItemIdOf<T>, T::IterLimit>,
 		) -> DispatchResultWithPostInfo {
 			// Ensure Overlord account makes call
 			let sender = ensure_signed(origin)?;
@@ -128,7 +128,7 @@ pub mod pallet {
 }
 
 impl<T: Config>
-	pallet_rmrk_market::types::MarketplaceHooks<BalanceOf<T>, T::CollectionId, T::ItemId> for Pallet<T>
+	pallet_rmrk_market::types::MarketplaceHooks<BalanceOf<T>, CollectionIdOf<T>, ItemIdOf<T>> for Pallet<T>
 where
 	T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
 {
@@ -150,8 +150,8 @@ where
 		}
 	}
 
-	fn can_sell_in_marketplace(collection_id: T::CollectionId, _nft_id: T::ItemId) -> bool {
-		pallet_pw_incubation::ShellCollectionId::<T>::get() == Some(collection_id)
+	fn can_sell_in_marketplace(collection_id: CollectionIdOf<T>, _nft_id: ItemIdOf<T>) -> bool {
+		pallet_pw_incubation::ShellCollectionId::<T>::get() == Some(collection_id.into())
 	}
 }
 
@@ -163,12 +163,12 @@ where
 	///
 	/// Parameters:
 	/// - `royalty_info`: `RoyaltyInfo` to set the NFT to.
-	/// - `collection_id`: `T::CollectionId` of the PhalaWorld NFT collection.
-	/// - `nft_id`: `T::ItemId` of the PhalaWorld NFT.
+	/// - `collection_id`: `CollectionIdOf<T>` of the PhalaWorld NFT collection.
+	/// - `nft_id`: `ItemIdOf<T>` of the PhalaWorld NFT.
 	fn do_set_nft_royalty_info(
 		royalty_info: RoyaltyInfo<T::AccountId, Permill>,
-		collection_id: T::CollectionId,
-		nft_id: T::ItemId,
+		collection_id: CollectionIdOf<T>,
+		nft_id: ItemIdOf<T>,
 	) {
 		let mut old_royalty_info = None;
 		Nfts::<T>::mutate_exists(collection_id, nft_id, |nft_info| match nft_info {
