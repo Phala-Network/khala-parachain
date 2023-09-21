@@ -5,7 +5,6 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_core::{bounded::BoundedVec, ConstU32};
 
-use crate::WorkerPublicKey;
 pub use phala_mq::{ContractClusterId, ContractId};
 
 pub type ContractId32 = u32;
@@ -61,7 +60,7 @@ pub mod messaging {
     use sp_core::crypto::AccountId32;
 
     bind_topic!(ClusterEvent, b"phala/cluster/event");
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, ::scale_info::TypeInfo)]
     pub enum ClusterEvent {
         // TODO.shelven: enable add and remove workers
         DeployCluster {
@@ -77,7 +76,7 @@ pub mod messaging {
     }
 
     bind_topic!(ContractOperation<CodeHash, AccountId>, b"phala/contract/op");
-    #[derive(Encode, Decode, Debug)]
+    #[derive(Encode, Decode, Debug, ::scale_info::TypeInfo)]
     pub enum ContractOperation<CodeHash, AccountId> {
         InstantiateCode {
             contract_info: ContractInfo<CodeHash, AccountId>,
@@ -201,7 +200,6 @@ pub enum ClusterPermission<AccountId> {
 pub struct ClusterInfo<AccountId> {
     pub owner: AccountId,
     pub permission: ClusterPermission<AccountId>,
-    pub workers: Vec<WorkerPublicKey>,
     pub system_contract: ContractId,
     pub gas_price: u128,
     pub deposit_per_item: u128,
