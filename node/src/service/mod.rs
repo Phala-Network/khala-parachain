@@ -27,6 +27,7 @@ use cumulus_relay_chain_interface::RelayChainInterface;
 use cumulus_primitives_core::ParaId;
 
 use sc_executor::{HeapAllocStrategy, WasmExecutor, DEFAULT_HEAP_ALLOC_STRATEGY};
+use sc_client_api::Backend;
 use sc_consensus::ImportQueue;
 use sc_network::{config::FullNetworkConfiguration, NetworkBlock};
 use sc_network_sync::SyncingService;
@@ -34,6 +35,7 @@ use sc_service::{
     Configuration, PartialComponents, PruningMode, TFullBackend, TFullClient, TaskManager,
 };
 use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerHandle};
+use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_api::ConstructRuntimeApi;
 use sp_keystore::KeystorePtr;
 use sp_runtime::traits::BlakeTwo256;
@@ -47,7 +49,7 @@ use sp_runtime::{BoundedVec, Permill};
 
 use parachains_common::{rmrk_core, rmrk_equip, uniques};
 
-pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Index as Nonce};
+pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Nonce};
 
 #[cfg(feature = "khala-native")]
 pub mod khala;
@@ -318,6 +320,29 @@ where
             import_queue: params.import_queue,
         })
         .await?;
+
+    if parachain_config.offchain_worker.enabled {
+        use futures::FutureExt;
+
+        task_manager.spawn_handle().spawn(
+            "offchain-workers-runner",
+            "offchain-work",
+            sc_offchain::OffchainWorkers::new(sc_offchain::OffchainWorkerOptions {
+                runtime_api_provider: client.clone(),
+                keystore: Some(params.keystore_container.keystore()),
+                offchain_db: backend.offchain_storage(),
+                transaction_pool: Some(OffchainTransactionPoolFactory::new(
+                    transaction_pool.clone(),
+                )),
+                network_provider: network.clone(),
+                is_validator: parachain_config.role.is_authority(),
+                enable_http_requests: false,
+                custom_extensions: move |_| vec![],
+            })
+                .run(client.clone(), task_manager.spawn_handle())
+                .boxed(),
+        );
+    }
 
     let rpc_builder = {
         let client = client.clone();

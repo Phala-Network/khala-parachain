@@ -27,7 +27,7 @@ use crate::chain_spec::{
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec =
-    sc_service::GenericChainSpec<khala_parachain_runtime::GenesisConfig, Extensions>;
+    sc_service::GenericChainSpec<khala_parachain_runtime::RuntimeGenesisConfig, Extensions>;
 
 /// Generate the session keys from individual elements.
 ///
@@ -179,7 +179,7 @@ fn genesis(
     endowed_accounts: Vec<(AccountId, u128)>,
     id: ParaId,
     registry_override: Option<khala_parachain_runtime::PhalaRegistryConfig>,
-) -> khala_parachain_runtime::GenesisConfig {
+) -> khala_parachain_runtime::RuntimeGenesisConfig {
     let all_accounts: Vec<_> = initial_authorities
         .iter()
         .map(|(k, _)| k)
@@ -191,18 +191,22 @@ fn genesis(
         panic!("All the genesis accounts must be endowed; qed.")
     }
 
-    khala_parachain_runtime::GenesisConfig {
+    khala_parachain_runtime::RuntimeGenesisConfig {
         system: khala_parachain_runtime::SystemConfig {
             code: khala_parachain_runtime::WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
+            ..Default::default()
         },
         balances: khala_parachain_runtime::BalancesConfig {
             balances: endowed_accounts,
         },
         // `sudo` has been removed on production
         // sudo: khala_parachain_runtime::SudoConfig { key: root_key },
-        parachain_info: khala_parachain_runtime::ParachainInfoConfig { parachain_id: id },
+        parachain_info: khala_parachain_runtime::ParachainInfoConfig {
+            parachain_id: id,
+            ..Default::default()
+        },
         collator_selection: khala_parachain_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities
                 .iter()
@@ -253,6 +257,7 @@ fn genesis(
         phala_computation: Default::default(),
         polkadot_xcm: khala_parachain_runtime::PolkadotXcmConfig {
             safe_xcm_version: Some(3),
+            ..Default::default()
         },
     }
 }

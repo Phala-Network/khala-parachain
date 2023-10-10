@@ -21,14 +21,14 @@
 use std::sync::Arc;
 
 use parachains_common::{
-    rmrk_core, rmrk_equip, uniques, AccountId, Balance, Block, Index as Nonce,
+    rmrk_core, rmrk_equip, uniques, AccountId, Balance, Block, Nonce,
 };
 use rmrk_traits::primitives::{CollectionId, NftId, PartId};
 use rmrk_traits::{
     BaseInfo, CollectionInfo, NftInfo, PartType, PropertyInfo, ResourceInfo, Theme, ThemeProperty,
 };
 use sc_client_api::{backend, AuxStore, Backend, BlockBackend, StorageProvider};
-pub use sc_rpc::{DenyUnsafe, SubscriptionTaskExecutor};
+pub use sc_rpc::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::{ApiExt, ProvideRuntimeApi};
 use sp_block_builder::BlockBuilder;

@@ -17,7 +17,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
-#![recursion_limit = "256"]
+#![recursion_limit = "512"]
 #![allow(clippy::identity_op)]
 
 // Make the WASM binary available.
@@ -76,9 +76,9 @@ pub use frame_support::{
     pallet_prelude::Get,
     parameter_types,
     traits::{
-        tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstU32, Contains, Currency,
+        tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstBool, ConstU32, Contains, Currency,
         EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
-        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness, U128CurrencyToVote,
+        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness,
         WithdrawReasons, SortedMembers,
     },
     weights::{
@@ -115,7 +115,7 @@ use rmrk_traits::{
     NftChild,
 };
 
-pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Index, *};
+pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Nonce, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_marketplace, pallet_pw_nft_sale};
 pub use phala_pallets::{
@@ -229,13 +229,9 @@ type EnsureRootOrHalfCouncil = EitherOfDiverse<
 >;
 
 construct_runtime! {
-    pub struct Runtime where
-        Block = Block,
-        NodeBlock = opaque::Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
-    {
+    pub struct Runtime {
         // System support stuff
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 0,
+        System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>} = 0,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 1,
         RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip::{Pallet, Storage} = 2,
         Utility: pallet_utility::{Pallet, Call, Event} = 3,
@@ -246,14 +242,14 @@ construct_runtime! {
         Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 8,
 
         // Parachain staff
-        ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config} = 20,
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 21,
+        ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config<T>} = 20,
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config<T>, Storage, Inherent, Event<T>, ValidateUnsigned} = 21,
 
         // XCM helpers
         XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 31,
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 32,
-        PolkadotXcm: pallet_xcm::{Pallet, Storage, Call, Event<T>, Origin, Config} = 33,
+        PolkadotXcm: pallet_xcm::{Pallet, Storage, Call, Event<T>, Origin, Config<T>} = 33,
 
         // Monetary stuff
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 40,
@@ -264,13 +260,13 @@ construct_runtime! {
         CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 52,
         Aura: pallet_aura::{Pallet, Storage, Config<T>} = 53,
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config} = 54,
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config<T>} = 54,
 
         // Governance
         Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 60,
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>} = 61,
         Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 62,
-        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 63,
+        Treasury: pallet_treasury::{Pallet, Call, Storage, Config<T>, Event<T>} = 63,
         Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 64,
         Lottery: pallet_lottery::{Pallet, Call, Storage, Event<T>} = 65,
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 66,
@@ -289,7 +285,7 @@ construct_runtime! {
         // Phala
         PhalaMq: pallet_mq::{Pallet, Call, Storage} = 85,
         PhalaRegistry: pallet_registry::{Pallet, Call, Event<T>, Storage, Config<T>} = 86,
-        PhalaComputation: pallet_computation::{Pallet, Call, Event<T>, Storage, Config} = 87,
+        PhalaComputation: pallet_computation::{Pallet, Call, Event<T>, Storage, Config<T>} = 87,
         PhalaStakePool: pallet_stake_pool::{Pallet, Event<T>, Storage} = 88,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 89,
         AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>} = 90,
@@ -319,6 +315,7 @@ construct_runtime! {
         SygmaBridge: sygma_bridge::{Pallet, Call, Storage, Event<T>} = 113,
         SygmaFeeHandlerRouter: sygma_fee_handler_router::{Pallet, Call, Storage, Event<T>} = 114,
         SygmaWrapper: sygma_wrapper::{Pallet, Storage, Event<T>} = 115,
+        SygmaPercentageFeeHandler: sygma_percentage_feehandler::{Pallet, Call, Storage, Event<T>} = 116,
 
         // inDEX
         PalletIndex: pallet_index::{Pallet, Call, Storage, Event<T>} = 121,
@@ -458,15 +455,13 @@ impl frame_system::Config for Runtime {
     /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
     type Lookup = AccountIdLookup<AccountId, ()>;
     /// The index type for storing how many extrinsics an account has signed.
-    type Index = Index;
-    /// The index type for blocks.
-    type BlockNumber = BlockNumber;
+    type Nonce = Nonce;
     /// The type for hashing blocks and tries.
     type Hash = Hash;
     /// The hashing algorithm used.
     type Hashing = Hasher;
     /// The header type.
-    type Header = Header;
+    type Block = Block;
     /// The ubiquitous event type.
     type RuntimeEvent = RuntimeEvent;
     /// The ubiquitous origin type.
@@ -731,10 +726,10 @@ impl pallet_balances::Config for Runtime {
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = frame_system::Pallet<Runtime>;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
-    type HoldIdentifier = ();
     type FreezeIdentifier = ();
     type MaxHolds = ConstU32<0>;
     type MaxFreezes = ConstU32<0>;
+    type RuntimeHoldReason = ();
 }
 
 parameter_types! {
@@ -951,8 +946,8 @@ impl pallet_rmrk_core::Config for Runtime {
     type MaxResourcesOnMint = MaxResourcesOnMint;
     type WeightInfo = pallet_rmrk_core::weights::SubstrateWeight<Runtime>;
     type TransferHooks = PhalaWrappedBalances;
-    #[cfg(feature = "runtime-benchmarks")]
-    type Helper = pallet_rmrk_core::RmrkBenchmark;
+    type CollectionId = u32;
+    type ItemId = u32;
 }
 
 impl pallet_rmrk_equip::Config for Runtime {
@@ -1157,6 +1152,7 @@ impl Config for XcmConfig {
     type UniversalAliases = Nothing;
     type CallDispatcher = WithOriginFilter<BaseCallFilter>;
     type SafeCallFilter = BaseCallFilter;
+    type Aliasers = Nothing;
 }
 parameter_types! {
     pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
@@ -1304,7 +1300,7 @@ impl pallet_elections_phragmen::Config for Runtime {
     type Currency = Balances;
     type ChangeMembers = Council;
     type InitializeMembers = Council;
-    type CurrencyToVote = frame_support::traits::U128CurrencyToVote;
+    type CurrencyToVote = sp_staking::currency_to_vote::U128CurrencyToVote;
     type CandidacyBond = CandidacyBond;
     type VotingBondBase = VotingBondBase;
     type VotingBondFactor = VotingBondFactor;
@@ -1523,6 +1519,7 @@ impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
     type DisabledValidators = ();
     type MaxAuthorities = MaxAuthorities;
+    type AllowMultipleBlocksPerSlot = ConstBool<false>;
 }
 
 parameter_types! {
@@ -1557,7 +1554,7 @@ impl pallet_session::Config for Runtime {
 parameter_types! {
     pub const PotId: PalletId = PalletId(*b"PotStake");
     pub const MaxCollatorCandidates: u32 = 1000;
-    pub const MinCollatorCandidates: u32 = 5;
+    pub const MinEligibleCollators: u32 = 5;
     pub const SessionLength: BlockNumber = 6 * HOURS;
     pub const MaxInvulnerables: u32 = 100;
 }
@@ -1568,7 +1565,7 @@ impl pallet_collator_selection::Config for Runtime {
     type UpdateOrigin = EnsureRootOrHalfCouncil;
     type PotId = PotId;
     type MaxCandidates = MaxCollatorCandidates;
-    type MinCandidates = MinCollatorCandidates;
+    type MinEligibleCollators = MinEligibleCollators;
     type MaxInvulnerables = MaxInvulnerables;
     // should be a multiple of session or things will get inconsistent
     type KickThreshold = Period;
@@ -1616,6 +1613,7 @@ parameter_types! {
     pub const SygmaBasicFeeHandlerPalletIndex: u8 = 112;
     pub const SygmaBridgePalletIndex: u8 = 113;
     pub const SygmaFeeHandlerRouterPalletIndex: u8 = 114;
+    pub const SygmaPercentageFeeHandlerRouterPalletIndex: u8 = 116;
     // RegisteredExtrinsics here registers all valid (pallet index, extrinsic_name) paris
     // make sure to update this when adding new access control extrinsic
     pub RegisteredExtrinsics: Vec<(u8, Vec<u8>)> = [
@@ -1625,6 +1623,7 @@ parameter_types! {
         (SygmaBridgePalletIndex::get(), b"pause_bridge".to_vec()),
         (SygmaBridgePalletIndex::get(), b"unpause_bridge".to_vec()),
         (SygmaFeeHandlerRouterPalletIndex::get(), b"set_fee_handler".to_vec()),
+        (SygmaPercentageFeeHandlerRouterPalletIndex::get(), b"set_fee_rate".to_vec()),
     ].to_vec();
 
     // SygmaBridgeAccount is an account for holding transferred asset collection
@@ -1655,10 +1654,17 @@ impl sygma_basic_feehandler::Config for Runtime {
     type WeightInfo = sygma_basic_feehandler::weights::SygmaWeightInfo<Runtime>;
 }
 
+impl sygma_percentage_feehandler::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type PalletIndex = SygmaPercentageFeeHandlerRouterPalletIndex;
+    type WeightInfo = sygma_percentage_feehandler::weights::SygmaWeightInfo<Runtime>;
+}
+
 impl sygma_fee_handler_router::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type BasicFeeHandler = SygmaBasicFeeHandler;
     type DynamicFeeHandler = ();
+    type PercentageFeeHandler = SygmaPercentageFeeHandler;
     type PalletIndex = SygmaFeeHandlerRouterPalletIndex;
     type WeightInfo = sygma_fee_handler_router::weights::SygmaWeightInfo<Runtime>;
 }
@@ -1981,8 +1987,8 @@ impl_runtime_apis! {
         }
     }
 
-    impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
-        fn account_nonce(account: AccountId) -> Index {
+    impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce> for Runtime {
+        fn account_nonce(account: AccountId) -> Nonce {
             System::account_nonce(account)
         }
     }

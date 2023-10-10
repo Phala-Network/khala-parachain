@@ -27,7 +27,7 @@ use crate::chain_spec::{
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec =
-    sc_service::GenericChainSpec<rhala_parachain_runtime::GenesisConfig, Extensions>;
+    sc_service::GenericChainSpec<rhala_parachain_runtime::RuntimeGenesisConfig, Extensions>;
 
 /// Generate the session keys from individual elements.
 ///
@@ -179,7 +179,7 @@ fn genesis(
     endowed_accounts: Vec<(AccountId, u128)>,
     id: ParaId,
     registry_override: Option<rhala_parachain_runtime::PhalaRegistryConfig>,
-) -> rhala_parachain_runtime::GenesisConfig {
+) -> rhala_parachain_runtime::RuntimeGenesisConfig {
     let all_accounts: Vec<_> = initial_authorities
         .iter()
         .map(|(k, _)| k)
@@ -191,17 +191,21 @@ fn genesis(
         panic!("All the genesis accounts must be endowed; qed.")
     }
 
-    rhala_parachain_runtime::GenesisConfig {
+    rhala_parachain_runtime::RuntimeGenesisConfig {
         system: rhala_parachain_runtime::SystemConfig {
             code: rhala_parachain_runtime::WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
+            ..Default::default()
         },
         balances: rhala_parachain_runtime::BalancesConfig {
             balances: endowed_accounts,
         },
         sudo: rhala_parachain_runtime::SudoConfig { key: Some(root_key) },
-        parachain_info: rhala_parachain_runtime::ParachainInfoConfig { parachain_id: id },
+        parachain_info: rhala_parachain_runtime::ParachainInfoConfig {
+            parachain_id: id,
+            ..Default::default()
+        },
         collator_selection: rhala_parachain_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities
                 .iter()
@@ -252,6 +256,7 @@ fn genesis(
         phala_computation: Default::default(),
         polkadot_xcm: rhala_parachain_runtime::PolkadotXcmConfig {
             safe_xcm_version: Some(3),
+            ..Default::default()
         },
     }
 }

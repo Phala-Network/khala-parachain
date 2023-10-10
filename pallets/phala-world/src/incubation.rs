@@ -297,7 +297,7 @@ pub mod pallet {
 			);
 			// Check if account owns an Origin of Shell NFT
 			let origin_of_shells_owned: u32 =
-				pallet_uniques::pallet::Pallet::<T>::owned_in_collection(&collection_id, &sender)
+				pallet_uniques::pallet::Pallet::<T>::owned_in_collection(&collection_id.into(), &sender)
 					.count() as u32;
 			ensure!(origin_of_shells_owned > 0, Error::<T>::NoPermission);
 			// Get Current Era
@@ -322,7 +322,7 @@ pub mod pallet {
 				// Ensure sender hasn't fed the Origin of Shell 2 times
 				let new_num_of_times_fed = match new_food_info
 					.origin_of_shells_fed
-					.get(&(collection_id, nft_id))
+					.get(&(collection_id.into(), nft_id.into()))
 				{
 					Some(num_times_fed) => {
 						ensure!(
@@ -336,7 +336,7 @@ pub mod pallet {
 				};
 				new_food_info
 					.origin_of_shells_fed
-					.insert((collection_id, nft_id), new_num_of_times_fed);
+					.insert((collection_id.into(), nft_id.into()), new_num_of_times_fed);
 				new_food_info.food_left = food_left - 1u32;
 				*food_info = Some(new_food_info);
 
@@ -385,30 +385,30 @@ pub mod pallet {
 			pallet_pw_nft_sale::pallet::Pallet::<T>::ensure_overlord(&sender)?;
 			// Ensure that the collection is an Origin of Shell Collection
 			ensure!(
-				Self::is_origin_of_shell_collection_id(collection_id),
+				Self::is_origin_of_shell_collection_id(collection_id.into()),
 				Error::<T>::WrongCollectionId
 			);
 			let budget = budget::Value::new(T::NestingBudget::get());
 			// Get owner of the Origin of Shell NFT
 			let (owner, _) =
-				pallet_rmrk_core::Pallet::<T>::lookup_root_owner(collection_id, nft_id, &budget)?;
+				pallet_rmrk_core::Pallet::<T>::lookup_root_owner(collection_id.into(), nft_id.into(), &budget)?;
 			// Check if Shell Collection ID is set
 			let shell_collection_id = Self::get_shell_collection_id()?;
 			// Check if Shell Parts Collection ID is set
 			let shell_parts_collection_id = Self::get_shell_parts_collection_id()?;
 			// Get race, career, generation and rarity before burning origin of shell NFT
 			let race =
-				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id, nft_id, "race")
+				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id.into(), nft_id.into(), "race")
 					.ok_or(Error::<T>::RaceNotDetected)?;
 			let career =
-				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id, nft_id, "career")
+				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id.into(), nft_id.into(), "career")
 					.ok_or(Error::<T>::CareerNotDetected)?;
 			let rarity_type_value =
-				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id, nft_id, "rarity")
+				pallet_pw_nft_sale::Pallet::<T>::get_nft_property(collection_id.into(), nft_id.into(), "rarity")
 					.ok_or(Error::<T>::RarityTypeNotDetected)?;
 			let generation = pallet_pw_nft_sale::Pallet::<T>::get_nft_property(
-				collection_id,
-				nft_id,
+				collection_id.into(),
+				nft_id.into(),
 				"generation",
 			)
 			.ok_or(Error::<T>::GenerationNotDetected)?;
@@ -428,12 +428,12 @@ pub mod pallet {
 
 			// Get next expected Shell NFT ID
 			let next_shell_nft_id =
-				pallet_pw_nft_sale::Pallet::<T>::get_next_nft_id(shell_collection_id)?;
+				pallet_pw_nft_sale::Pallet::<T>::get_next_nft_id(shell_collection_id.into())?;
 			// Burn Origin of Shell NFT then Mint Shell NFT
 			pallet_rmrk_core::Pallet::<T>::burn_nft(
 				Origin::<T>::Signed(owner.clone()).into(),
-				collection_id,
-				nft_id,
+				collection_id.into(),
+				nft_id.into(),
 			)
 			.map_err(|e| e.error)?;
 			// Remove Properties from Uniques pallet
@@ -447,8 +447,8 @@ pub mod pallet {
 			let (_, shell_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint(
 				owner.clone(),
 				owner.clone(),
-				next_shell_nft_id,
-				shell_collection_id,
+				next_shell_nft_id.into(),
+				shell_collection_id.into(),
 				Some(payee),
 				Some(Permill::from_percent(1)),
 				default_shell_metadata,
@@ -457,7 +457,7 @@ pub mod pallet {
 			)?;
 			// Set Rarity Type, Race and Career properties for NFT
 			pallet_pw_nft_sale::Pallet::<T>::set_nft_properties(
-				shell_collection_id,
+				shell_collection_id.into(),
 				shell_nft_id,
 				shell_properties,
 			)?;
@@ -494,9 +494,9 @@ pub mod pallet {
 					owner.clone(),
 					shell_part_properties,
 					metadata,
-					shell_parts_collection_id,
-					shell_collection_id,
-					shell_nft_id,
+					shell_parts_collection_id.into(),
+					shell_collection_id.into(),
+					shell_nft_id.into(),
 					is_tradeable,
 				)?;
 				match sub_parts {
@@ -524,8 +524,8 @@ pub mod pallet {
 								owner.clone(),
 								sub_part_properties,
 								sub_part_metadata,
-								shell_parts_collection_id,
-								shell_parts_collection_id,
+								shell_parts_collection_id.into(),
+								shell_parts_collection_id.into(),
 								shell_part_nft_id,
 								sub_part_info.tradeable,
 							)?;
@@ -536,8 +536,8 @@ pub mod pallet {
 			}
 
 			Self::deposit_event(Event::ShellAwakened {
-				shell_collection_id,
-				shell_nft_id,
+				shell_collection_id: shell_collection_id.into(),
+				shell_nft_id: shell_nft_id.into(),
 				rarity: rarity_type,
 				career: career_type,
 				race: race_type,
@@ -655,7 +655,7 @@ pub mod pallet {
 			pallet_pw_nft_sale::Pallet::<T>::ensure_overlord(&sender)?;
 			// Ensure that the collection is an Origin of Shell Collection
 			ensure!(
-				Self::is_origin_of_shell_collection_id(collection_id),
+				Self::is_origin_of_shell_collection_id(collection_id.into()),
 				Error::<T>::WrongCollectionId
 			);
 			// Ensure the incubation process has started before setting chosen parts
@@ -771,14 +771,14 @@ where
 		// If metadata is None then metadata will be default
 		// Get expected next available NFT ID to mint
 		let next_nft_id =
-			pallet_pw_nft_sale::Pallet::<T>::get_next_nft_id(shell_parts_collection_id)?;
+			pallet_pw_nft_sale::Pallet::<T>::get_next_nft_id(shell_parts_collection_id.into())?;
 		let payee = pallet_pw_nft_sale::Pallet::<T>::payee()?;
 		// Mint Shell Part NFT directly to the Shell NFT
 		let (_, shell_part_nft_id) = pallet_rmrk_core::Pallet::<T>::nft_mint_directly_to_nft(
 			owner.clone(),
-			(parent_collection_id, parent_nft_id),
-			next_nft_id,
-			shell_parts_collection_id,
+			(parent_collection_id.into(), parent_nft_id.into()),
+			next_nft_id.into(),
+			shell_parts_collection_id.into(),
 			Some(payee),
 			Some(Permill::from_percent(1)),
 			metadata,
@@ -787,19 +787,19 @@ where
 		)?;
 		// Set Shell Part properties
 		pallet_pw_nft_sale::Pallet::<T>::set_nft_properties(
-			shell_parts_collection_id,
+			shell_parts_collection_id.into(),
 			shell_part_nft_id,
 			properties.clone(),
 		)?;
 
 		Self::deposit_event(Event::ShellPartMinted {
 			shell_parts_collection_id,
-			shell_part_nft_id,
+			shell_part_nft_id: shell_part_nft_id.into(),
 			parent_shell_collection_id: parent_collection_id,
 			parent_shell_nft_id: parent_nft_id,
 			owner,
 		});
 
-		Ok((shell_parts_collection_id, shell_part_nft_id))
+		Ok((shell_parts_collection_id, shell_part_nft_id.into()))
 	}
 }

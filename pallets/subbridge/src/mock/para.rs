@@ -14,10 +14,7 @@ use frame_support::{
 use frame_system as system;
 use frame_system::EnsureRoot;
 use sp_core::{crypto::AccountId32, H256};
-use sp_runtime::{
-	testing::Header,
-	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
-};
+use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentityLookup};
 
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use phala_pallet_common::WrapSlice;
@@ -31,7 +28,6 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::WithOriginFilter, Config, XcmExecutor};
 
-pub use parachains_common::Index;
 pub use parachains_common::*;
 
 pub(crate) type Balance = u128;
@@ -40,22 +36,17 @@ pub const CENTS: Balance = DOLLARS / 100;
 
 pub type AccountId = AccountId32;
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
 // Configure a mock runtime to test the pallet.
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
-	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+	pub struct Runtime {
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
 
 		// Parachain staff
-		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config},
+		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config<T>},
 
 		// XCM helpers
 		XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
@@ -85,13 +76,12 @@ impl system::Config for Runtime {
 	type BlockLength = ();
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
-	type Index = u64;
-	type BlockNumber = u64;
+	type Nonce = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = ();
@@ -116,10 +106,10 @@ impl pallet_balances::Config for Runtime {
 	type MaxLocks = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = [u8; 8];
-	type HoldIdentifier = ();
 	type FreezeIdentifier = ();
 	type MaxHolds = ConstU32<1>;
 	type MaxFreezes = ConstU32<1>;
+	type RuntimeHoldReason = ();
 }
 
 parameter_types! {
@@ -301,6 +291,7 @@ impl Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = WithOriginFilter<Everything>;
 	type SafeCallFilter = Everything;
+	type Aliasers = ();
 }
 parameter_types! {
 	pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);

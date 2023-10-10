@@ -3,27 +3,26 @@ use frame_support::{
 	pallet_prelude::ConstU32,
 	parameter_types,
 	sp_runtime::{
-		testing::{Header, H256},
+		testing::H256,
 		traits::{AccountIdConversion, BlakeTwo256, CheckedConversion, IdentityLookup},
 		AccountId32, Perbill,
 	},
-	traits::{AsEnsureOriginWithArg, ConstU128, Contains, GenesisBuild},
+	traits::{AsEnsureOriginWithArg, ConstU128, Contains},
 	PalletId,
 };
 use frame_system::{self as system, EnsureRoot, EnsureSigned};
 use sp_std::{marker::PhantomData, result};
-
 use crate as pallet_index;
-
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
-type Block = frame_system::mocking::MockBlock<Test>;
 use polkadot_parachain::primitives::Sibling;
+use sp_runtime::BuildStorage;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, CurrencyAdapter, FungiblesAdapter, MintLocation, NoChecking,
 	ParentIsPreset, SiblingParachainConvertsVia,
 };
 use xcm_executor::traits::{Error as MatchError, MatchesFungible, MatchesFungibles};
+
+type Block = frame_system::mocking::MockBlock<Test>;
 
 pub(crate) type Balance = u128;
 
@@ -32,17 +31,13 @@ pub const BOB: AccountId32 = AccountId32::new([1u8; 32]);
 pub const ENDOWED_BALANCE: Balance = 100_000_000;
 
 frame_support::construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+	pub struct Test {
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		PalletIndex: pallet_index::{Pallet, Call, Storage, Event<T>},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
 		AssetsRegistry: assets_registry::{Pallet, Call, Storage, Event<T>},
-		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config},
+		ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config<T>},
 	}
 );
 
@@ -60,13 +55,12 @@ impl frame_system::Config for Test {
 	type BlockLength = ();
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
-	type Index = u64;
-	type BlockNumber = u64;
+	type Nonce = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId32;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = ();
@@ -95,10 +89,10 @@ impl pallet_balances::Config for Test {
 	type MaxLocks = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = [u8; 8];
-	type HoldIdentifier = ();
 	type FreezeIdentifier = ();
 	type MaxHolds = ConstU32<1>;
 	type MaxFreezes = ConstU32<1>;
+	type RuntimeHoldReason = ();
 }
 
 parameter_types! {
@@ -246,17 +240,13 @@ impl pallet_index::Config for Test {
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default()
-		.build_storage::<Test>()
-		.unwrap();
-	let parachain_info_config = pallet_parachain_info::GenesisConfig {
+	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+
+	pallet_parachain_info::GenesisConfig::<Test> {
+		_mark: Default::default(),
 		parachain_id: 2004u32.into(),
-	};
-	<pallet_parachain_info::GenesisConfig as GenesisBuild<Test, _>>::assimilate_storage(
-		&parachain_info_config,
-		&mut t,
-	)
-	.unwrap();
+	}.assimilate_storage(&mut t).unwrap();
+
 	let assets_registry_account = assets_registry::ASSETS_REGISTRY_ID.into_account_truncating();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
@@ -267,6 +257,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
+
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
 	ext

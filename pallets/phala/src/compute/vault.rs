@@ -2,10 +2,7 @@ pub use self::pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	#[cfg(not(feature = "std"))]
 	use alloc::format;
-	#[cfg(feature = "std")]
-	use std::format;
 
 	use crate::balance_convert::{div as bdiv, mul as bmul, FixedPointConvert};
 	use crate::base_pool;
@@ -139,13 +136,15 @@ pub mod pallet {
 		VaultBankrupt,
 		/// The caller has no nft to withdraw
 		NoNftToWithdraw,
+		/// The commission is not changed
+		CommissionNotChanged,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
 		BalanceOf<T>: sp_runtime::traits::AtLeast32BitUnsigned + Copy + FixedPointConvert + Display,
-		T: pallet_uniques::Config<CollectionId = CollectionId, ItemId = NftId>,
+		T: pallet_rmrk_core::Config<CollectionId = CollectionId, ItemId = NftId>,
 		T: pallet_assets::Config<AssetId = u32, Balance = BalanceOf<T>>,
 	{
 		/// Creates a new vault
@@ -213,14 +212,21 @@ pub mod pallet {
 			pid: u64,
 			payout_commission: Option<Permill>,
 		) -> DispatchResult {
-			let owner = ensure_signed(origin)?;
-			let mut pool_info = ensure_vault::<T>(pid)?;
+			let owner = ensure_signed(origin.clone())?;
+			let pool_info = ensure_vault::<T>(pid)?;
 			// origin must be owner of pool
 			ensure!(
 				pool_info.basepool.owner == owner,
 				Error::<T>::UnauthorizedPoolOwner
 			);
 
+			if pool_info.commission == payout_commission {
+				return Err(Error::<T>::CommissionNotChanged.into());
+			}
+			// Settle the shares anyway to ensure all the old commission is paid out
+			Self::maybe_gain_owner_shares(origin, pid)?;
+			// Reload the latest pool info after the settlement.
+			let mut pool_info = ensure_vault::<T>(pid).expect("Pool is a known vault; qed.");
 			pool_info.commission = payout_commission;
 			base_pool::pallet::Pools::<T>::insert(pid, PoolProxy::Vault(pool_info));
 

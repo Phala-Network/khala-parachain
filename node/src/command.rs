@@ -14,18 +14,15 @@
 // limitations under the License.
 
 use std::{collections::VecDeque, net::SocketAddr};
-use codec::Encode;
-use cumulus_client_cli::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
 use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
 use log::{info, warn};
 use sc_cli::{
     CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
-    NetworkParams, Result, RuntimeVersion, SharedParams, SubstrateCli,
+    NetworkParams, Result, SharedParams, SubstrateCli,
 };
 use sc_service::config::{BasePath, PrometheusConfig};
-use sp_core::hexdisplay::HexDisplay;
-use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
+use sp_runtime::traits::AccountIdConversion;
 
 use crate::{
     chain_spec,
@@ -333,22 +330,6 @@ impl SubstrateCli for Cli {
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
         load_spec(id)
     }
-
-    fn native_runtime_version(chain_spec: &Box<dyn sc_service::ChainSpec>) -> &'static RuntimeVersion {
-        match chain_spec.runtime_name().as_str() {
-            #[cfg(feature = "phala-native")]
-            "phala" => &phala_parachain_runtime::VERSION,
-            #[cfg(feature = "khala-native")]
-            "khala" => &khala_parachain_runtime::VERSION,
-            #[cfg(feature = "rhala-native")]
-            "rhala" => &rhala_parachain_runtime::VERSION,
-            #[cfg(feature = "thala-native")]
-            "thala" => &thala_parachain_runtime::VERSION,
-            #[cfg(feature = "shell-native")]
-            "shell" => &shell_parachain_runtime::VERSION,
-            _ => panic!("Can not determine runtime"),
-        }
-    }
 }
 
 impl SubstrateCli for RelayChainCli {
@@ -384,10 +365,6 @@ impl SubstrateCli for RelayChainCli {
 
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
         polkadot_cli::Cli::from_iter([RelayChainCli::executable_name()].iter()).load_spec(id)
-    }
-
-    fn native_runtime_version(chain_spec: &Box<dyn sc_service::ChainSpec>) -> &'static RuntimeVersion {
-        polkadot_cli::Cli::native_runtime_version(chain_spec)
     }
 }
 
@@ -554,11 +531,8 @@ pub fn run() -> Result<()> {
             })
         },
         Some(Subcommand::ExportGenesisState(cmd)) => {
-            let runner = cli.create_runner(cmd)?;
-            runner.sync_run(|_config| {
-                let spec = cli.load_spec(&cmd.shared_params.chain.clone().unwrap_or_default())?;
-                let state_version = Cli::native_runtime_version(&spec).state_version();
-                cmd.run::<crate::service::Block>(&*spec, state_version)
+            construct_async_run!(|components, cli, cmd, config| {
+                Ok(async move { cmd.run(&*config.chain_spec, &*components.client) })
             })
         },
         Some(Subcommand::ExportGenesisWasm(cmd)) => {
@@ -578,22 +552,22 @@ pub fn run() -> Result<()> {
                         runner.sync_run(|config| {
                             #[cfg(feature = "phala-native")]
                             if config.chain_spec.is_phala() {
-                                return cmd.run::<Block, crate::service::phala::RuntimeExecutor>(config)
+                                return cmd.run::<Block, ()>(config)
                             }
 
                             #[cfg(feature = "khala-native")]
                             if config.chain_spec.is_khala() {
-                                return cmd.run::<Block, crate::service::khala::RuntimeExecutor>(config)
+                                return cmd.run::<Block, ()>(config)
                             }
 
                             #[cfg(feature = "rhala-native")]
                             if config.chain_spec.is_rhala() {
-                                return cmd.run::<Block, crate::service::rhala::RuntimeExecutor>(config)
+                                return cmd.run::<Block, ()>(config)
                             }
 
                             #[cfg(feature = "thala-native")]
                             if config.chain_spec.is_thala() {
-                                return cmd.run::<Block, crate::service::thala::RuntimeExecutor>(config)
+                                return cmd.run::<Block, ()>(config)
                             }
 
                             Err("Chain doesn't support benchmarking".into())
@@ -643,67 +617,51 @@ pub fn run() -> Result<()> {
                 sc_service::TaskManager::new(runner.config().tokio_handle.clone(), *registry)
                     .map_err(|e| format!("Error: {:?}", e))?;
 
-            type HostFunctionsOf<E> = ExtendedHostFunctions<
-                sp_io::SubstrateHostFunctions,
-                <E as NativeExecutionDispatch>::ExtendHostFunctions,
-            >;
+            type HostFunctions = (sp_io::SubstrateHostFunctions, frame_benchmarking::benchmarking::HostFunctions);
 
             let info_provider = timestamp_with_aura_info(6000);
 
-            #[cfg(feature = "phala-native")]
             if runner.config().chain_spec.is_phala() {
                 return runner.async_run(|_config| {
                     Ok((
-                        cmd.run::<Block, HostFunctionsOf<crate::service::phala::RuntimeExecutor>, _>(Some(
+                        cmd.run::<Block, HostFunctions, _>(Some(
                             info_provider,
                         )),
                         task_manager,
                     ))
                 })
-            }
-
-            #[cfg(feature = "khala-native")]
-            if runner.config().chain_spec.is_khala() {
+            } else if runner.config().chain_spec.is_khala() {
                 return runner.async_run(|_config| {
                     Ok((
-                        cmd.run::<Block, HostFunctionsOf<crate::service::khala::RuntimeExecutor>, _>(Some(
+                        cmd.run::<Block, HostFunctions, _>(Some(
                             info_provider,
                         )),
                         task_manager,
                     ))
                 })
-            }
-
-            #[cfg(feature = "rhala-native")]
-            if runner.config().chain_spec.is_rhala() {
+            } else if runner.config().chain_spec.is_rhala() {
                 return runner.async_run(|_config| {
                     Ok((
-                        cmd.run::<Block, HostFunctionsOf<crate::service::rhala::RuntimeExecutor>, _>(Some(
+                        cmd.run::<Block, HostFunctions, _>(Some(
                             info_provider,
                         )),
                         task_manager,
                     ))
                 })
-            }
-
-            #[cfg(feature = "thala-native")]
-            if runner.config().chain_spec.is_thala() {
+            } else if runner.config().chain_spec.is_thala() {
                 return runner.async_run(|_config| {
                     Ok((
-                        cmd.run::<Block, HostFunctionsOf<crate::service::thala::RuntimeExecutor>, _>(Some(
+                        cmd.run::<Block, HostFunctions, _>(Some(
                             info_provider,
                         )),
                         task_manager,
                     ))
                 })
-            }
-
-            #[cfg(feature = "shell-native")]
-            if runner.config().chain_spec.is_shell() {
+            } else if runner.config().chain_spec.is_shell() {
                 return Err("Shell runtime doesn't support try-runtime".into())
+            } else {
+                Err("Can't determine runtime from chain_spec".into())
             }
-
-            Err("Can't determine runtime from chain_spec".into())
         },
         #[cfg(not(feature = "try-runtime"))]
         Some(Subcommand::TryRuntime) => Err("Try-runtime was not enabled when building the node. \
@@ -736,21 +694,16 @@ pub fn run() -> Result<()> {
                 let id = ParaId::from(para_id);
 
                 let parachain_account =
-                    AccountIdConversion::<polkadot_primitives::AccountId>::into_account_truncating(&id);
+                    AccountIdConversion::<polkadot_primitives::AccountId>::into_account_truncating(
+                        &id,
+                    );
 
-                let state_version = Cli::native_runtime_version(&config.chain_spec).state_version();
-                let block: Block = generate_genesis_block(&*config.chain_spec, state_version)
-                    .map_err(|e| format!("{:?}", e))?;
-                let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
-
-                let task_executor = config.tokio_handle.clone();
+                let tokio_handle = config.tokio_handle.clone();
                 let polkadot_config =
-                    SubstrateCli::create_configuration(&polkadot_cli, &polkadot_cli, task_executor)
+                    SubstrateCli::create_configuration(&polkadot_cli, &polkadot_cli, tokio_handle)
                         .map_err(|err| format!("Relay chain argument error: {}", err))?;
 
-                info!("Parachain id: {:?}", id);
-                info!("Parachain Account: {}", parachain_account);
-                info!("Parachain genesis state: {}", genesis_state);
+                info!("Parachain Account: {parachain_account}");
                 info!(
                     "Is collating: {}",
                     if config.role.is_authority() {
@@ -759,51 +712,44 @@ pub fn run() -> Result<()> {
                         "no"
                     }
                 );
-                if !collator_options.relay_chain_rpc_urls.is_empty() && cli.relaychain_args.len() > 0 {
-                    warn!("Detected relay chain node arguments together with --relay-chain-rpc-url. This command starts a minimal Polkadot node that only uses a network-related subset of all relay chain CLI options.");
+                if !collator_options.relay_chain_rpc_urls.is_empty() &&
+                    !cli.relaychain_args.is_empty()
+                {
+                    warn!(
+                        "Detected relay chain node arguments together with --relay-chain-rpc-url. \
+                           This command starts a minimal Polkadot node that only uses a \
+                           network-related subset of all relay chain CLI options."
+                    );
                 }
 
-                #[cfg(feature = "phala-native")]
                 if config.chain_spec.is_phala() {
                     return crate::service::phala::start_parachain_node(config, polkadot_config, collator_options, id, hwbench)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
-                }
-
-                #[cfg(feature = "khala-native")]
-                if config.chain_spec.is_khala() {
+                } else if config.chain_spec.is_khala() {
                     return crate::service::khala::start_parachain_node(config, polkadot_config, collator_options, id, hwbench)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
-                }
-
-                #[cfg(feature = "rhala-native")]
-                if config.chain_spec.is_rhala() {
+                } else if config.chain_spec.is_rhala() {
                     return crate::service::rhala::start_parachain_node(config, polkadot_config, collator_options, id, hwbench)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
-                }
-
-                #[cfg(feature = "thala-native")]
-                if config.chain_spec.is_thala() {
+                } else if config.chain_spec.is_thala() {
                     return crate::service::thala::start_parachain_node(config, polkadot_config, collator_options, id, hwbench)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
-                }
-
-                #[cfg(feature = "shell-native")]
-                if config.chain_spec.is_shell() {
+                } else if config.chain_spec.is_shell() {
                     return crate::service::shell::start_parachain_node(config, polkadot_config, collator_options, id, hwbench)
                         .await
                         .map(|r| r.0)
                         .map_err(Into::into)
+                } else {
+                    Err("Can't determine runtime from chain_spec".into())
                 }
-
-                Err("Can't determine runtime from chain_spec".into())
             })
         }
     }

@@ -2,35 +2,26 @@ use crate::{pallet_pw_incubation, pallet_pw_marketplace, pallet_pw_nft_sale};
 
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{AsEnsureOriginWithArg, ConstU32, Everything, GenesisBuild, OnFinalize},
+	traits::{AsEnsureOriginWithArg, ConstU32, Everything, OnFinalize},
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
 use sp_core::{crypto::AccountId32, H256};
 
-use sp_runtime::{
-	testing::Header,
-	traits::{BlakeTwo256, IdentityLookup},
-	Permill,
-};
+use sp_runtime::{traits::{BlakeTwo256, IdentityLookup}, Permill, BuildStorage};
 
 type AccountId = AccountId32;
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type Balance = u128;
-type BlockNumber = u64;
 pub const INIT_TIMESTAMP: u64 = 30_000;
 pub const BLOCK_TIME: u64 = 1_000;
 pub const INIT_TIMESTAMP_SECONDS: u64 = 30;
 pub const BLOCK_TIME_SECONDS: u64 = 1;
+
 // Configure a mock runtime to test the pallet.
 construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
-	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+	pub struct Test {
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Uniques: pallet_uniques::{Pallet, Storage, Event<T>},
 		RmrkCore: pallet_rmrk_core::{Pallet, Call, Event<T>},
@@ -54,13 +45,12 @@ impl frame_system::Config for Test {
 	type BlockLength = ();
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
+	type Nonce = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = ();
@@ -88,12 +78,12 @@ impl pallet_balances::Config for Test {
 	type AccountStore = System;
 	type WeightInfo = ();
 	type MaxLocks = ();
-	type MaxReserves = MaxReserves;
+	type MaxReserves = ();
 	type ReserveIdentifier = [u8; 8];
-	type HoldIdentifier = ();
 	type FreezeIdentifier = ();
 	type MaxHolds = ConstU32<1>;
 	type MaxFreezes = ConstU32<1>;
+	type RuntimeHoldReason = ();
 }
 
 parameter_types! {
@@ -120,8 +110,8 @@ impl pallet_rmrk_core::Config for Test {
 	type MaxResourcesOnMint = MaxResourcesOnMint;
 	type WeightInfo = pallet_rmrk_core::weights::SubstrateWeight<Test>;
 	type TransferHooks = ();
-	#[cfg(feature = "runtime-benchmarks")]
-	type Helper = pallet_rmrk_core::RmrkBenchmark;
+	type CollectionId = u32;
+	type ItemId = u32;
 }
 
 parameter_types! {
@@ -272,9 +262,7 @@ impl Default for ExtBuilder {
 // Build genesis storage according to the mock runtime.
 impl ExtBuilder {
 	pub fn build(self, overlord_key: AccountId32) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Test>()
-			.unwrap();
+		let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 
 		pallet_pw_nft_sale::GenesisConfig::<Test> {
 			zero_day: None,
