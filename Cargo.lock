@@ -13017,7 +13017,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "sygma-access-segregator"
 version = "0.2.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#a01b0c262911fff4e24c284fd145ced37ce245b6"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#2d5a6ae10bd0926ba2874bab1b0ee5cb3c0269eb"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -13030,7 +13030,7 @@ dependencies = [
 [[package]]
 name = "sygma-basic-feehandler"
 version = "0.3.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#a01b0c262911fff4e24c284fd145ced37ce245b6"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#2d5a6ae10bd0926ba2874bab1b0ee5cb3c0269eb"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -13047,7 +13047,7 @@ dependencies = [
 [[package]]
 name = "sygma-bridge"
 version = "0.3.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#a01b0c262911fff4e24c284fd145ced37ce245b6"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#2d5a6ae10bd0926ba2874bab1b0ee5cb3c0269eb"
 dependencies = [
  "arrayref",
  "bounded-collections",
@@ -13083,7 +13083,7 @@ dependencies = [
 [[package]]
 name = "sygma-fee-handler-router"
 version = "0.3.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#a01b0c262911fff4e24c284fd145ced37ce245b6"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#2d5a6ae10bd0926ba2874bab1b0ee5cb3c0269eb"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -13102,7 +13102,7 @@ dependencies = [
 [[package]]
 name = "sygma-percentage-feehandler"
 version = "0.3.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#a01b0c262911fff4e24c284fd145ced37ce245b6"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#2d5a6ae10bd0926ba2874bab1b0ee5cb3c0269eb"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -13119,7 +13119,7 @@ dependencies = [
 [[package]]
 name = "sygma-rpc"
 version = "0.2.1"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#a01b0c262911fff4e24c284fd145ced37ce245b6"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#2d5a6ae10bd0926ba2874bab1b0ee5cb3c0269eb"
 dependencies = [
  "jsonrpsee",
  "parity-scale-codec",
@@ -13136,7 +13136,7 @@ dependencies = [
 [[package]]
 name = "sygma-runtime-api"
 version = "0.2.1"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#a01b0c262911fff4e24c284fd145ced37ce245b6"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#2d5a6ae10bd0926ba2874bab1b0ee5cb3c0269eb"
 dependencies = [
  "sp-api",
  "sygma-bridge",
@@ -13146,7 +13146,7 @@ dependencies = [
 [[package]]
 name = "sygma-traits"
 version = "0.2.0"
-source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#a01b0c262911fff4e24c284fd145ced37ce245b6"
+source = "git+https://github.com/sygmaprotocol/sygma-substrate-pallets?branch=polkadot-v1.0.0#2d5a6ae10bd0926ba2874bab1b0ee5cb3c0269eb"
 dependencies = [
  "ethabi",
  "frame-support",
