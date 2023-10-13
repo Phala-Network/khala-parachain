@@ -28,29 +28,12 @@ exclude = [
 members = [
 	"node",
 	"parachains-common",
-	"crates/phala-serde-more",
-	"crates/phala-types",
-	"crates/phala-mq",
-	"crates/phala-node-rpc-ext",
-	"crates/phala-node-rpc-ext/types",
-	"crates/phala-pallet-common",
-	"crates/prpc",
-	"crates/phala-trie-storage",
-	"pallets/assets-registry",
-	"pallets/phala",
-	"pallets/phala/mq-runtime-api",
-	"pallets/subbridge",
-	"pallets/parachain-info",
-	"pallets/phala-world",
-	"pallets/index",
-	"runtime/phala",
-	"runtime/khala",
-	"runtime/rhala",
-	"runtime/thala",
-	"runtime/shell",
+	"crates/*",
+	"pallets/*",
+	"runtime/*",
 ]
 
-[patch."https://github.com/paritytech/polkadot"]
+[patch."https://github.com/paritytech/polkadot-sdk.git"]
 polkadot-service = { path = "polkadot/node/service" }
 
 [patch.crates-io]

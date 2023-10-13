@@ -27,6 +27,8 @@ mod relay_chain_selection;
 
 #[cfg(feature = "full-node")]
 pub mod overseer;
+#[cfg(feature = "full-node")]
+pub mod workers;
 
 #[cfg(feature = "full-node")]
 pub use self::overseer::{OverseerGen, OverseerGenArgs, RealOverseerGen};
@@ -54,7 +56,6 @@ use {
 	sc_client_api::BlockBackend,
 	sc_transaction_pool_api::OffchainTransactionPoolFactory,
 	sp_core::traits::SpawnNamed,
-	sp_trie::PrefixedMemoryDB,
 };
 
 use polkadot_node_subsystem_util::database::Database;
@@ -73,7 +74,7 @@ pub use {
 #[cfg(feature = "full-node")]
 use polkadot_node_subsystem::jaeger;
 
-use std::{sync::Arc, time::Duration};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use prometheus_endpoint::Registry;
 #[cfg(feature = "full-node")]
@@ -83,7 +84,7 @@ use telemetry::TelemetryWorker;
 #[cfg(feature = "full-node")]
 use telemetry::{Telemetry, TelemetryWorkerHandle};
 
-pub use chain_spec::{KusamaChainSpec, PolkadotChainSpec, RococoChainSpec, WestendChainSpec};
+pub use chain_spec::{GenericChainSpec, RococoChainSpec, WestendChainSpec};
 pub use consensus_common::{Proposal, SelectChain};
 use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
 use mmr_gadget::MmrGadget;
@@ -100,15 +101,9 @@ pub use service::{
 pub use sp_api::{ApiRef, ConstructRuntimeApi, Core as CoreApi, ProvideRuntimeApi, StateBackend};
 pub use sp_runtime::{
 	generic,
-	traits::{
-		self as runtime_traits, BlakeTwo256, Block as BlockT, HashFor, Header as HeaderT, NumberFor,
-	},
+	traits::{self as runtime_traits, BlakeTwo256, Block as BlockT, Header as HeaderT, NumberFor},
 };
 
-#[cfg(feature = "kusama-native")]
-pub use {kusama_runtime, kusama_runtime_constants};
-#[cfg(feature = "polkadot-native")]
-pub use {polkadot_runtime, polkadot_runtime_constants};
 #[cfg(feature = "rococo-native")]
 pub use {rococo_runtime, rococo_runtime_constants};
 #[cfg(feature = "westend-native")]
@@ -125,6 +120,10 @@ pub type FullClient = service::TFullClient<
 	RuntimeApi,
 	WasmExecutor<(sp_io::SubstrateHostFunctions, frame_benchmarking::benchmarking::HostFunctions)>,
 >;
+
+/// The minimum period of blocks on which justifications will be
+/// imported and generated.
+const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
 
 /// Provides the header and block number for a hash.
 ///
@@ -233,6 +232,26 @@ pub enum Error {
 	#[cfg(feature = "full-node")]
 	#[error("Expected at least one of polkadot, kusama, westend or rococo runtime feature")]
 	NoRuntime,
+
+	#[cfg(feature = "full-node")]
+	#[error("Worker binaries not executable, prepare binary: {prep_worker_path:?}, execute binary: {exec_worker_path:?}")]
+	InvalidWorkerBinaries { prep_worker_path: PathBuf, exec_worker_path: PathBuf },
+
+	#[cfg(feature = "full-node")]
+	#[error("Worker binaries could not be found, make sure polkadot was built/installed correctly. If you ran with `cargo run`, please run `cargo build` first. Searched given workers path ({given_workers_path:?}), polkadot binary path ({current_exe_path:?}), and lib path (/usr/lib/polkadot), workers names: {workers_names:?}")]
+	MissingWorkerBinaries {
+		given_workers_path: Option<PathBuf>,
+		current_exe_path: PathBuf,
+		workers_names: Option<(String, String)>,
+	},
+
+	#[cfg(feature = "full-node")]
+	#[error("Version of worker binary ({worker_version}) is different from node version ({node_version}), worker_path: {worker_path}. If you ran with `cargo run`, please run `cargo build` first, otherwise try to `cargo clean`. TESTING ONLY: this check can be disabled with --disable-worker-version-check")]
+	WorkerBinaryVersionMismatch {
+		worker_version: String,
+		node_version: String,
+		worker_path: PathBuf,
+	},
 }
 
 /// Identifies the variant of the chain.
@@ -451,7 +470,7 @@ fn new_partial<ChainSelection>(
 		FullClient,
 		FullBackend,
 		ChainSelection,
-		sc_consensus::DefaultImportQueue<Block, FullClient>,
+		sc_consensus::DefaultImportQueue<Block>,
 		sc_transaction_pool::FullPool<Block, FullClient>,
 		(
 			impl Fn(
@@ -494,6 +513,7 @@ where
 
 	let (grandpa_block_import, grandpa_link) = grandpa::block_import_with_authority_set_hard_forks(
 		client.clone(),
+		GRANDPA_JUSTIFICATION_PERIOD,
 		&(client.clone() as Arc<_>),
 		select_chain.clone(),
 		grandpa_hard_forks,
@@ -601,6 +621,27 @@ where
 }
 
 #[cfg(feature = "full-node")]
+pub struct NewFullParams<OverseerGenerator: OverseerGen> {
+	pub is_parachain_node: IsParachainNode,
+	pub grandpa_pause: Option<(u32, u32)>,
+	pub enable_beefy: bool,
+	pub jaeger_agent: Option<std::net::SocketAddr>,
+	pub telemetry_worker_handle: Option<TelemetryWorkerHandle>,
+	/// The version of the node. TESTING ONLY: `None` can be passed to skip the node/worker version
+	/// check, both on startup and in the workers.
+	pub node_version: Option<String>,
+	/// An optional path to a directory containing the workers.
+	pub workers_path: Option<std::path::PathBuf>,
+	/// Optional custom names for the prepare and execute workers.
+	pub workers_names: Option<(String, String)>,
+	pub overseer_gen: OverseerGenerator,
+	pub overseer_message_channel_capacity_override: Option<usize>,
+	#[allow(dead_code)]
+	pub malus_finality_delay: Option<u32>,
+	pub hwbench: Option<sc_sysinfo::HwBench>,
+}
+
+#[cfg(feature = "full-node")]
 pub struct NewFull {
 	pub task_manager: TaskManager,
 	pub client: Arc<FullClient>,
@@ -611,32 +652,46 @@ pub struct NewFull {
 	pub backend: Arc<FullBackend>,
 }
 
-/// Is this node a collator?
+/// Is this node running as in-process node for a parachain node?
 #[cfg(feature = "full-node")]
 #[derive(Clone)]
-pub enum IsCollator {
-	/// This node is a collator.
-	Yes(CollatorPair),
-	/// This node is not a collator.
+pub enum IsParachainNode {
+	/// This node is running as in-process node for a parachain collator.
+	Collator(CollatorPair),
+	/// This node is running as in-process node for a parachain full node.
+	FullNode,
+	/// This node is not running as in-process node for a parachain node, aka a normal relay chain
+	/// node.
 	No,
 }
 
 #[cfg(feature = "full-node")]
-impl std::fmt::Debug for IsCollator {
+impl std::fmt::Debug for IsParachainNode {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
 		use sp_core::Pair;
 		match self {
-			IsCollator::Yes(pair) => write!(fmt, "Yes({})", pair.public()),
-			IsCollator::No => write!(fmt, "No"),
+			IsParachainNode::Collator(pair) => write!(fmt, "Collator({})", pair.public()),
+			IsParachainNode::FullNode => write!(fmt, "FullNode"),
+			IsParachainNode::No => write!(fmt, "No"),
 		}
 	}
 }
 
 #[cfg(feature = "full-node")]
-impl IsCollator {
-	/// Is this a collator?
+impl IsParachainNode {
+	/// Is this running alongside a collator?
 	fn is_collator(&self) -> bool {
-		matches!(self, Self::Yes(_))
+		matches!(self, Self::Collator(_))
+	}
+
+	/// Is this running alongside a full node?
+	fn is_full_node(&self) -> bool {
+		matches!(self, Self::FullNode)
+	}
+
+	/// Is this node running alongside a relay chain node?
+	fn is_running_alongside_parachain_node(&self) -> bool {
+		self.is_collator() || self.is_full_node()
 	}
 }
 
@@ -650,29 +705,30 @@ pub const AVAILABILITY_CONFIG: AvailabilityConfig = AvailabilityConfig {
 /// This is an advanced feature and not recommended for general use. Generally, `build_full` is
 /// a better choice.
 ///
-/// `overseer_enable_anyways` always enables the overseer, based on the provided `OverseerGenerator`,
-/// regardless of the role the node has. The relay chain selection (longest or disputes-aware) is
-/// still determined based on the role of the node. Likewise for authority discovery.
+/// `workers_path` is used to get the path to the directory where auxiliary worker binaries reside.
+/// If not specified, the main binary's directory is searched first, then `/usr/lib/polkadot` is
+/// searched. If the path points to an executable rather then directory, that executable is used
+/// both as preparation and execution worker (supposed to be used for tests only).
 #[cfg(feature = "full-node")]
-pub fn new_full<OverseerGenerator>(
+pub fn new_full<OverseerGenerator: OverseerGen>(
 	mut config: Configuration,
-	is_collator: IsCollator,
-	grandpa_pause: Option<(u32, u32)>,
-	enable_beefy: bool,
-	jaeger_agent: Option<std::net::SocketAddr>,
-	telemetry_worker_handle: Option<TelemetryWorkerHandle>,
-	program_path: Option<std::path::PathBuf>,
-	overseer_enable_anyways: bool,
-	overseer_gen: OverseerGenerator,
-	overseer_message_channel_capacity_override: Option<usize>,
-	_malus_finality_delay: Option<u32>,
-	hwbench: Option<sc_sysinfo::HwBench>,
-) -> Result<NewFull, Error>
-where
-	OverseerGenerator: OverseerGen,
-{
+	NewFullParams {
+		is_parachain_node,
+		grandpa_pause,
+		enable_beefy,
+		jaeger_agent,
+		telemetry_worker_handle,
+		node_version,
+		workers_path,
+		workers_names,
+		overseer_gen,
+		overseer_message_channel_capacity_override,
+		malus_finality_delay: _malus_finality_delay,
+		hwbench,
+	}: NewFullParams<OverseerGenerator>,
+) -> Result<NewFull, Error> {
 	use polkadot_node_network_protocol::request_response::IncomingRequest;
-	use sc_network_common::sync::warp::WarpSyncParams;
+	use sc_network_sync::warp::WarpSyncParams;
 
 	let is_offchain_indexing_enabled = config.offchain_worker.indexing_enabled;
 	let role = config.role.clone();
@@ -693,13 +749,9 @@ where
 		Some(backoff)
 	};
 
-	// If not on a known test network, warn the user that BEEFY is still experimental.
-	if enable_beefy &&
-		!config.chain_spec.is_rococo() &&
-		!config.chain_spec.is_wococo() &&
-		!config.chain_spec.is_versi()
-	{
-		gum::warn!("BEEFY is still experimental, usage on a production network is discouraged.");
+	// Warn the user that BEEFY is still experimental for Polkadot.
+	if enable_beefy && config.chain_spec.is_polkadot() {
+		gum::warn!("BEEFY is still experimental, usage on Polkadot network is discouraged.");
 	}
 
 	let disable_grandpa = config.disable_grandpa;
@@ -715,8 +767,9 @@ where
 	let chain_spec = config.chain_spec.cloned_box();
 
 	let keystore = basics.keystore_container.local_keystore();
-	let auth_or_collator = role.is_authority() || is_collator.is_collator();
-	let pvf_checker_enabled = role.is_authority() && !is_collator.is_collator();
+	let auth_or_collator = role.is_authority() || is_parachain_node.is_collator();
+	// We only need to enable the pvf checker when this is a validator.
+	let pvf_checker_enabled = role.is_authority();
 
 	let select_chain = if auth_or_collator {
 		let metrics =
@@ -775,10 +828,16 @@ where
 		net_config.add_request_response_protocol(beefy_req_resp_cfg);
 	}
 
+	// validation/collation protocols are enabled only if `Overseer` is enabled
 	let peerset_protocol_names =
 		PeerSetProtocolNames::new(genesis_hash, config.chain_spec.fork_id());
 
-	{
+	// If this is a validator or running alongside a parachain node, we need to enable the
+	// networking protocols.
+	//
+	// Collators and parachain full nodes require the collator and validator networking to send
+	// collations and to be able to recover PoVs.
+	if role.is_authority() || is_parachain_node.is_running_alongside_parachain_node() {
 		use polkadot_network_bridge::{peer_sets_info, IsAuthority};
 		let is_authority = if role.is_authority() { IsAuthority::Yes } else { IsAuthority::No };
 		for config in peer_sets_info(is_authority, &peerset_protocol_names) {
@@ -792,12 +851,19 @@ where
 	net_config.add_request_response_protocol(cfg);
 	let (chunk_req_receiver, cfg) = IncomingRequest::get_config_receiver(&req_protocol_names);
 	net_config.add_request_response_protocol(cfg);
-	let (collation_req_receiver, cfg) = IncomingRequest::get_config_receiver(&req_protocol_names);
+	let (collation_req_v1_receiver, cfg) =
+		IncomingRequest::get_config_receiver(&req_protocol_names);
+	net_config.add_request_response_protocol(cfg);
+	let (collation_req_v2_receiver, cfg) =
+		IncomingRequest::get_config_receiver(&req_protocol_names);
 	net_config.add_request_response_protocol(cfg);
 	let (available_data_req_receiver, cfg) =
 		IncomingRequest::get_config_receiver(&req_protocol_names);
 	net_config.add_request_response_protocol(cfg);
 	let (statement_req_receiver, cfg) = IncomingRequest::get_config_receiver(&req_protocol_names);
+	net_config.add_request_response_protocol(cfg);
+	let (candidate_req_v2_receiver, cfg) =
+		IncomingRequest::get_config_receiver(&req_protocol_names);
 	net_config.add_request_response_protocol(cfg);
 	let (dispute_req_receiver, cfg) = IncomingRequest::get_config_receiver(&req_protocol_names);
 	net_config.add_request_response_protocol(cfg);
@@ -824,6 +890,7 @@ where
 			import_queue,
 			block_announce_validator_builder: None,
 			warp_sync_params: Some(WarpSyncParams::WithProvider(warp_sync)),
+			block_relay: None,
 		})?;
 
 	if config.offchain_worker.enabled {
@@ -856,16 +923,24 @@ where
 		slot_duration_millis: slot_duration.as_millis() as u64,
 	};
 
-	let candidate_validation_config = CandidateValidationConfig {
-		artifacts_cache_path: config
-			.database
-			.path()
-			.ok_or(Error::DatabasePathRequired)?
-			.join("pvf-artifacts"),
-		program_path: match program_path {
-			None => std::env::current_exe()?,
-			Some(p) => p,
-		},
+	let candidate_validation_config = if role.is_authority() {
+		let (prep_worker_path, exec_worker_path) =
+			workers::determine_workers_paths(workers_path, workers_names, node_version.clone())?;
+		log::info!("🚀 Using prepare-worker binary at: {:?}", prep_worker_path);
+		log::info!("🚀 Using execute-worker binary at: {:?}", exec_worker_path);
+
+		Some(CandidateValidationConfig {
+			artifacts_cache_path: config
+				.database
+				.path()
+				.ok_or(Error::DatabasePathRequired)?
+				.join("pvf-artifacts"),
+			node_version,
+			prep_worker_path,
+			exec_worker_path,
+		})
+	} else {
+		None
 	};
 
 	let chain_selection_config = ChainSelectionConfig {
@@ -917,46 +992,50 @@ where
 	let overseer_client = client.clone();
 	let spawner = task_manager.spawn_handle();
 
-	let authority_discovery_service = if auth_or_collator || overseer_enable_anyways {
-		use futures::StreamExt;
-		use sc_network::{Event, NetworkEventStream};
+	let authority_discovery_service =
+		// We need the authority discovery if this node is either a validator or running alongside a parachain node.
+		// Parachains node require the authority discovery for finding relay chain validators for sending
+		// their PoVs or recovering PoVs.
+		if role.is_authority() || is_parachain_node.is_running_alongside_parachain_node() {
+			use futures::StreamExt;
+			use sc_network::{Event, NetworkEventStream};
 
-		let authority_discovery_role = if role.is_authority() {
-			sc_authority_discovery::Role::PublishAndDiscover(keystore_container.keystore())
+			let authority_discovery_role = if role.is_authority() {
+				sc_authority_discovery::Role::PublishAndDiscover(keystore_container.keystore())
+			} else {
+				// don't publish our addresses when we're not an authority (collator, cumulus, ..)
+				sc_authority_discovery::Role::Discover
+			};
+			let dht_event_stream =
+				network.event_stream("authority-discovery").filter_map(|e| async move {
+					match e {
+						Event::Dht(e) => Some(e),
+						_ => None,
+					}
+				});
+			let (worker, service) = sc_authority_discovery::new_worker_and_service_with_config(
+				sc_authority_discovery::WorkerConfig {
+					publish_non_global_ips: auth_disc_publish_non_global_ips,
+					// Require that authority discovery records are signed.
+					strict_record_validation: true,
+					..Default::default()
+				},
+				client.clone(),
+				network.clone(),
+				Box::pin(dht_event_stream),
+				authority_discovery_role,
+				prometheus_registry.clone(),
+			);
+
+			task_manager.spawn_handle().spawn(
+				"authority-discovery-worker",
+				Some("authority-discovery"),
+				Box::pin(worker.run()),
+			);
+			Some(service)
 		} else {
-			// don't publish our addresses when we're not an authority (collator, cumulus, ..)
-			sc_authority_discovery::Role::Discover
+			None
 		};
-		let dht_event_stream =
-			network.event_stream("authority-discovery").filter_map(|e| async move {
-				match e {
-					Event::Dht(e) => Some(e),
-					_ => None,
-				}
-			});
-		let (worker, service) = sc_authority_discovery::new_worker_and_service_with_config(
-			sc_authority_discovery::WorkerConfig {
-				publish_non_global_ips: auth_disc_publish_non_global_ips,
-				// Require that authority discovery records are signed.
-				strict_record_validation: true,
-				..Default::default()
-			},
-			client.clone(),
-			network.clone(),
-			Box::pin(dht_event_stream),
-			authority_discovery_role,
-			prometheus_registry.clone(),
-		);
-
-		task_manager.spawn_handle().spawn(
-			"authority-discovery-worker",
-			Some("authority-discovery"),
-			Box::pin(worker.run()),
-		);
-		Some(service)
-	} else {
-		None
-	};
 
 	let overseer_handle = if let Some(authority_discovery_service) = authority_discovery_service {
 		let (overseer, overseer_handle) = overseer_gen
@@ -971,13 +1050,15 @@ where
 					authority_discovery_service,
 					pov_req_receiver,
 					chunk_req_receiver,
-					collation_req_receiver,
+					collation_req_v1_receiver,
+					collation_req_v2_receiver,
 					available_data_req_receiver,
 					statement_req_receiver,
+					candidate_req_v2_receiver,
 					dispute_req_receiver,
 					registry: prometheus_registry.as_ref(),
 					spawner,
-					is_collator,
+					is_parachain_node,
 					approval_voting_config,
 					availability_config: AVAILABILITY_CONFIG,
 					candidate_validation_config,
@@ -1116,14 +1197,14 @@ where
 
 		let gadget = beefy::start_beefy_gadget::<_, _, _, _, _, _, _>(beefy_params);
 
-		// BEEFY currently only runs on testnets, if it fails we'll
-		// bring the node down with it to make sure it is noticed.
+		// BEEFY is part of consensus, if it fails we'll bring the node down with it to make sure it
+		// is noticed.
 		task_manager
 			.spawn_essential_handle()
 			.spawn_blocking("beefy-gadget", None, gadget);
-
+		// When offchain indexing is enabled, MMR gadget should also run.
 		if is_offchain_indexing_enabled {
-			task_manager.spawn_handle().spawn_blocking(
+			task_manager.spawn_essential_handle().spawn_blocking(
 				"mmr-gadget",
 				None,
 				MmrGadget::start(
@@ -1140,7 +1221,7 @@ where
 		// Grandpa performance can be improved a bit by tuning this parameter, see:
 		// https://github.com/paritytech/polkadot/issues/5464
 		gossip_duration: Duration::from_millis(1000),
-		justification_period: 1,
+		justification_generation_period: GRANDPA_JUSTIFICATION_PERIOD,
 		name: Some(name),
 		observer_enabled: false,
 		keystore: keystore_opt,
@@ -1241,15 +1322,8 @@ macro_rules! chain_ops {
 pub fn new_chain_ops(
 	config: &mut Configuration,
 	jaeger_agent: Option<std::net::SocketAddr>,
-) -> Result<
-	(
-		Arc<FullClient>,
-		Arc<FullBackend>,
-		sc_consensus::BasicQueue<Block, PrefixedMemoryDB<BlakeTwo256>>,
-		TaskManager,
-	),
-	Error,
-> {
+) -> Result<(Arc<FullClient>, Arc<FullBackend>, sc_consensus::BasicQueue<Block>, TaskManager), Error>
+{
 	config.keystore = service::config::KeystoreConfig::InMemory;
 
 	if config.chain_spec.is_rococo() ||
@@ -1270,45 +1344,22 @@ pub fn new_chain_ops(
 ///
 /// The actual "flavor", aka if it will use `Polkadot`, `Rococo` or `Kusama` is determined based on
 /// [`IdentifyVariant`] using the chain spec.
-///
-/// `overseer_enable_anyways` always enables the overseer, based on the provided `OverseerGenerator`,
-/// regardless of the role the node has. The relay chain selection (longest or disputes-aware) is
-/// still determined based on the role of the node. Likewise for authority discovery.
 #[cfg(feature = "full-node")]
-pub fn build_full(
+pub fn build_full<OverseerGenerator: OverseerGen>(
 	config: Configuration,
-	is_collator: IsCollator,
-	grandpa_pause: Option<(u32, u32)>,
-	enable_beefy: bool,
-	jaeger_agent: Option<std::net::SocketAddr>,
-	telemetry_worker_handle: Option<TelemetryWorkerHandle>,
-	overseer_enable_anyways: bool,
-	overseer_gen: impl OverseerGen,
-	overseer_message_channel_override: Option<usize>,
-	malus_finality_delay: Option<u32>,
-	hwbench: Option<sc_sysinfo::HwBench>,
+	mut params: NewFullParams<OverseerGenerator>,
 ) -> Result<NewFull, Error> {
 	let is_polkadot = config.chain_spec.is_polkadot();
 
-	new_full(
-		config,
-		is_collator,
-		grandpa_pause,
-		enable_beefy,
-		jaeger_agent,
-		telemetry_worker_handle,
-		None,
-		overseer_enable_anyways,
-		overseer_gen,
-		overseer_message_channel_override.map(move |capacity| {
+	params.overseer_message_channel_capacity_override =
+		params.overseer_message_channel_capacity_override.map(move |capacity| {
 			if is_polkadot {
 				gum::warn!("Channel capacity should _never_ be tampered with on polkadot!");
 			}
 			capacity
-		}),
-		malus_finality_delay,
-		hwbench,
-	)
+		});
+
+	new_full(config, params)
 }
 
 /// Reverts the node state down to at most the last finalized block.

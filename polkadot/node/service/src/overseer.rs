@@ -14,12 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{AuthorityDiscoveryApi, Block, Error, Hash, IsCollator, Registry};
+use super::{AuthorityDiscoveryApi, Block, Error, Hash, IsParachainNode, Registry};
 use polkadot_node_subsystem_types::DefaultSubsystemClient;
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_core::traits::SpawnNamed;
 
-use lru::LruCache;
 use polkadot_availability_distribution::IncomingRequestReceivers;
 use polkadot_node_core_approval_voting::Config as ApprovalVotingConfig;
 use polkadot_node_core_av_store::Config as AvailabilityConfig;
@@ -28,7 +27,9 @@ use polkadot_node_core_chain_selection::Config as ChainSelectionConfig;
 use polkadot_node_core_dispute_coordinator::Config as DisputeCoordinatorConfig;
 use polkadot_node_network_protocol::{
 	peer_set::PeerSetProtocolNames,
-	request_response::{v1 as request_v1, IncomingRequestReceiver, ReqProtocolNames},
+	request_response::{
+		v1 as request_v1, v2 as request_v2, IncomingRequestReceiver, ReqProtocolNames,
+	},
 };
 #[cfg(any(feature = "malus", test))]
 pub use polkadot_overseer::{
@@ -39,6 +40,7 @@ use polkadot_overseer::{
 	metrics::Metrics as OverseerMetrics, InitializedOverseerBuilder, MetricsTrait, Overseer,
 	OverseerConnector, OverseerHandle, SpawnGlue,
 };
+use schnellru::{ByLength, LruMap};
 
 use polkadot_primitives::runtime_api::ParachainHost;
 use sc_authority_discovery::Service as AuthorityDiscoveryService;
@@ -70,6 +72,7 @@ pub use polkadot_node_core_candidate_validation::CandidateValidationSubsystem;
 pub use polkadot_node_core_chain_api::ChainApiSubsystem;
 pub use polkadot_node_core_chain_selection::ChainSelectionSubsystem;
 pub use polkadot_node_core_dispute_coordinator::DisputeCoordinatorSubsystem;
+pub use polkadot_node_core_prospective_parachains::ProspectiveParachainsSubsystem;
 pub use polkadot_node_core_provisioner::ProvisionerSubsystem;
 pub use polkadot_node_core_pvf_checker::PvfCheckerSubsystem;
 pub use polkadot_node_core_runtime_api::RuntimeApiSubsystem;
@@ -95,26 +98,35 @@ where
 	pub sync_service: Arc<sc_network_sync::SyncingService<Block>>,
 	/// Underlying authority discovery service.
 	pub authority_discovery_service: AuthorityDiscoveryService,
-	/// POV request receiver
+	/// POV request receiver.
 	pub pov_req_receiver: IncomingRequestReceiver<request_v1::PoVFetchingRequest>,
+	/// Erasure chunks request receiver.
 	pub chunk_req_receiver: IncomingRequestReceiver<request_v1::ChunkFetchingRequest>,
-	pub collation_req_receiver: IncomingRequestReceiver<request_v1::CollationFetchingRequest>,
+	/// Collations request receiver for network protocol v1.
+	pub collation_req_v1_receiver: IncomingRequestReceiver<request_v1::CollationFetchingRequest>,
+	/// Collations request receiver for network protocol v2.
+	pub collation_req_v2_receiver: IncomingRequestReceiver<request_v2::CollationFetchingRequest>,
+	/// Receiver for available data requests.
 	pub available_data_req_receiver:
 		IncomingRequestReceiver<request_v1::AvailableDataFetchingRequest>,
+	/// Receiver for incoming large statement requests.
 	pub statement_req_receiver: IncomingRequestReceiver<request_v1::StatementFetchingRequest>,
+	/// Receiver for incoming candidate requests.
+	pub candidate_req_v2_receiver: IncomingRequestReceiver<request_v2::AttestedCandidateRequest>,
+	/// Receiver for incoming disputes.
 	pub dispute_req_receiver: IncomingRequestReceiver<request_v1::DisputeRequest>,
 	/// Prometheus registry, commonly used for production systems, less so for test.
 	pub registry: Option<&'a Registry>,
 	/// Task spawner to be used throughout the overseer and the APIs it provides.
 	pub spawner: Spawner,
 	/// Determines the behavior of the collator.
-	pub is_collator: IsCollator,
+	pub is_parachain_node: IsParachainNode,
 	/// Configuration for the approval voting subsystem.
 	pub approval_voting_config: ApprovalVotingConfig,
 	/// Configuration for the availability store subsystem.
 	pub availability_config: AvailabilityConfig,
 	/// Configuration for the candidate validation subsystem.
-	pub candidate_validation_config: CandidateValidationConfig,
+	pub candidate_validation_config: Option<CandidateValidationConfig>,
 	/// Configuration for the chain selection subsystem.
 	pub chain_selection_config: ChainSelectionConfig,
 	/// Configuration for the dispute coordinator subsystem.
@@ -125,7 +137,7 @@ where
 	pub overseer_message_channel_capacity_override: Option<usize>,
 	/// Request-response protocol names source.
 	pub req_protocol_names: ReqProtocolNames,
-	/// [`PeerSet`] protocol names to protocols mapping.
+	/// `PeerSet` protocol names to protocols mapping.
 	pub peerset_protocol_names: PeerSetProtocolNames,
 	/// The offchain transaction pool factory.
 	pub offchain_transaction_pool_factory: OffchainTransactionPoolFactory<Block>,
@@ -143,13 +155,15 @@ pub fn prepared_overseer_builder<Spawner, RuntimeClient>(
 		authority_discovery_service,
 		pov_req_receiver,
 		chunk_req_receiver,
-		collation_req_receiver,
+		collation_req_v1_receiver,
+		collation_req_v2_receiver,
 		available_data_req_receiver,
 		statement_req_receiver,
+		candidate_req_v2_receiver,
 		dispute_req_receiver,
 		registry,
 		spawner,
-		is_collator,
+		is_parachain_node,
 		approval_voting_config,
 		availability_config,
 		candidate_validation_config,
@@ -193,6 +207,7 @@ pub fn prepared_overseer_builder<Spawner, RuntimeClient>(
 		DisputeCoordinatorSubsystem,
 		DisputeDistributionSubsystem<AuthorityDiscoveryService>,
 		ChainSelectionSubsystem,
+		ProspectiveParachainsSubsystem,
 	>,
 	Error,
 >
@@ -266,14 +281,16 @@ where
 		.chain_api(ChainApiSubsystem::new(runtime_client.clone(), Metrics::register(registry)?))
 		.collation_generation(CollationGenerationSubsystem::new(Metrics::register(registry)?))
 		.collator_protocol({
-			let side = match is_collator {
-				IsCollator::Yes(collator_pair) => ProtocolSide::Collator(
-					network_service.local_peer_id(),
+			let side = match is_parachain_node {
+				IsParachainNode::Collator(collator_pair) => ProtocolSide::Collator {
+					peer_id: network_service.local_peer_id(),
 					collator_pair,
-					collation_req_receiver,
-					Metrics::register(registry)?,
-				),
-				IsCollator::No => ProtocolSide::Validator {
+					request_receiver_v1: collation_req_v1_receiver,
+					request_receiver_v2: collation_req_v2_receiver,
+					metrics: Metrics::register(registry)?,
+				},
+				IsParachainNode::FullNode => ProtocolSide::None,
+				IsParachainNode::No => ProtocolSide::Validator {
 					keystore: keystore.clone(),
 					eviction_policy: Default::default(),
 					metrics: Metrics::register(registry)?,
@@ -290,6 +307,7 @@ where
 		.statement_distribution(StatementDistributionSubsystem::new(
 			keystore.clone(),
 			statement_req_receiver,
+			candidate_req_v2_receiver,
 			Metrics::register(registry)?,
 			rand::rngs::StdRng::from_entropy(),
 		))
@@ -319,11 +337,12 @@ where
 			Metrics::register(registry)?,
 		))
 		.chain_selection(ChainSelectionSubsystem::new(chain_selection_config, parachains_db))
+		.prospective_parachains(ProspectiveParachainsSubsystem::new(Metrics::register(registry)?))
 		.activation_external_listeners(Default::default())
 		.span_per_active_leaf(Default::default())
 		.active_leaves(Default::default())
 		.supports_parachains(runtime_api_client)
-		.known_leaves(LruCache::new(KNOWN_LEAVES_CACHE_SIZE))
+		.known_leaves(LruMap::new(ByLength::new(KNOWN_LEAVES_CACHE_SIZE)))
 		.metrics(metrics)
 		.spawner(spawner);
 
