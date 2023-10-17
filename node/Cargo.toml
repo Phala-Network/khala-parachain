@@ -93,21 +93,23 @@ sp-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk.git", 
 
 # Cumulus dependencies
 cumulus-client-cli = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
+cumulus-client-collator = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
 cumulus-client-consensus-aura = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
 cumulus-client-consensus-relay-chain = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
 cumulus-client-consensus-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
+cumulus-client-consensus-proposer = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
 cumulus-client-service = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
 cumulus-primitives-core = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
 cumulus-primitives-parachain-inherent = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
 cumulus-relay-chain-interface = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
+color-print = "0.3.4"
 
 # Polkadot dependencies
 # Use rococo-native as this is currently the default "local" relay chain
 polkadot-cli = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", features = ["rococo-native"] }
-polkadot-parachain = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
 polkadot-service = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
-xcm = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
+xcm = { package = "staging-xcm", git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
 
 # Sygma
 sygma-rpc = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "release-polkadot-v1.1.0" }
@@ -135,6 +137,9 @@ runtime-benchmarks = [
 ]
 try-runtime = [
 	"try-runtime-cli/try-runtime",
+	"polkadot-cli/try-runtime",
+	"polkadot-service/try-runtime",
+	"sp-runtime/try-runtime",
 	"phala-parachain-runtime/try-runtime",
 	"khala-parachain-runtime/try-runtime",
 	"rhala-parachain-runtime/try-runtime",

@@ -82,11 +82,11 @@ cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/polkadot-sdk.
 cumulus-pallet-xcm = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
 
 # Polkadot dependencies
-polkadot-parachain = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
+polkadot-parachain-primitives = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0" }
 polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
-xcm = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
-xcm-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
-xcm-executor = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
+xcm = { package = "staging-xcm", git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
+xcm-builder = { package = "staging-xcm-builder", git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
+xcm-executor = { package = "staging-xcm-executor", git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
 pallet-xcm = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
 
 # RMRK dependencies
@@ -106,7 +106,7 @@ sygma-percentage-feehandler = { git = "https://github.com/sygmaprotocol/sygma-su
 sygma-runtime-api = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "release-polkadot-v1.1.0", default-features = false }
 
 # ORML Tinkernet Multisig dependencies
-orml-xcm-builder-kusama = { git = "https://github.com/open-web3-stack/orml-xcm-builder", branch = "release-polkadot-v1.1.0", default-features = false }
+orml-xcm-builder-kusama = { git = "https://github.com/open-web3-stack/orml-xcm-builder", branch = "polkadot-v1.1.0", default-features = false }
 
 # Local dependencies
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }

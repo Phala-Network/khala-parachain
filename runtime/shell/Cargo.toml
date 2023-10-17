@@ -39,9 +39,9 @@ cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech/polkadot-sdk.g
 cumulus-pallet-xcm = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
 parachain-info = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.1.0", default-features = false }
 
-xcm = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.1.0" }
-xcm-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.1.0" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.1.0" }
+xcm = { package = "staging-xcm", git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.1.0" }
+xcm-builder = { package = "staging-xcm-builder", git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.1.0" }
+xcm-executor = { package = "staging-xcm-executor", git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.1.0" }
 pallet-xcm = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.1.0" }
 
 # Pallets
