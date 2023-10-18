@@ -34,8 +34,36 @@ macro_rules! identify_chain {
 		$generic_code:expr $(,)*
 	) => {
 		match $chain {
-			Chain::Polkadot => Err("Polkadot runtimes are currently not supported"),
-			Chain::Kusama => Err("Kusama runtimes are currently not supported"),
+			Chain::Polkadot => {
+				#[cfg(feature = "polkadot-native")]
+				{
+					use polkadot_runtime as runtime;
+
+					let call = $generic_code;
+
+					Ok(polkadot_sign_call(call, $nonce, $current_block, $period, $genesis, $signer))
+				}
+
+				#[cfg(not(feature = "polkadot-native"))]
+				{
+					Err("`polkadot-native` feature not enabled")
+				}
+			},
+			Chain::Kusama => {
+				#[cfg(feature = "kusama-native")]
+				{
+					use kusama_runtime as runtime;
+
+					let call = $generic_code;
+
+					Ok(kusama_sign_call(call, $nonce, $current_block, $period, $genesis, $signer))
+				}
+
+				#[cfg(not(feature = "kusama-native"))]
+				{
+					Err("`kusama-native` feature not enabled")
+				}
+			},
 			Chain::Rococo => {
 				#[cfg(feature = "rococo-native")]
 				{
@@ -63,18 +91,16 @@ macro_rules! identify_chain {
 
 				#[cfg(not(feature = "westend-native"))]
 				{
+					let _ = $nonce;
+					let _ = $current_block;
+					let _ = $period;
+					let _ = $genesis;
+					let _ = $signer;
+
 					Err("`westend-native` feature not enabled")
 				}
 			},
-			Chain::Unknown => {
-				let _ = $nonce;
-				let _ = $current_block;
-				let _ = $period;
-				let _ = $genesis;
-				let _ = $signer;
-
-				Err("Unknown chain")
-			},
+			Chain::Unknown => Err("Unknown chain"),
 		}
 	};
 }
@@ -104,8 +130,10 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for RemarkBuilder {
 	}
 
 	fn build(&self, nonce: u32) -> std::result::Result<OpaqueExtrinsic, &'static str> {
-		// We apply the extrinsic directly, so let's take some random period.
-		let period = 128;
+		let period = polkadot_runtime_common::BlockHashCount::get()
+			.checked_next_power_of_two()
+			.map(|c| c / 2)
+			.unwrap_or(2) as u64;
 		let genesis = self.client.usage_info().chain.best_hash;
 		let signer = Sr25519Keyring::Bob.pair();
 		let current_block = 0;
@@ -153,8 +181,10 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
 
 	fn build(&self, nonce: u32) -> std::result::Result<OpaqueExtrinsic, &'static str> {
 		let signer = Sr25519Keyring::Bob.pair();
-		// We apply the extrinsic directly, so let's take some random period.
-		let period = 128;
+		let period = polkadot_runtime_common::BlockHashCount::get()
+			.checked_next_power_of_two()
+			.map(|c| c / 2)
+			.unwrap_or(2) as u64;
 		let genesis = self.client.usage_info().chain.best_hash;
 		let current_block = 0;
 		let _dest = self.dest.clone();
@@ -176,6 +206,60 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
 	}
 }
 
+#[cfg(feature = "polkadot-native")]
+fn polkadot_sign_call(
+	call: polkadot_runtime::RuntimeCall,
+	nonce: u32,
+	current_block: u64,
+	period: u64,
+	genesis: sp_core::H256,
+	acc: sp_core::sr25519::Pair,
+) -> OpaqueExtrinsic {
+	use codec::Encode;
+	use polkadot_runtime as runtime;
+	use sp_core::Pair;
+
+	let extra: runtime::SignedExtra = (
+		frame_system::CheckNonZeroSender::<runtime::Runtime>::new(),
+		frame_system::CheckSpecVersion::<runtime::Runtime>::new(),
+		frame_system::CheckTxVersion::<runtime::Runtime>::new(),
+		frame_system::CheckGenesis::<runtime::Runtime>::new(),
+		frame_system::CheckMortality::<runtime::Runtime>::from(sp_runtime::generic::Era::mortal(
+			period,
+			current_block,
+		)),
+		frame_system::CheckNonce::<runtime::Runtime>::from(nonce),
+		frame_system::CheckWeight::<runtime::Runtime>::new(),
+		pallet_transaction_payment::ChargeTransactionPayment::<runtime::Runtime>::from(0),
+		polkadot_runtime_common::claims::PrevalidateAttests::<runtime::Runtime>::new(),
+	);
+
+	let payload = runtime::SignedPayload::from_raw(
+		call.clone(),
+		extra.clone(),
+		(
+			(),
+			runtime::VERSION.spec_version,
+			runtime::VERSION.transaction_version,
+			genesis,
+			genesis,
+			(),
+			(),
+			(),
+			(),
+		),
+	);
+
+	let signature = payload.using_encoded(|p| acc.sign(p));
+	runtime::UncheckedExtrinsic::new_signed(
+		call,
+		sp_runtime::AccountId32::from(acc.public()).into(),
+		polkadot_core_primitives::Signature::Sr25519(signature.clone()),
+		extra,
+	)
+	.into()
+}
+
 #[cfg(feature = "westend-native")]
 fn westend_sign_call(
 	call: westend_runtime::RuntimeCall,
@@ -188,6 +272,58 @@ fn westend_sign_call(
 	use codec::Encode;
 	use sp_core::Pair;
 	use westend_runtime as runtime;
+
+	let extra: runtime::SignedExtra = (
+		frame_system::CheckNonZeroSender::<runtime::Runtime>::new(),
+		frame_system::CheckSpecVersion::<runtime::Runtime>::new(),
+		frame_system::CheckTxVersion::<runtime::Runtime>::new(),
+		frame_system::CheckGenesis::<runtime::Runtime>::new(),
+		frame_system::CheckMortality::<runtime::Runtime>::from(sp_runtime::generic::Era::mortal(
+			period,
+			current_block,
+		)),
+		frame_system::CheckNonce::<runtime::Runtime>::from(nonce),
+		frame_system::CheckWeight::<runtime::Runtime>::new(),
+		pallet_transaction_payment::ChargeTransactionPayment::<runtime::Runtime>::from(0),
+	);
+
+	let payload = runtime::SignedPayload::from_raw(
+		call.clone(),
+		extra.clone(),
+		(
+			(),
+			runtime::VERSION.spec_version,
+			runtime::VERSION.transaction_version,
+			genesis,
+			genesis,
+			(),
+			(),
+			(),
+		),
+	);
+
+	let signature = payload.using_encoded(|p| acc.sign(p));
+	runtime::UncheckedExtrinsic::new_signed(
+		call,
+		sp_runtime::AccountId32::from(acc.public()).into(),
+		polkadot_core_primitives::Signature::Sr25519(signature.clone()),
+		extra,
+	)
+	.into()
+}
+
+#[cfg(feature = "kusama-native")]
+fn kusama_sign_call(
+	call: kusama_runtime::RuntimeCall,
+	nonce: u32,
+	current_block: u64,
+	period: u64,
+	genesis: sp_core::H256,
+	acc: sp_core::sr25519::Pair,
+) -> OpaqueExtrinsic {
+	use codec::Encode;
+	use kusama_runtime as runtime;
+	use sp_core::Pair;
 
 	let extra: runtime::SignedExtra = (
 		frame_system::CheckNonZeroSender::<runtime::Runtime>::new(),

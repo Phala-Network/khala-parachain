@@ -431,7 +431,7 @@ pub mod pallet {
 			ParaBalances, TestNet, ALICE, BOB, ENDOWED_BALANCE,
 		};
 		use frame_support::assert_ok;
-		use polkadot_parachain::primitives::Sibling;
+		use polkadot_parachain_primitives::primitives::Sibling;
 		use sp_runtime::traits::AccountIdConversion;
 		use sp_runtime::AccountId32;
 

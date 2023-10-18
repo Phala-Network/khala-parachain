@@ -1,5 +1,6 @@
-use frame_support::dispatch::{DispatchError, DispatchResult};
+use frame_support::dispatch::DispatchResult;
 use sp_std::vec::Vec;
+use sp_runtime::DispatchError;
 use xcm::latest::{MultiAsset, MultiLocation, Weight as XCMWeight};
 
 pub trait BridgeChecker {

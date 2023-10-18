@@ -1,13 +1,16 @@
 use std::{sync::Arc, time::Duration};
 
+use jsonrpsee::RpcModule;
+
 use cumulus_client_cli::CollatorOptions;
-use cumulus_client_consensus_common::ParachainConsensus;
+#[allow(deprecated)]
+use cumulus_client_service::old_consensus;
 use cumulus_client_service::{
-    build_network, build_relay_chain_interface, prepare_node_config, start_collator,
-    start_full_node, BuildNetworkParams, StartCollatorParams, StartFullNodeParams,
+    build_network, build_relay_chain_interface, prepare_node_config, start_relay_chain_tasks,
+    BuildNetworkParams, CollatorSybilResistance, DARecoveryProfile, StartRelayChainTasksParams,
 };
 use cumulus_primitives_core::ParaId;
-use cumulus_relay_chain_interface::RelayChainInterface;
+use cumulus_relay_chain_interface::{OverseerHandle, RelayChainInterface};
 
 pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Nonce};
 
@@ -15,16 +18,17 @@ use sc_consensus::ImportQueue;
 use sc_network::{config::FullNetworkConfiguration, NetworkBlock};
 use sc_network_sync::SyncingService;
 use sc_service::{
-    Configuration, TFullBackend, TaskManager,
+    Configuration, TaskManager,
 };
 use sc_telemetry::TelemetryHandle;
 use sp_api::ConstructRuntimeApi;
 use sp_keystore::KeystorePtr;
-use sp_runtime::traits::BlakeTwo256;
 use substrate_prometheus_endpoint::Registry;
 
+use polkadot_primitives::CollatorPair;
+
 use shell_parachain_runtime::RuntimeApi;
-use crate::service::{ParachainBlockImport, ParachainClient, ParachainBackend};
+use crate::service::{ParachainBlockImport, ParachainClient};
 
 pub struct RuntimeExecutor;
 
@@ -48,20 +52,19 @@ pub fn parachain_build_import_queue<RuntimeApi>(
     _: Option<TelemetryHandle>,
     task_manager: &TaskManager,
 ) -> Result<
-    sc_consensus::DefaultImportQueue<Block, ParachainClient<RuntimeApi>>,
+    sc_consensus::DefaultImportQueue<Block>,
     sc_service::Error,
 >
     where
         RuntimeApi: ConstructRuntimeApi<Block, ParachainClient<RuntimeApi>> + Send + Sync + 'static,
         RuntimeApi::RuntimeApi: sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
-        + sp_api::Metadata<Block>
-        + sp_session::SessionKeys<Block>
-        + sp_api::ApiExt<
-            Block,
-            StateBackend = sc_client_api::StateBackendFor<ParachainBackend, Block>,
-        > + sp_offchain::OffchainWorkerApi<Block>
-        + sp_block_builder::BlockBuilder<Block>,
-        sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
+            + sp_api::Metadata<Block>
+            + sp_session::SessionKeys<Block>
+            + sp_api::ApiExt<Block>
+            + sp_offchain::OffchainWorkerApi<Block>
+            + sp_block_builder::BlockBuilder<Block>
+            + sp_offchain::OffchainWorkerApi<Block>
+            + sp_block_builder::BlockBuilder<Block>,
 {
     cumulus_client_consensus_relay_chain::import_queue(
         client.clone(),
@@ -77,14 +80,15 @@ pub fn parachain_build_import_queue<RuntimeApi>(
 ///
 /// This is the actual implementation that is abstract over the executor and the runtime api for shell nodes.
 #[sc_tracing::logging::prefix_logs_with("Parachain")]
-async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
+async fn start_node_impl<RuntimeApi, RB, BIQ, SC>(
     parachain_config: Configuration,
     polkadot_config: Configuration,
     collator_options: CollatorOptions,
+    sybil_resistance_level: CollatorSybilResistance,
     para_id: ParaId,
     rpc_ext_builder: RB,
     build_import_queue: BIQ,
-    build_consensus: BIC,
+    start_consensus: SC,
     hwbench: Option<sc_sysinfo::HwBench>,
 ) -> sc_service::error::Result<(TaskManager, Arc<ParachainClient<RuntimeApi>>)>
     where
@@ -92,13 +96,10 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         RuntimeApi::RuntimeApi: sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
         + sp_api::Metadata<Block>
         + sp_session::SessionKeys<Block>
-        + sp_api::ApiExt<
-            Block,
-            StateBackend = sc_client_api::StateBackendFor<ParachainBackend, Block>,
-        > + sp_offchain::OffchainWorkerApi<Block>
+        + sp_api::ApiExt<Block>
+        + sp_offchain::OffchainWorkerApi<Block>
         + sp_block_builder::BlockBuilder<Block>
         + cumulus_primitives_core::CollectCollationInfo<Block>,
-        sc_client_api::StateBackendFor<ParachainBackend, Block>: sp_api::StateBackend<BlakeTwo256>,
         RB: Fn(Arc<ParachainClient<RuntimeApi>>) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>
         + 'static,
         BIQ: FnOnce(
@@ -107,11 +108,8 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             &Configuration,
             Option<TelemetryHandle>,
             &TaskManager,
-        ) -> Result<
-            sc_consensus::DefaultImportQueue<Block, ParachainClient<RuntimeApi>>,
-            sc_service::Error,
-        >,
-        BIC: FnOnce(
+        ) -> Result<sc_consensus::DefaultImportQueue<Block>, sc_service::Error>,
+        SC: FnOnce(
             Arc<ParachainClient<RuntimeApi>>,
             ParachainBlockImport<RuntimeApi>,
             Option<&Registry>,
@@ -121,8 +119,12 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             Arc<sc_transaction_pool::FullPool<Block, ParachainClient<RuntimeApi>>>,
             Arc<SyncingService<Block>>,
             KeystorePtr,
-            bool,
-        ) -> Result<Box<dyn ParachainConsensus<Block>>, sc_service::Error>,
+            Duration,
+            ParaId,
+            CollatorPair,
+            OverseerHandle,
+            Arc<dyn Fn(Hash, Option<Vec<u8>>) + Send + Sync>,
+        ) -> Result<(), sc_service::Error>,
 {
     let parachain_config = prepare_node_config(parachain_config);
 
@@ -145,7 +147,6 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
     .await
     .map_err(|e| sc_service::Error::Application(Box::new(e) as Box<_>))?;
 
-    let force_authoring = parachain_config.force_authoring;
     let validator = parachain_config.role.is_authority();
     let prometheus_registry = parachain_config.prometheus_registry().cloned();
     let transaction_pool = params.transaction_pool.clone();
@@ -162,6 +163,7 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             spawn_handle: task_manager.spawn_handle(),
             relay_chain_interface: relay_chain_interface.clone(),
             import_queue: params.import_queue,
+            sybil_resistance_level,
         })
         .await?;
 
@@ -207,8 +209,25 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
         .overseer_handle()
         .map_err(|e| sc_service::Error::Application(Box::new(e)))?;
 
+    start_relay_chain_tasks(StartRelayChainTasksParams {
+        client: client.clone(),
+        announce_block: announce_block.clone(),
+        para_id,
+        relay_chain_interface: relay_chain_interface.clone(),
+        task_manager: &mut task_manager,
+        da_recovery_profile: if validator {
+            DARecoveryProfile::Collator
+        } else {
+            DARecoveryProfile::FullNode
+        },
+        import_queue: import_queue_service,
+        relay_chain_slot_duration,
+        recovery_handle: Box::new(overseer_handle.clone()),
+        sync_service: sync_service.clone(),
+    })?;
+
     if validator {
-        let parachain_consensus = build_consensus(
+        start_consensus(
             client.clone(),
             block_import,
             prometheus_registry.as_ref(),
@@ -218,42 +237,12 @@ async fn start_node_impl<RuntimeApi, RB, BIQ, BIC>(
             transaction_pool,
             sync_service.clone(),
             params.keystore_container.keystore(),
-            force_authoring,
+            relay_chain_slot_duration,
+            para_id,
+            collator_key.expect("Command line arguments do not allow this. qed"),
+            overseer_handle,
+            announce_block,
         )?;
-
-        let spawner = task_manager.spawn_handle();
-
-        let params = StartCollatorParams {
-            para_id,
-            block_status: client.clone(),
-            announce_block,
-            client: client.clone(),
-            task_manager: &mut task_manager,
-            relay_chain_interface,
-            spawner,
-            parachain_consensus,
-            import_queue: import_queue_service,
-            collator_key: collator_key.expect("Command line arguments do not allow this. qed"),
-            relay_chain_slot_duration,
-            recovery_handle: Box::new(overseer_handle),
-            sync_service,
-        };
-
-        start_collator(params).await?;
-    } else {
-        let params = StartFullNodeParams {
-            client: client.clone(),
-            announce_block,
-            task_manager: &mut task_manager,
-            para_id,
-            relay_chain_interface,
-            relay_chain_slot_duration,
-            import_queue: import_queue_service,
-            recovery_handle: Box::new(overseer_handle),
-            sync_service,
-        };
-
-        start_full_node(params)?;
     }
 
     start_network.start_network();
@@ -272,8 +261,9 @@ pub async fn start_parachain_node(
         parachain_config,
         polkadot_config,
         collator_options,
+        CollatorSybilResistance::Unresistant, // free-for-all consensus
         para_id,
-        |_| Ok(jsonrpsee::RpcModule::new(())),
+        |_| Ok(RpcModule::new(())),
         parachain_build_import_queue,
         |client,
          block_import,
@@ -282,18 +272,22 @@ pub async fn start_parachain_node(
          task_manager,
          relay_chain_interface,
          transaction_pool,
-         _,
-         _,
-         _| {
+         _sync_oracle,
+         _keystore,
+         _relay_chain_slot_duration,
+         para_id,
+         collator_key,
+         overseer_handle,
+         announce_block| {
             let proposer_factory = sc_basic_authorship::ProposerFactory::with_proof_recording(
                 task_manager.spawn_handle(),
-                client,
+                client.clone(),
                 transaction_pool,
                 prometheus_registry,
                 telemetry,
             );
 
-            Ok(cumulus_client_consensus_relay_chain::build_relay_chain_consensus(
+            let free_for_all = cumulus_client_consensus_relay_chain::build_relay_chain_consensus(
                 cumulus_client_consensus_relay_chain::BuildRelayChainConsensusParams {
                     para_id,
                     proposer_factory,
@@ -318,7 +312,24 @@ pub async fn start_parachain_node(
                         }
                     },
                 },
-            ))
+            );
+
+            let spawner = task_manager.spawn_handle();
+
+            // Required for free-for-all consensus
+            #[allow(deprecated)]
+            old_consensus::start_collator_sync(old_consensus::StartCollatorParams {
+                para_id,
+                block_status: client.clone(),
+                announce_block,
+                overseer_handle,
+                spawner,
+                key: collator_key,
+                parachain_consensus: free_for_all,
+                runtime_api: client.clone(),
+            });
+
+            Ok(())
         },
         hwbench,
     )

@@ -18,7 +18,7 @@ use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentityLookup};
 
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use phala_pallet_common::WrapSlice;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,

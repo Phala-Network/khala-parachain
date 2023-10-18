@@ -1,10 +1,17 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
+
+use jsonrpsee::RpcModule;
 
 use cumulus_client_cli::CollatorOptions;
-use cumulus_client_consensus_aura::{AuraConsensus, BuildAuraConsensusParams, SlotProportion};
+use cumulus_client_collator::service::CollatorService;
+use cumulus_client_consensus_aura::collators::basic::{
+    self as basic_aura, Params as BasicAuraParams,
+};
+use cumulus_client_consensus_proposer::Proposer;
+use cumulus_client_service::CollatorSybilResistance;
 use cumulus_primitives_core::ParaId;
 
-pub use parachains_common::{AccountId, Balance, Block, Hash, Header, Nonce};
+pub use parachains_common::Block;
 
 use sc_service::{Configuration, TaskManager};
 use sc_telemetry::TelemetryHandle;
@@ -34,7 +41,7 @@ pub fn parachain_build_import_queue(
     config: &Configuration,
     telemetry: Option<TelemetryHandle>,
     task_manager: &TaskManager,
-) -> Result<sc_consensus::DefaultImportQueue<Block, ParachainClient<RuntimeApi>>, sc_service::Error>
+) -> Result<sc_consensus::DefaultImportQueue<Block>, sc_service::Error>
 {
     let slot_duration = cumulus_client_consensus_aura::slot_duration(&*client)?;
 
@@ -78,19 +85,26 @@ pub async fn start_parachain_node(
         parachain_config,
         polkadot_config,
         collator_options,
+        CollatorSybilResistance::Resistant, // Aura
         para_id,
-        |_| Ok(jsonrpsee::RpcModule::new(())),
+        |_| Ok(RpcModule::new(())),
         parachain_build_import_queue,
-        |client,
-         block_import,
-         prometheus_registry,
-         telemetry,
-         task_manager,
-         relay_chain_interface,
-         transaction_pool,
-         sync_oracle,
-         keystore,
-         force_authoring| {
+        |
+            client,
+            block_import,
+            prometheus_registry,
+            telemetry,
+            task_manager,
+            relay_chain_interface,
+            transaction_pool,
+            sync_oracle,
+            keystore,
+            relay_chain_slot_duration,
+            para_id,
+            collator_key,
+            overseer_handle,
+            announce_block
+        | {
             let slot_duration = cumulus_client_consensus_aura::slot_duration(&*client)?;
 
             let proposer_factory = sc_basic_authorship::ProposerFactory::with_proof_recording(
@@ -100,53 +114,47 @@ pub async fn start_parachain_node(
                 prometheus_registry,
                 telemetry.clone(),
             );
+            let proposer = Proposer::new(proposer_factory);
 
-            Ok(AuraConsensus::build::<sp_consensus_aura::sr25519::AuthorityPair, _, _, _, _, _, _>(
-                BuildAuraConsensusParams {
-                    proposer_factory,
-                    create_inherent_data_providers: move |_, (relay_parent, validation_data)| {
-                        let relay_chain_interface = relay_chain_interface.clone();
+            let collator_service = CollatorService::new(
+                client.clone(),
+                Arc::new(task_manager.spawn_handle()),
+                announce_block,
+                client.clone(),
+            );
 
-                        async move {
-                            let parachain_inherent =
-                                cumulus_primitives_parachain_inherent::ParachainInherentData::create_at(
-                                    relay_parent,
-                                    &relay_chain_interface,
-                                    &validation_data,
-                                    para_id,
-                                ).await;
+            let params = BasicAuraParams {
+                create_inherent_data_providers: move |_, ()| async move { Ok(()) },
+                block_import,
+                para_client: client,
+                relay_client: relay_chain_interface,
+                sync_oracle,
+                keystore,
+                collator_key,
+                para_id,
+                overseer_handle,
+                slot_duration,
+                relay_chain_slot_duration,
+                proposer,
+                collator_service,
+                // Very limited proposal time.
+                authoring_duration: Duration::from_millis(500),
+            };
 
-                            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+            let fut = basic_aura::run::<
+                Block,
+                sp_consensus_aura::sr25519::AuthorityPair,
+                _,
+                _,
+                _,
+                _,
+                _,
+                _,
+                _,
+            >(params);
+            task_manager.spawn_essential_handle().spawn("aura", None, fut);
 
-                            let slot =
-                                sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-                                    *timestamp,
-                                    slot_duration,
-                                );
-
-                            let parachain_inherent = parachain_inherent.ok_or_else(|| {
-                                Box::<dyn std::error::Error + Send + Sync>::from(
-                                    "Failed to create parachain inherent",
-                                )
-                            })?;
-
-                            Ok((slot, timestamp, parachain_inherent))
-                        }
-                    },
-                    block_import,
-                    para_client: client,
-                    backoff_authoring_blocks: Option::<()>::None,
-                    sync_oracle,
-                    keystore,
-                    force_authoring,
-                    slot_duration,
-                    // We got around 500ms for proposing
-                    block_proposal_slot_portion: SlotProportion::new(1f32 / 24f32),
-                    // And a maximum of 750ms if slots are skipped
-                    max_block_proposal_slot_portion: Some(SlotProportion::new(1f32 / 16f32)),
-                    telemetry,
-                },
-            ))
+            Ok(())
         },
         hwbench,
     )

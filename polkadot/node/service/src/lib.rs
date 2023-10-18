@@ -84,7 +84,7 @@ use telemetry::TelemetryWorker;
 #[cfg(feature = "full-node")]
 use telemetry::{Telemetry, TelemetryWorkerHandle};
 
-pub use chain_spec::{GenericChainSpec, RococoChainSpec, WestendChainSpec};
+pub use chain_spec::{KusamaChainSpec, PolkadotChainSpec, RococoChainSpec, WestendChainSpec};
 pub use consensus_common::{Proposal, SelectChain};
 use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
 use mmr_gadget::MmrGadget;
@@ -104,6 +104,10 @@ pub use sp_runtime::{
 	traits::{self as runtime_traits, BlakeTwo256, Block as BlockT, Header as HeaderT, NumberFor},
 };
 
+#[cfg(feature = "kusama-native")]
+pub use {kusama_runtime, kusama_runtime_constants};
+#[cfg(feature = "polkadot-native")]
+pub use {polkadot_runtime, polkadot_runtime_constants};
 #[cfg(feature = "rococo-native")]
 pub use {rococo_runtime, rococo_runtime_constants};
 #[cfg(feature = "westend-native")]
@@ -854,7 +858,7 @@ pub fn new_full<OverseerGenerator: OverseerGen>(
 	let (collation_req_v1_receiver, cfg) =
 		IncomingRequest::get_config_receiver(&req_protocol_names);
 	net_config.add_request_response_protocol(cfg);
-	let (collation_req_v2_receiver, cfg) =
+	let (collation_req_vstaging_receiver, cfg) =
 		IncomingRequest::get_config_receiver(&req_protocol_names);
 	net_config.add_request_response_protocol(cfg);
 	let (available_data_req_receiver, cfg) =
@@ -862,7 +866,7 @@ pub fn new_full<OverseerGenerator: OverseerGen>(
 	net_config.add_request_response_protocol(cfg);
 	let (statement_req_receiver, cfg) = IncomingRequest::get_config_receiver(&req_protocol_names);
 	net_config.add_request_response_protocol(cfg);
-	let (candidate_req_v2_receiver, cfg) =
+	let (candidate_req_vstaging_receiver, cfg) =
 		IncomingRequest::get_config_receiver(&req_protocol_names);
 	net_config.add_request_response_protocol(cfg);
 	let (dispute_req_receiver, cfg) = IncomingRequest::get_config_receiver(&req_protocol_names);
@@ -890,7 +894,6 @@ pub fn new_full<OverseerGenerator: OverseerGen>(
 			import_queue,
 			block_announce_validator_builder: None,
 			warp_sync_params: Some(WarpSyncParams::WithProvider(warp_sync)),
-			block_relay: None,
 		})?;
 
 	if config.offchain_worker.enabled {
@@ -1051,10 +1054,10 @@ pub fn new_full<OverseerGenerator: OverseerGen>(
 					pov_req_receiver,
 					chunk_req_receiver,
 					collation_req_v1_receiver,
-					collation_req_v2_receiver,
+					collation_req_vstaging_receiver,
 					available_data_req_receiver,
 					statement_req_receiver,
-					candidate_req_v2_receiver,
+					candidate_req_vstaging_receiver,
 					dispute_req_receiver,
 					registry: prometheus_registry.as_ref(),
 					spawner,
@@ -1221,7 +1224,7 @@ pub fn new_full<OverseerGenerator: OverseerGen>(
 		// Grandpa performance can be improved a bit by tuning this parameter, see:
 		// https://github.com/paritytech/polkadot/issues/5464
 		gossip_duration: Duration::from_millis(1000),
-		justification_generation_period: GRANDPA_JUSTIFICATION_PERIOD,
+        justification_generation_period: 1, // https://github.com/paritytech/substrate/pull/14423#issuecomment-1633837906
 		name: Some(name),
 		observer_enabled: false,
 		keystore: keystore_opt,
