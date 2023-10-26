@@ -72,13 +72,14 @@ use primitive_types::U256;
 pub use frame_support::{
     construct_runtime,
     dispatch::DispatchClass,
+    genesis_builder_helper::{build_config, create_default_config},
     match_types,
     pallet_prelude::Get,
     parameter_types,
     traits::{
-        tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstBool, ConstU32, Contains, Currency,
+        tokens::nonfungibles::*, fungible::HoldConsideration, AsEnsureOriginWithArg, ConstBool, ConstU32, Contains, Currency,
         EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
-        KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, Randomness,
+        KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, Nothing, OnUnbalanced, Randomness,
         WithdrawReasons, SortedMembers,
     },
     weights::{
@@ -239,7 +240,7 @@ construct_runtime! {
         Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 5,
         Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>} = 6,
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 7,
-        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 8,
+        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>, HoldReason} = 8,
 
         // Parachain staff
         ParachainInfo: pallet_parachain_info::{Pallet, Storage, Config<T>} = 20,
@@ -681,10 +682,10 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-    pub const PreimageMaxSize: u32 = 4096 * 1024;
     pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
     // One cent: $10,000 / MB
     pub const PreimageByteDeposit: Balance = 1 * CENTS;
+    pub const PreimageHoldReason: RuntimeHoldReason = RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -692,8 +693,12 @@ impl pallet_preimage::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type ManagerOrigin = EnsureRoot<AccountId>;
-    type BaseDeposit = PreimageBaseDeposit;
-    type ByteDeposit = PreimageByteDeposit;
+    type Consideration = HoldConsideration<
+        AccountId,
+        Balances,
+        PreimageHoldReason,
+        LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
+    >;
 }
 
 parameter_types! {
@@ -727,9 +732,9 @@ impl pallet_balances::Config for Runtime {
     type AccountStore = frame_system::Pallet<Runtime>;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
     type FreezeIdentifier = ();
-    type MaxHolds = ConstU32<0>;
+    type MaxHolds = ConstU32<1>;
     type MaxFreezes = ConstU32<0>;
-    type RuntimeHoldReason = ();
+    type RuntimeHoldReason = RuntimeHoldReason;
 }
 
 parameter_types! {
@@ -1674,7 +1679,7 @@ const DEST_VERIFYING_CONTRACT_ADDRESS: &str = "6CdE2Cd82a4F8B74693Ff5e194c19CA08
 
 impl sygma_bridge::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type TransferReserveAccount = SygmaBridgeAccount;
+    type TransferReserveAccounts = SygmaBridgeAccount;
     type FeeReserveAccount = ThalaTreasuryAccount;
     type EIP712ChainID = EIP712ChainID;
     type DestVerifyingContractAddress = DestVerifyingContractAddress;
@@ -2126,6 +2131,16 @@ impl_runtime_apis! {
     impl sygma_runtime_api::SygmaBridgeApi<Block> for Runtime {
         fn is_proposal_executed(nonce: DepositNonce, domain_id: DomainID) -> bool {
             SygmaBridge::is_proposal_executed(nonce, domain_id)
+        }
+    }
+
+    impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
+        fn create_default_config() -> Vec<u8> {
+            create_default_config::<RuntimeGenesisConfig>()
+        }
+
+        fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
+            build_config::<RuntimeGenesisConfig>(config)
         }
     }
 

@@ -10,9 +10,7 @@ use frame_support::{
 	ord_parameter_types,
 	pallet_prelude::ConstU32,
 	parameter_types,
-	traits::{
-		AsEnsureOriginWithArg, ConstU128, ConstU64, EqualPrivilegeOnly, SortedMembers,
-	},
+	traits::{AsEnsureOriginWithArg, ConstU128, ConstU64, EqualPrivilegeOnly, SortedMembers},
 };
 use frame_support_test::TestRandomness;
 use frame_system::{self as system, EnsureRoot, EnsureSigned, EnsureSignedBy};
@@ -287,20 +285,12 @@ ord_parameter_types! {
 	pub const Six: u64 = 6;
 }
 
-parameter_types! {
-	pub const PreimageMaxSize: u32 = 4096 * 1024;
-	pub const PreimageBaseDeposit: Balance = DOLLARS;
-	// One cent: $10,000 / MB
-	pub const PreimageByteDeposit: Balance = CENTS;
-}
-
 impl pallet_preimage::Config for Test {
-	type WeightInfo = pallet_preimage::weights::SubstrateWeight<Test>;
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type ManagerOrigin = EnsureRoot<Self::AccountId>;
-	type BaseDeposit = PreimageBaseDeposit;
-	type ByteDeposit = PreimageByteDeposit;
+	type WeightInfo = ();
+	type Currency = ();
+	type ManagerOrigin = EnsureRoot<u64>;
+	type Consideration = ();
 }
 
 impl pallet_democracy::Config for Test {
@@ -426,7 +416,9 @@ impl AttestationValidator for MockValidator {
 // This function basically just builds a genesis storage key/value store according to
 // our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+	let mut t = frame_system::GenesisConfig::<Test>::default()
+		.build_storage()
+		.unwrap();
 
 	// Inject genesis storage
 	let zero_pubkey = sp_core::sr25519::Public::from_raw([0u8; 32]);

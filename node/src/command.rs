@@ -437,7 +437,7 @@ macro_rules! construct_async_run {
 }
 
 /// Creates partial components for the runtimes that are supported by the benchmarks.
-macro_rules! construct_benchmark_partials {
+macro_rules! construct_partials {
     ($config:expr, |$partials:ident| $code:expr) => {{
         #[cfg(feature = "phala-native")]
         if $config.chain_spec.is_phala() {
@@ -531,8 +531,9 @@ pub fn run() -> Result<()> {
             })
         },
         Some(Subcommand::ExportGenesisState(cmd)) => {
-            construct_async_run!(|components, cli, cmd, config| {
-                Ok(async move { cmd.run(&*config.chain_spec, &*components.client) })
+            let runner = cli.create_runner(cmd)?;
+            runner.sync_run(|config| {
+                construct_partials!(config, |partials| cmd.run(&*config.chain_spec, &*partials.client))
             })
         },
         Some(Subcommand::ExportGenesisWasm(cmd)) => {
@@ -579,7 +580,7 @@ pub fn run() -> Result<()> {
                     }
                 },
                 BenchmarkCmd::Block(cmd) => runner.sync_run(|config| {
-                    construct_benchmark_partials!(config, |partials| cmd.run(partials.client))
+                    construct_partials!(config, |partials| cmd.run(partials.client))
                 }),
                 #[cfg(not(feature = "runtime-benchmarks"))]
                 BenchmarkCmd::Storage(_) =>
@@ -591,7 +592,7 @@ pub fn run() -> Result<()> {
                         .into()),
                 #[cfg(feature = "runtime-benchmarks")]
                 BenchmarkCmd::Storage(cmd) => runner.sync_run(|config| {
-                    construct_benchmark_partials!(config, |partials| {
+                    construct_partials!(config, |partials| {
                         let db = partials.backend.expose_db();
                         let storage = partials.backend.expose_storage();
 
