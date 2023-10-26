@@ -1546,7 +1546,7 @@ impl pallet_session::Config for Runtime {
 parameter_types! {
     pub const PotId: PalletId = PalletId(*b"PotStake");
     pub const MaxCollatorCandidates: u32 = 1000;
-    pub const MinCollatorCandidates: u32 = 5;
+    pub const MinCollatorCandidates: u32 = 4;
     pub const SessionLength: BlockNumber = 6 * HOURS;
     pub const MaxInvulnerables: u32 = 100;
 }
