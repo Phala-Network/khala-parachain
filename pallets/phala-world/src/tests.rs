@@ -6,11 +6,11 @@ use alloc::collections::BTreeMap;
 
 use crate::mock::*;
 use codec::Encode;
-use frame_support::bounded_vec;
-use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::Currency};
+use frame_support::BoundedVec;
+use frame_support::{assert_noop, assert_ok, traits::Currency};
 use rmrk_traits::RoyaltyInfo;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
-use sp_runtime::{DispatchError::Token, TokenError::FundsUnavailable, BoundedVec, Permill};
+use sp_runtime::{DispatchError::Token, TokenError::FundsUnavailable, traits::BadOrigin, Permill, bounded_vec};
 
 use crate::incubation::{ShellPartInfoOf, ShellPartsOf};
 use crate::traits::{

@@ -27,7 +27,7 @@ use rmrk_traits::primitives::{CollectionId, NftId, PartId};
 use rmrk_traits::{
     BaseInfo, CollectionInfo, NftInfo, PartType, PropertyInfo, ResourceInfo, Theme, ThemeProperty,
 };
-use sc_client_api::{backend, AuxStore, Backend, BlockBackend, StorageProvider};
+use sc_client_api::{AuxStore, Backend, BlockBackend, StorageProvider};
 pub use sc_rpc::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::{ApiExt, ProvideRuntimeApi};
@@ -59,8 +59,8 @@ pub fn create_full<C, B, P>(
 where
     C: ProvideRuntimeApi<Block>
         + StorageProvider<Block, B>
-        + HeaderBackend<Block>
         + BlockBackend<Block>
+        + HeaderBackend<Block>
         + AuxStore
         + HeaderMetadata<Block, Error = BlockChainError>
         + Send
@@ -69,8 +69,7 @@ where
     C::Api: frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: BlockBuilder<Block>,
-    C::Api:
-        sp_api::Metadata<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<B, Block>>,
+    C::Api: sp_api::Metadata<Block> + ApiExt<Block>,
     C::Api: pallet_rmrk_rpc_runtime_api::RmrkApi<
         Block,
         AccountId,
@@ -100,8 +99,9 @@ where
     >,
     C::Api: pallet_mq_runtime_api::MqApi<Block>,
     C::Api: sygma_runtime_api::SygmaBridgeApi<Block>,
-    B: Backend<Block> + 'static,
     P: TransactionPool + Sync + Send + 'static,
+    B: Backend<Block> + Send + Sync + 'static,
+    B::State: sc_client_api::backend::StateBackend<sp_runtime::traits::HashingFor<Block>>,
 {
     use frame_rpc_system::{System, SystemApiServer};
     use pallet_rmrk_rpc::{Rmrk, RmrkApiServer};
@@ -141,8 +141,8 @@ pub fn create_phala_full<C, B, P>(
 where
     C: ProvideRuntimeApi<Block>
         + StorageProvider<Block, B>
-        + HeaderBackend<Block>
         + BlockBackend<Block>
+        + HeaderBackend<Block>
         + AuxStore
         + HeaderMetadata<Block, Error = BlockChainError>
         + Send
@@ -151,11 +151,12 @@ where
     C::Api: frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: BlockBuilder<Block>,
-    C::Api: sp_api::Metadata<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<B, Block>>,
+    C::Api: sp_api::Metadata<Block> + ApiExt<Block>,
     C::Api: pallet_mq_runtime_api::MqApi<Block>,
     C::Api: sygma_runtime_api::SygmaBridgeApi<Block>,
-    B: Backend<Block> + 'static,
     P: TransactionPool + Sync + Send + 'static,
+    B: Backend<Block> + Send + Sync + 'static,
+    B::State: sc_client_api::backend::StateBackend<sp_runtime::traits::HashingFor<Block>>,
 {
     use frame_rpc_system::{System, SystemApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};

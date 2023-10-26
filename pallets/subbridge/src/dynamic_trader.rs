@@ -27,7 +27,7 @@ where
 		Self(XCMWeight::from_parts(0u64, 0), 0, None, PhantomData)
 	}
 
-	fn buy_weight(&mut self, weight: XCMWeight, payment: Assets) -> Result<Assets, XcmError> {
+	fn buy_weight(&mut self, weight: XCMWeight, payment: Assets, _context: &XcmContext) -> Result<Assets, XcmError> {
 		log::trace!(
 			target: "xtranfer::weight",
 			"DynamicWeightTrader::buy_weight weight: {:?}, payment: {:?}",
@@ -75,7 +75,7 @@ where
 		Err(last_error.unwrap_or(XcmError::AssetNotFound))
 	}
 
-	fn refund_weight(&mut self, weight: XCMWeight) -> Option<MultiAsset> {
+	fn refund_weight(&mut self, weight: XCMWeight, _context: &XcmContext) -> Option<MultiAsset> {
 		log::trace!(target: "xtranfer::weight", "DynamicWeightTrader::refund_weight weight: {:?}", weight);
 
 		// If we have deducted some fee from payment assets

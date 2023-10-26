@@ -179,7 +179,7 @@ pub mod pallet {
 		use crate::traits::*;
 		use frame_support::{assert_noop, assert_ok};
 		use phala_pallet_common::WrapSlice;
-		use polkadot_parachain::primitives::Sibling;
+		use polkadot_parachain_primitives::primitives::Sibling;
 		use sp_runtime::{traits::AccountIdConversion, AccountId32};
 
 		use assets_registry::{

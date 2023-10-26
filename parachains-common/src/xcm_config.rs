@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 
+use log;
 use frame_support::{
-	log,
 	traits::{
 		ContainsPair, fungibles::Inspect, ProcessMessageError, tokens::ConversionToAssetBalance,
 	},

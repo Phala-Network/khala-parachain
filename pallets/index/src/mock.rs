@@ -13,7 +13,7 @@ use frame_support::{
 use frame_system::{self as system, EnsureRoot, EnsureSigned};
 use sp_std::{marker::PhantomData, result};
 use crate as pallet_index;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::BuildStorage;
 use xcm::latest::prelude::*;
 use xcm_builder::{

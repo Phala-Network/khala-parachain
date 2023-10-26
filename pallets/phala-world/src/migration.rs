@@ -43,7 +43,8 @@ pub mod phala_world_migration_khala {
 	use super::*;
 
 	use frame_support::traits::StorageVersion;
-	use frame_support::{ensure, log, traits::Get};
+	use frame_support::{ensure, traits::Get};
+    use log;
 	use phala_world_migration_common as common;
 	use rmrk_traits::primitives::{CollectionId, NftId};
 

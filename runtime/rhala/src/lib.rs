@@ -53,7 +53,7 @@ use primitive_types::U256;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys,
+    create_runtime_str, generic, impl_opaque_keys, RuntimeDebug,
     traits::{
         AccountIdConversion, AccountIdLookup, Block as BlockT, Bounded, ConvertInto,
         TrailingZeroInput,
@@ -87,7 +87,7 @@ pub use frame_support::{
         },
         ConstantMultiplier, IdentityFee, Weight,
     },
-    BoundedVec, PalletId, RuntimeDebug, StorageValue,
+    BoundedVec, PalletId, StorageValue,
 };
 
 use frame_system::{
@@ -96,7 +96,7 @@ use frame_system::{
 };
 
 use pallet_xcm::XcmPassthrough;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
