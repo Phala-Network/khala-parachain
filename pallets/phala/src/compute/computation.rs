@@ -42,7 +42,7 @@ pub mod pallet {
 	use fixed_sqrt::FixedSqrt;
 
 	#[cfg(feature = "std")]
-	use serde::{Serialize, Deserialize};
+	use serde::{Deserialize, Serialize};
 
 	const DEFAULT_EXPECTED_HEARTBEAT_COUNT: u32 = 20;
 	const COMPUTING_PALLETID: PalletId = PalletId(*b"phala/pp");
