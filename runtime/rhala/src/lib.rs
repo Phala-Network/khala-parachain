@@ -62,7 +62,7 @@ use sp_runtime::{
     AccountId32, ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill,
     Perquintill,
 };
-use sp_std::{collections::btree_set::BTreeSet, prelude::*};
+use sp_std::{collections::{btree_map::BTreeMap, btree_set::BTreeSet}, prelude::*};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -98,7 +98,7 @@ use frame_system::{
 
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain_primitives::primitives::Sibling;
-use xcm::latest::{prelude::*, Weight as XCMWeight};
+use xcm::latest::{prelude::*, AssetId as XcmAssetId, Weight as XCMWeight};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
@@ -1649,6 +1649,9 @@ parameter_types! {
     // When relayers signing, this address will be included in the EIP712Domain
     // As long as the relayer and pallet configured with the same address, EIP712Domain should be recognized properly.
     pub DestVerifyingContractAddress: VerifyingContractAddress = primitive_types::H160::from_slice(hex::decode(DEST_VERIFYING_CONTRACT_ADDRESS).ok().unwrap().as_slice());
+    pub SygmaReserveAccounts: BTreeMap::<XcmAssetId, AccountId> = BTreeMap::from([
+        (PHALocation::get().into(), SygmaBridgeAccount::get().into())
+    ]);
 }
 
 pub struct SygmaAdminMembers;
@@ -1689,7 +1692,7 @@ impl sygma_fee_handler_router::Config for Runtime {
 
 impl sygma_bridge::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type TransferReserveAccounts = SygmaBridgeAccount;
+    type TransferReserveAccounts = SygmaReserveAccounts;
     type FeeReserveAccount = SygmaBridgeFeeAccount;
     type EIP712ChainID = EIP712ChainID;
     type DestVerifyingContractAddress = DestVerifyingContractAddress;

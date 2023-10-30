@@ -61,7 +61,7 @@ use sp_runtime::{
     AccountId32, ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill,
     Perquintill,
 };
-use sp_std::{collections::btree_set::BTreeSet, prelude::*};
+use sp_std::{collections::{btree_map::BTreeMap, btree_set::BTreeSet}, prelude::*};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -98,7 +98,7 @@ use frame_system::{
 
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain_primitives::primitives::Sibling;
-use xcm::latest::{prelude::*, Weight as XCMWeight};
+use xcm::latest::{prelude::*, AssetId as XcmAssetId, Weight as XCMWeight};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
@@ -1643,6 +1643,9 @@ parameter_types! {
     // SygmaBridgePalletId is the palletID
     // this is used as the replacement of handler address in the ProposalExecution event
     pub const SygmaBridgePalletId: PalletId = PalletId(*b"sygma/01");
+    pub SygmaReserveAccounts: BTreeMap::<XcmAssetId, AccountId> = BTreeMap::from([
+        (PHALocation::get().into(), SygmaBridgeAccount::get().into())
+    ]);
 }
 
 impl sygma_access_segregator::Config for Runtime {
@@ -1679,7 +1682,7 @@ const DEST_VERIFYING_CONTRACT_ADDRESS: &str = "6CdE2Cd82a4F8B74693Ff5e194c19CA08
 
 impl sygma_bridge::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type TransferReserveAccounts = SygmaBridgeAccount;
+    type TransferReserveAccounts = SygmaReserveAccounts;
     type FeeReserveAccount = ThalaTreasuryAccount;
     type EIP712ChainID = EIP712ChainID;
     type DestVerifyingContractAddress = DestVerifyingContractAddress;
