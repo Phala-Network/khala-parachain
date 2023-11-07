@@ -1796,9 +1796,22 @@ impl pallet_phat_tokenomic::Config for Runtime {
     type Currency = Balances;
 }
 
+parameter_types! {
+    // InDexAdminAccount Address: 444xsyqf856A3EPtvDfPtg7TudDPhEpurq9N1MgukxxqV6h8
+    pub InDexAdminAccountPubKey: [u8; 32] = hex_literal::hex!("98ab29aa531ccfdc7756f58c1e10d27d15acd2cbfde2c70c4125e74b2db9e861");
+    pub InDexAdminAccount: AccountId = InDexAdminAccountPubKey::get().into();
+}
+
+pub struct InDexAdminMembers;
+impl SortedMembers<AccountId> for InDexAdminMembers {
+    fn sorted_members() -> Vec<AccountId> {
+        [InDexAdminAccount::get()].to_vec()
+    }
+}
+
 impl pallet_index::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type CommitteeOrigin = EnsureRootOrHalfCouncil;
+    type CommitteeOrigin = EnsureSignedBy<InDexAdminMembers, AccountId>;
     type AssetTransactor = (CurrencyTransactor, FungiblesTransactor);
     type AssetsRegistry = AssetsRegistry;
 }
