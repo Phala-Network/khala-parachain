@@ -111,6 +111,9 @@ pallet-mq-runtime-api = { path = "../../pallets/phala/mq-runtime-api", default-f
 subbridge-pallets = { path = "../../pallets/subbridge", default-features = false }
 pallet-index = { path = "../../pallets/index", default-features = false }
 
+# TEMPORARY
+pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42", default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42", optional = true }
 
@@ -232,6 +235,7 @@ std = [
 	"sygma-fee-handler-router/std",
 	"sygma-runtime-api/std",
 	"primitive-types/std",
+	"pallet-sudo/std",
 ]
 
 try-runtime = [
@@ -284,6 +288,7 @@ try-runtime = [
 	"sygma-bridge/try-runtime",
 	"sygma-access-segregator/try-runtime",
 	"sygma-fee-handler-router/try-runtime",
+	"pallet-sudo/try-runtime",
 ]
 
 # A feature that should be enabled when the runtime should be build for on-chain

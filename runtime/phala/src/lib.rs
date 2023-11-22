@@ -296,8 +296,6 @@ construct_runtime! {
         PhalaBasePool: pallet_base_pool::{Pallet, Call, Event<T>, Storage} = 92,
         PhalaPhatContracts: pallet_phat::{Pallet, Call, Event<T>, Storage} = 93,
         PhalaPhatTokenomic: pallet_phat_tokenomic::{Pallet, Call, Event<T>, Storage} = 94,
-        // `sudo` has been removed on production
-        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 255,
 
         // Phala World
         Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 101,
@@ -314,6 +312,9 @@ construct_runtime! {
 
         // inDEX
         PalletIndex: pallet_index::{Pallet, Call, Storage, Event<T>} = 121,
+
+        // `sudo` has been removed on production
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 255,
     }
 }
 
@@ -382,6 +383,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
 
         matches!(
             call,
+            RuntimeCall::Sudo { .. } |
             // System
             RuntimeCall::System { .. } | RuntimeCall::Timestamp { .. } | RuntimeCall::Utility { .. } |
             RuntimeCall::Multisig { .. } | RuntimeCall::Proxy { .. } | RuntimeCall::Scheduler { .. } |
@@ -1814,6 +1816,11 @@ impl pallet_index::Config for Runtime {
     type CommitteeOrigin = EnsureSignedBy<InDexAdminMembers, AccountId>;
     type AssetTransactor = (CurrencyTransactor, FungiblesTransactor);
     type AssetsRegistry = AssetsRegistry;
+}
+
+impl pallet_sudo::Config for Runtime {
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
