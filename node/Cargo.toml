@@ -24,7 +24,7 @@ hex-literal = "0.4.1"
 log = "0.4.17"
 thiserror = "1.0"
 serde = { version = "1.0.144", features = ["derive"] }
-serde_json = { version = "1.0" }
+serde_json = { version = "1.0.108" }
 
 # RPC related dependencies
 jsonrpsee = { version = "0.16.2", features = ["server"] }
@@ -36,8 +36,8 @@ rhala-parachain-runtime = { path = "../runtime/rhala", optional = true }
 thala-parachain-runtime = { path = "../runtime/thala", optional = true }
 shell-parachain-runtime = { path = "../runtime/shell", package = "shell-runtime", optional = true }
 
-pallet-mq-runtime-api = { path = "../pallets/phala/mq-runtime-api" }
-phala-node-rpc-ext = { path = "../crates/phala-node-rpc-ext" }
+pallet-mq-runtime-api = { git = "https://github.com/Phala-Network/phala-blockchain.git", branch = "maintenance/v0.1.26" }
+phala-node-rpc-ext = { git = "https://github.com/Phala-Network/phala-blockchain.git", branch = "maintenance/v0.1.26" }
 
 frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0" }
 frame-benchmarking-cli = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0" }

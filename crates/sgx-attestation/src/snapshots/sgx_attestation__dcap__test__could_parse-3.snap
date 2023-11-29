@@ -1,6 +1,0 @@
----
-source: crates/sgx-attestation/src/dcap.rs
-assertion_line: 231
-expression: tcb_status
----
-"ConfigurationAndSWHardeningNeeded"
