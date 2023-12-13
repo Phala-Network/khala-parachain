@@ -390,6 +390,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::ChainBridge { .. } |
             RuntimeCall::SygmaAccessSegregator { .. } |
             RuntimeCall::SygmaBasicFeeHandler { .. } |
+            RuntimeCall::SygmaPercentageFeeHandler { .. } |
             RuntimeCall::SygmaFeeHandlerRouter { .. } |
             RuntimeCall::SygmaBridge { .. } |
             RuntimeCall::XTransfer { .. } |
@@ -1640,8 +1641,8 @@ parameter_types! {
     // SygmaBridgeFeeAccountKey Address: 5FbR7ZkYSgsFsBMmqsdEpgAU7DkMdKpkGWSBZdhn6LAdesQ6
     pub SygmaBridgeFeeAccountKey: [u8; 32] = hex_literal::hex!("9c20f205595671c6f121b9d9bbfb9caa66380f8f3ad8d47d901b84b7fb757042");
     pub SygmaBridgeFeeAccount: AccountId = SygmaBridgeFeeAccountKey::get().into();
-    // SygmaBridgeAdminAccountKey Address: 43CLf23S1KsVhDn56SQfaAC8dbbnM24qS5A8jnbBixxqu3Cg
-    pub SygmaBridgeAdminAccountKey: [u8; 32] = hex_literal::hex!("720ef4138de57eff791ccfc14c249e58aa7718e71700892c2c59cec28a3900b9");
+    // SygmaBridgeAdminAccountKey Address: 42JAeZKj1w45HcnzRuXyhh2J5CY69eo5QEKSo6dtea2L2Vab
+    pub SygmaBridgeAdminAccountKey: [u8; 32] = hex_literal::hex!("4a4480ae399d87614e08d052cbe5d15fe3332f8a9786b456000c64fca2128a33");
     pub SygmaBridgeAdminAccount: AccountId = SygmaBridgeAdminAccountKey::get().into();
     // EIP712ChainID is the chainID that pallet is assigned with, used in EIP712 typed data domain
     pub EIP712ChainID: SygmaChainID = U256::from(5231);
@@ -1649,8 +1650,10 @@ parameter_types! {
     // When relayers signing, this address will be included in the EIP712Domain
     // As long as the relayer and pallet configured with the same address, EIP712Domain should be recognized properly.
     pub DestVerifyingContractAddress: VerifyingContractAddress = primitive_types::H160::from_slice(hex::decode(DEST_VERIFYING_CONTRACT_ADDRESS).ok().unwrap().as_slice());
+    pub sygUSDLocation: MultiLocation = MultiLocation::new(1, X2(Parachain(1000), GeneralKey { length: 6, data: hex_literal::hex!("7379675553440000000000000000000000000000000000000000000000000000") })).into();
     pub SygmaReserveAccounts: BTreeMap::<XcmAssetId, AccountId> = BTreeMap::from([
-        (PHALocation::get().into(), SygmaBridgeAccount::get().into())
+        (PHALocation::get().into(), SygmaBridgeAccount::get().into()),
+        (sygUSDLocation::get().into(), SygmaBridgeAccount::get().into())
     ]);
 }
 

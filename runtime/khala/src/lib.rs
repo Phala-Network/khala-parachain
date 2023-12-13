@@ -398,6 +398,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             RuntimeCall::ChainBridge { .. } |
             RuntimeCall::SygmaAccessSegregator { .. } |
             RuntimeCall::SygmaBasicFeeHandler { .. } |
+            RuntimeCall::SygmaPercentageFeeHandler { .. } |
             RuntimeCall::SygmaFeeHandlerRouter { .. } |
             RuntimeCall::SygmaBridge { .. } |
             RuntimeCall::XTransfer { .. } |
