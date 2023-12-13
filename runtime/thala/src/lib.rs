@@ -1852,6 +1852,7 @@ impl pallet_phat_tokenomic::Config for Runtime {
 impl pallet_index::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type CommitteeOrigin = EnsureRoot<Self::AccountId>;
+    type FeeReserveAccount = ThalaTreasuryAccount;
     type AssetTransactor = (CurrencyTransactor, FungiblesTransactor);
     type AssetsRegistry = AssetsRegistry;
 }

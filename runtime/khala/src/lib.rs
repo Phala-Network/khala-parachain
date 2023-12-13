@@ -1872,6 +1872,7 @@ impl SortedMembers<AccountId> for InDexAdminMembers {
 impl pallet_index::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type CommitteeOrigin = EnsureSignedBy<InDexAdminMembers, AccountId>;
+    type FeeReserveAccount = InDexAdminAccount;
     type AssetTransactor = (CurrencyTransactor, FungiblesTransactor);
     type AssetsRegistry = AssetsRegistry;
 }

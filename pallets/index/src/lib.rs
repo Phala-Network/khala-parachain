@@ -45,6 +45,9 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + pallet_assets::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type CommitteeOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+		/// Fee reserve account
+		#[pallet::constant]
+		type FeeReserveAccount: Get<Self::AccountId>;
 		/// Asset adapter to do withdraw, deposit etc.
 		type AssetTransactor: TransactAsset;
 		/// Assets registry
@@ -83,7 +86,7 @@ pub mod pallet {
 			deposit_info: DepositInfo<T::AccountId>,
 		},
 		/// Task has been claimed.
-		Claimed { tasks: Vec<TaskId> },
+		Claimed { tasks: Vec<TaskId>, fee: u128 },
 	}
 
 	#[pallet::error]
@@ -96,6 +99,7 @@ pub mod pallet {
 		NotFoundInTaskQueue,
 		TaskQueueEmpty,
 		TransactFailed,
+		FeeTooExpensive,
 	}
 
 	#[pallet::call]
@@ -189,7 +193,7 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
 		#[pallet::call_index(3)]
 		#[transactional]
-		pub fn claim_task(origin: OriginFor<T>, task_id: TaskId) -> DispatchResult {
+		pub fn claim_task(origin: OriginFor<T>, task_id: TaskId, fee: u128) -> DispatchResult {
 			// Check origin, must be the worker
 			let worker: T::AccountId = ensure_signed(origin)?;
 			ensure!(
@@ -210,14 +214,21 @@ pub mod pallet {
 				.collect();
 			ActivedTasks::<T>::insert(&worker, &new_task_queue);
 			let deposit_info = DepositRecords::<T>::get(&task_id).unwrap();
+			ensure!(deposit_info.amount > fee, Error::<T>::FeeTooExpensive);
 
 			// Withdraw from module account
 			let module_account: T::AccountId = MODULE_ID.into_account_truncating();
 			Self::do_asset_transact(
 				deposit_info.asset.clone(),
-				module_account,
+				module_account.clone(),
 				worker,
-				deposit_info.amount,
+				deposit_info.amount - fee,
+			)?;
+			Self::do_asset_transact(
+				deposit_info.asset.clone(),
+				module_account,
+				<T as Config>::FeeReserveAccount::get(),
+				fee,
 			)?;
 
 			// Delete deposit record
@@ -225,43 +236,7 @@ pub mod pallet {
 
 			Self::deposit_event(Event::Claimed {
 				tasks: vec![task_id],
-			});
-			Ok(())
-		}
-
-		#[pallet::weight(Weight::from_parts(195_000_000, 0))]
-		#[pallet::call_index(4)]
-		#[transactional]
-		pub fn claim_all_task(origin: OriginFor<T>) -> DispatchResult {
-			// Check origin, must be the worker
-			let worker: T::AccountId = ensure_signed(origin)?;
-			ensure!(
-				Workers::<T>::get(&worker) == true,
-				Error::<T>::WorkerMismatch
-			);
-
-			// Take the task queue of the worker
-			let worker_task_queue = ActivedTasks::<T>::take(&worker);
-			// Check reqeust exist in actived task queue
-			ensure!(worker_task_queue.len() > 0, Error::<T>::NotFoundInTaskQueue);
-			for task_id in worker_task_queue.iter() {
-				let deposit_info = DepositRecords::<T>::get(&task_id).unwrap();
-
-				// Withdraw from module account
-				let module_account: T::AccountId = MODULE_ID.into_account_truncating();
-				Self::do_asset_transact(
-					deposit_info.asset.clone(),
-					module_account,
-					worker.clone(),
-					deposit_info.amount,
-				)?;
-
-				// Delete deposit record
-				DepositRecords::<T>::remove(&task_id);
-			}
-
-			Self::deposit_event(Event::Claimed {
-				tasks: worker_task_queue.into(),
+				fee,
 			});
 			Ok(())
 		}
@@ -277,6 +252,10 @@ pub mod pallet {
 			recipient: T::AccountId,
 			amount: u128,
 		) -> DispatchResult {
+			if amount == 0 {
+				return Ok(());
+			}
+
 			T::AssetTransactor::withdraw_asset(
 				&(asset.clone(), amount).into(),
 				&Junction::AccountId32 {
@@ -310,8 +289,8 @@ pub mod pallet {
 		use crate::{ActivedTasks, DepositRecords, Event as PalletIndexEvent, Workers, MODULE_ID};
 		use frame_support::{assert_noop, assert_ok};
 		use pallet_index::mock::{
-			assert_events, new_test_ext, Assets, AssetsRegistry, Balances, PalletIndex,
-			RuntimeEvent as Event, RuntimeOrigin as Origin, Test, TestAssetAssetId,
+			assert_events, new_test_ext, Assets, AssetsRegistry, Balances, FeeReserveAccount,
+			PalletIndex, RuntimeEvent as Event, RuntimeOrigin as Origin, Test, TestAssetAssetId,
 			TestAssetLocation, ALICE, BOB, ENDOWED_BALANCE,
 		};
 		use sp_runtime::traits::AccountIdConversion;
@@ -478,31 +457,38 @@ pub mod pallet {
 
 				// Claim failed if sender is not worker
 				assert_noop!(
-					PalletIndex::claim_task(Origin::signed(ALICE), request_id_1,),
-					pallet_index::Error::<Test>::WorkerMismatch
-				);
-				assert_noop!(
-					PalletIndex::claim_all_task(Origin::signed(ALICE),),
+					PalletIndex::claim_task(Origin::signed(ALICE), request_id_1, 0),
 					pallet_index::Error::<Test>::WorkerMismatch
 				);
 
 				// Claim one task
-				assert_ok!(PalletIndex::claim_task(Origin::signed(BOB), request_id_1,));
+				assert_ok!(PalletIndex::claim_task(
+					Origin::signed(BOB),
+					request_id_1,
+					0
+				));
 				assert_eq!(Balances::free_balance(module_account.clone()), 500);
 				assert_eq!(Balances::free_balance(BOB), ENDOWED_BALANCE + 100);
 
 				// Claim rest of tasks
-				assert_ok!(PalletIndex::claim_all_task(Origin::signed(BOB),));
+				assert_ok!(PalletIndex::claim_task(
+					Origin::signed(BOB),
+					request_id_2,
+					10
+				));
+				assert_ok!(PalletIndex::claim_task(
+					Origin::signed(BOB),
+					request_id_3,
+					20
+				));
+
 				assert_eq!(Balances::free_balance(module_account), 0);
-				assert_eq!(Balances::free_balance(BOB), ENDOWED_BALANCE + 600);
+				assert_eq!(Balances::free_balance(FeeReserveAccount::get()), 30);
+				assert_eq!(Balances::free_balance(BOB), ENDOWED_BALANCE + 600 - 30);
 
 				// Claim failed if no task exist
 				assert_noop!(
-					PalletIndex::claim_task(Origin::signed(BOB), request_id_1,),
-					pallet_index::Error::<Test>::NotFoundInTaskQueue
-				);
-				assert_noop!(
-					PalletIndex::claim_all_task(Origin::signed(BOB),),
+					PalletIndex::claim_task(Origin::signed(BOB), request_id_1, 0),
 					pallet_index::Error::<Test>::NotFoundInTaskQueue
 				);
 			})

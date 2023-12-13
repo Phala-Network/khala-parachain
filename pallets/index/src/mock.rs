@@ -1,4 +1,5 @@
 #![cfg(test)]
+use crate as pallet_index;
 use frame_support::{
 	pallet_prelude::ConstU32,
 	parameter_types,
@@ -11,10 +12,9 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::{self as system, EnsureRoot, EnsureSigned};
-use sp_std::{marker::PhantomData, result};
-use crate as pallet_index;
 use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::BuildStorage;
+use sp_std::{marker::PhantomData, result};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, CurrencyAdapter, FungiblesAdapter, MintLocation, NoChecking,
@@ -231,21 +231,30 @@ pub type FungiblesTransactor = FungiblesAdapter<
 	CheckingAccountForFungibleAdapter,
 >;
 
+parameter_types! {
+	pub const FeeReserveAccount: AccountId32 = AccountId32::new([3u8; 32]);
+}
+
 pub type AssetTransactors = (CurrencyTransactor, FungiblesTransactor);
 impl pallet_index::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type CommitteeOrigin = EnsureRoot<Self::AccountId>;
+	type FeeReserveAccount = FeeReserveAccount;
 	type AssetTransactor = AssetTransactors;
 	type AssetsRegistry = AssetsRegistry;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+	let mut t = frame_system::GenesisConfig::<Test>::default()
+		.build_storage()
+		.unwrap();
 
 	pallet_parachain_info::GenesisConfig::<Test> {
 		_mark: Default::default(),
 		parachain_id: 2004u32.into(),
-	}.assimilate_storage(&mut t).unwrap();
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
 
 	let assets_registry_account = assets_registry::ASSETS_REGISTRY_ID.into_account_truncating();
 	pallet_balances::GenesisConfig::<Test> {
