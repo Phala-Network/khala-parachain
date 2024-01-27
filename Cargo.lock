@@ -4879,7 +4879,7 @@ dependencies = [
 
 [[package]]
 name = "khala-node"
-version = "0.1.26-2"
+version = "0.1.26-3"
 dependencies = [
  "async-trait",
  "clap",
@@ -4964,7 +4964,7 @@ dependencies = [
 
 [[package]]
 name = "khala-parachain-runtime"
-version = "0.1.26-2"
+version = "0.1.26-3"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -7070,7 +7070,7 @@ dependencies = [
 [[package]]
 name = "pallet-mq-runtime-api"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1262#db38b483b12499178ba824f5bed0c4321f351720"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1263#536f4aacd99815ebf64708eb40890319adb6fb05"
 dependencies = [
  "phala-mq",
  "sp-api",
@@ -8049,7 +8049,7 @@ dependencies = [
 [[package]]
 name = "phala-mq"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1262#db38b483b12499178ba824f5bed0c4321f351720"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1263#536f4aacd99815ebf64708eb40890319adb6fb05"
 dependencies = [
  "derive_more",
  "environmental",
@@ -8068,7 +8068,7 @@ dependencies = [
 [[package]]
 name = "phala-node-rpc-ext"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1262#db38b483b12499178ba824f5bed0c4321f351720"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1263#536f4aacd99815ebf64708eb40890319adb6fb05"
 dependencies = [
  "hex",
  "impl-serde",
@@ -8093,7 +8093,7 @@ dependencies = [
 [[package]]
 name = "phala-node-rpc-ext-types"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1262#db38b483b12499178ba824f5bed0c4321f351720"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1263#536f4aacd99815ebf64708eb40890319adb6fb05"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -8119,7 +8119,7 @@ dependencies = [
 [[package]]
 name = "phala-pallets"
 version = "4.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1262#db38b483b12499178ba824f5bed0c4321f351720"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1263#536f4aacd99815ebf64708eb40890319adb6fb05"
 dependencies = [
  "base64 0.21.4",
  "chrono",
@@ -8157,7 +8157,7 @@ dependencies = [
 
 [[package]]
 name = "phala-parachain-runtime"
-version = "0.1.26-2"
+version = "0.1.26-3"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -8257,7 +8257,7 @@ dependencies = [
 [[package]]
 name = "phala-serde-more"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1262#db38b483b12499178ba824f5bed0c4321f351720"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1263#536f4aacd99815ebf64708eb40890319adb6fb05"
 dependencies = [
  "hex",
  "parity-scale-codec",
@@ -8268,7 +8268,7 @@ dependencies = [
 [[package]]
 name = "phala-types"
 version = "0.3.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1262#db38b483b12499178ba824f5bed0c4321f351720"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1263#536f4aacd99815ebf64708eb40890319adb6fb05"
 dependencies = [
  "hex",
  "parity-scale-codec",
@@ -9754,7 +9754,7 @@ dependencies = [
 [[package]]
 name = "prpc"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1262#db38b483b12499178ba824f5bed0c4321f351720"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1263#536f4aacd99815ebf64708eb40890319adb6fb05"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -10131,7 +10131,7 @@ dependencies = [
 
 [[package]]
 name = "rhala-parachain-runtime"
-version = "0.1.26-2"
+version = "0.1.26-3"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -12059,7 +12059,7 @@ dependencies = [
 [[package]]
 name = "sgx-attestation"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1262#db38b483b12499178ba824f5bed0c4321f351720"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1263#536f4aacd99815ebf64708eb40890319adb6fb05"
 dependencies = [
  "base64 0.21.4",
  "hex",
@@ -13929,7 +13929,7 @@ checksum = "95059e91184749cb66be6dc994f67f182b6d897cb3df74a5bf66b5e709295fd8"
 
 [[package]]
 name = "thala-parachain-runtime"
-version = "0.1.26-2"
+version = "0.1.26-3"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
