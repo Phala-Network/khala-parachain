@@ -6470,26 +6470,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "orml-xcm-builder-kusama"
-version = "1.0.0"
-source = "git+https://github.com/open-web3-stack/orml-xcm-builder?branch=polkadot-v1.2.0#adb45f28914366ec32c9215a26954f567fadf896"
-dependencies = [
- "frame-support",
- "frame-system",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-arithmetic",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "sp-weights",
- "staging-xcm",
- "staging-xcm-executor",
-]
-
-[[package]]
 name = "p256"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10153,7 +10133,6 @@ dependencies = [
  "hex",
  "hex-literal 0.4.1",
  "log",
- "orml-xcm-builder-kusama",
  "pallet-assets",
  "pallet-aura",
  "pallet-authorship",

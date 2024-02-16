@@ -106,9 +106,6 @@ sygma-fee-handler-router = { git = "https://github.com/sygmaprotocol/sygma-subst
 sygma-percentage-feehandler = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "release-polkadot-v1.2.0", default-features = false }
 sygma-runtime-api = { git = "https://github.com/sygmaprotocol/sygma-substrate-pallets", branch = "release-polkadot-v1.2.0", default-features = false }
 
-# ORML Tinkernet Multisig dependencies
-orml-xcm-builder-kusama = { git = "https://github.com/open-web3-stack/orml-xcm-builder", branch = "polkadot-v1.2.0", default-features = false }
-
 # Local dependencies
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
@@ -157,7 +154,6 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"subbridge-pallets/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
-	"orml-xcm-builder-kusama/runtime-benchmarks",
 ]
 std = [
 	"codec/std",
@@ -245,7 +241,6 @@ std = [
 	"sygma-percentage-feehandler/std",
 	"sygma-runtime-api/std",
 	"primitive-types/std",
-	"orml-xcm-builder-kusama/std",
 ]
 
 try-runtime = [

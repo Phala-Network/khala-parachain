@@ -53,16 +53,19 @@ use primitive_types::U256;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys, RuntimeDebug,
+    create_runtime_str, generic, impl_opaque_keys,
     traits::{
         AccountIdConversion, AccountIdLookup, Block as BlockT, Bounded, ConvertInto,
         TrailingZeroInput,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     AccountId32, ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill,
-    Perquintill,
+    Perquintill, RuntimeDebug,
 };
-use sp_std::{collections::{btree_map::BTreeMap, btree_set::BTreeSet}, prelude::*};
+use sp_std::{
+    collections::{btree_map::BTreeMap, btree_set::BTreeSet},
+    prelude::*,
+};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -77,10 +80,10 @@ pub use frame_support::{
     pallet_prelude::Get,
     parameter_types,
     traits::{
-        tokens::nonfungibles::*, fungible::HoldConsideration, AsEnsureOriginWithArg, ConstBool, ConstU32, Contains, Currency,
-        EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
-        KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, Nothing, OnUnbalanced, Randomness,
-        WithdrawReasons, SortedMembers,
+        fungible::HoldConsideration, tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstBool,
+        ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance,
+        InstanceFilter, IsInVec, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, Nothing,
+        OnUnbalanced, Randomness, SortedMembers, WithdrawReasons,
     },
     weights::{
         constants::{
@@ -101,12 +104,13 @@ use polkadot_parachain_primitives::primitives::Sibling;
 use xcm::latest::{prelude::*, AssetId as XcmAssetId, Weight as XCMWeight};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
-    FungiblesAdapter, ParentIsPreset, RelayChainAsNative, NoChecking, MintLocation,
-    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+    AllowTopLevelPaidExecutionFrom, CurrencyAdapter, DescribeAllTerminal, DescribeFamily,
+    EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, HashedDescription, MintLocation,
+    NoChecking, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
+    SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+    SovereignSignedViaLocation, TakeWeightCredit, WithComputedOrigin,
 };
-use xcm_executor::{Config, XcmExecutor, traits::WithOriginFilter};
+use xcm_executor::{traits::WithOriginFilter, Config, XcmExecutor};
 
 use pallet_rmrk_core::{CollectionInfoOf, InstanceInfoOf, PropertyInfoOf, ResourceInfoOf};
 use pallet_rmrk_equip::{BaseInfoOf, BoundedThemeOf, PartTypeOf};
@@ -126,9 +130,8 @@ pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_marketplace, pallet
 #[cfg(any(feature = "std", test))]
 pub use pallet_timestamp::Call as TimestampCall;
 pub use phala_pallets::{
-    pallet_base_pool, pallet_computation, pallet_mq,
-    pallet_registry, pallet_stake_pool, pallet_stake_pool_v2, pallet_vault,
-    pallet_wrapped_balances,
+    pallet_base_pool, pallet_computation, pallet_mq, pallet_registry, pallet_stake_pool,
+    pallet_stake_pool_v2, pallet_vault, pallet_wrapped_balances,
 };
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -218,9 +221,7 @@ pub type Executive = frame_executive::Executive<
 >;
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`.
-type Migrations = (
-    pallet_collator_selection::migration::v1::MigrateToV1<Runtime>,
-);
+type Migrations = (pallet_collator_selection::migration::v1::MigrateToV1<Runtime>,);
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
@@ -359,7 +360,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 pallet_uniques::Call::freeze { .. }
                 | pallet_uniques::Call::thaw { .. }
                 | pallet_uniques::Call::set_team { .. }
-                | pallet_uniques::Call::set_accept_ownership { .. }  => true,
+                | pallet_uniques::Call::set_accept_ownership { .. } => true,
                 _ => false,
             };
         }
@@ -1033,6 +1034,8 @@ pub type LocationToAccountId = (
     SiblingParachainConvertsVia<Sibling, AccountId>,
     // Straight up local `AccountId32` origins just alias directly to `AccountId`.
     AccountId32Aliases<RelayNetwork, AccountId>,
+    // Foreign locations alias into accounts according to a hash of their standard description.
+    HashedDescription<AccountId, DescribeFamily<DescribeAllTerminal>>,
 );
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -1070,6 +1073,14 @@ pub type Barrier = (
     AllowKnownQueryResponses<PolkadotXcm>,
     // Subscriptions for version tracking are OK.
     AllowSubscriptionsFrom<Everything>,
+    // Allow XCMs with some computed origins to pass through.
+    WithComputedOrigin<
+        // If the message is one that immediately attempts to pay for execution, then
+        // allow it.
+        AllowTopLevelPaidExecutionFrom<Everything>,
+        UniversalLocation,
+        ConstU32<8>,
+    >,
 );
 
 /// Means for transacting the native currency on this chain.
@@ -1428,7 +1439,8 @@ impl pallet_treasury::Config for Runtime {
             EnsureRoot<AccountId>,
             pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
         >,
-        AccountId, MaxBalance,
+        AccountId,
+        MaxBalance,
     >;
 }
 
