@@ -561,6 +561,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "asn1_der"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "155a5a185e42c6b77ac7b88a15143d930a9e9727a5b7b77eed417404ab15c247"
+
+[[package]]
 name = "assert_matches"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1320,6 +1326,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-targets 0.48.0",
 ]
@@ -2642,6 +2649,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fffa369a668c8af7dbf8b5e56c9f744fbd399949ed171606040001947de40b1c"
 dependencies = [
  "const-oid",
+ "der_derive",
+ "flagset",
  "zeroize",
 ]
 
@@ -2671,6 +2680,17 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "rusticata-macros",
+]
+
+[[package]]
+name = "der_derive"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fe87ce4529967e0ba1dcf8450bab64d97dfd5010a6256187ffe2e43e6f0e049"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.38",
 ]
 
 [[package]]
@@ -3048,6 +3068,15 @@ name = "encode_unicode"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
+
+[[package]]
+name = "encoding_rs"
+version = "0.8.33"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7268b386296a025e474d5140678f75d6de9493ae55a5d709eeb9dd08149945e1"
+dependencies = [
+ "cfg-if",
+]
 
 [[package]]
 name = "enum-as-inner"
@@ -3452,6 +3481,12 @@ name = "fixedbitset"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
+
+[[package]]
+name = "flagset"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdeb3aa5e95cf9aabc17f060cfa0ced7b83f042390760ca53bf09df9968acaa1"
 
 [[package]]
 name = "flate2"
@@ -4360,7 +4395,7 @@ dependencies = [
  "rustls-native-certs",
  "tokio",
  "tokio-rustls 0.23.4",
- "webpki-roots",
+ "webpki-roots 0.22.6",
 ]
 
 [[package]]
@@ -4454,7 +4489,7 @@ dependencies = [
  "ipnet",
  "log",
  "rtnetlink",
- "system-configuration",
+ "system-configuration 0.5.0",
  "tokio",
  "windows",
 ]
@@ -4639,7 +4674,7 @@ dependencies = [
  "socket2 0.4.9",
  "widestring",
  "winapi",
- "winreg",
+ "winreg 0.10.1",
 ]
 
 [[package]]
@@ -4744,7 +4779,7 @@ dependencies = [
  "tokio-rustls 0.23.4",
  "tokio-util",
  "tracing",
- "webpki-roots",
+ "webpki-roots 0.22.6",
 ]
 
 [[package]]
@@ -4879,7 +4914,7 @@ dependencies = [
 
 [[package]]
 name = "khala-node"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "async-trait",
  "clap",
@@ -4964,7 +4999,7 @@ dependencies = [
 
 [[package]]
 name = "khala-parachain-runtime"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -5563,7 +5598,7 @@ dependencies = [
  "rw-stream-sink",
  "soketto",
  "url",
- "webpki-roots",
+ "webpki-roots 0.22.6",
 ]
 
 [[package]]
@@ -5954,6 +5989,12 @@ dependencies = [
  "rand 0.8.5",
  "thrift",
 ]
+
+[[package]]
+name = "mime"
+version = "0.3.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
 name = "minimal-lexical"
@@ -7050,7 +7091,7 @@ dependencies = [
 [[package]]
 name = "pallet-mq-runtime-api"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?branch=maintenance/v0.1.26#a8f4779b1a15e8fa3ed7cc9a90cd745afce71a08"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
 dependencies = [
  "phala-mq",
  "sp-api",
@@ -7958,6 +7999,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pem"
+version = "3.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b8fcc794035347fb64beda2d3b462595dd2753e3f268d89c5aae77e8cf2c310"
+dependencies = [
+ "base64 0.21.4",
+ "serde",
+]
+
+[[package]]
 name = "pem-rfc7468"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8029,7 +8080,7 @@ dependencies = [
 [[package]]
 name = "phala-mq"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?branch=maintenance/v0.1.26#a8f4779b1a15e8fa3ed7cc9a90cd745afce71a08"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
 dependencies = [
  "derive_more",
  "environmental",
@@ -8048,7 +8099,7 @@ dependencies = [
 [[package]]
 name = "phala-node-rpc-ext"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?branch=maintenance/v0.1.26#a8f4779b1a15e8fa3ed7cc9a90cd745afce71a08"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
 dependencies = [
  "hex",
  "impl-serde",
@@ -8060,10 +8111,7 @@ dependencies = [
  "phala-node-rpc-ext-types",
  "phala-pallets",
  "sc-client-api",
- "sc-rpc",
  "sc-transaction-pool-api",
- "scale-info",
- "serde",
  "sp-api",
  "sp-blockchain",
  "sp-runtime",
@@ -8073,7 +8121,7 @@ dependencies = [
 [[package]]
 name = "phala-node-rpc-ext-types"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?branch=maintenance/v0.1.26#a8f4779b1a15e8fa3ed7cc9a90cd745afce71a08"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -8099,14 +8147,12 @@ dependencies = [
 [[package]]
 name = "phala-pallets"
 version = "4.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?branch=maintenance/v0.1.26#a8f4779b1a15e8fa3ed7cc9a90cd745afce71a08"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
 dependencies = [
- "base64 0.21.4",
  "chrono",
  "fixed",
  "fixed-macro",
  "fixed-sqrt",
- "frame-benchmarking",
  "frame-support",
  "frame-system",
  "hex",
@@ -8115,7 +8161,6 @@ dependencies = [
  "pallet-assets",
  "pallet-balances",
  "pallet-democracy",
- "pallet-insecure-randomness-collective-flip",
  "pallet-preimage",
  "pallet-rmrk-core",
  "pallet-uniques",
@@ -8127,17 +8172,15 @@ dependencies = [
  "serde",
  "serde_json",
  "sgx-attestation",
- "sp-application-crypto",
  "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
- "untrusted 0.9.0",
 ]
 
 [[package]]
 name = "phala-parachain-runtime"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -8237,9 +8280,8 @@ dependencies = [
 [[package]]
 name = "phala-serde-more"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?branch=maintenance/v0.1.26#a8f4779b1a15e8fa3ed7cc9a90cd745afce71a08"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
 dependencies = [
- "hex",
  "parity-scale-codec",
  "serde",
  "sp-core",
@@ -8248,7 +8290,7 @@ dependencies = [
 [[package]]
 name = "phala-types"
 version = "0.3.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?branch=maintenance/v0.1.26#a8f4779b1a15e8fa3ed7cc9a90cd745afce71a08"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
 dependencies = [
  "hex",
  "parity-scale-codec",
@@ -8256,6 +8298,7 @@ dependencies = [
  "prpc",
  "scale-info",
  "serde",
+ "sgx-attestation",
  "sp-core",
 ]
 
@@ -9734,7 +9777,7 @@ dependencies = [
 [[package]]
 name = "prpc"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?branch=maintenance/v0.1.26#a8f4779b1a15e8fa3ed7cc9a90cd745afce71a08"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -9968,7 +10011,7 @@ version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6413f3de1edee53342e6138e75b56d32e7bc6e332b3bd62d497b1929d4cfbcdd"
 dependencies = [
- "pem",
+ "pem 1.1.1",
  "ring 0.16.20",
  "time",
  "x509-parser 0.13.2",
@@ -9981,7 +10024,7 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ffbe84efe2f38dea12e9bfc1f65377fdf03e53a18cb3b995faedf7934c7e785b"
 dependencies = [
- "pem",
+ "pem 1.1.1",
  "ring 0.16.20",
  "time",
  "yasna",
@@ -10079,6 +10122,47 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
+name = "reqwest"
+version = "0.11.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0eea5a9eb898d3783f17c6407670e3592fd174cb81a10e51d4c37f49450b9946"
+dependencies = [
+ "base64 0.21.4",
+ "bytes",
+ "encoding_rs",
+ "futures-core",
+ "futures-util",
+ "h2",
+ "http",
+ "http-body",
+ "hyper",
+ "hyper-rustls 0.24.1",
+ "ipnet",
+ "js-sys",
+ "log",
+ "mime",
+ "once_cell",
+ "percent-encoding",
+ "pin-project-lite 0.2.13",
+ "rustls 0.21.7",
+ "rustls-pemfile",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "sync_wrapper",
+ "system-configuration 0.6.0",
+ "tokio",
+ "tokio-rustls 0.24.1",
+ "tower-service",
+ "url",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "webpki-roots 0.25.4",
+ "winreg 0.50.0",
+]
+
+[[package]]
 name = "resolv-conf"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10111,7 +10195,7 @@ dependencies = [
 
 [[package]]
 name = "rhala-parachain-runtime"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -10235,7 +10319,7 @@ dependencies = [
  "once_cell",
  "rkyv",
  "spin 0.5.2",
- "untrusted 0.7.1",
+ "untrusted",
  "winapi",
  "xous",
  "xous-api-names",
@@ -10597,7 +10681,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "45a27e3b59326c16e23d30aeb7a36a24cc0d29e71d68ff611cdfb4a01d013bed"
 dependencies = [
  "ring 0.16.20",
- "untrusted 0.7.1",
+ "untrusted",
 ]
 
 [[package]]
@@ -10607,7 +10691,7 @@ source = "git+https://github.com/rustls/webpki?rev=2ed9a4324f48c2c46ffdd7dc9d3eb
 dependencies = [
  "ring 0.16.20",
  "rustls-pki-types",
- "untrusted 0.7.1",
+ "untrusted",
 ]
 
 [[package]]
@@ -11859,7 +11943,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b362b83898e0e69f38515b82ee15aa80636befe47c3b6d3d89a911e78fc228ce"
 dependencies = [
  "ring 0.16.20",
- "untrusted 0.7.1",
+ "untrusted",
 ]
 
 [[package]]
@@ -11869,7 +11953,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d53dcdb7c9f8158937a7981b48accfd39a43af418591a5d008c7b22b5e1b7ca4"
 dependencies = [
  "ring 0.16.20",
- "untrusted 0.7.1",
+ "untrusted",
 ]
 
 [[package]]
@@ -12021,6 +12105,7 @@ version = "1.0.108"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d1c7e3eac408d115102c4c24ad393e0821bb3a5df4d506a80f85f7a742a526b"
 dependencies = [
+ "indexmap 2.0.2",
  "itoa",
  "ryu",
  "serde",
@@ -12036,16 +12121,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_urlencoded"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3491c14715ca2294c4d6a88f15e84739788c1d030eed8c110436aafdaa2f3fd"
+dependencies = [
+ "form_urlencoded",
+ "itoa",
+ "ryu",
+ "serde",
+]
+
+[[package]]
 name = "sgx-attestation"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?branch=maintenance/v0.1.26#a8f4779b1a15e8fa3ed7cc9a90cd745afce71a08"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
 dependencies = [
+ "anyhow",
+ "asn1_der",
  "base64 0.21.4",
+ "byteorder",
+ "chrono",
+ "const-oid",
+ "der 0.7.8",
  "hex",
+ "log",
  "parity-scale-codec",
+ "pem 3.0.3",
  "pink-json",
+ "reqwest",
+ "ring 0.16.20",
  "rustls-webpki 0.102.0-alpha.3",
+ "scale-info",
  "serde",
+ "serde_json",
+ "urlencoding",
+ "x509-cert",
 ]
 
 [[package]]
@@ -13834,6 +13945,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "sync_wrapper"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
+
+[[package]]
 name = "synstructure"
 version = "0.12.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13853,7 +13970,18 @@ checksum = "d75182f12f490e953596550b65ee31bda7c8e043d9386174b353bda50838c3fd"
 dependencies = [
  "bitflags 1.3.2",
  "core-foundation",
- "system-configuration-sys",
+ "system-configuration-sys 0.5.0",
+]
+
+[[package]]
+name = "system-configuration"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "658bc6ee10a9b4fcf576e9b0819d95ec16f4d2c02d39fd83ac1c8789785c4a42"
+dependencies = [
+ "bitflags 2.4.1",
+ "core-foundation",
+ "system-configuration-sys 0.6.0",
 ]
 
 [[package]]
@@ -13861,6 +13989,16 @@ name = "system-configuration-sys"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9"
+dependencies = [
+ "core-foundation-sys",
+ "libc",
+]
+
+[[package]]
+name = "system-configuration-sys"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4"
 dependencies = [
  "core-foundation-sys",
  "libc",
@@ -13908,7 +14046,7 @@ checksum = "95059e91184749cb66be6dc994f67f182b6d897cb3df74a5bf66b5e709295fd8"
 
 [[package]]
 name = "thala-parachain-runtime"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -14713,12 +14851,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a156c684c91ea7d62626509bce3cb4e1d9ed5c4d978f7b4352658f96a4c26b4a"
 
 [[package]]
-name = "untrusted"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
-
-[[package]]
 name = "url"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -14728,6 +14860,12 @@ dependencies = [
  "idna 0.4.0",
  "percent-encoding",
 ]
+
+[[package]]
+name = "urlencoding"
+version = "2.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 
 [[package]]
 name = "utf8parse"
@@ -15208,7 +15346,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8e38c0608262c46d4a56202ebabdeb094cef7e560ca7a226c6bf055188aa4ea"
 dependencies = [
  "ring 0.16.20",
- "untrusted 0.7.1",
+ "untrusted",
 ]
 
 [[package]]
@@ -15218,7 +15356,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f095d78192e208183081cc07bc5515ef55216397af48b873e5edcd72637fa1bd"
 dependencies = [
  "ring 0.16.20",
- "untrusted 0.7.1",
+ "untrusted",
 ]
 
 [[package]]
@@ -15229,6 +15367,12 @@ checksum = "b6c71e40d7d2c34a5106301fb632274ca37242cd0c9d3e64dbece371a40a2d87"
 dependencies = [
  "webpki 0.22.0",
 ]
+
+[[package]]
+name = "webpki-roots"
+version = "0.25.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f20c57d8d7db6d3b86154206ae5d8fba62dd39573114de97c2cb0578251f8e1"
 
 [[package]]
 name = "webrtc"
@@ -15832,6 +15976,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "winreg"
+version = "0.50.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "524e57b2c537c0f9b1e69f1965311ec12182b4122e45035b1508cd24d2adadb1"
+dependencies = [
+ "cfg-if",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "wyz"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -15861,6 +16015,17 @@ dependencies = [
  "rand_core 0.6.4",
  "serde",
  "zeroize",
+]
+
+[[package]]
+name = "x509-cert"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25eefca1d99701da3a57feb07e5079fc62abba059fc139e98c13bbb250f3ef29"
+dependencies = [
+ "const-oid",
+ "der 0.7.8",
+ "spki 0.7.2",
 ]
 
 [[package]]
