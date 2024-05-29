@@ -81,9 +81,9 @@ pub use frame_support::{
     parameter_types,
     traits::{
         fungible::HoldConsideration, tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstBool,
-        ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance,
-        InstanceFilter, IsInVec, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, Nothing,
-        OnUnbalanced, Randomness, SortedMembers, WithdrawReasons, ContainsLengthBound,
+        ConstU32, Contains, ContainsLengthBound, Currency, EitherOfDiverse, EqualPrivilegeOnly,
+        Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem, LinearStoragePrice,
+        LockIdentifier, Nothing, OnUnbalanced, Randomness, SortedMembers, WithdrawReasons,
     },
     weights::{
         constants::{
@@ -824,19 +824,19 @@ impl pallet_tips::Config for Runtime {
 
 pub struct CouncilMembers;
 impl SortedMembers<AccountId32> for CouncilMembers {
-	fn sorted_members() -> Vec<AccountId32> {
-		Council::members()
-	}
-	fn count() -> usize {
-		pallet_collective::Members::<Runtime, CouncilCollective>::decode_len().unwrap_or(0)
-	}
+    fn sorted_members() -> Vec<AccountId32> {
+        Council::members()
+    }
+    fn count() -> usize {
+        pallet_collective::Members::<Runtime, CouncilCollective>::decode_len().unwrap_or(0)
+    }
 }
 impl ContainsLengthBound for CouncilMembers {
-	fn max_len() -> usize {
+    fn max_len() -> usize {
         CouncilMaxMembers::get() as usize
-	}
-	fn min_len() -> usize {
-		0
+    }
+    fn min_len() -> usize {
+        0
     }
 }
 

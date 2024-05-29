@@ -49,24 +49,27 @@ mod msg_routing;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
+use primitive_types::U256;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys, RuntimeDebug,
+    create_runtime_str, generic, impl_opaque_keys,
     traits::{
         AccountIdConversion, AccountIdLookup, Block as BlockT, Bounded, ConvertInto,
         TrailingZeroInput,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     AccountId32, ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill,
-    Perquintill,
+    Perquintill, RuntimeDebug,
 };
-use sp_std::{collections::{btree_map::BTreeMap, btree_set::BTreeSet}, prelude::*};
+use sp_std::{
+    collections::{btree_map::BTreeMap, btree_set::BTreeSet},
+    prelude::*,
+};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use static_assertions::const_assert;
-use primitive_types::U256;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
@@ -77,10 +80,10 @@ pub use frame_support::{
     pallet_prelude::Get,
     parameter_types,
     traits::{
-        tokens::nonfungibles::*, fungible::HoldConsideration, AsEnsureOriginWithArg, ConstBool, ConstU32, Contains, Currency,
-        EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
-        KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, Nothing, OnUnbalanced, Randomness,
-        WithdrawReasons, SortedMembers, ContainsLengthBound,
+        fungible::HoldConsideration, tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstBool,
+        ConstU32, Contains, ContainsLengthBound, Currency, EitherOfDiverse, EqualPrivilegeOnly,
+        Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem, LinearStoragePrice,
+        LockIdentifier, Nothing, OnUnbalanced, Randomness, SortedMembers, WithdrawReasons,
     },
     weights::{
         constants::{
@@ -102,11 +105,11 @@ use xcm::latest::{prelude::*, AssetId as XcmAssetId, Weight as XCMWeight};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
-    FungiblesAdapter, ParentIsPreset, RelayChainAsNative, NoChecking, MintLocation,
+    FungiblesAdapter, MintLocation, NoChecking, ParentIsPreset, RelayChainAsNative,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
     SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::{Config, XcmExecutor, traits::WithOriginFilter};
+use xcm_executor::{traits::WithOriginFilter, Config, XcmExecutor};
 
 use pallet_rmrk_core::{CollectionInfoOf, InstanceInfoOf, PropertyInfoOf, ResourceInfoOf};
 use pallet_rmrk_equip::{BaseInfoOf, BoundedThemeOf, PartTypeOf};
@@ -120,7 +123,7 @@ pub use parachains_common::{rmrk_core, rmrk_equip, uniques, Nonce, *};
 
 pub use pallet_phala_world::{pallet_pw_incubation, pallet_pw_marketplace, pallet_pw_nft_sale};
 pub use phala_pallets::{
-    pallet_base_pool, pallet_computation, pallet_phat, pallet_phat_tokenomic, pallet_mq,
+    pallet_base_pool, pallet_computation, pallet_mq, pallet_phat, pallet_phat_tokenomic,
     pallet_registry, pallet_stake_pool, pallet_stake_pool_v2, pallet_vault,
     pallet_wrapped_balances,
 };
@@ -825,19 +828,19 @@ impl pallet_tips::Config for Runtime {
 
 pub struct CouncilMembers;
 impl SortedMembers<AccountId32> for CouncilMembers {
-	fn sorted_members() -> Vec<AccountId32> {
-		Council::members()
-	}
-	fn count() -> usize {
-		pallet_collective::Members::<Runtime, CouncilCollective>::decode_len().unwrap_or(0)
-	}
+    fn sorted_members() -> Vec<AccountId32> {
+        Council::members()
+    }
+    fn count() -> usize {
+        pallet_collective::Members::<Runtime, CouncilCollective>::decode_len().unwrap_or(0)
+    }
 }
 impl ContainsLengthBound for CouncilMembers {
-	fn max_len() -> usize {
+    fn max_len() -> usize {
         CouncilMaxMembers::get() as usize
-	}
-	fn min_len() -> usize {
-		0
+    }
+    fn min_len() -> usize {
+        0
     }
 }
 
@@ -1453,7 +1456,8 @@ impl pallet_treasury::Config for Runtime {
             EnsureRoot<AccountId>,
             pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
         >,
-        AccountId, MaxBalance,
+        AccountId,
+        MaxBalance,
     >;
 }
 
