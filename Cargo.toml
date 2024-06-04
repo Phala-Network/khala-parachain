@@ -31,3 +31,4 @@ members = [
 
 [patch.crates-io]
 ring = { git = "https://github.com/jasl/ring-xous", branch = "better-wasm32-support" }
+soketto = { git = "https://github.com/Phala-Network/soketto", branch = "phala-v0.7.1" }
