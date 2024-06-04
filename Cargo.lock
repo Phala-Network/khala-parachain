@@ -12537,8 +12537,7 @@ dependencies = [
 [[package]]
 name = "soketto"
 version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41d1c5305e39e09653383c2c7244f2f78b3bcae37cf50c64cb4789c9f5096ec2"
+source = "git+https://github.com/Phala-Network/soketto?branch=phala-v0.7.1#e2482a264b908f848af31b266bcf74ead985c49a"
 dependencies = [
  "base64 0.13.1",
  "bytes",
