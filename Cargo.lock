@@ -12537,7 +12537,7 @@ dependencies = [
 [[package]]
 name = "soketto"
 version = "0.7.1"
-source = "git+https://github.com/Phala-Network/soketto?branch=phala-v0.7.1#e2482a264b908f848af31b266bcf74ead985c49a"
+source = "git+https://github.com/Phala-Network/soketto?branch=phala-v0.7.1#62f2750aa5c384b9d227d18417aaf8c72483decb"
 dependencies = [
  "base64 0.13.1",
  "bytes",
@@ -14751,7 +14751,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.7",
- "rand 0.8.5",
+ "rand 0.7.3",
  "static_assertions",
 ]
 
