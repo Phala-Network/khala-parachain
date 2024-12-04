@@ -1,6 +1,6 @@
 [package]
 name = "khala-parachain-runtime"
-version = "0.1.27"
+version = "0.1.27-1"
 authors = ["Phala Network"]
 edition = "2021"
 
@@ -16,7 +16,7 @@ static_assertions = "1.1.0"
 primitive-types = { version = "0.12.2", default-features = false, features = ["scale-info", "serde_no_std"] }
 hex = { version = "0.4.3", default-features = false }
 
-phala-types = { git = "https://github.com/Phala-Network/phala-blockchain.git", tag = "runtime-release-v1270", default-features = false }
+phala-types = { git = "https://github.com/Phala-Network/phala-blockchain.git", tag = "runtime-release-v1271", default-features = false }
 parachains-common = { path = "../../parachains-common", default-features = false }
 
 # Substrate dependencies
@@ -109,8 +109,8 @@ sygma-runtime-api = { git = "https://github.com/sygmaprotocol/sygma-substrate-pa
 # Local dependencies
 assets-registry = { path = "../../pallets/assets-registry", default-features = false }
 pallet-parachain-info = { path = "../../pallets/parachain-info", default-features = false }
-phala-pallets = { git = "https://github.com/Phala-Network/phala-blockchain.git", tag = "runtime-release-v1270", default-features = false }
-pallet-mq-runtime-api = { git = "https://github.com/Phala-Network/phala-blockchain.git", tag = "runtime-release-v1270", default-features = false }
+phala-pallets = { git = "https://github.com/Phala-Network/phala-blockchain.git", tag = "runtime-release-v1271", default-features = false }
+pallet-mq-runtime-api = { git = "https://github.com/Phala-Network/phala-blockchain.git", tag = "runtime-release-v1271", default-features = false }
 subbridge-pallets = { path = "../../pallets/subbridge", default-features = false }
 pallet-phala-world = { path = "../../pallets/phala-world", default-features = false }
 pallet-index = { path = "../../pallets/index", default-features = false }

@@ -462,9 +462,9 @@ dependencies = [
 
 [[package]]
 name = "array-bytes"
-version = "6.1.0"
+version = "6.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9b1c5a481ec30a5abd8dfbd94ab5cf1bb4e9a66be7f1b3b322f2f1170c200fd"
+checksum = "5d5dde061bd34119e902bbb2d9b90c5692635cf59fb91d582c2b68043f1b8293"
 
 [[package]]
 name = "arrayref"
@@ -2188,7 +2188,7 @@ name = "cumulus-pallet-parachain-system-proc-macro"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.2.0#72c453563937c36b895c543bc5e852e213a54f19"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 2.0.38",
@@ -2716,6 +2716,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive-syn-parse"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d65d7ce8132b7c0e54497a4d9a55a1c2a0912a0d786cf894472ba818fba45762"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.38",
+]
+
+[[package]]
 name = "derive_builder"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2867,28 +2878,28 @@ dependencies = [
 
 [[package]]
 name = "docify"
-version = "0.2.4"
+version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76ee528c501ddd15d5181997e9518e59024844eac44fd1e40cb20ddb2a8562fa"
+checksum = "a772b62b1837c8f060432ddcc10b17aae1453ef17617a99bc07789252d2a5896"
 dependencies = [
  "docify_macros",
 ]
 
 [[package]]
 name = "docify_macros"
-version = "0.2.4"
+version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ca01728ab2679c464242eca99f94e2ce0514b52ac9ad950e2ed03fca991231c"
+checksum = "60e6be249b0a462a14784a99b19bf35a667bb5e09de611738bb7362fa4c95ff7"
 dependencies = [
  "common-path",
- "derive-syn-parse",
+ "derive-syn-parse 0.2.0",
  "once_cell",
  "proc-macro2",
  "quote",
  "regex",
  "syn 2.0.38",
  "termcolor",
- "toml 0.7.3",
+ "toml 0.8.19",
  "walkdir",
 ]
 
@@ -3313,7 +3324,7 @@ checksum = "f5aa1e3ae159e592ad222dc90c5acbad632b527779ba88486abe92782ab268bd"
 dependencies = [
  "expander 0.0.4",
  "indexmap 1.9.2",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
@@ -3615,7 +3626,7 @@ name = "frame-election-provider-solution-type"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.2.0#72c453563937c36b895c543bc5e852e213a54f19"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 2.0.38",
@@ -3737,7 +3748,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polk
 dependencies = [
  "Inflector",
  "cfg-expr",
- "derive-syn-parse",
+ "derive-syn-parse 0.1.5",
  "expander 2.0.0",
  "frame-support-procedural-tools",
  "itertools 0.10.5",
@@ -3754,7 +3765,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.2.0#72c453563937c36b895c543bc5e852e213a54f19"
 dependencies = [
  "frame-support-procedural-tools-derive",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 2.0.38",
@@ -4836,7 +4847,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baa6da1e4199c10d7b1d0a6e5e8bd8e55f351163b6f4b3cbb044672a69bd4c1c"
 dependencies = [
  "heck",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
@@ -4914,7 +4925,7 @@ dependencies = [
 
 [[package]]
 name = "khala-node"
-version = "0.1.27"
+version = "0.1.27-1"
 dependencies = [
  "async-trait",
  "clap",
@@ -4999,7 +5010,7 @@ dependencies = [
 
 [[package]]
 name = "khala-parachain-runtime"
-version = "0.1.27"
+version = "0.1.27-1"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -5821,7 +5832,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e766a20fd9c72bab3e1e64ed63f36bd08410e75803813df210d1ce297d7ad00"
 dependencies = [
  "const-random",
- "derive-syn-parse",
+ "derive-syn-parse 0.1.5",
  "macro_magic_core_macros",
  "proc-macro2",
  "quote",
@@ -6138,7 +6149,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc076939022111618a5026d3be019fd8b366e76314538ff9a1b59ffbcbf98bcd"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro-error",
  "proc-macro2",
  "quote",
@@ -6495,7 +6506,7 @@ dependencies = [
  "indexmap 2.0.2",
  "itertools 0.11.0",
  "petgraph",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
@@ -7091,7 +7102,7 @@ dependencies = [
 [[package]]
 name = "pallet-mq-runtime-api"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1271#612a90991277cd43ff26e0c4273e30e6a1626803"
 dependencies = [
  "phala-mq",
  "sp-api",
@@ -7531,7 +7542,7 @@ name = "pallet-staking-reward-curve"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.2.0#72c453563937c36b895c543bc5e852e213a54f19"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 2.0.38",
@@ -7872,7 +7883,7 @@ version = "3.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "312270ee71e1cd70289dacf597cab7b207aa107d2f28191c2ae45b2ece18a260"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
@@ -8080,7 +8091,7 @@ dependencies = [
 [[package]]
 name = "phala-mq"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1271#612a90991277cd43ff26e0c4273e30e6a1626803"
 dependencies = [
  "derive_more",
  "environmental",
@@ -8099,7 +8110,7 @@ dependencies = [
 [[package]]
 name = "phala-node-rpc-ext"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1271#612a90991277cd43ff26e0c4273e30e6a1626803"
 dependencies = [
  "hex",
  "impl-serde",
@@ -8121,7 +8132,7 @@ dependencies = [
 [[package]]
 name = "phala-node-rpc-ext-types"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1271#612a90991277cd43ff26e0c4273e30e6a1626803"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -8147,7 +8158,7 @@ dependencies = [
 [[package]]
 name = "phala-pallets"
 version = "4.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1271#612a90991277cd43ff26e0c4273e30e6a1626803"
 dependencies = [
  "chrono",
  "fixed",
@@ -8180,7 +8191,7 @@ dependencies = [
 
 [[package]]
 name = "phala-parachain-runtime"
-version = "0.1.27"
+version = "0.1.27-1"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -8280,7 +8291,7 @@ dependencies = [
 [[package]]
 name = "phala-serde-more"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1271#612a90991277cd43ff26e0c4273e30e6a1626803"
 dependencies = [
  "parity-scale-codec",
  "serde",
@@ -8290,7 +8301,7 @@ dependencies = [
 [[package]]
 name = "phala-types"
 version = "0.3.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1271#612a90991277cd43ff26e0c4273e30e6a1626803"
 dependencies = [
  "hex",
  "parity-scale-codec",
@@ -9630,7 +9641,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f4c021e1093a56626774e81216a4ce732a735e5bad4868a03f3ed65ca0c3919"
 dependencies = [
  "once_cell",
- "toml_edit",
+ "toml_edit 0.19.8",
+]
+
+[[package]]
+name = "proc-macro-crate"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ecf48c7ca261d60b74ab1a7b20da18bede46776b2e55535cb958eb595c5fa7b"
+dependencies = [
+ "toml_edit 0.22.20",
 ]
 
 [[package]]
@@ -9777,7 +9797,7 @@ dependencies = [
 [[package]]
 name = "prpc"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1271#612a90991277cd43ff26e0c4273e30e6a1626803"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -10195,7 +10215,7 @@ dependencies = [
 
 [[package]]
 name = "rhala-parachain-runtime"
-version = "0.1.27"
+version = "0.1.27-1"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -10856,7 +10876,7 @@ name = "sc-chain-spec-derive"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.2.0#72c453563937c36b895c543bc5e852e213a54f19"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 2.0.38",
@@ -11781,7 +11801,7 @@ name = "sc-tracing-proc-macro"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.2.0#72c453563937c36b895c543bc5e852e213a54f19"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 2.0.38",
@@ -11846,9 +11866,9 @@ dependencies = [
 
 [[package]]
 name = "scale-info"
-version = "2.10.0"
+version = "2.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f7d66a1128282b7ef025a8ead62a4a9fcf017382ec53b8ffbf4d7bf77bd3c60"
+checksum = "eca070c12893629e2cc820a9761bedf6ce1dcddc9852984d1dc734b8bd9bd024"
 dependencies = [
  "bitvec",
  "cfg-if",
@@ -11860,14 +11880,14 @@ dependencies = [
 
 [[package]]
 name = "scale-info-derive"
-version = "2.10.0"
+version = "2.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abf2c68b89cafb3b8d918dd07b42be0da66ff202cf1155c5739a4e0c1ea0dc19"
+checksum = "c6630024bf739e2179b91fb424b28898baf819414262c5d376677dbff1fe7ebf"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 3.2.0",
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.38",
 ]
 
 [[package]]
@@ -12113,9 +12133,9 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
-version = "0.6.1"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0efd8caf556a6cebd3b285caf480045fcc1ac04f6bd786b09a6f11af30c4fcf4"
+checksum = "87607cb1398ed59d48732e575a4c28a7a8ebf2454b964fe3f224f2afc07909e1"
 dependencies = [
  "serde",
 ]
@@ -12135,7 +12155,7 @@ dependencies = [
 [[package]]
 name = "sgx-attestation"
 version = "0.1.0"
-source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1270#7dd69475bac3eb73ba3049369e05f23ca24716db"
+source = "git+https://github.com/Phala-Network/phala-blockchain.git?tag=runtime-release-v1271#612a90991277cd43ff26e0c4273e30e6a1626803"
 dependencies = [
  "anyhow",
  "asn1_der",
@@ -12579,7 +12599,7 @@ dependencies = [
  "Inflector",
  "blake2",
  "expander 2.0.0",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 2.0.38",
@@ -13053,7 +13073,7 @@ version = "11.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.2.0#72c453563937c36b895c543bc5e852e213a54f19"
 dependencies = [
  "Inflector",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 2.0.38",
@@ -14046,7 +14066,7 @@ checksum = "95059e91184749cb66be6dc994f67f182b6d897cb3df74a5bf66b5e709295fd8"
 
 [[package]]
 name = "thala-parachain-runtime"
-version = "0.1.27"
+version = "0.1.27-1"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
@@ -14430,14 +14450,26 @@ dependencies = [
  "serde",
  "serde_spanned",
  "toml_datetime",
- "toml_edit",
+ "toml_edit 0.19.8",
+]
+
+[[package]]
+name = "toml"
+version = "0.8.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1ed1f98e3fdc28d6d910e6737ae6ab1a93bf1985935a1193e68f93eeb68d24e"
+dependencies = [
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_edit 0.22.20",
 ]
 
 [[package]]
 name = "toml_datetime"
-version = "0.6.1"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ab8ed2edee10b50132aed5f331333428b011c99402b5a534154ed15746f9622"
+checksum = "0dd7358ecb8fc2f8d014bf86f6f638ce72ba252a2c3a2572f2a795f1d23efb41"
 dependencies = [
  "serde",
 ]
@@ -14452,7 +14484,20 @@ dependencies = [
  "serde",
  "serde_spanned",
  "toml_datetime",
- "winnow",
+ "winnow 0.4.6",
+]
+
+[[package]]
+name = "toml_edit"
+version = "0.22.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "583c44c02ad26b0c3f3066fe629275e50627026c51ac2e595cca4c230ce1ce1d"
+dependencies = [
+ "indexmap 2.0.2",
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "winnow 0.6.20",
 ]
 
 [[package]]
@@ -14558,7 +14603,7 @@ version = "1.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=release-polkadot-v1.2.0#72c453563937c36b895c543bc5e852e213a54f19"
 dependencies = [
  "expander 2.0.0",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 2.0.38",
@@ -15962,6 +16007,15 @@ name = "winnow"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61de7bac303dc551fe038e2b3cef0f571087a47571ea6e79a87692ac99b99699"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
+name = "winnow"
+version = "0.6.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36c1fec1a2bb5866f07c25f68c26e565c4c200aebb96d7e55710c19d3e8ac49b"
 dependencies = [
  "memchr",
 ]
