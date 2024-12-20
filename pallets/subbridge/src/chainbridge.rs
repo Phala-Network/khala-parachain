@@ -237,17 +237,17 @@ pub mod pallet {
 		ProposalAlreadyComplete,
 		/// Lifetime of proposal has been exceeded
 		ProposalExpired,
-		/// Got wrong paremeter when update fee
+		/// Got wrong parameter when update fee
 		InvalidFeeOption,
 		/// Unkonwn asset
 		ExtractAssetFailed,
-		/// Unknown destnation
+		/// Unknown destination
 		ExtractDestFailed,
 		/// Asset can not pay as fee
 		CannotPayAsFee,
 		/// Transfer failed
 		TransactFailed,
-		/// Infusficient balance to withdraw
+		/// Insufficient balance to withdraw
 		InsufficientBalance,
 		/// Too expensive fee for withdrawn asset
 		FeeTooExpensive,
@@ -981,7 +981,7 @@ pub mod pallet {
 					.into(),
 			)
 			.ok_or(Error::<T>::CannotPayAsFee)?;
-			// No need to transfer to to dest chains if it's not enough to pay fee.
+			// No need to transfer to dest chains if it's not enough to pay fee.
 			ensure!(amount > fee, Error::<T>::FeeTooExpensive);
 			// Ensure we have sufficient free balance
 			Pallet::<T>::check_balance(sender.into(), &asset, amount)?;
