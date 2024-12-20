@@ -581,7 +581,7 @@ pub mod pallet {
 			T::RegistryCommitteeOrigin::ensure_origin(origin.clone())?;
 			// The reason why we limit the length of location to less than 8 is because
 			// we would have some operations based on asset location e.g. calculate rid,
-			// and according to current implmentation of XCM Junctions, it would failed
+			// and according to current implementation of XCM Junctions, it would failed
 			// when trying to push new Junction to a location interior length is 8
 			// (MAX supported length).
 			ensure!(location.interior().len() < 8, Error::<T>::LocationTooLong);

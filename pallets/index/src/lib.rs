@@ -202,7 +202,7 @@ pub mod pallet {
 			);
 
 			let worker_task_queue = ActivedTasks::<T>::get(&worker);
-			// Check reqeust exist in actived task queue
+			// Check request exist in actived task queue
 			ensure!(
 				worker_task_queue.contains(&task_id),
 				Error::<T>::NotFoundInTaskQueue

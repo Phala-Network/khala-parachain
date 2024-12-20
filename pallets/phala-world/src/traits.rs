@@ -168,7 +168,7 @@ pub struct PartInfo<BoundedString> {
 	pub name: BoundedString,
 	/// Shell part rarity type
 	pub rarity: PartRarityType,
-	/// Restrictiion for Shell Race, None is no restriction.
+	/// Restriction for Shell Race, None is no restriction.
 	pub race: Option<RaceType>,
 	/// Restriction for Shell Career, None is no restriction.
 	pub career: Option<CareerType>,
