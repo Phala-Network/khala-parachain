@@ -110,7 +110,7 @@ pub mod pallet {
 	#[pallet::getter(fn preorders)]
 	pub type Preorders<T: Config> = StorageMap<_, Twox64Concat, PreorderId, PreorderInfoOf<T>>;
 
-	/// Owners that have made a preorder during intial preorder phase
+	/// Owners that have made a preorder during initial preorder phase
 	#[pallet::storage]
 	#[pallet::getter(fn owner_has_preorder)]
 	pub type OwnerHasPreorder<T: Config> =
