@@ -58,7 +58,7 @@ pub enum Subcommand {
     #[cfg(feature = "try-runtime")]
     TryRuntime(try_runtime_cli::TryRuntimeCmd),
 
-    /// Errors since the binary was not build with `--features try-runtime`.
+    /// Errors since the binary was not built with `--features try-runtime`.
     #[cfg(not(feature = "try-runtime"))]
     TryRuntime,
 }
