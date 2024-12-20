@@ -160,8 +160,8 @@ parameter_types! {
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 
 	pub TREASURY: AccountId32 = AccountId32::new([4u8; 32]);
-		// We define two test assets to simulate tranfer assets to reserve location and unreserve location,
-	// we must defiend here because those need be configed as fee payment assets
+		// We define two test assets to simulate transfer assets to reserve location and unreserve location,
+	// we must define here because those need be configed as fee payment assets
 	pub SoloChain0AssetLocation: MultiLocation = MultiLocation::new(
 		1,
 		X4(
