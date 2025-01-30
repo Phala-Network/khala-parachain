@@ -31,6 +31,7 @@ pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk.git", bran
 
 # try-runtime stuff.
 frame-try-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, optional = true , branch = "release-polkadot-v1.2.0" }
+frame-metadata-hash-extension = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false }
 
 # Cumulus dependencies
 cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false }
@@ -75,6 +76,7 @@ std = [
 	"frame-support/std",
 	"frame-executive/std",
 	"frame-system/std",
+	"frame-metadata-hash-extension/std",
 	"parachain-info/std",
 	"cumulus-pallet-parachain-system/std",
 	"cumulus-pallet-dmp-queue/std",

@@ -13,14 +13,15 @@
 
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
-
+// , feature = "metadata-hash"
 fn main() {
-    #[cfg(feature = "std")]
+    #[cfg(all(feature = "std", feature = "metadata-hash"))]
     {
         substrate_wasm_builder::WasmBuilder::new()
             .with_current_project()
             .export_heap_base()
             .import_memory()
+            .enable_metadata_hash("UNIT", 12)
             .build();
     }
 }
