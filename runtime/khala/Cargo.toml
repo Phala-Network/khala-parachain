@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 hex-literal = "0.4.1"
-codec = { package = "parity-scale-codec", version = "3.6.5", default-features = false, features = ["derive", "max-encoded-len"] }
+codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive", "max-encoded-len"] }
 log = { version = "0.4.14", default-features = false }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
 serde = { version = "1.0.132", optional = true, features = ["derive"] }
@@ -21,7 +21,7 @@ parachains-common = { path = "../../parachains-common", default-features = false
 
 # Substrate dependencies
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false }
-sp-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false }
+sp-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false, features = ["frame-metadata", "sp-metadata-ir"] }
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false }
 sp-version = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false }
@@ -117,11 +117,15 @@ pallet-phala-world = { path = "../../pallets/phala-world", default-features = fa
 pallet-index = { path = "../../pallets/index", default-features = false }
 
 [build-dependencies]
-substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", optional = true }
+substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", optional = true, features = ["metadata-hash"]}
+sp-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false, features = ["frame-metadata"] }
 
 [features]
-default = ["std", "include-wasm"]
+default = ["std", "include-wasm", "metadata-hash", "frame-metadata"]
 include-wasm = []
+metadata-hash = ["substrate-wasm-builder/metadata-hash"]
+frame-metadata = ["sp-api/frame-metadata"]
+
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",

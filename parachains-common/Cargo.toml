@@ -9,7 +9,7 @@ description = "Logic which is common to all parachain runtimes"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.5", features = ["derive", "max-encoded-len"], default-features = false }
+codec = { package = "parity-scale-codec", version = "3.6.9", features = ["derive", "max-encoded-len"], default-features = false }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
 
 log = { version = "0.4.14", default-features = false }

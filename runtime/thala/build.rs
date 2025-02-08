@@ -17,10 +17,7 @@
 fn main() {
     #[cfg(all(feature = "std", feature = "metadata-hash"))]
     {
-        substrate_wasm_builder::WasmBuilder::new()
-            .with_current_project()
-            .export_heap_base()
-            .import_memory()
+        substrate_wasm_builder::WasmBuilder::init_with_defaults()
             .enable_metadata_hash("PHA", 12)
             .build();
     }
