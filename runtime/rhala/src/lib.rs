@@ -208,6 +208,7 @@ pub type SignedExtra = (
     frame_system::CheckWeight<Runtime>,
     pallet_mq::CheckMqSequence<Runtime>,
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+    frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =

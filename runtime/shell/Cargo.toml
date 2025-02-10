@@ -5,14 +5,14 @@ authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.5", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive"] }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
 serde = { version = "1.0.132", optional = true, features = ["derive"] }
 log = { version = "0.4.14", default-features = false }
 
 # Substrate dependencies
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.2.0" }
-sp-api = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.2.0" }
+sp-api = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.2.0", features = ["frame-metadata", "sp-metadata-ir"] }
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.2.0" }
 sp-version = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.2.0" }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, branch = "release-polkadot-v1.2.0" }
@@ -31,6 +31,7 @@ pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk.git", bran
 
 # try-runtime stuff.
 frame-try-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, optional = true , branch = "release-polkadot-v1.2.0" }
+frame-metadata-hash-extension = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false }
 
 # Cumulus dependencies
 cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false }
@@ -50,10 +51,13 @@ pallet-xcm = { git = "https://github.com/paritytech/polkadot-sdk.git", default-f
 pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false }
 
 [build-dependencies]
-substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", optional = true }
+substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", optional = true, features = ["metadata-hash"]}
+sp-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0", default-features = false, features = ["frame-metadata"] }
 
 [features]
-default = ["std"]
+default = ["std", "metadata-hash", "frame-metadata"]
+metadata-hash = ["substrate-wasm-builder/metadata-hash",]
+frame-metadata = ["sp-api/frame-metadata"]
 std = [
 	"codec/std",
 	"scale-info/std",
@@ -75,6 +79,7 @@ std = [
 	"frame-support/std",
 	"frame-executive/std",
 	"frame-system/std",
+	"frame-metadata-hash-extension/std",
 	"parachain-info/std",
 	"cumulus-pallet-parachain-system/std",
 	"cumulus-pallet-dmp-queue/std",
