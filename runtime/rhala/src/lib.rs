@@ -81,9 +81,9 @@ pub use frame_support::{
     parameter_types,
     traits::{
         fungible::HoldConsideration, tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstBool,
-        ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance,
-        InstanceFilter, IsInVec, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, Nothing,
-        OnUnbalanced, Randomness, SortedMembers, WithdrawReasons,
+        ConstU32, Contains, ContainsLengthBound, Currency, EitherOfDiverse, EqualPrivilegeOnly,
+        Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem, LinearStoragePrice,
+        LockIdentifier, Nothing, OnUnbalanced, Randomness, SortedMembers, WithdrawReasons,
     },
     weights::{
         constants::{
@@ -816,11 +816,29 @@ impl pallet_tips::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type DataDepositPerByte = DataDepositPerByte;
     type MaximumReasonLength = MaximumReasonLength;
-    type Tippers = PhragmenElection;
+    type Tippers = CouncilMembers;
     type TipCountdown = TipCountdown;
     type TipFindersFee = TipFindersFee;
     type TipReportDepositBase = TipReportDepositBase;
     type WeightInfo = pallet_tips::weights::SubstrateWeight<Runtime>;
+}
+
+pub struct CouncilMembers;
+impl SortedMembers<AccountId32> for CouncilMembers {
+    fn sorted_members() -> Vec<AccountId32> {
+        Council::members()
+    }
+    fn count() -> usize {
+        pallet_collective::Members::<Runtime, CouncilCollective>::decode_len().unwrap_or(0)
+    }
+}
+impl ContainsLengthBound for CouncilMembers {
+    fn max_len() -> usize {
+        CouncilMaxMembers::get() as usize
+    }
+    fn min_len() -> usize {
+        0
+    }
 }
 
 parameter_types! {

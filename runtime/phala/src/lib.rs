@@ -53,16 +53,19 @@ use primitive_types::U256;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys, RuntimeDebug,
+    create_runtime_str, generic, impl_opaque_keys,
     traits::{
         AccountIdConversion, AccountIdLookup, Block as BlockT, Bounded, ConvertInto,
         TrailingZeroInput,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     AccountId32, ApplyExtrinsicResult, DispatchError, FixedPointNumber, Perbill, Percent, Permill,
-    Perquintill,
+    Perquintill, RuntimeDebug,
 };
-use sp_std::{collections::{btree_map::BTreeMap, btree_set::BTreeSet}, prelude::*};
+use sp_std::{
+    collections::{btree_map::BTreeMap, btree_set::BTreeSet},
+    prelude::*,
+};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -77,10 +80,10 @@ pub use frame_support::{
     pallet_prelude::Get,
     parameter_types,
     traits::{
-        tokens::nonfungibles::*, fungible::HoldConsideration, AsEnsureOriginWithArg, ConstBool, ConstU32, Contains, Currency,
-        EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter, IsInVec,
-        KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, Nothing, OnUnbalanced, Randomness,
-        WithdrawReasons, SortedMembers,
+        fungible::HoldConsideration, tokens::nonfungibles::*, AsEnsureOriginWithArg, ConstBool,
+        ConstU32, Contains, ContainsLengthBound, Currency, EitherOfDiverse, EqualPrivilegeOnly,
+        Everything, Imbalance, InstanceFilter, IsInVec, KeyOwnerProofSystem, LinearStoragePrice,
+        LockIdentifier, Nothing, OnUnbalanced, Randomness, SortedMembers, WithdrawReasons,
     },
     weights::{
         constants::{
@@ -102,11 +105,11 @@ use xcm::latest::{prelude::*, AssetId as XcmAssetId, Weight as XCMWeight};
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
-    FungiblesAdapter, ParentIsPreset, RelayChainAsNative, NoChecking, MintLocation,
+    FungiblesAdapter, MintLocation, NoChecking, ParentIsPreset, RelayChainAsNative,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
     SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::{Config, XcmExecutor, traits::WithOriginFilter};
+use xcm_executor::{traits::WithOriginFilter, Config, XcmExecutor};
 
 pub use subbridge_pallets::{
     chainbridge, dynamic_trader::DynamicWeightTrader, fungible_adapter::XTransferAdapter, helper,
@@ -220,9 +223,7 @@ pub type Executive = frame_executive::Executive<
 
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`.
-type Migrations = (
-    pallet_collator_selection::migration::v1::MigrateToV1<Runtime>,
-);
+type Migrations = (pallet_collator_selection::migration::v1::MigrateToV1<Runtime>,);
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
@@ -815,11 +816,29 @@ impl pallet_tips::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type DataDepositPerByte = DataDepositPerByte;
     type MaximumReasonLength = MaximumReasonLength;
-    type Tippers = PhragmenElection;
+    type Tippers = CouncilMembers;
     type TipCountdown = TipCountdown;
     type TipFindersFee = TipFindersFee;
     type TipReportDepositBase = TipReportDepositBase;
     type WeightInfo = pallet_tips::weights::SubstrateWeight<Runtime>;
+}
+
+pub struct CouncilMembers;
+impl SortedMembers<AccountId32> for CouncilMembers {
+    fn sorted_members() -> Vec<AccountId32> {
+        Council::members()
+    }
+    fn count() -> usize {
+        pallet_collective::Members::<Runtime, CouncilCollective>::decode_len().unwrap_or(0)
+    }
+}
+impl ContainsLengthBound for CouncilMembers {
+    fn max_len() -> usize {
+        CouncilMaxMembers::get() as usize
+    }
+    fn min_len() -> usize {
+        0
+    }
 }
 
 parameter_types! {
@@ -1148,7 +1167,8 @@ impl pallet_treasury::Config for Runtime {
             EnsureRoot<AccountId>,
             pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
         >,
-        AccountId, MaxBalance,
+        AccountId,
+        MaxBalance,
     >;
 }
 
@@ -1807,8 +1827,8 @@ impl phala_pallets::PhalaConfig for Runtime {
 
 impl pallet_phat::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type InkCodeSizeLimit = ConstU32<{1024*1024*2}>;
-    type SidevmCodeSizeLimit = ConstU32<{1024*1024*8}>;
+    type InkCodeSizeLimit = ConstU32<{ 1024 * 1024 * 2 }>;
+    type SidevmCodeSizeLimit = ConstU32<{ 1024 * 1024 * 8 }>;
     type Currency = Balances;
 }
 impl pallet_phat_tokenomic::Config for Runtime {
