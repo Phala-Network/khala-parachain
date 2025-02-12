@@ -648,6 +648,9 @@ pub fn run() -> Result<()> {
                         .map(|r| r.0)
                         .map_err(Into::into)
                 } else if config.chain_spec.is_khala() {
+                    #[cfg(not(feature = "khala-native"))]
+                    panic!("Khala is not supported");
+                    #[cfg(feature = "khala-native")]
                     return crate::service::khala::start_parachain_node(config, polkadot_config, collator_options, id, hwbench)
                         .await
                         .map(|r| r.0)

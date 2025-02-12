@@ -1,6 +1,6 @@
 [package]
 name = "khala-node"
-version = "0.1.28"
+version = "0.1.29"
 license = "Apache-2.0"
 homepage = "https://phala.network/"
 repository = "https://github.com/Phala-Network/khala-parachain"
@@ -126,7 +126,7 @@ khala-native = ["khala-parachain-runtime"]
 rhala-native = ["rhala-parachain-runtime"]
 thala-native = ["thala-parachain-runtime"]
 shell-native = ["shell-parachain-runtime"]
-all-runtimes = ["phala-native", "khala-native", "rhala-native", "thala-native", "shell-native"]
+all-runtimes = ["phala-native", "rhala-native", "thala-native", "shell-native"]
 
 runtime-benchmarks = [
 	"polkadot-cli/runtime-benchmarks",
