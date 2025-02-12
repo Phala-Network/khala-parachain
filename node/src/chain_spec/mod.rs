@@ -31,7 +31,7 @@ pub mod thala;
 pub mod shell;
 
 /// Default `ChainSpec`.
-pub type ChainSpec = khala::ChainSpec;
+pub type ChainSpec = phala::ChainSpec;
 
 /// The extensions for the [`ChainSpec`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
