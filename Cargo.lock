@@ -14179,7 +14179,7 @@ checksum = "95059e91184749cb66be6dc994f67f182b6d897cb3df74a5bf66b5e709295fd8"
 
 [[package]]
 name = "thala-parachain-runtime"
-version = "0.1.20"
+version = "0.1.29"
 dependencies = [
  "assets-registry",
  "cumulus-pallet-aura-ext",
