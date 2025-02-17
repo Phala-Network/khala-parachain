@@ -1,6 +1,6 @@
 [package]
 name = "khala-node"
-version = "0.1.29"
+version = "0.1.29-1"
 license = "Apache-2.0"
 homepage = "https://phala.network/"
 repository = "https://github.com/Phala-Network/khala-parachain"
@@ -36,8 +36,8 @@ rhala-parachain-runtime = { path = "../runtime/rhala", optional = true }
 thala-parachain-runtime = { path = "../runtime/thala", optional = true }
 shell-parachain-runtime = { path = "../runtime/shell", package = "shell-runtime", optional = true }
 
-pallet-mq-runtime-api = { git = "https://github.com/Phala-Network/phala-blockchain.git", tag = "runtime-release-v1270" }
-phala-node-rpc-ext = { git = "https://github.com/Phala-Network/phala-blockchain.git", tag = "runtime-release-v1270" }
+pallet-mq-runtime-api = { git = "https://github.com/Phala-Network/phala-blockchain.git", tag = "runtime-release-v1291" }
+phala-node-rpc-ext = { git = "https://github.com/Phala-Network/phala-blockchain.git", tag = "runtime-release-v1291" }
 
 frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0" }
 frame-benchmarking-cli = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.2.0" }
